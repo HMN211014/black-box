@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Black BOX</title>
+<style>
+:root{--bg:#000;--fg:#f5f5f7;--muted:#98989d;--glass:rgba(40,40,44,.72);--r:22px}
+*{box-sizing:border-box;margin:0}
+html{-webkit-text-size-adjust:100%}
+html,body{background:var(--bg);color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue",Inter,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+body{min-height:100vh;min-height:100dvh;padding:56px 0 0;background:linear-gradient(180deg,#000 0,#000 45%,#040714 70%,#0a1f5c 100%) no-repeat}
+header{padding:0 5vw;margin-bottom:28px;display:flex;align-items:baseline;gap:16px}
+h1{font-size:clamp(34px,5vw,56px);font-weight:700;letter-spacing:-.03em}
+header p{color:var(--muted);font-size:17px}
+.hero{position:relative;margin:0 5vw;height:clamp(420px,64vh,660px);border-radius:28px;overflow:hidden;background:var(--g);box-shadow:0 30px 80px rgba(0,0,0,.7);isolation:isolate}
+.hero::before{content:"";position:absolute;inset:0;background:var(--img,none) center/cover;z-index:-2}
+.hero video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-1}
+.hero::after{content:"";position:absolute;inset:0;background:linear-gradient(0deg,rgba(0,0,0,.88) 0,rgba(0,0,0,.35) 45%,transparent 75%),linear-gradient(90deg,rgba(0,0,0,.55),transparent 60%)}
+.hcopy{position:absolute;left:clamp(22px,4vw,56px);right:clamp(22px,4vw,56px);bottom:clamp(26px,5vw,56px);z-index:1;max-width:620px;transition:opacity .25s,transform .25s}
+.hero.out .hcopy{opacity:0;transform:translateY(8px)}
+.hmeta{color:#d1d1d6;font-size:15px}
+.hcopy h2{font-size:clamp(34px,6vw,68px);letter-spacing:-.035em;line-height:1;margin:8px 0 12px}
+.hd{font-size:clamp(15px,1.6vw,18px);line-height:1.45;color:#ececf0;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;max-width:52ch}
+.hact{display:flex;gap:12px;margin-top:20px;flex-wrap:wrap}
+.dots{position:absolute;right:24px;bottom:28px;display:flex;gap:10px;z-index:1}
+.dots button{position:relative;width:8px;height:8px;border-radius:8px;border:0;padding:0;background:rgba(255,255,255,.4);cursor:pointer;transition:width .25s,background .25s}
+.dots button::after{content:"";position:absolute;inset:-10px}
+.dots button.on{width:26px;background:#fff}
+.rt{padding:0 5vw;margin-top:40px;font-size:22px;letter-spacing:-.02em}
+.end{margin-top:56px;padding:110px 5vw calc(56px + env(safe-area-inset-bottom,0px));text-align:center;background:radial-gradient(90% 100% at 50% 130%,#1f80e0 0,#113CCF 35%,rgba(17,60,207,0) 72%),radial-gradient(45% 70% at 12% 110%,rgba(28,207,211,.55),transparent 70%),radial-gradient(45% 70% at 90% 110%,rgba(120,80,255,.4),transparent 70%)}
+.end b{display:block;font-size:clamp(28px,5vw,44px);letter-spacing:-.03em;margin-bottom:6px}
+.end span{color:#b8c7ff;font-size:15px}
+.row{position:relative}
+.track{overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;display:flex;gap:22px;overflow-x:auto;scroll-snap-type:x mandatory;padding:26px 5vw 40px;scroll-padding:0 5vw;scrollbar-width:none}
+.track::-webkit-scrollbar{display:none}
+.card{-webkit-tap-highlight-color:transparent;flex:0 0 clamp(170px,19vw,260px);aspect-ratio:2/3;border:0;border-radius:var(--r);position:relative;overflow:hidden;cursor:pointer;scroll-snap-align:start;color:#fff;text-align:left;
+  background:var(--g);box-shadow:0 10px 30px rgba(0,0,0,.6);transition:transform .25s ease,box-shadow .25s ease;transform-style:preserve-3d;will-change:transform}
+.card:hover,.card:focus-visible{box-shadow:0 26px 60px rgba(0,0,0,.85),0 0 0 3px rgba(255,255,255,.9);z-index:2}
+.card:focus-visible{outline:none}
+.card img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.card .t{position:absolute;left:16px;right:16px;bottom:16px;font-size:clamp(18px,2vw,24px);font-weight:700;letter-spacing:-.02em;line-height:1.1;text-shadow:0 2px 12px rgba(0,0,0,.5)}
+.card .shine{position:absolute;inset:0;background:radial-gradient(circle at var(--mx,50%) var(--my,0%),rgba(255,255,255,.28),transparent 55%);opacity:0;transition:opacity .25s}
+.card:hover .shine{opacity:1}
+.nav{position:absolute;top:50%;transform:translateY(-60%);width:48px;height:48px;border-radius:50%;border:0;background:var(--glass);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);color:#fff;font-size:22px;cursor:pointer;z-index:3;opacity:0;transition:opacity .2s}
+.row:hover .nav,.nav:focus-visible{opacity:1}
+.nav.prev{left:1.5vw}.nav.next{right:1.5vw}
+@media(hover:none){.nav{display:none}}
+dialog{border:0;padding:0;background:transparent;color:var(--fg);max-width:min(860px,92vw);width:100%;margin:auto}
+dialog::backdrop{background:rgba(0,0,0,.6);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+dialog[open]{animation:pop .28s cubic-bezier(.2,.9,.3,1.2)}
+@keyframes pop{from{opacity:0;transform:scale(.94)}to{opacity:1;transform:none}}
+.sheet{display:grid;grid-template-columns:minmax(150px,260px) 1fr;gap:32px;padding:32px;border-radius:32px;background:var(--glass);backdrop-filter:blur(40px) saturate(1.6);-webkit-backdrop-filter:blur(40px) saturate(1.6);box-shadow:0 40px 100px rgba(0,0,0,.7)}
+.sheet .poster{aspect-ratio:2/3;border-radius:18px;background:var(--g);position:relative;overflow:hidden}
+.sheet .poster img{width:100%;height:100%;object-fit:cover}
+.info{display:flex;flex-direction:column;justify-content:center;gap:14px}
+.info h2{font-size:clamp(26px,4vw,40px);letter-spacing:-.03em;line-height:1.05}
+.meta{color:var(--muted);font-size:15px}
+.desc{font-size:17px;line-height:1.5;color:#e5e5ea;max-width:52ch}
+.actions{display:flex;gap:12px;margin-top:10px;flex-wrap:wrap}
+.btn{-webkit-tap-highlight-color:transparent;display:inline-block;padding:13px 28px;border-radius:999px;font-size:16px;font-weight:600;text-decoration:none;border:0;cursor:pointer;font-family:inherit}
+.btn.primary{background:#fff;color:#000}
+.btn.ghost{background:rgba(255,255,255,.16);color:#fff}
+.btn:focus-visible{outline:3px solid #fff;outline-offset:3px}
+@keyframes up{from{transform:translateY(100%)}to{transform:none}}
+@media(max-width:620px){
+  body{padding-top:calc(36px + env(safe-area-inset-top,0px))}
+ .hero{margin:0 20px;height:clamp(440px,66vh,560px);border-radius:22px}
+ .hcopy{left:20px;right:20px;bottom:56px}
+ .dots{left:20px;right:auto;bottom:22px}
+ .hact .btn{width:auto;flex:1;min-height:48px;padding:14px 16px}
+ .rt{padding:0 20px;margin-top:28px;font-size:20px}
+ .end{padding-top:80px}
+ header{flex-direction:column;gap:4px;align-items:flex-start;padding:0 20px}
+ header p{font-size:15px}
+ .track{gap:14px;padding:18px 20px 32px;scroll-padding:0 20px}
+ .card{flex-basis:58vw;max-width:240px;border-radius:18px}
+ .card .t{font-size:20px;left:14px;right:14px;bottom:14px}
+ dialog{max-width:100%;max-height:92vh;max-height:92dvh;margin:auto 0 0 0}
+ dialog[open]{animation:up .32s cubic-bezier(.2,.9,.3,1)}
+ .sheet{grid-template-columns:1fr;gap:18px;padding:22px 20px calc(24px + env(safe-area-inset-bottom,0px));border-radius:28px 28px 0 0;max-height:92vh;max-height:92dvh;overflow-y:auto}
+ .sheet .poster{width:120px;justify-self:center}
+ .info{text-align:center;align-items:center}
+ .desc{font-size:16px}
+ .actions{flex-direction:column;width:100%}
+ .btn{width:100%;text-align:center;min-height:50px;padding:15px 24px}
+}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<header><h1>Black BOX</h1><p>Tu colección de películas</p></header>
+<section class="hero" id="hero" aria-label="Destacadas">
+  <video id="hv" muted playsinline loop hidden></video>
+  <div class="hcopy">
+    <p class="hmeta" id="hm"></p>
+    <h2 id="ht"></h2>
+    <p class="hd" id="hd"></p>
+    <div class="hact">
+      <a class="btn primary" id="hl" target="_blank" rel="noopener">Ver ahora</a>
+      <button class="btn ghost" id="hi">Más información</button>
+    </div>
+  </div>
+  <div class="dots" id="dots"></div>
+</section>
+<h3 class="rt">Todas las películas</h3>
+<section class="row" aria-label="Películas">
+  <button class="nav prev" aria-label="Anterior">‹</button>
+  <div class="track" id="track"></div>
+  <button class="nav next" aria-label="Siguiente">›</button>
+</section>
+<footer class="end"><b>Black BOX</b><span>Tu colección de películas</span></footer>
+
+<dialog id="dlg" aria-labelledby="dt">
+  <div class="sheet">
+    <div class="poster" id="dp"></div>
+    <div class="info">
+      <h2 id="dt"></h2>
+      <p class="meta" id="dm"></p>
+      <p class="desc" id="dd"></p>
+      <div class="actions">
+        <a class="btn primary" id="dl" target="_blank" rel="noopener">Ver ahora</a>
+        <button class="btn ghost" id="dc">Cerrar</button>
+      </div>
+    </div>
+  </div>
+</dialog>
+
+<script>
+/* ============================================================
+   AQUÍ AGREGAS TUS PELÍCULAS. Copia un bloque { ... }, cambia
+   los datos y pega el enlace de donde la tienes alojada en "link".
+   "poster" es opcional (URL de una imagen); si lo dejas vacío
+   se muestra una portada de color con el título.
+   Para el banner de arriba también puedes agregar (opcionales):
+   "fondo": URL de una imagen horizontal para el banner.
+   "trailer": URL de un video .mp4 corto (se reproduce sin sonido).
+   ============================================================ */
+const peliculas = [
+  { titulo:"Interestelar",  anio:2014, genero:"Ciencia ficción", duracion:"2 h 49 min",
+    descripcion:"Un grupo de astronautas viaja a través de un agujero de gusano en busca de un nuevo hogar para la humanidad.",
+    link:"https://tu-servidor.com/interestelar", poster:"" },
+  { titulo:"El Padrino",    anio:1972, genero:"Drama / Crimen", duracion:"2 h 55 min",
+    descripcion:"La saga de la familia Corleone y el relevo del poder dentro de una de las mafias más temidas de Nueva York.",
+    link:"https://tu-servidor.com/el-padrino", poster:"" },
+  { titulo:"Parásitos",     anio:2019, genero:"Thriller", duracion:"2 h 12 min",
+    descripcion:"Una familia sin recursos se infiltra poco a poco en la vida de una familia adinerada, con consecuencias inesperadas.",
+    link:"https://tu-servidor.com/parasitos", poster:"" },
+  { titulo:"Blade Runner",  anio:1982, genero:"Ciencia ficción", duracion:"1 h 57 min",
+    descripcion:"En un Los Ángeles futurista, un cazador de replicantes persigue a cuatro androides fugitivos.",
+    link:"https://tu-servidor.com/blade-runner", poster:"" },
+  { titulo:"Coco",          anio:2017, genero:"Animación", duracion:"1 h 45 min",
+    descripcion:"Miguel viaja a la Tierra de los Muertos para descubrir la historia de su familia y el poder de la música.",
+    link:"https://tu-servidor.com/coco", poster:"" },
+  { titulo:"Mad Max: Furia en el camino", anio:2015, genero:"Acción", duracion:"2 h",
+    descripcion:"Una persecución implacable por el desierto con una huida que puede cambiarlo todo.",
+    link:"https://tu-servidor.com/mad-max", poster:"" }
+];
+
+const track = document.getElementById('track'), dlg = document.getElementById('dlg');
+const grad = t => { let h = 0; for (const c of t) h = (h*31 + c.charCodeAt(0)) % 360;
+  return `linear-gradient(155deg,hsl(${h} 55% 38%),hsl(${(h+50)%360} 60% 14%))`; };
+const poster = (p, el) => {
+  el.style.setProperty('--g', grad(p.titulo));
+  if (p.poster) { const i = new Image(); i.alt = ''; i.src = p.poster; i.onerror = () => i.remove(); el.prepend(i); }
+};
+
+peliculas.forEach(p => {
+  const b = document.createElement('button');
+  b.className = 'card'; b.setAttribute('aria-label', p.titulo);
+  b.innerHTML = '<span class="t"></span><span class="shine"></span>';
+  b.querySelector('.t').textContent = p.titulo;
+  poster(p, b);
+  b.addEventListener('click', () => abrir(p));
+  b.addEventListener('pointermove', e => {
+    if (e.pointerType !== 'mouse' || matchMedia('(prefers-reduced-motion:reduce)').matches) return;
+    const r = b.getBoundingClientRect(), x = (e.clientX - r.left)/r.width, y = (e.clientY - r.top)/r.height;
+    b.style.transform = `perspective(700px) rotateY(${(x-.5)*14}deg) rotateX(${(.5-y)*14}deg) scale(1.06)`;
+    b.style.setProperty('--mx', x*100+'%'); b.style.setProperty('--my', y*100+'%');
+  });
+  b.addEventListener('pointerleave', () => b.style.transform = '');
+  b.addEventListener('focus', () => b.style.transform = 'scale(1.06)');
+  b.addEventListener('blur', () => b.style.transform = '');
+  track.appendChild(b);
+});
+
+function abrir(p) {
+  document.getElementById('dt').textContent = p.titulo;
+  document.getElementById('dm').textContent = [p.anio, p.genero, p.duracion].filter(Boolean).join('  ·  ');
+  document.getElementById('dd').textContent = p.descripcion;
+  document.getElementById('dl').href = p.link;
+  const dp = document.getElementById('dp'); dp.innerHTML = ''; poster(p, dp);
+  dlg.showModal();
+}
+document.getElementById('dc').onclick = () => dlg.close();
+dlg.addEventListener('click', e => { if (e.target === dlg) dlg.close(); });
+
+const paso = () => track.clientWidth * .8;
+document.querySelector('.prev').onclick = () => track.scrollBy({left:-paso(), behavior:'smooth'});
+document.querySelector('.next').onclick = () => track.scrollBy({left: paso(), behavior:'smooth'});
+
+/* ---------- Banner destacado: películas al azar ---------- */
+const H = id => document.getElementById(id);
+const hero = H('hero'), hv = H('hv'), reduce = matchMedia('(prefers-reduced-motion:reduce)').matches;
+const orden = [...peliculas].sort(() => Math.random() - .5);
+let idx = 0, timer;
+orden.forEach((p, i) => {
+  const d = document.createElement('button');
+  d.setAttribute('aria-label', p.titulo);
+  d.onclick = () => { mostrar(i); auto(); };
+  H('dots').appendChild(d);
+});
+function mostrar(i) {
+  idx = i; const p = orden[i];
+  hero.classList.add('out');
+  setTimeout(() => {
+    hero.style.setProperty('--g', grad(p.titulo));
+    const bg = p.fondo || p.poster;
+    hero.style.setProperty('--img', bg ? `url("${bg}")` : 'none');
+    H('hm').textContent = [p.anio, p.genero, p.duracion].filter(Boolean).join('  ·  ');
+    H('ht').textContent = p.titulo;
+    H('hd').textContent = p.descripcion;
+    H('hl').href = p.link;
+    H('hi').onclick = () => abrir(p);
+    if (p.trailer && !reduce) { hv.src = p.trailer; hv.hidden = false; hv.play().catch(() => { hv.hidden = true; }); }
+    else { hv.hidden = true; hv.removeAttribute('src'); hv.load(); }
+    [...H('dots').children].forEach((d, k) => d.classList.toggle('on', k === i));
+    hero.classList.remove('out');
+  }, reduce ? 0 : 250);
+}
+function auto() {
+  clearInterval(timer);
+  if (reduce || orden.length < 2) return;
+  timer = setInterval(() => { if (!dlg.open && !document.hidden) mostrar((idx + 1) % orden.length); }, 9000);
+}
+mostrar(0); auto();
+</script>
+</body>
+</html>
