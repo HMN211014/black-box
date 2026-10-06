@@ -73,6 +73,18 @@ dialog[open]{animation:pop .28s cubic-bezier(.2,.9,.3,1.2)}
 .pf{position:relative;flex:1;min-height:0;background:#000;margin-bottom:env(safe-area-inset-bottom,0px)}
 .pf iframe,.pf video{position:absolute;inset:0;width:100%;height:100%;border:0;background:#000}
 .pf .blk{position:absolute;top:0;right:0;width:72px;height:72px;z-index:2}
+@media (orientation:landscape) and (max-height:520px){
+ .pbar{padding:calc(env(safe-area-inset-top,0px) + 4px) calc(env(safe-area-inset-right,0px) + 12px) 4px calc(env(safe-area-inset-left,0px) + 12px);gap:10px}
+ .pback{width:38px;height:38px;font-size:22px}
+ .ptitle{font-size:16px}
+ .pf{margin-left:env(safe-area-inset-left,0px);margin-right:env(safe-area-inset-right,0px)}
+}
+@media (orientation:portrait) and (pointer:coarse) and (max-width:900px){
+ #player{inset:auto;top:0;left:0;width:100vh;width:100dvh;height:100vw;height:100dvw;transform-origin:top left;transform:rotate(90deg) translateY(-100%)}
+ .pbar{padding:8px 16px 8px calc(env(safe-area-inset-top,0px) + 12px)}
+ .pback{width:38px;height:38px;font-size:22px}
+ .pf{margin-bottom:0;margin-right:env(safe-area-inset-bottom,0px)}
+}
 @media(max-width:620px){
   body{padding-top:calc(36px + env(safe-area-inset-top,0px))}
  .hero{margin:0 20px;height:clamp(440px,66vh,560px);border-radius:22px}
@@ -247,11 +259,19 @@ function reproducir(p) {
   document.body.style.overflow = 'hidden';
   history.pushState({player:1}, '');
   document.getElementById('pb').focus();
+  modoHorizontal();
+}
+async function modoHorizontal() {
+  if (!matchMedia('(pointer:coarse)').matches) return;
+  try { if (!document.fullscreenElement && pl.requestFullscreen) await pl.requestFullscreen(); } catch (e) {}
+  try { await screen.orientation.lock('landscape'); } catch (e) {}
 }
 function cerrarPlayer(desdePop) {
   if (pl.hidden) return;
   pl.hidden = true; pf.innerHTML = '';
   document.body.style.overflow = '';
+  try { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); } catch (e) {}
+  try { screen.orientation.unlock(); } catch (e) {}
   if (!desdePop && history.state && history.state.player) history.back();
 }
 document.getElementById('pb').onclick = () => cerrarPlayer();
