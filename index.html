@@ -86,42 +86,6 @@ dialog[open]{animation:pop .28s cubic-bezier(.2,.9,.3,1.2)}
  .btn{width:100%;text-align:center;min-height:50px;padding:15px 24px}
 }
 @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
-
-/* =========================================
-   ESTILOS DEL REPRODUCTOR APPLE TV
-   ========================================= */
-.video-modal {
-  display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-  background: rgba(0, 0, 0, 0.9); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-  z-index: 100000; justify-content: center; align-items: center; flex-direction: column;
-}
-.close-modal {
-  position: absolute; top: 30px; right: 40px; background: rgba(255, 255, 255, 0.2);
-  border: none; color: white; font-size: 24px; width: 50px; height: 50px; border-radius: 50%;
-  cursor: pointer; transition: background 0.3s, transform 0.2s; z-index: 100001;
-}
-.close-modal:hover { background: rgba(255, 255, 255, 0.4); transform: scale(1.1); }
-.apple-tv-player {
-  position: relative; width: 80%; max-width: 1000px; border-radius: 16px;
-  overflow: hidden; box-shadow: 0 30px 60px rgba(0,0,0,0.8); background: #000;
-}
-.apple-tv-player video { width: 100%; display: block; border-radius: 16px; }
-.player-controls {
-  position: absolute; bottom: 20px; left: 20px; right: 20px; display: flex; align-items: center; gap: 15px;
-  padding: 15px 25px; background: rgba(30, 30, 30, 0.5); backdrop-filter: saturate(180%) blur(25px);
-  -webkit-backdrop-filter: saturate(180%) blur(25px); border-radius: 14px; opacity: 0; transition: opacity 0.4s ease;
-}
-.apple-tv-player:hover .player-controls { opacity: 1; }
-.control-btn {
-  background: none; border: none; color: white; font-size: 20px; cursor: pointer;
-  transition: transform 0.2s ease, color 0.2s; padding: 0;
-}
-.control-btn:hover { transform: scale(1.2); color: #fff; }
-.progress-container {
-  flex-grow: 1; height: 8px; background: rgba(255, 255, 255, 0.2); border-radius: 4px; cursor: pointer; position: relative;
-}
-.progress-bar { height: 100%; background: #fff; width: 0%; border-radius: 4px; transition: width 0.1s linear; }
-.time-display { color: #f1f1f1; font-size: 14px; font-variant-numeric: tabular-nums; }
 </style>
 </head>
 <body>
@@ -133,7 +97,7 @@ dialog[open]{animation:pop .28s cubic-bezier(.2,.9,.3,1.2)}
     <h2 id="ht"></h2>
     <p class="hd" id="hd"></p>
     <div class="hact">
-      <button class="btn primary" id="hl">Ver ahora</button>
+      <a class="btn primary" id="hl" target="_blank" rel="noopener">Ver ahora</a>
       <button class="btn ghost" id="hi">Más información</button>
     </div>
   </div>
@@ -155,34 +119,27 @@ dialog[open]{animation:pop .28s cubic-bezier(.2,.9,.3,1.2)}
       <p class="meta" id="dm"></p>
       <p class="desc" id="dd"></p>
       <div class="actions">
-        <button class="btn primary" id="dl">Ver ahora</button>
+        <a class="btn primary" id="dl" target="_blank" rel="noopener">Ver ahora</a>
         <button class="btn ghost" id="dc">Cerrar</button>
       </div>
     </div>
   </div>
 </dialog>
 
-<!-- REPRODUCTOR MODAL -->
-<div id="videoModal" class="video-modal">
-  <button id="closeModalBtn" class="close-modal">✕</button>
-  <div class="apple-tv-player">
-    <video id="myVideo" preload="metadata"></video>
-    <div class="player-controls">
-      <button id="playPauseBtn" class="control-btn">▶</button>
-      <div class="progress-container" id="progressContainer">
-        <div class="progress-bar" id="progressBar"></div>
-      </div>
-      <div class="time-display" id="timeDisplay">00:00 / 00:00</div>
-      <button id="fullscreenBtn" class="control-btn">⛶</button>
-    </div>
-  </div>
-</div>
-
 <script>
+/* ============================================================
+   AQUÍ AGREGAS TUS PELÍCULAS. Copia un bloque { ... }, cambia
+   los datos y pega el enlace de donde la tienes alojada en "link".
+   "poster" es opcional (URL de una imagen); si lo dejas vacío
+   se muestra una portada de color con el título.
+   Para el banner de arriba también puedes agregar (opcionales):
+   "fondo": URL de una imagen horizontal para el banner.
+   "trailer": URL de un video .mp4 corto (se reproduce sin sonido).
+   ============================================================ */
 const peliculas = [
   { titulo:"Spiderman:Brand New day",  anio:2026, genero:"Ciencia ficción", duracion:"2 h 30 min",
     descripcion:"Trabajando como un héroe a tiempo completo en Nueva York, la enorme presión y el estrés de su doble vida desencadenan una inesperada evolución física que apenas puede controlar. Al mismo tiempo, una nueva y peligrosa amenaza con un poderoso villano invisible y una ola de crímenes lo arrastran a un misterio urgente para proteger a la ciudad y a quienes ama en secreto",
-    link:"https://drive.google.com/file/d/1Ms3_rgaQCKmYeSBiAiDOXBvZ6yncD8IT/view?usp=sharing", poster:"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTkUwj3x2qF4D6tC-kZsjDOB0jpKFfHlT2axoo6iwGa5VzpdVg14qVfhI9d&s=10" },
+    link:"https://drive.google.com/file/d/1Ms3_rgaQCKmYeSBiAiDOXBvZ6yncD8IT/view?usp=drive_link", poster:"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTkUwj3x2qF4D6tC-kZsjDOB0jpKFfHlT2axoo6iwGa5VzpdVg14qVfhI9d&s=10" },
   { titulo:"El Padrino",    anio:1972, genero:"Drama / Crimen", duracion:"2 h 55 min",
     descripcion:"La saga de la familia Corleone y el relevo del poder dentro de una de las mafias más temidas de Nueva York.",
     link:"https://tu-servidor.com/el-padrino", poster:"" },
@@ -231,7 +188,7 @@ function abrir(p) {
   document.getElementById('dt').textContent = p.titulo;
   document.getElementById('dm').textContent = [p.anio, p.genero, p.duracion].filter(Boolean).join('  ·  ');
   document.getElementById('dd').textContent = p.descripcion;
-  document.getElementById('dl').onclick = () => abrirReproductor(p.link);
+  document.getElementById('dl').href = p.link;
   const dp = document.getElementById('dp'); dp.innerHTML = ''; poster(p, dp);
   dlg.showModal();
 }
@@ -242,6 +199,7 @@ const paso = () => track.clientWidth * .8;
 document.querySelector('.prev').onclick = () => track.scrollBy({left:-paso(), behavior:'smooth'});
 document.querySelector('.next').onclick = () => track.scrollBy({left: paso(), behavior:'smooth'});
 
+/* ---------- Banner destacado: películas al azar ---------- */
 const H = id => document.getElementById(id);
 const hero = H('hero'), hv = H('hv'), reduce = matchMedia('(prefers-reduced-motion:reduce)').matches;
 const orden = [...peliculas].sort(() => Math.random() - .5);
@@ -262,7 +220,7 @@ function mostrar(i) {
     H('hm').textContent = [p.anio, p.genero, p.duracion].filter(Boolean).join('  ·  ');
     H('ht').textContent = p.titulo;
     H('hd').textContent = p.descripcion;
-    H('hl').onclick = () => abrirReproductor(p.link);
+    H('hl').href = p.link;
     H('hi').onclick = () => abrir(p);
     if (p.trailer && !reduce) { hv.src = p.trailer; hv.hidden = false; hv.play().catch(() => { hv.hidden = true; }); }
     else { hv.hidden = true; hv.removeAttribute('src'); hv.load(); }
@@ -273,87 +231,10 @@ function mostrar(i) {
 function auto() {
   clearInterval(timer);
   if (reduce || orden.length < 2) return;
-  timer = setInterval(() => { if (!dlg.open && !document.hidden && H('videoModal').style.display !== 'flex') mostrar((idx + 1) % orden.length); }, 9000);
+  timer = setInterval(() => { if (!dlg.open && !document.hidden) mostrar((idx + 1) % orden.length); }, 9000);
 }
 mostrar(0); auto();
-
-/* =========================================
-   LÓGICA DEL REPRODUCTOR Y GOOGLE DRIVE
-   ========================================= */
-const videoModal = H('videoModal');
-const closeModalBtn = H('closeModalBtn');
-const video = H('myVideo');
-const playPauseBtn = H('playPauseBtn');
-const progressContainer = H('progressContainer');
-const progressBar = H('progressBar');
-const timeDisplay = H('timeDisplay');
-const fullscreenBtn = H('fullscreenBtn');
-
-function transformarDriveEnlace(url) {
-  // Extrae el ID automáticamente si pegas el enlace normal de "compartir" de Drive
-  const match = url.match(/\/d\/(.+?)\//) || url.match(/id=(.+?)(&|$)/);
-  if (match && match[1]) {
-    return `https://drive.google.com/uc?export=download&id=${match[1]}`;
-  }
-  return url; // Si no es de Drive o ya está formateado, lo deja igual
-}
-
-function abrirReproductor(enlaceOriginal) {
-  video.src = transformarDriveEnlace(enlaceOriginal);
-  videoModal.style.display = 'flex';
-  video.play();
-  playPauseBtn.textContent = '⏸';
-  if(dlg.open) dlg.close(); // Cierra los detalles si estaban abiertos
-}
-
-closeModalBtn.addEventListener('click', () => {
-  videoModal.style.display = 'none';
-  video.pause();
-  video.src = ''; // Limpia el video al cerrar
-});
-
-playPauseBtn.addEventListener('click', togglePlay);
-video.addEventListener('click', togglePlay);
-
-function togglePlay() {
-  if (video.paused) {
-    video.play();
-    playPauseBtn.textContent = '⏸';
-  } else {
-    video.pause();
-    playPauseBtn.textContent = '▶';
-  }
-}
-
-video.addEventListener('timeupdate', () => {
-  if (isNaN(video.duration)) return;
-  const percent = (video.currentTime / video.duration) * 100;
-  progressBar.style.width = `${percent}%`;
-
-  let currentMinutes = Math.floor(video.currentTime / 60);
-  let currentSeconds = Math.floor(video.currentTime - currentMinutes * 60);
-  let durationMinutes = Math.floor(video.duration / 60);
-  let durationSeconds = Math.floor(video.duration - durationMinutes * 60);
-
-  if(currentSeconds < 10) currentSeconds = "0" + currentSeconds;
-  if(durationSeconds < 10) durationSeconds = "0" + durationSeconds;
-
-  timeDisplay.textContent = `${currentMinutes}:${currentSeconds} / ${durationMinutes}:${durationSeconds}`;
-});
-
-progressContainer.addEventListener('click', (e) => {
-  const newTime = (e.offsetX / progressContainer.offsetWidth) * video.duration;
-  video.currentTime = newTime;
-});
-
-fullscreenBtn.addEventListener('click', () => {
-  const player = document.querySelector('.apple-tv-player');
-  if (!document.fullscreenElement) {
-    player.requestFullscreen().catch(err => console.log(err));
-  } else {
-    document.exitFullscreen();
-  }
-});
 </script>
 </body>
 </html>
+
