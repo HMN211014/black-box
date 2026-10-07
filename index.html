@@ -175,6 +175,32 @@ svg.st text{fill:currentColor;stroke:none}
   #intro .arco,#intro .glow,#intro .logo,#intro .nombre{animation-duration:.01s;animation-delay:0s}
   #intro .stars{display:none}
 }
+
+/* ---------- Resplandor detrás del banner (color del póster) ---------- */
+@property --glow{syntax:'<color>';inherits:true;initial-value:#1f4fff}
+.herowrap{position:relative;--glow:#1f4fff;transition:--glow .9s ease}
+.herowrap::before{content:"";position:absolute;left:calc(5vw - 8px);right:calc(5vw - 8px);top:12%;bottom:-14px;z-index:0;pointer-events:none;background:var(--glow);border-radius:36px;filter:blur(52px);opacity:.62}
+.hero{position:relative;z-index:1;box-shadow:0 0 0 1px rgba(255,255,255,.06)}
+
+/* ---------- Buscador (arriba a la derecha) ---------- */
+.card[hidden]{display:none}
+.buscar{position:relative;margin-left:auto;align-self:center;display:flex;align-items:center;width:clamp(150px,22vw,240px);height:40px;border-radius:999px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.14);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);z-index:5;transition:width .3s cubic-bezier(.2,.9,.3,1),background .2s,border-color .2s}
+.buscar:focus-within{width:clamp(220px,32vw,340px);background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.5)}
+.buscar svg{position:absolute;left:13px;width:17px;height:17px;pointer-events:none;color:var(--muted)}
+.buscar input{width:100%;height:100%;padding:0 38px;border:0;border-radius:999px;background:transparent;color:var(--fg);font:inherit;font-size:16px;outline:none;-webkit-appearance:none;appearance:none;-webkit-user-select:text;user-select:text}
+.buscar input::placeholder{color:var(--muted)}
+.buscar input::-webkit-search-cancel-button,.buscar input::-webkit-search-decoration{-webkit-appearance:none;display:none}
+.buscar .x{position:absolute;right:6px;width:28px;height:28px;border:0;border-radius:50%;background:rgba(255,255,255,.2);color:#fff;font-size:13px;line-height:1;cursor:pointer;display:none;place-items:center;-webkit-tap-highlight-color:transparent}
+.buscar.lleno .x{display:grid}
+.sinres{padding:0 5vw 40px;color:var(--muted);font-size:17px}
+.sinres[hidden]{display:none}
+@media(max-width:620px){
+ .herowrap::before{left:12px;right:12px;bottom:-10px;filter:blur(40px)}
+ header{position:relative}
+ .buscar{position:absolute;right:20px;top:0;margin:0;width:132px;height:38px}
+ .buscar:focus-within{width:calc(100vw - 40px)}
+ .sinres{padding:0 20px 32px}
+}
 </style>
 <link rel="manifest" href="/manifest.webmanifest">
 <meta name="theme-color" content="#000000">
@@ -197,7 +223,14 @@ svg.st text{fill:currentColor;stroke:none}
 </script>
 </head>
 <body>
-<header><h1>Black BOX</h1><p>Tu colección de películas</p></header>
+<header><h1>Black BOX</h1><p>Tu colección de películas</p>
+  <div class="buscar" id="bbox" role="search">
+    <svg class="st" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+    <input id="bq" type="search" placeholder="Buscar" aria-label="Buscar películas" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search">
+    <button class="x" id="bx" type="button" aria-label="Borrar búsqueda">✕</button>
+  </div>
+</header>
+<div class="herowrap" id="herowrap">
 <section class="hero" id="hero" aria-label="Destacadas">
   <video id="hv" muted playsinline loop hidden></video>
   <div class="hcopy">
@@ -211,7 +244,8 @@ svg.st text{fill:currentColor;stroke:none}
   </div>
   <div class="dots" id="dots"></div>
 </section>
-<h3 class="rt">Todas las películas</h3>
+</div>
+<h3 class="rt" id="rt">Todas las películas</h3>
 <section class="row" aria-label="Películas">
   <button class="nav prev" aria-label="Anterior">‹</button>
   <div class="track" id="track"></div>
@@ -437,6 +471,42 @@ orden.forEach((p, i) => {
   d.onclick = () => { mostrar(i); auto(); };
   H('dots').appendChild(d);
 });
+/* ---------- Resplandor del banner: color dominante del póster ---------- */
+const wrap = H('herowrap'), colores = new Map();
+const hueDe = t => { let h = 0; for (const c of t) h = (h*31 + c.charCodeAt(0)) % 360; return `hsl(${h} 70% 48%)`; };
+function dominante(img) {
+  const w = 32, h = 48, c = document.createElement('canvas'); c.width = w; c.height = h;
+  const x = c.getContext('2d', { willReadFrequently: true });
+  x.drawImage(img, 0, 0, w, h);
+  const d = x.getImageData(0, 0, w, h).data;
+  const cub = Array.from({ length: 12 }, () => ({ w: 0, r: 0, g: 0, b: 0 }));
+  for (let k = 0; k < d.length; k += 4) {
+    if (d[k+3] < 200) continue;
+    const r = d[k]/255, g = d[k+1]/255, b = d[k+2]/255;
+    const mx = Math.max(r, g, b), mn = Math.min(r, g, b), dd = mx - mn, l = (mx + mn) / 2;
+    if (dd < .1 || l < .12 || l > .9) continue;                   // ignora grises, negros y blancos
+    const hh = mx === r ? ((g - b) / dd + 6) % 6 : mx === g ? (b - r) / dd + 2 : (r - g) / dd + 4;
+    const q = cub[Math.floor(hh * 2) % 12];
+    q.w += dd; q.r += r * dd; q.g += g * dd; q.b += b * dd;
+  }
+  const m = cub.reduce((a, b) => b.w > a.w ? b : a);
+  if (!m.w) return 'hsl(220 30% 45%)';
+  const r = m.r / m.w, g = m.g / m.w, b = m.b / m.w;
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b), dd = mx - mn;
+  let l = (mx + mn) / 2, s = dd / (1 - Math.abs(2*l - 1) || 1);
+  let hh = mx === r ? ((g - b) / dd + 6) % 6 : mx === g ? (b - r) / dd + 2 : (r - g) / dd + 4;
+  s = Math.max(s, .55); l = Math.min(Math.max(l, .42), .58);      // más vivo y luminoso para que brille
+  return `hsl(${Math.round(hh * 60)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%)`;
+}
+function resplandor(p) {
+  const url = p.poster || p.fondo, poner = c => wrap.style.setProperty('--glow', c);
+  if (!url) { poner(hueDe(p.titulo)); return; }
+  if (colores.has(url)) { poner(colores.get(url)); return; }
+  poner(hueDe(p.titulo));                                          // color de respaldo mientras llega la imagen
+  const i = new Image(); i.crossOrigin = 'anonymous';
+  i.onload = () => { try { const c = dominante(i); colores.set(url, c); if (orden[idx] === p) poner(c); } catch (e) {} };
+  i.src = url;
+}
 function mostrar(i) {
   idx = i; const p = orden[i];
   hero.classList.add('out');
@@ -444,6 +514,7 @@ function mostrar(i) {
     hero.style.setProperty('--g', grad(p.titulo));
     const bg = p.fondo || p.poster;
     hero.style.setProperty('--img', bg ? `url("${bg}")` : 'none');
+    resplandor(p);
     H('hm').textContent = [p.anio, p.genero, p.duracion].filter(Boolean).join('  ·  ');
     H('ht').textContent = p.titulo;
     H('hd').textContent = p.descripcion;
@@ -643,6 +714,31 @@ function refrescar(p) {
   if (dlg.open && abierta === p) abrir(p);
 }
 peliculas.forEach(p => completar(p).then(c => { if (c) refrescar(p); }));
+
+/* ---------- Buscador: filtra las tarjetas mientras escribes ---------- */
+const bq = H('bq'), bbox = H('bbox'), rt = H('rt');
+const norm = t => (t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+const sinres = document.createElement('p');
+sinres.className = 'sinres'; sinres.hidden = true; sinres.textContent = 'No hay películas con ese nombre.';
+document.querySelector('.row').after(sinres);
+function filtrar() {
+  const q = norm(bq.value); let n = 0;
+  bbox.classList.toggle('lleno', !!bq.value);
+  tarjetas.forEach((b, p) => {
+    const ok = !q || norm(p.titulo + ' ' + (p.buscar || '')).includes(q);
+    b.hidden = !ok; if (ok) n++;
+  });
+  rt.textContent = q ? 'Resultados' : 'Todas las películas';
+  sinres.hidden = !q || n > 0;
+  track.scrollTo({ left: 0 });
+}
+bq.addEventListener('input', filtrar);
+bq.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { bq.value = ''; filtrar(); bq.blur(); }
+  else if (e.key === 'Enter') bq.blur();                          // cierra el teclado en el móvil
+});
+H('bx').onclick = () => { bq.value = ''; filtrar(); bq.focus(); };
+
 </script>
 <div id="intro" aria-hidden="true">
   <div class="glow"></div>
