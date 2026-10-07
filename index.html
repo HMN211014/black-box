@@ -31,6 +31,7 @@ header p{color:var(--muted);font-size:17px}
 .end{margin-top:56px;padding:110px 5vw calc(56px + env(safe-area-inset-bottom,0px));text-align:center;background:radial-gradient(90% 100% at 50% 130%,#1f80e0 0,#113CCF 35%,rgba(17,60,207,0) 72%),radial-gradient(45% 70% at 12% 110%,rgba(28,207,211,.55),transparent 70%),radial-gradient(45% 70% at 90% 110%,rgba(120,80,255,.4),transparent 70%)}
 .end b{display:block;font-size:clamp(28px,5vw,44px);letter-spacing:-.03em;margin-bottom:6px}
 .end span{color:#b8c7ff;font-size:15px}
+.end small{display:block;margin-top:18px;color:rgba(184,199,255,.6);font-size:12px}
 .row{position:relative}
 .track{overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;display:flex;gap:22px;overflow-x:auto;scroll-snap-type:x mandatory;padding:26px 5vw 40px;scroll-padding:0 5vw;scrollbar-width:none}
 .track::-webkit-scrollbar{display:none}
@@ -99,7 +100,9 @@ body{-webkit-user-select:none;user-select:none}
 #pv{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000}
 #pdrive{position:absolute;inset:0;padding:0 var(--sr) 0 var(--sl)}
 #pdrive iframe{display:block;width:100%;height:100%;border:0;background:#000}
-#player.drive #pv,#player.drive .ctl,#player.drive .spin{display:none}
+#player.drive #pv,#player.drive .pmid,#player.drive .pbot,#player.drive .spin{display:none}
+#player.drive .ptop{opacity:1}
+#player.drive .ptop button{pointer-events:auto}
 .ctl{position:absolute;left:0;right:0;pointer-events:none;opacity:0;transition:opacity .25s}
 #player.c .ctl{opacity:1}
 .ctl button,.ctl input{pointer-events:none}
@@ -172,7 +175,7 @@ svg.st text{fill:currentColor;stroke:none}
   <div class="track" id="track"></div>
   <button class="nav next" aria-label="Siguiente">›</button>
 </section>
-<footer class="end"><b>Black BOX</b><span>Tu colección de películas</span></footer>
+<footer class="end"><b>Black BOX</b><span>Tu colección de películas</span><small>Datos e imágenes de TMDB. Este producto usa la API de TMDB pero no está avalado ni certificado por TMDB.</small></footer>
 
 <div id="player" hidden>
   <video id="pv" playsinline preload="metadata"></video>
@@ -227,37 +230,30 @@ svg.st text{fill:currentColor;stroke:none}
 
 <script>
 /* ============================================================
-   AQUÍ AGREGAS TUS PELÍCULAS. Copia un bloque { ... }, cambia
-   los datos y pega en "link" el enlace DIRECTO al video (.mp4 con H.264/AAC, o .m3u8).
-   Si todavía no hay video, deja link:"" y se mostrará "Próximamente".
-   "poster" es opcional (URL de una imagen); si lo dejas vacío
-   se muestra una portada de color con el título.
-   Para el banner de arriba también puedes agregar (opcionales):
-   "fondo": URL de una imagen horizontal para el banner.
-   "trailer": URL de un video .mp4 corto (se reproduce sin sonido).
+   AQUÍ AGREGAS TUS PELÍCULAS. Solo necesitas:  titulo  y  link
+   (enlace directo .mp4 H.264/AAC, .m3u8, o un enlace de Google Drive).
+   Año, género, duración, descripción, póster y fondo del banner
+   los trae solo TMDB. Campos opcionales:
+     buscar:"..."  -> otro nombre para buscar en TMDB (p. ej. el título original)
+     tmdb:1234567  -> número exacto de la película en themoviedb.org
+   Cualquier dato que escribas a mano (anio, genero, duracion,
+   descripcion, poster, fondo, trailer) tiene prioridad sobre TMDB.
    ============================================================ */
 const peliculas = [
-   { titulo:"Spiderman:Brand New day",  anio:2026, genero:"Ciencia ficción", duracion:"2 h 30 min",
-    descripcion:"Trabajando como un héroe a tiempo completo en Nueva York, la enorme presión y el estrés de su doble vida desencadenan una inesperada evolución física que apenas puede controlar. Al mismo tiempo, una nueva y peligrosa amenaza con un poderoso villano invisible y una ola de crímenes lo arrastran a un misterio urgente para proteger a la ciudad y a quienes ama en secreto",
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/%5BPeliculasBluray.Com%5D%20Spider-Man%20Un%20nuevo%20d%C3%ADa%20(2026)%20%5B720P%5D%5BHD%5D.mp4", poster:"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTkUwj3x2qF4D6tC-kZsjDOB0jpKFfHlT2axoo6iwGa5VzpdVg14qVfhI9d&s=10" },
-  { titulo:"Coyote vs Acme",    anio:1972, genero:"Comedia", duracion:"1h 43 min",
-    descripcion:"Coyote vs. Acme es una película de comedia estadounidense dirigida por Dave Green y escrita por Samy Burch a partir de una historia de Burch, James Gunn y Jeremy Slater.​ Combinando acción real y animación, la película está basada en el personaje Wile E. ",
-    link:"https://drive.google.com/file/d/1FToLhskC3P-QbVfO_jfNT0UlrAmhoDEc/view?usp=drivesdk", poster:"https://i0.wp.com/tomatazos.buscafs.com/2026/07/HQQ5dpiWIAAHDjs.jpg?fit=840,1200&quality=75&strip=all" },
-  { titulo:"El hombre que desafio al rey",     anio:2026, genero:"DRAMA", duracion:"2 h 8 min",
-    descripcion:"Ambientada en la Inglaterra del siglo XIV en plena época de la peste y la guerra de Ricardo II, sigue a un humilde campesino que, harto de los impuestos abusivos y la corrupción de la nobleza, lidera una masiva revuelta campesina inspirada en figuras históricas como Wat Tyler.",
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/%5BPeliculasBluray.Com%5D%20El%20hombre%20que%20desafi%C3%B3%20al%20rey%20(2026)%20%5B720P%5D%5BHD%5D.mp4", poster:"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSW4-P0Uf65cjns3b32Yx8DRflDfZKpeLFWNl1zlOMinNkoK_KDWOSGUKE&s=10" },
-  { titulo:"El Corazon de la bestia",  anio:2026, genero:"Ciencia ficción", duracion:"1 h 57 min",
-    descripcion:"",
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/El%20coraz%C3%B3n%20de%20la%20bestia%20(2026)%20%5BAudio-Latino%5D%5BHDTS%5D.mp4", poster:"https://m.media-amazon.com/images/M/MV5BMDVlMTRhMjgtMjdmZi00NjJhLWExMmYtODExNWJkZGZjNjdhXkEyXkFqcGc@._V1_.jpg" },
-  { titulo:"Paw Patrol: Dino Movie",          anio:2026, genero:"Animación", duracion:"1 h 29 min",
-    descripcion:"La aventura cinematográfica más épica de la Patrulla Canina comienza cuando los cachorros aterrizan forzosamente en una misteriosa isla de dinosaurios.",
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/%5BPeliculasBluray.Com%5D%20Paw%20Patrol%20La%20dino%20pel%C3%ADcula%20(2026)%20%5B720P%5D%5BHD%5D.mp4", poster:"https://m.media-amazon.com/images/M/MV5BY2E2Y2Q0Y2ItZTUyZS00MzllLTkwYmQtYjdmNzM3NGRiYjFmXkEyXkFqcGc@._V1_.jpg" },
-  { titulo:"Él final de Oak Street", anio:2026, genero:"Acción", duracion:"1 h 40 m",
-    descripcion:"Una anomalía cósmica sacude los suburbios y una familia debe permanecer unida para sobrevivir a una aventura que desafía la realidad, donde el tiempo se desmorona y el caos invade el vecindario.",
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/THE%20END%20OF%20OAK%20STREAT.mp4", poster:"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSu-Qm6Fpuf2u2_E7XJKaMx8TnTS4-Pz5bicZWuFwfwQQ&s=10" },
-  { titulo:"Evil Dead: En llamas", anio:2026, genero:"terror", duracion:"1 h 51 min",
-    descripcion:"Tras la muerte de su marido, una mujer busca el desahogo con sus suegros en una casa lejos de todo. Sin embargo, todo se convierte en una reunión demoníaca después de que el Libro de la muerte libera fuerzas malignas.",
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/Evil.Dead.En.llamas.2026.720p-Dual-Lat.mkv", poster:""https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRMfJrWJ7DGVkSln9zeZryohf_mXiYfXNdnHINVpKh05UT5GfECyBxMYHBO&s=10 }
+  { titulo:"Spiderman:Brand New day", buscar:"Spider-Man: Brand New Day",
+    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/%5BPeliculasBluray.Com%5D%20Spider-Man%20Un%20nuevo%20d%C3%ADa%20(2026)%20%5B720P%5D%5BHD%5D.mp4" },
+  { titulo:"Coyote vs Acme", buscar:"Coyote vs. Acme",
+    link:"https://drive.google.com/file/d/1FToLhskC3P-QbVfO_jfNT0UlrAmhoDEc/view?usp=drivesdk" },
+  { titulo:"El hombre que desafio al rey",
+    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/%5BPeliculasBluray.Com%5D%20El%20hombre%20que%20desafi%C3%B3%20al%20rey%20(2026)%20%5B720P%5D%5BHD%5D.mp4" },
+  { titulo:"El Corazon de la bestia",
+    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/El%20coraz%C3%B3n%20de%20la%20bestia%20(2026)%20%5BAudio-Latino%5D%5BHDTS%5D.mp4" },
+  { titulo:"Paw Patrol: Dino Movie", buscar:"PAW Patrol: The Dino Movie",
+    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/%5BPeliculasBluray.Com%5D%20Paw%20Patrol%20La%20dino%20pel%C3%ADcula%20(2026)%20%5B720P%5D%5BHD%5D.mp4" },
+  { titulo:"Él final de Oak Street", buscar:"The End of Oak Street",
+    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/THE%20END%20OF%20OAK%20STREAT.mp4" },
+  { titulo:"Evil Dead: En llamas", buscar:"Evil Dead Burn",
+    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/Evil.Dead.En.llamas.2026.720p-Dual-Lat.mkv" }
 ];
 
 /* ============================================================
@@ -280,7 +276,47 @@ const CODIGOS = {
   "El Corazon de la bestia": "BESTIA1",
   "Paw Patrol: Dino Movie": "DINO1",
   "Evil Dead: En llamas": "EVIL1",
+  "Él final de Oak Street": "OAK1",
 };
+
+/* ---------- TMDB: completa los datos de cada película ---------- */
+const TMDB_KEY = "TU_API_KEY";   // <- pega aquí tu API key de themoviedb.org
+const TMDB = "https://api.themoviedb.org/3", IMG = "https://image.tmdb.org/t/p/";
+
+async function completar(p) {
+  if (!TMDB_KEY || TMDB_KEY.startsWith("TU_")) return;
+  const k = "tmdb2:" + (p.tmdb || p.buscar || p.titulo);
+  let d = null;
+  try { d = JSON.parse(localStorage.getItem(k)); } catch (e) {}
+  if (!d) {
+    try {
+      const j = u => fetch(u, { signal: AbortSignal.timeout(6000) }).then(r => r.json());
+      let id = p.tmdb;
+      if (!id) {
+        const y = p.anio ? "&year=" + p.anio : "";
+        const s = await j(`${TMDB}/search/movie?api_key=${TMDB_KEY}&language=es-MX&query=${encodeURIComponent(p.buscar || p.titulo)}${y}`);
+        if (!s.results || !s.results[0]) return;
+        id = s.results[0].id;
+      }
+      const x = await j(`${TMDB}/movie/${id}?api_key=${TMDB_KEY}&language=es-MX`);
+      if (!x || !x.id) return;
+      const r = x.runtime;
+      d = {
+        anio: (x.release_date || "").slice(0, 4),
+        genero: (x.genres || []).map(g => g.name).join(", "),
+        duracion: r ? Math.floor(r / 60) + " h " + (r % 60) + " min" : "",
+        descripcion: x.overview || "",
+        poster: x.poster_path ? IMG + "w500" + x.poster_path : "",
+        fondo: x.backdrop_path ? IMG + "w1280" + x.backdrop_path : ""
+      };
+      try { localStorage.setItem(k, JSON.stringify(d)); } catch (e) {}
+    } catch (e) { return; }
+  }
+  for (const f in d) if (!p[f]) p[f] = d[f];
+}
+
+(async () => {
+await Promise.all(peliculas.map(completar));
 
 const track = document.getElementById('track'), dlg = document.getElementById('dlg');
 const grad = t => { let h = 0; for (const c of t) h = (h*31 + c.charCodeAt(0)) % 360;
@@ -534,6 +570,7 @@ H('pp').innerHTML = ICON.play; H('pm').innerHTML = ICON.vol;
 
 /* sin zoom de pellizco en iOS */
 document.addEventListener('gesturestart', e => e.preventDefault());
+})();
 </script>
 </body>
 </html>
