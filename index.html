@@ -147,6 +147,8 @@ svg.st text{fill:currentColor;stroke:none}
 </style>
 <link rel="manifest" href="/manifest.webmanifest">
 <meta name="theme-color" content="#000000">
+<link rel="preconnect" href="https://api.themoviedb.org">
+<link rel="preconnect" href="https://image.tmdb.org">
 <link rel="apple-touch-icon" href="/icon-192.png">
 <script>
   if ("serviceWorker" in navigator) {
@@ -279,44 +281,51 @@ const CODIGOS = {
   "Él final de Oak Street": "OAK1",
 };
 
-/* ---------- TMDB: completa los datos de cada película ---------- */
-const TMDB_KEY = "28e735f7aea07e37f38a95d346bcdd7f";   // <- pega aquí tu API key de themoviedb.org
+/* ---------- TMDB: completa los datos de cada película ----------
+   La página se dibuja al instante; los datos se rellenan solos al llegar
+   (y quedan guardados en el dispositivo para la próxima vez). */
+const TMDB_KEY = "28e735f7aea07e37f38a95d346bcdd7f";
 const TMDB = "https://api.themoviedb.org/3", IMG = "https://image.tmdb.org/t/p/";
-
-async function completar(p) {
-  if (!TMDB_KEY || TMDB_KEY.startsWith("TU_")) return;
-  const k = "tmdb2:" + (p.tmdb || p.buscar || p.titulo);
-  let d = null;
-  try { d = JSON.parse(localStorage.getItem(k)); } catch (e) {}
-  if (!d) {
-    try {
-      const j = u => fetch(u, { signal: AbortSignal.timeout(6000) }).then(r => r.json());
-      let id = p.tmdb;
-      if (!id) {
-        const y = p.anio ? "&year=" + p.anio : "";
-        const s = await j(`${TMDB}/search/movie?api_key=${TMDB_KEY}&language=es-MX&query=${encodeURIComponent(p.buscar || p.titulo)}${y}`);
-        if (!s.results || !s.results[0]) return;
-        id = s.results[0].id;
-      }
-      const x = await j(`${TMDB}/movie/${id}?api_key=${TMDB_KEY}&language=es-MX`);
-      if (!x || !x.id) return;
-      const r = x.runtime;
-      d = {
-        anio: (x.release_date || "").slice(0, 4),
-        genero: (x.genres || []).map(g => g.name).join(", "),
-        duracion: r ? Math.floor(r / 60) + " h " + (r % 60) + " min" : "",
-        descripcion: x.overview || "",
-        poster: x.poster_path ? IMG + "w500" + x.poster_path : "",
-        fondo: x.backdrop_path ? IMG + "w1280" + x.backdrop_path : ""
-      };
-      try { localStorage.setItem(k, JSON.stringify(d)); } catch (e) {}
-    } catch (e) { return; }
-  }
-  for (const f in d) if (!p[f]) p[f] = d[f];
+const clave = p => "tmdb2:" + (p.tmdb || p.buscar || p.titulo);
+function aplicar(p, d) {
+  let cambio = false;
+  for (const f in d) if (d[f] && !p[f]) { p[f] = d[f]; cambio = true; }
+  return cambio;
 }
-
-(async () => {
-await Promise.all(peliculas.map(completar));
+function deCache(p) {
+  try { const d = JSON.parse(localStorage.getItem(clave(p))); if (d) aplicar(p, d); } catch (e) {}
+}
+async function completar(p) {
+  if (!TMDB_KEY || TMDB_KEY.startsWith("TU_")) return false;
+  try {
+    if (JSON.parse(localStorage.getItem(clave(p)))) return false;   // ya estaba guardado
+  } catch (e) {}
+  try {
+    const j = u => fetch(u, { signal: AbortSignal.timeout(8000) }).then(r => r.json());
+    let id = p.tmdb;
+    if (!id) {
+      const y = p.anio ? "&year=" + p.anio : "";
+      const s = await j(`${TMDB}/search/movie?api_key=${TMDB_KEY}&language=es-MX&query=${encodeURIComponent(p.buscar || p.titulo)}${y}`);
+      if (!s.results || !s.results[0]) return false;
+      id = s.results[0].id;
+    }
+    const x = await j(`${TMDB}/movie/${id}?api_key=${TMDB_KEY}&language=es-MX`);
+    if (!x || !x.id) return false;
+    const r = x.runtime;
+    const d = {
+      anio: (x.release_date || "").slice(0, 4),
+      genero: (x.genres || []).map(g => g.name).join(", "),
+      duracion: r ? Math.floor(r / 60) + " h " + (r % 60) + " min" : "",
+      descripcion: x.overview || "",
+      poster: x.poster_path ? IMG + "w500" + x.poster_path : "",
+      fondo: x.backdrop_path ? IMG + "w1280" + x.backdrop_path : ""
+    };
+    try { localStorage.setItem(clave(p), JSON.stringify(d)); } catch (e) {}
+    return aplicar(p, d);
+  } catch (e) { return false; }
+}
+peliculas.forEach(deCache);          // lo que ya se guardó sale al instante
+const tarjetas = new Map();
 
 const track = document.getElementById('track'), dlg = document.getElementById('dlg');
 const grad = t => { let h = 0; for (const c of t) h = (h*31 + c.charCodeAt(0)) % 360;
@@ -342,10 +351,12 @@ peliculas.forEach(p => {
   b.addEventListener('pointerleave', () => b.style.transform = '');
   b.addEventListener('focus', () => b.style.transform = 'scale(1.06)');
   b.addEventListener('blur', () => b.style.transform = '');
-  track.appendChild(b);
+  track.appendChild(b); tarjetas.set(p, b);
 });
 
+let abierta = null;
 function abrir(p) {
+  abierta = p;
   document.getElementById('dt').textContent = p.titulo;
   document.getElementById('dm').textContent = [p.anio, p.genero, p.duracion].filter(Boolean).join('  ·  ');
   document.getElementById('dd').textContent = p.descripcion;
@@ -353,7 +364,7 @@ function abrir(p) {
   document.getElementById('dl').disabled = !p.link;
   document.getElementById('dl').onclick = () => reproducir(p);
   const dp = document.getElementById('dp'); dp.innerHTML = ''; poster(p, dp);
-  dlg.showModal();
+  if (!dlg.open) dlg.showModal();
 }
 document.getElementById('dc').onclick = () => dlg.close();
 dlg.addEventListener('click', e => { if (e.target === dlg) dlg.close(); });
@@ -570,7 +581,15 @@ H('pp').innerHTML = ICON.play; H('pm').innerHTML = ICON.vol;
 
 /* sin zoom de pellizco en iOS */
 document.addEventListener('gesturestart', e => e.preventDefault());
-})();
+
+/* ---------- Al llegar los datos de TMDB, actualizar lo que ya está en pantalla ---------- */
+function refrescar(p) {
+  const b = tarjetas.get(p);
+  if (b && !b.querySelector('img')) poster(p, b);
+  if (orden[idx] === p) mostrar(idx);
+  if (dlg.open && abierta === p) abrir(p);
+}
+peliculas.forEach(p => completar(p).then(c => { if (c) refrescar(p); }));
 </script>
 </body>
 </html>
