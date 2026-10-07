@@ -135,6 +135,12 @@ svg.st text{fill:currentColor;stroke:none}
  #player:not(:fullscreen){inset:auto;top:0;left:0;width:100vh;width:100dvh;height:100vw;height:100dvw;transform-origin:top left;transform:rotate(90deg) translateY(-100%);
   --st:env(safe-area-inset-right,0px);--sb:env(safe-area-inset-left,0px);--sl:env(safe-area-inset-top,0px);--sr:env(safe-area-inset-bottom,0px)}
 }
+#cdlg{max-width:min(380px,90vw);margin:auto}
+.cbox{padding:28px 24px;border-radius:28px;background:var(--glass);backdrop-filter:blur(40px) saturate(1.6);-webkit-backdrop-filter:blur(40px) saturate(1.6);box-shadow:0 40px 100px rgba(0,0,0,.7);display:flex;flex-direction:column;gap:14px;text-align:center}
+.cbox h2{font-size:22px;letter-spacing:-.02em}
+#cin{width:100%;padding:14px 16px;border-radius:14px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.1);color:#fff;font-size:18px;font-family:inherit;text-align:center;letter-spacing:.1em;outline:none;-webkit-user-select:text;user-select:text}
+#cin:focus{border-color:#fff}
+#cer{color:#ff8a80;font-size:14px;min-height:18px}
 </style>
 <link rel="manifest" href="/manifest.webmanifest">
 <meta name="theme-color" content="#000000">
@@ -187,11 +193,22 @@ svg.st text{fill:currentColor;stroke:none}
     <div class="pact">
       <button class="ib" id="pm" aria-label="Silenciar"></button>
       <button class="ib txt" id="px" aria-label="Velocidad">1x</button>
+      <button class="ib txt" id="pa" aria-label="Relación de aspecto">Ajustar</button>
       <span class="grow"></span>
       <button class="ib" id="pfs" aria-label="Pantalla completa"><svg class="st" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
     </div>
   </div>
 </div>
+
+<dialog id="cdlg" aria-labelledby="ct">
+  <div class="cbox">
+    <h2 id="ct">Código de acceso</h2>
+    <p class="meta" id="cm"></p>
+    <input id="cin" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Escribe el código" aria-label="Código de acceso">
+    <p id="cer" role="alert"></p>
+    <div class="actions"><button class="btn primary" id="cok">Reproducir</button><button class="btn ghost" id="cno">Cancelar</button></div>
+  </div>
+</dialog>
 
 <dialog id="dlg" aria-labelledby="dt">
   <div class="sheet">
@@ -242,6 +259,22 @@ const peliculas = [
     descripcion:"Video de prueba para comprobar el reproductor (Big Buck Bunny, película abierta de Blender Foundation, CC BY). Sustitúyelo por tus propias películas.",
     link:"https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4", poster:"" }
 ];
+
+/* ============================================================
+   CÓDIGOS DE ACCESO. Uno por película; la clave es el título EXACTO.
+   Cámbialos por los tuyos. Una película que no esté aquí se abre sin código.
+   ============================================================ */
+/* CÓDIGO MAESTRO: al escribirlo una vez, este dispositivo ya no pide código en ninguna película.
+   Cámbialo por el tuyo. */
+const CODIGO_MAESTRO = "BB-MAESTRO-7391";
+
+const CODIGOS = {
+  "Spiderman:Brand New day": "SPIDER1",
+  "Coyote vs Acme": "COYOTE1",
+  "El hombre que desafio al rey": "REY1",
+  "El Corazon de la bestia": "BESTIA1",
+  "Video de prueba": "PRUEBA1"
+};
 
 const track = document.getElementById('track'), dlg = document.getElementById('dlg');
 const grad = t => { let h = 0; for (const c of t) h = (h*31 + c.charCodeAt(0)) % 360;
@@ -386,10 +419,8 @@ async function horizontal() {
     if (fs && matchMedia('(orientation:portrait)').matches) { fsAuto = false; try { await document.exitFullscreen(); } catch (_) {} }
   }
 }
-function reproducir(p) {
-  if (!p.link) return;
-  if (dlg.open) dlg.close();
-  const id = driveId(p.link);
+function iniciar(p, url) {
+  const id = driveId(url);
   H('pt').textContent = p.titulo; H('per').hidden = true;
   pl.classList.remove('wait'); pl.classList.toggle('drive', !!id);
   H('pdrive').innerHTML = '';
@@ -399,10 +430,40 @@ function reproducir(p) {
   pl.hidden = false;
   document.body.style.overflow = 'hidden';
   if (id) H('pdrive').innerHTML = '<iframe src="https://drive.google.com/file/d/' + id + '/preview" allow="autoplay"></iframe>';
-  else cargar(p.link);
+  else cargar(url);
   history.pushState({player: 1}, '');
   showC(); horizontal();
 }
+const cdlg = H('cdlg'), cin = H('cin'), cer = H('cer'); let cpeli = null;
+let maestroOk = false;
+const maestro = () => { try { return maestroOk || localStorage.getItem('bbmaster') === CODIGO_MAESTRO; } catch (e) { return maestroOk; } };
+function reproducir(p) {
+  if (!p.link) return;
+  if (dlg.open) dlg.close();
+  if (!CODIGOS[p.titulo] || maestro()) { iniciar(p, p.link); return; }
+  cpeli = p; cin.value = ''; cer.textContent = '';
+  H('cm').textContent = p.titulo; cdlg.showModal(); setTimeout(() => cin.focus(), 60);
+}
+function validar() {
+  const p = cpeli, c = cin.value.trim().toLowerCase();
+  if (!c) { cer.textContent = 'Escribe el código.'; return; }
+  if (c === CODIGO_MAESTRO.toLowerCase()) {
+    maestroOk = true; try { localStorage.setItem('bbmaster', CODIGO_MAESTRO); } catch (e) {}
+  } else if (String(CODIGOS[p.titulo]).trim().toLowerCase() !== c) { cer.textContent = 'Código incorrecto.'; return; }
+  cdlg.close(); iniciar(p, p.link);
+}
+H('cok').onclick = validar;
+H('cno').onclick = () => cdlg.close();
+cin.addEventListener('keydown', e => { if (e.key === 'Enter') validar(); });
+cdlg.addEventListener('click', e => { if (e.target === cdlg) cdlg.close(); });
+
+/* Relación de aspecto: Ajustar = se ve completo (barras negras); Llenar = cubre la pantalla recortando bordes. Nunca deforma. */
+let fit = 'contain';
+try { if (localStorage.getItem('bbfit') === 'cover') fit = 'cover'; } catch (e) {}
+function aplicarFit() { V.style.objectFit = fit; H('pa').textContent = fit === 'cover' ? 'Llenar' : 'Ajustar'; }
+H('pa').onclick = () => { fit = fit === 'cover' ? 'contain' : 'cover'; try { localStorage.setItem('bbfit', fit); } catch (e) {} aplicarFit(); };
+aplicarFit();
+
 function cerrarPlayer(desdePop) {
   if (pl.hidden) return;
   pl.hidden = true; clearTimeout(hideT); pl.classList.remove('c', 'wait');
@@ -455,6 +516,7 @@ addEventListener('keydown', e => {
   else if (k === 'ArrowLeft') { saltar(-10); showC(); }
   else if (k === 'f') H('pfs').click();
   else if (k === 'm') H('pm').click();
+  else if (k === 'a') H('pa').click();
 });
 H('pp').innerHTML = ICON.play; H('pm').innerHTML = ICON.vol;
 
