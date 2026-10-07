@@ -266,7 +266,12 @@ const peliculas = [
    ============================================================ */
 /* CÓDIGO MAESTRO: al escribirlo una vez, este dispositivo ya no pide código en ninguna película.
    Cámbialo por el tuyo. */
-const CODIGO_MAESTRO = "BB141099";
+const CODIGO_MAESTRO = "BB-MAESTRO-7391";
+
+/* CÓDIGO TEMPORAL: siempre es el mismo. Da 1 hora de acceso total al dispositivo donde se escribe,
+   y en ese dispositivo no se puede volver a usar. Cámbialo por el tuyo. */
+const CODIGO_TEMPORAL = "BB-TEMP-5824";
+const TEMP_MS = 60 * 60 * 1000;
 
 const CODIGOS = {
   "Spiderman:Brand New day": "SPIDER1",
@@ -435,19 +440,25 @@ function iniciar(p, url) {
   showC(); horizontal();
 }
 const cdlg = H('cdlg'), cin = H('cin'), cer = H('cer'); let cpeli = null;
+let tempFin = 0;
+const temporal = () => { try { tempFin = Math.max(tempFin, +localStorage.getItem('bbtemp_fin') || 0); } catch (e) {} return Date.now() < tempFin; };
+const tempUsado = () => { try { return !!localStorage.getItem('bbtemp_fin'); } catch (e) { return tempFin > 0; } };
 let maestroOk = false;
 const maestro = () => { try { return maestroOk || localStorage.getItem('bbmaster') === CODIGO_MAESTRO; } catch (e) { return maestroOk; } };
 function reproducir(p) {
   if (!p.link) return;
   if (dlg.open) dlg.close();
-  if (!CODIGOS[p.titulo] || maestro()) { iniciar(p, p.link); return; }
+  if (!CODIGOS[p.titulo] || maestro() || temporal()) { iniciar(p, p.link); return; }
   cpeli = p; cin.value = ''; cer.textContent = '';
   H('cm').textContent = p.titulo; cdlg.showModal(); setTimeout(() => cin.focus(), 60);
 }
 function validar() {
   const p = cpeli, c = cin.value.trim().toLowerCase();
   if (!c) { cer.textContent = 'Escribe el código.'; return; }
-  if (c === CODIGO_MAESTRO.toLowerCase()) {
+  if (c === CODIGO_TEMPORAL.toLowerCase()) {
+    if (tempUsado()) { cer.textContent = 'Este código ya se usó en este dispositivo.'; return; }
+    tempFin = Date.now() + TEMP_MS; try { localStorage.setItem('bbtemp_fin', tempFin); } catch (e) {}
+  } else if (c === CODIGO_MAESTRO.toLowerCase()) {
     maestroOk = true; try { localStorage.setItem('bbmaster', CODIGO_MAESTRO); } catch (e) {}
   } else if (String(CODIGOS[p.titulo]).trim().toLowerCase() !== c) { cer.textContent = 'Código incorrecto.'; return; }
   cdlg.close(); iniciar(p, p.link);
