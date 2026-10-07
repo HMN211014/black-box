@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Black BOX</title>
+<meta name="theme-color" content="#000000" id="tc">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<style>
+:root{--bg:#000;--fg:#f5f5f7;--muted:#98989d;--a:#113CCF;--b:#040714}
+*{box-sizing:border-box;margin:0}
+html{-webkit-text-size-adjust:100%}
+html,body{background:var(--bg);color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue",Inter,Arial,sans-serif;-webkit-font-smoothing:antialiased;touch-action:pan-x pan-y;overscroll-behavior-y:none}
+body{min-height:100vh;min-height:100dvh;-webkit-user-select:none;user-select:none}
+.ban{position:relative;overflow:hidden;display:grid;place-items:center;height:clamp(300px,52vh,460px);padding:calc(env(safe-area-inset-top,0px) + 24px) 5vw 24px;border-radius:0 0 34px 34px;
+  background:radial-gradient(70% 90% at 50% 0,var(--a),transparent 72%),linear-gradient(180deg,var(--b),var(--bg));box-shadow:0 20px 60px rgba(0,0,0,.6)}
+.ban::after{content:"";position:absolute;inset:0;background:linear-gradient(0deg,rgba(0,0,0,.45),transparent 55%);pointer-events:none}
+.wm{display:block;text-align:center;line-height:1;white-space:nowrap}
+.wm img{display:block;object-fit:contain}
+.ban .wm{position:relative;z-index:1;font-size:clamp(46px,11vw,110px);filter:drop-shadow(0 6px 30px rgba(0,0,0,.45))}
+.ban .wm img{max-height:clamp(70px,16vw,150px);max-width:80vw}
+.vol{position:absolute;z-index:2;left:max(16px,5vw);top:calc(env(safe-area-inset-top,0px) + 14px);width:46px;height:46px;border-radius:50%;display:grid;place-items:center;color:#fff;text-decoration:none;
+  background:rgba(40,40,44,.6);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);-webkit-tap-highlight-color:transparent}
+.vol:focus-visible{outline:3px solid #fff;outline-offset:3px}
+.vol svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+main{padding:36px 5vw calc(48px + env(safe-area-inset-bottom,0px))}
+main h1{font-size:clamp(24px,4vw,34px);letter-spacing:-.025em;margin-bottom:8px}
+main p{color:var(--muted);font-size:17px;line-height:1.5;max-width:46ch}
+</style>
+</head>
+<body>
+<header class="ban" id="ban">
+  <a class="vol" id="vol" href="/" aria-label="Volver"><svg viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg></a>
+</header>
+<main>
+  <h1 id="tit">Próximamente</h1>
+  <p>Esta sección estará disponible muy pronto.</p>
+</main>
+
+<script src="plataformas.js"></script>
+<script>
+(function () {
+  const id = new URLSearchParams(location.search).get('p');
+  const p = PLATAFORMAS.find(x => x.id === id);
+  if (!p) { location.replace('/'); return; }
+  const r = document.documentElement.style;
+  r.setProperty('--a', p.a); r.setProperty('--b', p.b); r.setProperty('--bg', p.bg);
+  document.title = p.nombre + ' · Black BOX';
+  document.getElementById('tc').content = p.bg;
+  document.getElementById('ban').appendChild(marca(p)).style.color = p.tx;
+  document.getElementById('tit').textContent = 'Próximamente en ' + p.nombre;
+  document.getElementById('vol').onclick = e => {          // vuelve a donde estabas; si entraste directo, al inicio
+    e.preventDefault();
+    let mismo = false; try { mismo = document.referrer && new URL(document.referrer).origin === location.origin; } catch (_) {}
+    if (mismo && history.length > 1) history.back(); else location.href = '/';
+  };
+})();
+document.addEventListener('gesturestart', e => e.preventDefault());
+</script>
+</body>
+</html>

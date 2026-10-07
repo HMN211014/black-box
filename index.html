@@ -202,6 +202,20 @@ svg.st text{fill:currentColor;stroke:none}
  .sinres{padding:0 20px 32px}
 }
 
+/* ---------- Cuadrícula "Todas las películas" (2 columnas) ---------- */
+#pop[hidden],#plat[hidden]{display:none}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,260px));gap:22px;padding:26px 5vw 40px}
+.grid .card{width:100%;max-width:none;flex:none}
+@media(max-width:620px){.grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;padding:18px 20px 32px}}
+
+/* ---------- Plataformas de streaming ---------- */
+.plat{-webkit-tap-highlight-color:transparent;flex:0 0 clamp(150px,17vw,230px);aspect-ratio:16/10;border-radius:var(--r);scroll-snap-align:start;display:grid;place-items:center;padding:12px;text-decoration:none;color:var(--tx);
+  background:linear-gradient(135deg,var(--a),var(--b));box-shadow:0 10px 30px rgba(0,0,0,.6),inset 0 0 0 1px rgba(255,255,255,.1);transition:transform .25s ease,box-shadow .25s ease}
+.plat:hover,.plat:focus-visible{transform:scale(1.05);box-shadow:0 26px 60px rgba(0,0,0,.85),0 0 0 3px rgba(255,255,255,.9);outline:none;z-index:2}
+.wm{display:block;text-align:center;line-height:1;font-size:clamp(20px,2.4vw,28px);white-space:nowrap}
+.wm img{display:block;max-width:100%;max-height:100%;object-fit:contain}
+@media(max-width:620px){.plat{flex-basis:46vw;max-width:200px;border-radius:18px}.wm{font-size:22px}}
+
 /* ---------- Continuar viendo (estilo Netflix) ---------- */
 #cont[hidden]{display:none}
 .cc .t{bottom:36px;z-index:2}
@@ -267,12 +281,24 @@ svg.st text{fill:currentColor;stroke:none}
     <button class="nav next" aria-label="Siguiente">›</button>
   </section>
 </div>
+<div id="pop">
+  <h3 class="rt">Populares</h3>
+  <section class="row" id="rowpel" aria-label="Populares">
+    <button class="nav prev" aria-label="Anterior">‹</button>
+    <div class="track" id="track"></div>
+    <button class="nav next" aria-label="Siguiente">›</button>
+  </section>
+</div>
 <h3 class="rt" id="rt">Todas las películas</h3>
-<section class="row" id="rowpel" aria-label="Películas">
-  <button class="nav prev" aria-label="Anterior">‹</button>
-  <div class="track" id="track"></div>
-  <button class="nav next" aria-label="Siguiente">›</button>
-</section>
+<div class="grid" id="grid"></div>
+<div id="plat">
+  <h3 class="rt">Plataformas</h3>
+  <section class="row" id="rowplat" aria-label="Plataformas">
+    <button class="nav prev" aria-label="Anterior">‹</button>
+    <div class="track" id="ptrack"></div>
+    <button class="nav next" aria-label="Siguiente">›</button>
+  </section>
+</div>
 <footer class="end"><b>Black BOX</b><span>Tu colección de películas</span><small>Datos e imágenes de TMDB. Este producto usa la API de TMDB pero no está avalado ni certificado por TMDB.</small></footer>
 
 <div id="player" hidden>
@@ -326,6 +352,7 @@ svg.st text{fill:currentColor;stroke:none}
   </div>
 </dialog>
 
+<script src="plataformas.js"></script>
 <script>
 /* ============================================================
    AQUÍ AGREGAS TUS PELÍCULAS. Solo necesitas:  titulo  y  link
@@ -444,7 +471,7 @@ const poster = (p, el) => {
   if (p.poster) { const i = new Image(); i.alt = ''; i.src = p.poster; i.onerror = () => i.remove(); el.prepend(i); }
 };
 
-peliculas.forEach(p => {
+const crearTarjeta = p => {
   const b = document.createElement('button');
   b.className = 'card'; b.setAttribute('aria-label', p.titulo);
   b.innerHTML = '<span class="t"></span><span class="shine"></span>';
@@ -460,8 +487,15 @@ peliculas.forEach(p => {
   b.addEventListener('pointerleave', () => b.style.transform = '');
   b.addEventListener('focus', () => b.style.transform = 'scale(1.06)');
   b.addEventListener('blur', () => b.style.transform = '');
-  track.appendChild(b); tarjetas.set(p, b);
-});
+  return b;
+};
+/* Carrusel "Populares": solo 7. Primero las que marques con  popular:true  y luego las primeras de la lista.
+   La cuadrícula "Todas las películas" muestra todas, en dos columnas. */
+const POPULARES = 7;
+const tarjetasC = new Map();
+[...peliculas.filter(p => p.popular), ...peliculas.filter(p => !p.popular)].slice(0, POPULARES)
+  .forEach(p => { const b = crearTarjeta(p); track.appendChild(b); tarjetasC.set(p, b); });
+peliculas.forEach(p => { const b = crearTarjeta(p); document.getElementById('grid').appendChild(b); tarjetas.set(p, b); });
 
 let abierta = null;
 function abrir(p) {
@@ -743,6 +777,8 @@ document.addEventListener('gesturestart', e => e.preventDefault());
 function refrescar(p) {
   const b = tarjetas.get(p);
   if (b && !b.querySelector('img')) poster(p, b);
+  const c = tarjetasC.get(p);
+  if (c && !c.querySelector('img')) poster(p, c);
   if (orden[idx] === p) mostrar(idx);
   if (dlg.open && abierta === p) abrir(p);
   actualizarCont();
@@ -754,7 +790,7 @@ const bq = H('bq'), bbox = H('bbox'), rt = H('rt');
 const norm = t => (t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
 const sinres = document.createElement('p');
 sinres.className = 'sinres'; sinres.hidden = true; sinres.textContent = 'No hay películas con ese nombre.';
-H('rowpel').after(sinres);
+H('grid').after(sinres);
 function filtrar() {
   const q = norm(bq.value); let n = 0;
   bbox.classList.toggle('lleno', !!bq.value);
@@ -764,7 +800,7 @@ function filtrar() {
   });
   rt.textContent = q ? 'Resultados' : 'Todas las películas';
   sinres.hidden = !q || n > 0;
-  track.scrollTo({ left: 0 });
+  H('pop').hidden = H('plat').hidden = !!q;                       // al buscar, solo se ven los resultados
   actualizarCont();
 }
 bq.addEventListener('input', filtrar);
@@ -821,6 +857,20 @@ const pasoC = () => ctrack.clientWidth * .8;
 cont.querySelector('.prev').onclick = () => ctrack.scrollBy({ left: -pasoC(), behavior: 'smooth' });
 cont.querySelector('.next').onclick = () => ctrack.scrollBy({ left: pasoC(), behavior: 'smooth' });
 actualizarCont();
+
+/* ---------- Plataformas: cada ficha abre su propia página (plataforma.html?p=...) ---------- */
+if (typeof PLATAFORMAS !== 'undefined') {
+  const ptrack = H('ptrack');
+  PLATAFORMAS.forEach(p => {
+    const a = document.createElement('a');
+    a.className = 'plat'; a.href = 'plataforma.html?p=' + p.id; a.setAttribute('aria-label', p.nombre);
+    a.style.setProperty('--a', p.a); a.style.setProperty('--b', p.b); a.style.setProperty('--tx', p.tx);
+    a.appendChild(marca(p)); ptrack.appendChild(a);
+  });
+  const pasoP = () => ptrack.clientWidth * .8;
+  H('rowplat').querySelector('.prev').onclick = () => ptrack.scrollBy({ left: -pasoP(), behavior: 'smooth' });
+  H('rowplat').querySelector('.next').onclick = () => ptrack.scrollBy({ left: pasoP(), behavior: 'smooth' });
+} else H('plat').hidden = true;
 
 </script>
 <div id="intro" aria-hidden="true">
