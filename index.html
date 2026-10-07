@@ -144,6 +144,37 @@ svg.st text{fill:currentColor;stroke:none}
 #cin{width:100%;padding:14px 16px;border-radius:14px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.1);color:#fff;font-size:18px;font-family:inherit;text-align:center;letter-spacing:.1em;outline:none;-webkit-user-select:text;user-select:text}
 #cin:focus{border-color:#fff}
 #cer{color:#ff8a80;font-size:14px;min-height:18px}
+
+/* ---------- Sombreado suave (estilo streaming) para separar texto y portada ---------- */
+.hcopy::before{content:"";position:absolute;inset:-60px -70px -50px -50px;z-index:-1;pointer-events:none;background:radial-gradient(ellipse 85% 80% at 25% 70%,rgba(0,0,0,.42),rgba(0,0,0,.18) 55%,transparent 80%)}
+.hmeta,.hcopy h2,.hd{text-shadow:0 1px 14px rgba(0,0,0,.4)}
+.card::after{content:"";position:absolute;left:0;right:0;bottom:0;height:55%;z-index:1;pointer-events:none;background:linear-gradient(0deg,rgba(0,0,0,.62),rgba(0,0,0,.22) 55%,transparent)}
+.card .t{z-index:2}
+
+/* ---------- Animación de entrada (estilo Disney+) ---------- */
+.sin-intro #intro{display:none}
+#intro{position:fixed;inset:0;z-index:100000;background:#000;display:flex;align-items:center;justify-content:center;overflow:hidden;touch-action:none;opacity:1;transition:opacity .7s ease,transform .7s ease}
+#intro.fuera{opacity:0;transform:scale(1.08);pointer-events:none}
+#intro .glow{position:absolute;inset:0;background:radial-gradient(ellipse 60% 45% at 50% 52%,rgba(24,72,255,.42),rgba(10,20,80,.18) 55%,transparent 75%);opacity:0;animation:iGlow 2.6s .15s ease-out forwards}
+#intro .stars{position:absolute;inset:0}
+#intro .stars i{position:absolute;width:var(--s);height:var(--s);border-radius:50%;background:#cfe0ff;box-shadow:0 0 6px 1px rgba(150,190,255,.9);opacity:0;animation:iStar var(--d) var(--t) ease-in-out infinite}
+#intro .centro{position:relative;width:min(88vw,560px);display:flex;flex-direction:column;align-items:center}
+#intro svg{width:100%;height:auto;overflow:visible;display:block}
+#intro .arco{fill:none;stroke-linecap:round;stroke-dasharray:1;stroke-dashoffset:1;animation:iArco 1.5s .25s cubic-bezier(.45,.05,.2,1) forwards}
+#intro .arco.a{stroke:url(#gArco);stroke-width:3}
+#intro .arco.b{stroke:#fff;stroke-width:9;filter:blur(7px);opacity:.65}
+#intro .logo{margin-top:-52px;width:clamp(86px,22vw,128px);height:auto;border-radius:24%;opacity:0;transform:scale(.6);filter:blur(14px);animation:iLogo 1.1s 1s cubic-bezier(.2,.8,.2,1) forwards,iPulso 1.6s 2.1s ease-in-out 1}
+#intro .nombre{margin-top:18px;font:600 clamp(13px,3.6vw,18px)/1 -apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue",Arial,sans-serif;color:#fff;text-transform:uppercase;letter-spacing:.9em;padding-left:.9em;opacity:0;animation:iNombre 1.2s 1.55s ease-out forwards}
+@keyframes iArco{to{stroke-dashoffset:0}}
+@keyframes iGlow{0%{opacity:0}45%{opacity:1}100%{opacity:.85}}
+@keyframes iLogo{to{opacity:1;transform:scale(1);filter:blur(0) drop-shadow(0 0 26px rgba(70,130,255,.65))}}
+@keyframes iPulso{50%{filter:blur(0) drop-shadow(0 0 44px rgba(110,160,255,.95))}}
+@keyframes iNombre{from{opacity:0;letter-spacing:.9em}to{opacity:.92;letter-spacing:.34em}}
+@keyframes iStar{0%,100%{opacity:0;transform:scale(.4)}50%{opacity:var(--o);transform:scale(1)}}
+@media (prefers-reduced-motion:reduce){
+  #intro .arco,#intro .glow,#intro .logo,#intro .nombre{animation-duration:.01s;animation-delay:0s}
+  #intro .stars{display:none}
+}
 </style>
 <link rel="manifest" href="/manifest.webmanifest">
 <meta name="theme-color" content="#000000">
@@ -154,6 +185,15 @@ svg.st text{fill:currentColor;stroke:none}
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => navigator.serviceWorker.register("/sw.js"));
   }
+</script>
+<script>
+/* La animación de entrada sale una sola vez al día */
+(function () {
+  try {
+    var d = new Date(), hoy = d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
+    if (localStorage.getItem('bb_intro') === hoy) document.documentElement.classList.add('sin-intro');
+  } catch (e) {}
+})();
 </script>
 </head>
 <body>
@@ -600,6 +640,59 @@ function refrescar(p) {
   if (dlg.open && abierta === p) abrir(p);
 }
 peliculas.forEach(p => completar(p).then(c => { if (c) refrescar(p); }));
+</script>
+<div id="intro" aria-hidden="true">
+  <div class="glow"></div>
+  <div class="stars" id="introStars"></div>
+  <div class="centro">
+    <svg viewBox="0 0 600 190" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="gArco" x1="0" x2="1" y1="0" y2="0">
+          <stop offset="0" stop-color="#fff" stop-opacity="0"/>
+          <stop offset=".35" stop-color="#fff" stop-opacity=".85"/>
+          <stop offset=".5" stop-color="#fff"/>
+          <stop offset=".65" stop-color="#fff" stop-opacity=".85"/>
+          <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+        </linearGradient>
+      </defs>
+      <path class="arco b" pathLength="1" d="M10 178 C 140 20, 460 20, 590 178"/>
+      <path class="arco a" pathLength="1" d="M10 178 C 140 20, 460 20, 590 178"/>
+    </svg>
+    <img class="logo" src="/icon-512.png" alt="" onerror="this.style.display='none'">
+    <div class="nombre">Black BOX</div>
+  </div>
+</div>
+<script>
+/* Animación de entrada: dura ~3.3 s, una vez al día, se puede saltar tocando la pantalla */
+(function () {
+  var el = document.getElementById('intro');
+  if (!el) return;
+  if (document.documentElement.classList.contains('sin-intro')) { el.parentNode.removeChild(el); return; }
+  try {
+    var d = new Date();
+    localStorage.setItem('bb_intro', d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate());
+  } catch (e) {}
+  var reducido = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var st = document.getElementById('introStars');
+  if (!reducido) {
+    for (var i = 0; i < 46; i++) {
+      var s = document.createElement('i'), t = 1 + Math.random() * 2.2;
+      s.style.cssText = 'left:' + (Math.random() * 100) + '%;top:' + (Math.random() * 100) + '%;' +
+        '--s:' + (1 + Math.random() * 2.4).toFixed(1) + 'px;--o:' + (0.35 + Math.random() * 0.65).toFixed(2) +
+        ';--d:' + t.toFixed(1) + 's;--t:' + (Math.random() * 2.4).toFixed(1) + 's';
+      st.appendChild(s);
+    }
+  }
+  var terminado = false;
+  function cerrar() {
+    if (terminado) return; terminado = true;
+    el.classList.add('fuera');
+    setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 800);
+  }
+  el.addEventListener('click', cerrar);
+  el.addEventListener('touchstart', cerrar, { passive: true });
+  setTimeout(cerrar, reducido ? 1200 : 3300);
+})();
 </script>
 </body>
 </html>
