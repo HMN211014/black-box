@@ -201,6 +201,20 @@ svg.st text{fill:currentColor;stroke:none}
  .buscar:focus-within{width:calc(100vw - 40px)}
  .sinres{padding:0 20px 32px}
 }
+
+/* ---------- Continuar viendo (estilo Netflix) ---------- */
+#cont[hidden]{display:none}
+.cc .t{bottom:36px;z-index:2}
+.cc .q{position:absolute;left:16px;right:16px;bottom:16px;z-index:2;font-size:13px;color:#d1d1d6;text-shadow:0 1px 8px rgba(0,0,0,.6)}
+.cc .prog{position:absolute;left:0;right:0;bottom:0;height:5px;z-index:3;background:rgba(255,255,255,.3)}
+.cc .prog i{display:block;height:100%;background:#fff;border-radius:0 3px 3px 0}
+.cc .cx{position:absolute;top:10px;right:10px;width:30px;height:30px;border-radius:50%;z-index:3;display:grid;place-items:center;font-size:12px;line-height:1;background:rgba(0,0,0,.55);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);opacity:0;transition:opacity .2s}
+.cc:hover .cx,.cc:focus-visible .cx{opacity:1}
+@media(hover:none){.cc .cx{opacity:1}}
+@media(max-width:620px){
+ .cc .t{left:14px;right:14px;bottom:34px}
+ .cc .q{left:14px;right:14px;bottom:14px}
+}
 </style>
 <link rel="manifest" href="/manifest.webmanifest">
 <meta name="theme-color" content="#000000">
@@ -245,8 +259,16 @@ svg.st text{fill:currentColor;stroke:none}
   <div class="dots" id="dots"></div>
 </section>
 </div>
+<div id="cont" hidden>
+  <h3 class="rt">Continuar viendo</h3>
+  <section class="row" aria-label="Continuar viendo">
+    <button class="nav prev" aria-label="Anterior">‹</button>
+    <div class="track" id="ctrack"></div>
+    <button class="nav next" aria-label="Siguiente">›</button>
+  </section>
+</div>
 <h3 class="rt" id="rt">Todas las películas</h3>
-<section class="row" aria-label="Películas">
+<section class="row" id="rowpel" aria-label="Películas">
   <button class="nav prev" aria-label="Anterior">‹</button>
   <div class="track" id="track"></div>
   <button class="nav next" aria-label="Siguiente">›</button>
@@ -447,7 +469,7 @@ function abrir(p) {
   document.getElementById('dt').textContent = p.titulo;
   document.getElementById('dm').textContent = [p.anio, p.genero, p.duracion].filter(Boolean).join('  ·  ');
   document.getElementById('dd').textContent = p.descripcion;
-  document.getElementById('dl').textContent = p.link ? 'Ver ahora' : 'Próximamente';
+  document.getElementById('dl').textContent = p.link ? (hayProg(p) ? 'Continuar' : 'Ver ahora') : 'Próximamente';
   document.getElementById('dl').disabled = !p.link;
   document.getElementById('dl').onclick = () => reproducir(p);
   const dp = document.getElementById('dp'); dp.innerHTML = ''; poster(p, dp);
@@ -457,8 +479,8 @@ document.getElementById('dc').onclick = () => dlg.close();
 dlg.addEventListener('click', e => { if (e.target === dlg) dlg.close(); });
 
 const paso = () => track.clientWidth * .8;
-document.querySelector('.prev').onclick = () => track.scrollBy({left:-paso(), behavior:'smooth'});
-document.querySelector('.next').onclick = () => track.scrollBy({left: paso(), behavior:'smooth'});
+document.querySelector('#rowpel .prev').onclick = () => track.scrollBy({left:-paso(), behavior:'smooth'});
+document.querySelector('#rowpel .next').onclick = () => track.scrollBy({left: paso(), behavior:'smooth'});
 
 /* ---------- Banner destacado: películas al azar ---------- */
 const H = id => document.getElementById(id);
@@ -518,7 +540,7 @@ function mostrar(i) {
     H('hm').textContent = [p.anio, p.genero, p.duracion].filter(Boolean).join('  ·  ');
     H('ht').textContent = p.titulo;
     H('hd').textContent = p.descripcion;
-    H('hl').textContent = p.link ? 'Ver ahora' : 'Próximamente'; H('hl').disabled = !p.link; H('hl').onclick = () => reproducir(p);
+    H('hl').textContent = p.link ? (hayProg(p) ? 'Continuar' : 'Ver ahora') : 'Próximamente'; H('hl').disabled = !p.link; H('hl').onclick = () => reproducir(p);
     H('hi').onclick = () => abrir(p);
     if (p.trailer && !reduce) { hv.src = p.trailer; hv.hidden = false; hv.play().catch(() => { hv.hidden = true; }); }
     else { hv.hidden = true; hv.removeAttribute('src'); hv.load(); }
@@ -542,7 +564,7 @@ const ICON = {
   mute: '<svg class="st" viewBox="0 0 24 24"><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5H4z" style="fill:currentColor"/><path d="M16 9.5l5 5M21 9.5l-5 5"/></svg>'
 };
 const VEL = [1, 1.25, 1.5, 2, 0.75];
-let hideT, dragging = false, hls = null, fsAuto = false, vi = 0;
+let hideT, dragging = false, hls = null, fsAuto = false, vi = 0, actualP = null, reanudar = 0, ultGuardado = 0;
 
 const fmt = s => { s = Math.max(0, Math.floor(s || 0)); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60;
   return (h ? h + ':' + String(m).padStart(2, '0') : m) + ':' + String(x).padStart(2, '0'); };
@@ -598,6 +620,9 @@ async function horizontal() {
 }
 function iniciar(p, url) {
   const id = driveId(url);
+  actualP = id ? null : p;                       // los videos de Drive no permiten medir el avance
+  const g = id ? null : leerProg()[p.titulo];
+  reanudar = g ? g.t : 0;
   H('pt').textContent = p.titulo; H('per').hidden = true;
   pl.classList.remove('wait'); pl.classList.toggle('drive', !!id);
   H('pdrive').innerHTML = '';
@@ -649,6 +674,7 @@ aplicarFit();
 
 function cerrarPlayer(desdePop) {
   if (pl.hidden) return;
+  guardar(true); actualP = null;
   pl.hidden = true; clearTimeout(hideT); pl.classList.remove('c', 'wait');
   V.pause(); if (hls) { hls.destroy(); hls = null; }
   V.removeAttribute('src'); V.load(); H('pdrive').innerHTML = '';
@@ -656,14 +682,21 @@ function cerrarPlayer(desdePop) {
   if (document.fullscreenElement) { fsAuto = false; try { document.exitFullscreen().catch(() => {}); } catch (e) {} }
   try { screen.orientation.unlock(); } catch (e) {}
   if (!desdePop && history.state && history.state.player) history.back();
+  actualizarCont();
 }
 
 V.addEventListener('loadedmetadata', () => { ps.max = duracion(); sync(); });
 V.addEventListener('durationchange', () => { ps.max = duracion(); sync(); });
-V.addEventListener('timeupdate', sync);
+V.addEventListener('timeupdate', () => { sync(); guardar(false); });
 V.addEventListener('progress', sync);
 V.addEventListener('play', () => { H('pp').innerHTML = ICON.pause; showC(); });
-V.addEventListener('pause', () => { H('pp').innerHTML = ICON.play; showC(); });
+V.addEventListener('pause', () => { H('pp').innerHTML = ICON.play; showC(); guardar(true); });
+V.addEventListener('loadedmetadata', () => {      // retoma donde se quedó (unos segundos antes)
+  if (reanudar > 0) { V.currentTime = Math.max(0, reanudar - 3); reanudar = 0; }
+});
+V.addEventListener('ended', () => { if (actualP) quitarProg(actualP); });
+addEventListener('pagehide', () => guardar(true));
+document.addEventListener('visibilitychange', () => { if (document.hidden) guardar(true); });
 V.addEventListener('waiting', () => pl.classList.add('wait'));
 V.addEventListener('playing', () => pl.classList.remove('wait'));
 V.addEventListener('canplay', () => pl.classList.remove('wait'));
@@ -712,6 +745,7 @@ function refrescar(p) {
   if (b && !b.querySelector('img')) poster(p, b);
   if (orden[idx] === p) mostrar(idx);
   if (dlg.open && abierta === p) abrir(p);
+  actualizarCont();
 }
 peliculas.forEach(p => completar(p).then(c => { if (c) refrescar(p); }));
 
@@ -720,7 +754,7 @@ const bq = H('bq'), bbox = H('bbox'), rt = H('rt');
 const norm = t => (t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
 const sinres = document.createElement('p');
 sinres.className = 'sinres'; sinres.hidden = true; sinres.textContent = 'No hay películas con ese nombre.';
-document.querySelector('.row').after(sinres);
+H('rowpel').after(sinres);
 function filtrar() {
   const q = norm(bq.value); let n = 0;
   bbox.classList.toggle('lleno', !!bq.value);
@@ -731,6 +765,7 @@ function filtrar() {
   rt.textContent = q ? 'Resultados' : 'Todas las películas';
   sinres.hidden = !q || n > 0;
   track.scrollTo({ left: 0 });
+  actualizarCont();
 }
 bq.addEventListener('input', filtrar);
 bq.addEventListener('keydown', e => {
@@ -738,6 +773,54 @@ bq.addEventListener('keydown', e => {
   else if (e.key === 'Enter') bq.blur();                          // cierra el teclado en el móvil
 });
 H('bx').onclick = () => { bq.value = ''; filtrar(); bq.focus(); };
+
+/* ---------- Continuar viendo (estilo Netflix) ----------
+   El avance de cada película se guarda en este dispositivo (localStorage, clave "bbprog").
+   Se considera terminada cuando faltan menos de ~4 % (mín. 90 s): sale de la fila. */
+function leerProg() { try { return JSON.parse(localStorage.getItem('bbprog')) || {}; } catch (e) { return {}; } }
+function escribirProg(o) { try { localStorage.setItem('bbprog', JSON.stringify(o)); } catch (e) {} }
+function hayProg(p) { return !!leerProg()[p.titulo]; }
+function quitarProg(p) { const o = leerProg(); delete o[p.titulo]; escribirProg(o); }
+function guardar(forzar) {
+  if (!actualP) return;
+  const t = V.currentTime, d = duracion(), ahora = Date.now();
+  if (!d || !isFinite(t)) return;                          // aún no cargó el video
+  if (!forzar && ahora - ultGuardado < 5000) return;       // como máximo cada 5 s
+  ultGuardado = ahora;
+  if (d - t < Math.max(90, d * .04)) { quitarProg(actualP); return; }
+  if (t < 15) return;                                      // recién empezó: no cuenta
+  const o = leerProg();
+  o[actualP.titulo] = { t: Math.floor(t), d: Math.floor(d), f: ahora };
+  escribirProg(o);
+}
+const cont = H('cont'), ctrack = H('ctrack');
+const quedan = s => { const m = Math.max(1, Math.round(s / 60)); return m >= 60 ? Math.floor(m / 60) + ' h ' + (m % 60) + ' min' : m + ' min'; };
+function actualizarCont() {
+  const pr = leerProg();
+  const lista = peliculas.filter(p => p.link && pr[p.titulo]).sort((a, b) => pr[b.titulo].f - pr[a.titulo].f);
+  ctrack.innerHTML = '';
+  lista.forEach(p => {
+    const g = pr[p.titulo], resto = quedan(g.d - g.t);
+    const b = document.createElement('button');
+    b.className = 'card cc';
+    b.setAttribute('aria-label', 'Continuar ' + p.titulo + ', quedan ' + resto);
+    b.innerHTML = '<span class="t"></span><span class="q"></span><span class="shine"></span><span class="prog"><i></i></span><span class="cx" role="button" aria-label="Quitar de Continuar viendo">✕</span>';
+    b.querySelector('.t').textContent = p.titulo;
+    b.querySelector('.q').textContent = 'Quedan ' + resto;
+    b.querySelector('.prog i').style.width = Math.min(100, g.t / g.d * 100) + '%';
+    poster(p, b);
+    b.addEventListener('click', () => reproducir(p));
+    b.querySelector('.cx').addEventListener('click', e => { e.stopPropagation(); quitarProg(p); actualizarCont(); });
+    ctrack.appendChild(b);
+  });
+  cont.hidden = !lista.length || !!bq.value;
+  const ph = orden[idx];                                   // el botón del banner dice "Continuar" si ya la empezó
+  if (ph && ph.link) H('hl').textContent = pr[ph.titulo] ? 'Continuar' : 'Ver ahora';
+}
+const pasoC = () => ctrack.clientWidth * .8;
+cont.querySelector('.prev').onclick = () => ctrack.scrollBy({ left: -pasoC(), behavior: 'smooth' });
+cont.querySelector('.next').onclick = () => ctrack.scrollBy({ left: pasoC(), behavior: 'smooth' });
+actualizarCont();
 
 </script>
 <div id="intro" aria-hidden="true">
