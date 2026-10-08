@@ -239,6 +239,41 @@ svg.st text{fill:currentColor;stroke:none}
 .fila{display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding:14px 0;border-top:1px solid rgba(255,255,255,.12);font-size:16px}
 .fila span{color:#c7c7cc}.fila b{font-weight:600;text-align:right}
 
+/* ---------- Créditos, Tienda y hoja de compra (liquid glass) ---------- */
+.cred{display:flex;align-items:center;gap:8px;margin-left:auto;align-self:center;height:40px;padding:0 16px;border-radius:999px;font-size:16px;white-space:nowrap;
+  background:linear-gradient(180deg,rgba(255,255,255,.18),rgba(255,255,255,.06));border:1px solid rgba(255,255,255,.18);
+  backdrop-filter:blur(26px) saturate(1.8);-webkit-backdrop-filter:blur(26px) saturate(1.8);box-shadow:inset 0 1px 0 rgba(255,255,255,.4),0 8px 24px rgba(0,0,0,.4)}
+.cred small{color:#d1d1d6;font-size:13px;font-weight:500}.cred b{font-weight:700}
+.cred[hidden]{display:none}
+@media(max-width:620px){.cred{position:absolute;right:20px;top:0;margin:0;height:38px;padding:0 14px}}
+.cuenta{transition:max-width .3s}
+.cuenta.ancha{max-width:820px;margin-top:2vh;padding:4px 0 0;background:none;border:0;box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none}
+.tgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-bottom:8px}
+@media(min-width:700px){.tgrid{grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}}
+.tcard{position:relative;display:flex;flex-direction:column;align-items:flex-start;min-height:156px;padding:14px;border:0;border-radius:26px;color:var(--tx);font:inherit;cursor:pointer;text-align:left;
+  background:linear-gradient(135deg,var(--a),var(--b));box-shadow:inset 0 0 0 1px rgba(255,255,255,.14),inset 0 1px 0 rgba(255,255,255,.3),0 14px 34px rgba(0,0,0,.5);-webkit-tap-highlight-color:transparent;transition:transform .2s}
+.tcard .wm{margin:auto;font-size:24px}
+.tcard:active{transform:scale(.97)}.tcard:disabled{opacity:.45;cursor:default}.tcard:disabled:active{transform:none}
+.tcard .td{margin-top:10px;font-size:13px;font-weight:600;color:rgba(255,255,255,.88)}
+.tcard .tp{margin-top:6px;padding:5px 11px;border-radius:999px;font-size:13px;font-weight:700;color:#fff;background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.24);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+.sheet{position:fixed;inset:0;z-index:60;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.45);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.sheet[hidden]{display:none}
+.sp{width:min(100%,480px);margin:0 10px calc(10px + env(safe-area-inset-bottom,0px));padding:26px 22px 22px;border-radius:32px;
+  background:linear-gradient(180deg,rgba(60,60,66,.82),rgba(28,28,32,.88));border:1px solid rgba(255,255,255,.18);backdrop-filter:blur(40px) saturate(1.8);-webkit-backdrop-filter:blur(40px) saturate(1.8);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.4),0 40px 100px rgba(0,0,0,.7);animation:sube .35s cubic-bezier(.2,.9,.3,1)}
+@keyframes sube{from{transform:translateY(40px);opacity:0}}
+@media(min-width:700px){.sheet{align-items:center}.sp{margin:0}}
+.sp{max-height:86vh;overflow:auto;overscroll-behavior:contain}
+.sp h2{font-size:24px;letter-spacing:-.025em}
+.cgrp{padding-top:16px}.cgrp h3{font-size:18px;letter-spacing:-.02em}.cfecha{color:#a1a1a6;font-size:13px;margin:2px 0 4px}
+.thead{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.sp .sbtn+.sbtn{margin-top:10px}
+.dato{display:flex;align-items:center;gap:10px;padding:13px 0;border-top:1px solid rgba(255,255,255,.12);font-size:16px}
+.dato span{flex:0 0 88px;color:#c7c7cc;font-size:14px}
+.dato b{flex:1;min-width:0;font-weight:600;word-break:break-all;-webkit-user-select:text;user-select:text}
+.cp{flex:none;border:0;border-radius:999px;padding:8px 14px;background:rgba(255,255,255,.16);color:#fff;font:inherit;font-size:14px;font-weight:600;cursor:pointer}
+@media(prefers-reduced-motion:reduce){.sp{animation:none}}
+
 /* ---------- Cuadrícula "Todas las películas" (2 columnas) ---------- */
 #pop[hidden],#plat[hidden]{display:none}
 .grid{display:grid;grid-template-columns:repeat(2,minmax(0,260px));gap:22px;padding:26px 5vw 40px}
@@ -294,6 +329,7 @@ svg.st text{fill:currentColor;stroke:none}
     <input id="bq" type="search" placeholder="Buscar" aria-label="Buscar películas" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search">
     <button class="x" id="bx" type="button" aria-label="Borrar búsqueda">✕</button>
   </div>
+  <div class="cred" id="cred" hidden aria-live="polite"><small>Créditos</small><b id="cred-n">0</b></div>
 </header>
 <nav class="sw" role="tablist" aria-label="Secciones">
   <i aria-hidden="true"></i>
@@ -345,24 +381,24 @@ svg.st text{fill:currentColor;stroke:none}
 </div><!-- /vista-inicio -->
 
 <section id="vista-subs" hidden aria-label="Suscripciones">
-  <div class="cuenta">
+  <div class="cuenta" id="s-card">
     <p class="smsg" id="s-msg" hidden></p>
     <form id="s-login" hidden>
-      <h2>Suscripciones</h2>
-      <p class="ssub">Inicia sesión para ver los datos de tu suscripción.</p>
-      <label>Usuario<input id="s-user" name="username" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false" required></label>
-      <label>Contraseña<input id="s-pass" name="password" type="password" autocomplete="current-password" required></label>
+      <h2>Código de acceso</h2>
+      <p class="ssub">Ingresa el código que te asignamos.</p>
+      <label>Código<input id="s-code" name="codigo" type="password" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" required></label>
       <p class="serr" id="s-err" role="alert" hidden></p>
-      <button class="sbtn" id="s-go" type="submit">Iniciar sesión</button>
+      <button class="sbtn" id="s-go" type="submit">Entrar</button>
     </form>
-    <div id="s-cuenta" hidden>
-      <h2 id="s-hola"></h2>
-      <p class="ssub">Los datos de tu suscripción</p>
-      <div id="s-datos"></div>
+    <div id="s-tienda" hidden>
+      <div class="thead"><h2>Tienda</h2><button class="cp" id="s-mis" type="button">Mis cuentas</button></div>
+      <p class="ssub">Elige la cuenta que quieres.</p>
+      <div class="tgrid" id="tgrid"></div>
       <button class="sbtn sec" id="s-out" type="button">Cerrar sesión</button>
     </div>
   </div>
 </section>
+<div class="sheet" id="sheet" hidden><div class="sp" id="sp"></div></div>
 <footer class="end"><b>Black BOX</b><span>Tu colección de películas</span><small>Datos e imágenes de TMDB. Este producto usa la API de TMDB pero no está avalado ni certificado por TMDB.</small></footer>
 
 <div id="player" hidden>
@@ -947,6 +983,7 @@ function irA(v) {
   swBtns.forEach(b => { const on = b.dataset.v === v; b.classList.toggle('on', on); b.setAttribute('aria-selected', on); });
   Object.entries(vistas).forEach(([k, el]) => el.hidden = k !== v);
   H('bbox').hidden = v !== 'inicio';                 // el buscador es solo de películas
+  verCred();
   posSw(); scrollTo({ top: 0, behavior: 'smooth' });
   if (v === 'subs') cargarCuenta();
 }
@@ -955,11 +992,9 @@ addEventListener('resize', posSw);
 if (document.fonts) document.fonts.ready.then(posSw);
 posSw();
 
-/* ---------- Suscripciones: inicio de sesión ----------
-   OJO: aquí NO se revisa ninguna contraseña. Todo se pregunta al servidor (/api/me, /api/login, /api/logout),
-   porque cualquier dato que viaje dentro de esta página lo puede ver cualquiera. El servidor responde:
-     { nombre: "Ana", datos: [ { k: "Plan", v: "Mensual" }, { k: "Vence", v: "15 nov 2026" } ] }
-   y la página dibuja esa lista tal cual, así que puedes cambiar los datos sin tocar este código. */
+/* ---------- Suscripciones: código de acceso + Tienda ----------
+   Esta página NO revisa códigos ni créditos: todo lo decide el servidor (carpeta functions/api),
+   que valida el código, descuenta los créditos y entrega los datos de la cuenta. */
 async function api(ruta, cuerpo) {
   const r = await fetch('/api/' + ruta, { method: cuerpo ? 'POST' : 'GET', credentials: 'same-origin',
     headers: cuerpo ? { 'Content-Type': 'application/json' } : {}, body: cuerpo ? JSON.stringify(cuerpo) : undefined });
@@ -969,49 +1004,112 @@ async function api(ruta, cuerpo) {
   if (!r.ok) return { sesion: false, error: j.error || 'No se pudo completar la solicitud.' };
   return j;
 }
+let sesionOk = false, creditos = 0, sListo = false;
+const el = (t, c, x) => { const n = document.createElement(t); if (c) n.className = c; if (x !== undefined) n.textContent = x; return n; };
+const verCred = () => { H('cred').hidden = !(sesionOk && !vistas.subs.hidden); };
+function setCred(n) { creditos = n; H('cred-n').textContent = n; }
 function sVer(cual, txt) {
-  H('s-msg').hidden = cual !== 'msg'; H('s-login').hidden = cual !== 'login'; H('s-cuenta').hidden = cual !== 'cuenta';
+  H('s-msg').hidden = cual !== 'msg'; H('s-login').hidden = cual !== 'login'; H('s-tienda').hidden = cual !== 'tienda';
   if (cual === 'msg') H('s-msg').textContent = txt;
+  H('s-card').classList.toggle('ancha', cual === 'tienda');
+  sesionOk = cual === 'tienda'; verCred();
 }
-function pintarCuenta(j) {
-  H('s-hola').textContent = 'Hola, ' + j.nombre;
-  const caja = H('s-datos'); caja.innerHTML = '';
-  const datos = Array.isArray(j.datos) ? j.datos : [];
-  datos.forEach(d => {
-    const f = document.createElement('div'); f.className = 'fila';
-    const k = document.createElement('span'); k.textContent = d.k;
-    const v = document.createElement('b'); v.textContent = d.v;
-    f.append(k, v); caja.appendChild(f);
+const estilo = id => (typeof PLATAFORMAS !== 'undefined' && PLATAFORMAS.find(p => p.id === id)) || null;
+function pintarTienda(lista) {
+  const g = H('tgrid'); g.innerHTML = '';
+  lista.forEach(p => {
+    const e = estilo(p.id) || { a: '#2a2a2e', b: '#0c0c0e', tx: '#fff', fuente: 'inherit', peso: '700', esp: '0' };
+    const b = el('button', 'tcard'); b.disabled = p.disponibles < 1;
+    b.style.setProperty('--a', e.a); b.style.setProperty('--b', e.b); b.style.setProperty('--tx', e.tx);
+    b.setAttribute('aria-label', p.nombre + ': ' + p.disponibles + ' disponibles, ' + p.precio + ' créditos');
+    const x = { ...e, nombre: p.nombre, logo: e.logo };
+    b.appendChild(typeof marca === 'function' ? marca(x) : el('span', 'wm', p.nombre));
+    b.append(el('span', 'td', p.disponibles > 0 ? p.disponibles + ' disponibles' : 'Agotado'), el('span', 'tp', p.precio + ' créditos'));
+    b.addEventListener('click', () => confirmar(p));
+    g.appendChild(b);
   });
-  if (!datos.length) { const p = document.createElement('p'); p.className = 'ssub'; p.textContent = 'Todavía no hay datos en tu cuenta.'; caja.appendChild(p); }
-  sVer('cuenta');
 }
-let sListo = false;
+async function cargarTienda() {
+  const j = await api('tienda');
+  if (j.plataformas === undefined) { sVer('login'); return; }
+  setCred(j.creditos); pintarTienda(j.plataformas); sVer('tienda');
+}
+/* hoja inferior estilo iOS (confirmar compra / mostrar datos) */
+const hoja = nodos => { H('sp').replaceChildren(...nodos); H('sheet').hidden = false; };
+const cerrarHoja = () => { H('sheet').hidden = true; };
+H('sheet').addEventListener('click', e => { if (e.target === H('sheet')) cerrarHoja(); });
+function confirmar(p) {
+  const falta = p.precio > creditos;
+  const ok = el('button', 'sbtn', 'Confirmar'); ok.disabled = falta; ok.onclick = () => comprar(p);
+  const no = el('button', 'sbtn sec', 'Cancelar'); no.onclick = cerrarHoja;
+  hoja([el('h2', '', p.nombre),
+    el('p', 'ssub', falta ? 'No tienes créditos suficientes: esta cuenta cuesta ' + p.precio + ' y tienes ' + creditos + '.'
+                          : 'Se descontarán ' + p.precio + ' créditos y verás los datos de la cuenta. Te quedarán ' + (creditos - p.precio) + '.'),
+    ok, no]);
+}
+async function copiar(t, b) {
+  try { await navigator.clipboard.writeText(t || ''); b.textContent = 'Copiado'; } catch (e) { b.textContent = 'Cópialo a mano'; }
+  setTimeout(() => b.textContent = 'Copiar', 1600);
+}
+const fila = (k, v) => { const f = el('div', 'dato'); const b = el('button', 'cp', 'Copiar'); b.onclick = () => copiar(v, b);
+  f.append(el('span', '', k), el('b', '', v || '—'), b); return f; };
+async function misCuentas() {                        // todo lo que este código ha comprado, siempre disponible
+  hoja([el('p', 'smsg', 'Cargando…')]);
+  let j; try { j = await api('compras'); } catch (e) { j = { error: 'No se pudo conectar. Inténtalo de nuevo.' }; }
+  const cerrar = el('button', 'sbtn sec', 'Cerrar'); cerrar.onclick = cerrarHoja;
+  if (!j.compras) { hoja([el('h2', '', 'Mis cuentas'), el('p', 'ssub', j.error || 'No se pudo cargar.'), cerrar]); return; }
+  const nodos = [el('h2', '', 'Mis cuentas')];
+  if (!j.compras.length) nodos.push(el('p', 'ssub', 'Todavía no has comprado ninguna cuenta.'));
+  j.compras.forEach(c => {
+    const g = el('div', 'cgrp');
+    g.append(el('h3', '', c.plataforma_nombre), el('p', 'cfecha', new Date(c.fecha).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' })),
+      fila('Correo', c.correo), fila('Contraseña', c.clave), fila('Perfil', c.perfil));
+    nodos.push(g);
+  });
+  nodos.push(cerrar); hoja(nodos);
+}
+H('s-mis').onclick = misCuentas;
+async function comprar(p) {
+  hoja([el('p', 'smsg', 'Procesando…')]);
+  let j;
+  try { j = await api('comprar', { plataforma: p.id }); } catch (e) { j = { error: 'No se pudo conectar. Inténtalo de nuevo.' }; }
+  if (j.correo === undefined) {
+    const cerrar = el('button', 'sbtn', 'Cerrar'); cerrar.onclick = cerrarHoja;
+    hoja([el('h2', '', 'No se pudo comprar'), el('p', 'ssub', j.error || 'Inténtalo de nuevo.'), cerrar]);
+    try { await cargarTienda(); } catch (e) {}       // refresca cantidades y créditos
+    return;
+  }
+  setCred(j.creditos);
+  const listo = el('button', 'sbtn', 'Listo'); listo.onclick = cerrarHoja;
+  hoja([el('h2', '', 'Tu cuenta de ' + j.plataforma), el('p', 'ssub', 'Guarda estos datos antes de cerrar.'),
+    fila('Correo', j.correo), fila('Contraseña', j.clave), fila('Perfil', j.perfil), listo]);
+  try { await cargarTienda(); } catch (e) {}
+}
 async function cargarCuenta() {
   if (sListo) return;
   sVer('msg', 'Cargando…');
   try {
     const j = await api('me');
     sListo = true;
-    if (j.nombre !== undefined) pintarCuenta(j); else sVer('login');
+    if (j.nombre !== undefined) await cargarTienda(); else sVer('login');
   } catch (e) { sVer('login'); }                     // sin servidor todavía: se ve el formulario igual
 }
 H('s-login').addEventListener('submit', async e => {
   e.preventDefault();
   const err = H('s-err'), go = H('s-go'); err.hidden = true; go.disabled = true; go.textContent = 'Entrando…';
   try {
-    const j = await api('login', { usuario: H('s-user').value.trim(), clave: H('s-pass').value });
-    if (j.nombre !== undefined) { H('s-pass').value = ''; pintarCuenta(j); }
-    else { err.textContent = j.error || 'Usuario o contraseña incorrectos.'; err.hidden = false; }
+    const j = await api('login', { codigo: H('s-code').value.trim() });
+    if (j.nombre !== undefined) { H('s-code').value = ''; sListo = true; await cargarTienda(); }
+    else { err.textContent = j.error || 'Código incorrecto.'; err.hidden = false; }
   } catch (x) {
-    err.textContent = x.message === 'nodisponible' ? 'El inicio de sesión todavía no está activo. Vuelve pronto.' : 'No se pudo conectar. Inténtalo de nuevo.';
+    err.textContent = x.message === 'nodisponible' ? 'El acceso todavía no está activo. Vuelve pronto.' : 'No se pudo conectar. Inténtalo de nuevo.';
     err.hidden = false;
   }
-  go.disabled = false; go.textContent = 'Iniciar sesión';
+  go.disabled = false; go.textContent = 'Entrar';
 });
 H('s-out').onclick = async () => {
   try { await api('logout', {}); } catch (e) {}
-  H('s-user').value = ''; H('s-pass').value = ''; sVer('login');
+  cerrarHoja(); H('s-code').value = ''; sVer('login');
 };
 
 </script>
