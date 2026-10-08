@@ -8,7 +8,7 @@ const lineas = t => String(t || '').split('\n').map(l => l.trim()).filter(Boolea
 const partes = l => l.split(/[,;\t]/).map(s => s.trim());
 const entero = n => (n !== '' && n !== null && Number.isInteger(Number(n))) ? Number(n) : null;
 
-export async function onRequestPost({ request, env }) {
+async function manejar({ request, env }) {
   const db = env.DB, ahora = Date.now(), ip = request.headers.get('CF-Connecting-IP') || '?';
   if (!env.ADMIN_KEY) return json({ error: 'Falta crear la variable ADMIN_KEY en Cloudflare.' }, 503);
   const f = await db.prepare('SELECT COUNT(*) AS n FROM intentos WHERE ip = ?1 AND fecha > ?2').bind(ip, ahora - 600000).first();
@@ -80,5 +80,15 @@ export async function onRequestPost({ request, env }) {
       return ok();
     }
     default: return malo('Acción desconocida.');
+  }
+}
+
+// Envoltorio: si algo falla (base de datos sin conectar, tablas sin crear...) responde con un mensaje claro en lugar de un error en blanco.
+export async function onRequestPost(ctx) {
+  if (!ctx.env.DB) return json({ error: 'La base de datos no está conectada: falta el binding llamado DB (Settings > Bindings > D1).' }, 503);
+  try { return await manejar(ctx); }
+  catch (e) {
+    const m = String((e && e.message) || e);
+    return json({ error: /no such table/i.test(m) ? 'Faltan las tablas: pega y ejecuta schema.sql en la consola de D1.' : 'Falla del servidor: ' + m }, 500);
   }
 }
