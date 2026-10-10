@@ -239,6 +239,41 @@ svg.st text{fill:currentColor;stroke:none}
 .fila{display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding:14px 0;border-top:1px solid rgba(255,255,255,.12);font-size:16px}
 .fila span{color:#c7c7cc}.fila b{font-weight:600;text-align:right}
 
+/* ---------- Colecciones por temática (estilo Disney+) ---------- */
+#cols{display:grid;grid-auto-flow:column;grid-auto-columns:clamp(150px,22vw,250px);gap:16px;padding:24px 5vw 8px;overflow-x:auto;scroll-snap-type:x proximity;scrollbar-width:none}
+#cols::-webkit-scrollbar{display:none}
+#cols[hidden]{display:none}
+.ctile{position:relative;overflow:hidden;isolation:isolate;display:grid;place-items:center;align-content:center;gap:8px;aspect-ratio:16/10;padding:10px;border-radius:22px;text-decoration:none;color:var(--tx);scroll-snap-align:start;
+  background:var(--fondo,none) center/cover,linear-gradient(135deg,var(--a),var(--b));box-shadow:inset 0 0 0 1px rgba(255,255,255,.16),inset 0 1px 0 rgba(255,255,255,.3),0 14px 34px rgba(0,0,0,.55);
+  transition:transform .25s ease,box-shadow .25s ease;-webkit-tap-highlight-color:transparent}
+.ctile::before{content:"";position:absolute;inset:0;z-index:-1}
+.ctile.img::before{background:rgba(0,0,0,.38)}
+.ctile.t-puntos:not(.img)::before{background:radial-gradient(rgba(255,255,255,.24) 1.3px,transparent 1.9px) 0 0/11px 11px,radial-gradient(70% 90% at 85% 0,rgba(255,255,255,.2),transparent 70%)}
+.ctile.t-rayos:not(.img)::before{background:repeating-conic-gradient(from 0deg at 50% 130%,rgba(255,255,255,.11) 0 5deg,transparent 5deg 13deg),radial-gradient(60% 70% at 50% 110%,rgba(255,255,255,.22),transparent 70%)}
+.ctile.t-estrellas:not(.img)::before{background:radial-gradient(1.5px 1.5px at 20% 30%,#fff,transparent),radial-gradient(1px 1px at 70% 20%,#fff,transparent),radial-gradient(1.5px 1.5px at 85% 70%,#fff,transparent),radial-gradient(1px 1px at 35% 80%,#fff,transparent),radial-gradient(1px 1px at 55% 55%,#fff,transparent)}
+.ctile:hover,.ctile:focus-visible{transform:scale(1.04);box-shadow:0 26px 60px rgba(0,0,0,.85),0 0 0 3px rgba(255,255,255,.9);outline:none}
+.ctile .wm{font-size:clamp(24px,3vw,34px);filter:drop-shadow(0 2px 10px rgba(0,0,0,.4))}
+.ctile .cn{font-size:12px;font-weight:600;letter-spacing:.02em;color:rgba(255,255,255,.85)}
+@media(max-width:620px){#cols{grid-auto-columns:44vw;gap:12px;padding:18px 20px 4px}.ctile{border-radius:18px}.ctile .wm{font-size:24px}}
+
+#vista-col{--ca:#1f4fff;position:relative;isolation:isolate;padding-bottom:10px}
+#vista-col[hidden]{display:none}
+#vista-col::before{content:"";position:absolute;left:0;right:0;top:-70px;height:560px;z-index:-1;pointer-events:none;background:radial-gradient(60% 70% at 50% 0,var(--ca),transparent 72%);opacity:.5}
+.cbar{display:flex;align-items:center;gap:14px;padding:0 5vw 16px}
+.cbar h2{font-size:clamp(26px,4vw,38px);letter-spacing:-.03em}
+.cback{flex:none;display:inline-flex;align-items:center;height:40px;padding:0 16px;border-radius:999px;color:#fff;text-decoration:none;font-size:15px;font-weight:600;-webkit-tap-highlight-color:transparent;
+  background:linear-gradient(180deg,rgba(255,255,255,.18),rgba(255,255,255,.06));border:1px solid rgba(255,255,255,.18);backdrop-filter:blur(26px) saturate(1.8);-webkit-backdrop-filter:blur(26px) saturate(1.8);box-shadow:inset 0 1px 0 rgba(255,255,255,.4)}
+.cback:focus-visible{outline:2px solid #fff;outline-offset:2px}
+.anun{position:relative;overflow:hidden;isolation:isolate;display:block;margin:0 5vw 18px;padding:18px 22px;border-radius:22px;color:#fff;text-decoration:none;
+  background:linear-gradient(135deg,rgba(255,255,255,.18),rgba(255,255,255,.05));border:1px solid rgba(255,255,255,.18);box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 16px 40px rgba(0,0,0,.45)}
+.anun::before{content:"";position:absolute;inset:0;z-index:-2;background:var(--img,none) center/cover}
+.anun::after{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(90deg,rgba(0,0,0,.6),rgba(0,0,0,.15))}
+.anun[hidden]{display:none}
+.anun b{display:block;font-size:19px;letter-spacing:-.01em}.anun span{display:block;margin-top:3px;font-size:15px;color:#e5e5ea}
+.cvacio{padding:40px 5vw;color:#a1a1a6;font-size:17px;text-align:center}
+#c-pop[hidden],#c-rt[hidden],#c-grid[hidden]{display:none}
+@media(max-width:620px){.cbar{padding:0 20px 14px}.anun{margin:0 20px 16px}}
+
 /* ---------- Créditos, Tienda y hoja de compra (liquid glass) ---------- */
 .cred{display:flex;align-items:center;gap:8px;margin-left:auto;align-self:center;height:40px;padding:0 16px;border-radius:999px;font-size:16px;white-space:nowrap;
   background:linear-gradient(180deg,rgba(255,255,255,.18),rgba(255,255,255,.06));border:1px solid rgba(255,255,255,.18);
@@ -352,6 +387,7 @@ svg.st text{fill:currentColor;stroke:none}
   <div class="dots" id="dots"></div>
 </section>
 </div>
+<div id="cols" aria-label="Colecciones"></div>
 <div id="cont" hidden>
   <h3 class="rt">Continuar viendo</h3>
   <section class="row" aria-label="Continuar viendo">
@@ -379,6 +415,34 @@ svg.st text{fill:currentColor;stroke:none}
   </section>
 </div>
 </div><!-- /vista-inicio -->
+
+<section id="vista-col" hidden aria-label="Colección">
+  <div class="cbar"><a class="cback" id="c-back" href="#" aria-label="Volver">‹ Volver</a><h2 id="c-titulo"></h2></div>
+  <a class="anun" id="c-anun" hidden></a>
+  <section class="hero" id="chero" aria-label="Destacadas de la colección">
+    <div class="hcopy">
+      <p class="hmeta" id="c-hm"></p>
+      <h2 id="c-ht"></h2>
+      <p class="hd" id="c-hd"></p>
+      <div class="hact">
+        <button class="btn primary" id="c-hl" type="button">Ver ahora</button>
+        <button class="btn ghost" id="c-hi" type="button">Más información</button>
+      </div>
+    </div>
+    <div class="dots" id="c-dots"></div>
+  </section>
+  <div id="c-pop">
+    <h3 class="rt" id="c-pt">Populares</h3>
+    <section class="row" aria-label="Populares de la colección">
+      <button class="nav prev" aria-label="Anterior">‹</button>
+      <div class="track" id="c-track"></div>
+      <button class="nav next" aria-label="Siguiente">›</button>
+    </section>
+  </div>
+  <h3 class="rt" id="c-rt">Todas las películas</h3>
+  <div class="grid" id="c-grid"></div>
+  <p class="cvacio" id="c-vacio" hidden>Aún no hay películas en esta colección.</p>
+</section>
 
 <section id="vista-subs" hidden aria-label="Suscripciones">
   <div class="cuenta" id="s-card">
@@ -453,6 +517,7 @@ svg.st text{fill:currentColor;stroke:none}
 </dialog>
 
 <script src="plataformas.js"></script>
+<script src="colecciones.js"></script>
 <script>
 /* ============================================================
    AQUÍ AGREGAS TUS PELÍCULAS. Solo necesitas:  titulo  y  link
@@ -879,6 +944,7 @@ function refrescar(p) {
   if (b && !b.querySelector('img')) poster(p, b);
   const c = tarjetasC.get(p);
   if (c && !c.querySelector('img')) poster(p, c);
+  (tarjetasCol.get(p) || []).forEach(x => { if (!x.querySelector('img')) poster(p, x); });
   if (orden[idx] === p) mostrar(idx);
   if (dlg.open && abierta === p) abrir(p);
   actualizarCont();
@@ -900,7 +966,7 @@ function filtrar() {
   });
   rt.textContent = q ? 'Resultados' : 'Todas las películas';
   sinres.hidden = !q || n > 0;
-  H('pop').hidden = H('plat').hidden = !!q;                       // al buscar, solo se ven los resultados
+  H('pop').hidden = H('plat').hidden = H('cols').hidden = !!q;                       // al buscar, solo se ven los resultados
   actualizarCont();
 }
 bq.addEventListener('input', filtrar);
@@ -974,12 +1040,14 @@ if (typeof PLATAFORMAS !== 'undefined') {
 
 /* ---------- Switcher superior: Películas | Suscripciones ---------- */
 const sw = document.querySelector('.sw'), swBtns = [...sw.querySelectorAll('button')];
-const vistas = { inicio: H('vista-inicio'), subs: H('vista-subs') };
+const vistas = { inicio: H('vista-inicio'), subs: H('vista-subs'), col: H('vista-col') };
 function posSw() {                                   // coloca la "burbuja" de vidrio bajo la opción activa
   const b = sw.querySelector('.on');
   sw.style.setProperty('--x', b.offsetLeft + 'px'); sw.style.setProperty('--w', b.offsetWidth + 'px');
 }
 function irA(v) {
+  if (location.hash) history.replaceState(null, '', location.pathname + location.search);   // salir de una colección
+  clearInterval(cTimer);
   swBtns.forEach(b => { const on = b.dataset.v === v; b.classList.toggle('on', on); b.setAttribute('aria-selected', on); });
   Object.entries(vistas).forEach(([k, el]) => el.hidden = k !== v);
   H('bbox').hidden = v !== 'inicio';                 // el buscador es solo de películas
@@ -1111,6 +1179,93 @@ H('s-out').onclick = async () => {
   try { await api('logout', {}); } catch (e) {}
   cerrarHoja(); H('s-code').value = ''; sVer('login');
 };
+
+/* ---------- Colecciones por temática ----------
+   Los cuadros salen de colecciones.js. Cada uno abre  #/c/<id>  (otra "página" dentro de la app, con su propio botón Volver). */
+const tarjetasCol = new Map();
+let cTimer, cIdx = 0, cLista = [], colHist = false, colActual = null;
+const pelisDe = c => { const t = new Set((c.peliculas || []).map(norm)); return peliculas.filter(p => t.has(norm(p.titulo))); };
+const urlCss = u => 'url("' + String(u).replace(/"/g, '%22') + '")';
+const tCol = p => { const b = crearTarjeta(p); if (!tarjetasCol.has(p)) tarjetasCol.set(p, []); tarjetasCol.get(p).push(b); return b; };
+
+function cMostrar(i) {
+  const hero = H('chero'), c = colActual, p = cLista[i]; cIdx = i;
+  hero.classList.add('out');
+  setTimeout(() => {
+    if (p) {
+      hero.style.setProperty('--g', grad(p.titulo)); const bg = p.fondo || p.poster;
+      hero.style.setProperty('--img', bg ? urlCss(bg) : 'none');
+      H('c-hm').textContent = [p.anio, p.genero, p.duracion].filter(Boolean).join('  ·  ');
+      H('c-ht').textContent = p.titulo; H('c-hd').textContent = p.descripcion || '';
+      const l = H('c-hl'); l.hidden = H('c-hi').hidden = false;
+      l.textContent = p.link ? (hayProg(p) ? 'Continuar' : 'Ver ahora') : 'Próximamente'; l.disabled = !p.link;
+      l.onclick = () => reproducir(p); H('c-hi').onclick = () => abrir(p);
+    } else {                                           // colección sin películas todavía
+      hero.style.setProperty('--g', 'linear-gradient(135deg,' + c.a + ',' + c.b + ')'); hero.style.setProperty('--img', 'none');
+      H('c-hm').textContent = 'Colección'; H('c-ht').textContent = c.nombre; H('c-hd').textContent = 'Muy pronto habrá películas aquí.';
+      H('c-hl').hidden = H('c-hi').hidden = true;
+    }
+    [...H('c-dots').children].forEach((d, k) => d.classList.toggle('on', k === i));
+    hero.classList.remove('out');
+  }, reduce ? 0 : 250);
+}
+function cAuto() {
+  clearInterval(cTimer);
+  if (reduce || cLista.length < 2) return;
+  cTimer = setInterval(() => { if (!dlg.open && pl.hidden && !document.hidden) cMostrar((cIdx + 1) % cLista.length); }, 9000);
+}
+function abrirCol(id, viaEnlace) {
+  const c = typeof COLECCIONES !== 'undefined' && COLECCIONES.find(x => x.id === id);
+  if (!c) { history.replaceState(null, '', location.pathname + location.search); cerrarCol(); return; }
+  colActual = c; colHist = !!viaEnlace; tarjetasCol.clear();
+  const lista = pelisDe(c), pop = [...lista.filter(p => p.popular), ...lista.filter(p => !p.popular)].slice(0, POPULARES);
+  H('vista-col').style.setProperty('--ca', c.a);
+  H('c-titulo').textContent = c.nombre;
+  const an = c.anuncio || {}, A = H('c-anun');                    // banner de anuncio (lo escribes tú en colecciones.js)
+  A.hidden = !(an.titulo || an.texto || an.imagen);
+  if (!A.hidden) {
+    A.replaceChildren(...[an.titulo && el('b', '', an.titulo), an.texto && el('span', '', an.texto)].filter(Boolean));
+    A.style.setProperty('--img', an.imagen ? urlCss(an.imagen) : 'none');
+    if (an.enlace) { A.href = an.enlace; A.target = '_blank'; A.rel = 'noopener'; } else { A.removeAttribute('href'); A.removeAttribute('target'); }
+  }
+  cLista = [...lista].sort(() => Math.random() - .5).slice(0, 5);   // banner grande: películas al azar de la colección
+  H('c-dots').replaceChildren(...cLista.map((p, i) => { const d = el('button'); d.type = 'button'; d.setAttribute('aria-label', p.titulo); d.onclick = () => { cMostrar(i); cAuto(); }; return d; }));
+  cMostrar(0); cAuto();
+  H('c-track').replaceChildren(...pop.map(tCol)); H('c-grid').replaceChildren(...lista.map(tCol));
+  H('c-pt').textContent = 'Populares de ' + c.nombre; H('c-rt').textContent = 'Todas las películas de ' + c.nombre;
+  H('c-pop').hidden = H('c-rt').hidden = H('c-grid').hidden = !lista.length; H('c-vacio').hidden = !!lista.length;
+  vistas.inicio.hidden = vistas.subs.hidden = true; vistas.col.hidden = false;
+  H('bbox').hidden = true; verCred(); scrollTo({ top: 0 });
+}
+function cerrarCol() {
+  clearInterval(cTimer);
+  if (vistas.col.hidden) return;
+  vistas.col.hidden = true;
+  if (sw.querySelector('.on').dataset.v === 'inicio') { vistas.inicio.hidden = false; H('bbox').hidden = false; }
+}
+function ruta(viaEnlace) { const m = location.hash.match(/^#\/c\/([\w-]+)$/); if (m) abrirCol(m[1], viaEnlace); else cerrarCol(); }
+addEventListener('hashchange', () => ruta(true));
+H('c-back').addEventListener('click', e => {
+  e.preventDefault();
+  if (colHist) history.back(); else { history.replaceState(null, '', location.pathname + location.search); cerrarCol(); }
+});
+{ const cp = H('c-pop'), pasoK = () => H('c-track').clientWidth * .8;
+  cp.querySelector('.prev').onclick = () => H('c-track').scrollBy({ left: -pasoK(), behavior: 'smooth' });
+  cp.querySelector('.next').onclick = () => H('c-track').scrollBy({ left: pasoK(), behavior: 'smooth' }); }
+
+/* cuadros del inicio */
+if (typeof COLECCIONES !== 'undefined' && COLECCIONES.length) {
+  COLECCIONES.forEach(c => {
+    const a = document.createElement('a');
+    a.className = 'ctile t-' + (c.tema || 'liso') + (c.fondo ? ' img' : ''); a.href = '#/c/' + c.id;
+    a.style.setProperty('--a', c.a); a.style.setProperty('--b', c.b); a.style.setProperty('--tx', c.tx || '#fff');
+    if (c.fondo) a.style.setProperty('--fondo', urlCss(c.fondo));
+    const n = pelisDe(c).length; a.setAttribute('aria-label', c.nombre + ', ' + n + (n === 1 ? ' película' : ' películas'));
+    a.append(typeof marca === 'function' ? marca(c) : el('span', 'wm', c.nombre), el('span', 'cn', n + (n === 1 ? ' película' : ' películas')));
+    H('cols').appendChild(a);
+  });
+} else H('cols').hidden = true;
+ruta(false);
 
 </script>
 <div id="intro" aria-hidden="true">
