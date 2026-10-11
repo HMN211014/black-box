@@ -11,6 +11,7 @@
      tema        -> dibujo de fondo del cuadro: "puntos" (cómic), "rayos", "estrellas" o "liso"
      fondo       -> OPCIONAL: foto de fondo del cuadro, p. ej. "/img/marvel.jpg" (sustituye al tema)
      logo        -> OPCIONAL: imagen del logo, p. ej. "/logos/marvel.png" (sustituye al nombre escrito)
+     sinNombre   -> OPCIONAL: pon  sinNombre: true  si la imagen de "fondo" ya trae el nombre escrito; así no se repite encima.
      fuente, peso, esp, mayus -> estilo de las letras del nombre
      anuncio     -> el banner de arriba de la página de la colección. Llena lo que quieras:
                     titulo, texto, imagen (foto de fondo) y enlace (a dónde lleva al tocarlo).
