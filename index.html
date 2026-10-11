@@ -274,6 +274,26 @@ svg.st text{fill:currentColor;stroke:none}
 #c-pop[hidden],#c-rt[hidden],#c-grid[hidden]{display:none}
 @media(max-width:620px){.cbar{padding:0 20px 14px}.anun{margin:0 20px 16px}}
 
+#vista-col::after{content:"";position:absolute;left:0;right:0;top:-70px;bottom:0;z-index:-1;pointer-events:none;background-image:var(--patron,none);background-repeat:repeat;opacity:.16;
+  -webkit-mask-image:linear-gradient(180deg,#000,rgba(0,0,0,.3));mask-image:linear-gradient(180deg,#000,rgba(0,0,0,.3))}
+
+/* ---------- Modo colección: sin la barra de Películas/Suscripciones, con el banner hasta arriba ---------- */
+body.colmode{padding-top:0}
+body.colmode .sw{display:none}
+body.colmode header{position:absolute;top:0;left:0;right:0;z-index:20;margin:0;align-items:center;pointer-events:none;
+  padding:calc(env(safe-area-inset-top,0px) + 14px) 5vw 78px calc(max(14px,3vw) + 62px);
+  background:linear-gradient(180deg,rgba(0,0,0,.8) 0,rgba(0,0,0,.5) 42%,transparent 100%)}
+body.colmode header p{display:none}
+body.colmode h1{font-size:clamp(24px,3.4vw,34px)}
+body.colmode .cbar{display:contents}
+body.colmode .cbar h2{display:none}
+body.colmode .cback{position:fixed;top:calc(env(safe-area-inset-top,0px) + 11px);left:max(14px,3vw);z-index:25;width:46px;height:46px;padding:0;justify-content:center;font-size:0}
+body.colmode .cback::before{content:"‹";font-size:32px;line-height:1;margin-top:-3px}
+body.colmode #vista-col .top{margin:0;border-radius:0 0 30px 30px}
+body.colmode #chero.top{height:clamp(400px,66vh,680px);box-shadow:0 30px 80px rgba(0,0,0,.6)}
+body.colmode #c-anun.top{min-height:240px;margin-bottom:18px;padding:calc(env(safe-area-inset-top,0px) + 90px) 5vw 22px;display:flex;flex-direction:column;justify-content:flex-end}
+body.colmode #chero:not(.top){margin-top:0}
+
 /* ---------- Créditos, Tienda y hoja de compra (liquid glass) ---------- */
 .cred{display:flex;align-items:center;gap:8px;margin-left:auto;align-self:center;height:40px;padding:0 16px;border-radius:999px;font-size:16px;white-space:nowrap;
   background:linear-gradient(180deg,rgba(255,255,255,.18),rgba(255,255,255,.06));border:1px solid rgba(255,255,255,.18);
@@ -311,9 +331,9 @@ svg.st text{fill:currentColor;stroke:none}
 
 /* ---------- Cuadrícula "Todas las películas" (2 columnas) ---------- */
 #pop[hidden],#plat[hidden]{display:none}
-.grid{display:grid;grid-template-columns:repeat(2,minmax(0,260px));gap:22px;padding:26px 5vw 40px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:22px;padding:26px 5vw 40px}   /* rellena el ancho: más columnas en pantallas grandes */
 .grid .card{width:100%;max-width:none;flex:none}
-@media(max-width:620px){.grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;padding:18px 20px 32px}}
+@media(max-width:620px){.grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:14px;padding:18px 20px 32px}}
 
 /* ---------- Plataformas de streaming ---------- */
 .plat{-webkit-tap-highlight-color:transparent;flex:0 0 clamp(150px,17vw,230px);aspect-ratio:16/10;border-radius:var(--r);scroll-snap-align:start;display:grid;place-items:center;padding:12px;text-decoration:none;color:var(--tx);
@@ -518,6 +538,7 @@ svg.st text{fill:currentColor;stroke:none}
 
 <script src="plataformas.js"></script>
 <script src="colecciones.js"></script>
+<script src="/api/catalogo"></script>
 <script>
 /* ============================================================
    AQUÍ AGREGAS TUS PELÍCULAS. Solo necesitas:  titulo  y  link
@@ -529,8 +550,9 @@ svg.st text{fill:currentColor;stroke:none}
    Cualquier dato que escribas a mano (anio, genero, duracion,
    descripcion, poster, fondo, trailer) tiene prioridad sobre TMDB.
    ============================================================ */
-const peliculas = [
-  { titulo:"Spiderman:Brand New day", buscar:"Spider-Man: Brand New Day",
+/* La lista sale de la base de datos (/api/catalogo). Si todavía no está conectada, se usan estos ejemplos (sin enlace). */
+const peliculas = (window.PELICULAS_DB && window.PELICULAS_DB.length) ? window.PELICULAS_DB : [
+   { titulo:"Spiderman:Brand New day", buscar:"Spider-Man: Brand New Day",
     link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/%5BPeliculasBluray.Com%5D%20Spider-Man%20Un%20nuevo%20d%C3%ADa%20(2026)%20%5B720P%5D%5BHD%5D.mp4" },
   { titulo:"Coyote vs Acme", buscar:"Coyote vs. Acme",
     link:"https://drive.google.com/file/d/1FToLhskC3P-QbVfO_jfNT0UlrAmhoDEc/view?usp=drivesdk" },
@@ -612,33 +634,37 @@ const CODIGO_TEMPORAL = "BB-TEMP-5824";
 const TEMP_MS = 60 * 60 * 1000;
 
 const CODIGOS = {
-  "Spiderman:Brand New day": "SPIDER1",
-  "Coyote vs Acme": "COYOTE1",
-  "El hombre que desafio al rey": "REY1",
-  "El Corazon de la bestia": "BESTIA1",
-  "Paw Patrol: Dino Movie": "DINO1",
-  "Evil Dead: En llamas": "EVIL1",
-  "Él final de Oak Street": "OAK1",
-  "Super Mario Galaxy": "Galaxy1",
-  "Resident Evil:Zona Cero": "Resident1",
-  "Obsesión": "OBS2",
-  "Deadpool": "Pool1",
-  "Deadpool 2": "Pool2",
-  "Spiderman": "SP1",
-  "Spiderman 2": "SP2",
-  "Spiderman 3": "SP3",
-  "Vertigo 2": "v2",
-  "El Laberinto del fauno": "fauno3",
-  "Deadpool y Wolverine": "Pool3",
-  "La noche del demonio : estan entre nosotros": "Insidius5",
-};
+"Spiderman:Brand New day": "SPIDER1",
+"Coyote vs Acme": "COYOTE1",
+"El hombre que desafio al rey": "REY1",
+ "El Corazon de la bestia": "BESTIA1",
+ "Paw Patrol: Dino Movie": "DINO1",
+ "Evil Dead: En llamas": "EVIL1",
+ "Él final de Oak Street": "OAK1",
+ "Super Mario Galaxy": "Galaxy1",
+ "Resident Evil:Zona Cero": "Resident1",
+ "Obsesión": "OBS2",
+ "Deadpool": "Pool1",
+ "Deadpool 2": "Pool2",
+ "Spiderman": "SP1",
+ "Spiderman 2": "SP2",
+ "Spiderman 3": "SP3",
+ "Vertigo 2": "v2",
+ "El Laberinto del fauno": "fauno3",
+ "Deadpool y Wolverine": "Pool3",
+ "La noche del demonio : estan entre nosotros": "Insidius5",
+
+
+
+};   // también puedes escribir uno aquí:  "Título exacto": "CODIGO"
+peliculas.forEach(p => { if (p.codigo) CODIGOS[p.titulo] = p.codigo; });   // los de la base de datos
 
 /* ---------- TMDB: completa los datos de cada película ----------
    La página se dibuja al instante; los datos se rellenan solos al llegar
    (y quedan guardados en el dispositivo para la próxima vez). */
 const TMDB_KEY = "28e735f7aea07e37f38a95d346bcdd7f";
 const TMDB = "https://api.themoviedb.org/3", IMG = "https://image.tmdb.org/t/p/";
-const clave = p => "tmdb2:" + (p.tmdb || p.buscar || p.titulo);
+const clave = p => "tmdb3:" + (p.tmdb || p.buscar || p.titulo);
 function aplicar(p, d) {
   let cambio = false;
   for (const f in d) if (d[f] && !p[f]) { p[f] = d[f]; cambio = true; }
@@ -648,6 +674,7 @@ function deCache(p) {
   try { const d = JSON.parse(localStorage.getItem(clave(p))); if (d) aplicar(p, d); } catch (e) {}
 }
 async function completar(p) {
+  if (p.sinTmdb) return false;
   if (!TMDB_KEY || TMDB_KEY.startsWith("TU_")) return false;
   try {
     if (JSON.parse(localStorage.getItem(clave(p)))) return false;   // ya estaba guardado
@@ -670,7 +697,8 @@ async function completar(p) {
       duracion: r ? Math.floor(r / 60) + " h " + (r % 60) + " min" : "",
       descripcion: x.overview || "",
       poster: x.poster_path ? IMG + "w500" + x.poster_path : "",
-      fondo: x.backdrop_path ? IMG + "w1280" + x.backdrop_path : ""
+      fondo: x.backdrop_path ? IMG + "w1280" + x.backdrop_path : "",
+      empresas: (x.production_companies || []).map(c => ({ id: c.id, nombre: c.name }))   // para armar colecciones solas
     };
     try { localStorage.setItem(clave(p), JSON.stringify(d)); } catch (e) {}
     return aplicar(p, d);
@@ -999,6 +1027,7 @@ function refrescar(p) {
   if (orden[idx] === p) mostrar(idx);
   if (dlg.open && abierta === p) abrir(p);
   actualizarCont();
+  pintarTiles(); actualizarColAbierta();
 }
 peliculas.forEach(p => completar(p).then(c => { if (c) refrescar(p); }));
 
@@ -1097,6 +1126,7 @@ function posSw() {                                   // coloca la "burbuja" de v
   sw.style.setProperty('--x', b.offsetLeft + 'px'); sw.style.setProperty('--w', b.offsetWidth + 'px');
 }
 function irA(v) {
+  document.body.classList.remove('colmode');
   if (location.hash) history.replaceState(null, '', location.pathname + location.search);   // salir de una colección
   clearInterval(cTimer);
   swBtns.forEach(b => { const on = b.dataset.v === v; b.classList.toggle('on', on); b.setAttribute('aria-selected', on); });
@@ -1234,8 +1264,14 @@ H('s-out').onclick = async () => {
 /* ---------- Colecciones por temática ----------
    Los cuadros salen de colecciones.js. Cada uno abre  #/c/<id>  (otra "página" dentro de la app, con su propio botón Volver). */
 const tarjetasCol = new Map();
-let cTimer, cIdx = 0, cLista = [], colHist = false, colActual = null;
-const pelisDe = c => { const t = new Set((c.peliculas || []).map(norm)); return peliculas.filter(p => t.has(norm(p.titulo))); };
+let cTimer, cIdx = 0, cLista = [], colHist = false, colActual = null, colFirma = '';
+const pelisDe = c => {
+  const t = new Set((c.peliculas || []).map(norm));
+  const emp = (c.tmdbEmpresas || []).map(e => typeof e === 'number' ? e : norm(e));      // productoras de TMDB: nombre exacto o número
+  const sub = (c.tmdbEmpresasContiene || []).map(norm);                                   // o cualquier productora cuyo nombre contenga estas palabras
+  return peliculas.filter(p => t.has(norm(p.titulo)) || String(p.coleccion || '').split(',').map(s => s.trim().toLowerCase()).includes(c.id)
+    || (p.empresas || []).some(x => emp.includes(x.id) || emp.includes(norm(x.nombre)) || sub.some(s => norm(x.nombre).includes(s))));
+};
 const urlCss = u => 'url("' + String(u).replace(/"/g, '%22') + '")';
 const tCol = p => { const b = crearTarjeta(p); if (!tarjetasCol.has(p)) tarjetasCol.set(p, []); tarjetasCol.get(p).push(b); return b; };
 
@@ -1246,7 +1282,7 @@ function cMostrar(i) {
     if (p) {
       hero.style.setProperty('--g', grad(p.titulo)); const bg = p.fondo || p.poster;
       hero.style.setProperty('--img', bg ? urlCss(bg) : 'none');
-      H('c-hm').textContent = [p.anio, p.genero, p.duracion].filter(Boolean).join('  ·  ');
+      H('c-hm').textContent = [c.nombre, p.anio, p.genero, p.duracion].filter(Boolean).join('  ·  ');
       H('c-ht').textContent = p.titulo; H('c-hd').textContent = p.descripcion || '';
       const l = H('c-hl'); l.hidden = H('c-hi').hidden = false;
       l.textContent = p.link ? (hayProg(p) ? 'Continuar' : 'Ver ahora') : 'Próximamente'; l.disabled = !p.link;
@@ -1265,13 +1301,16 @@ function cAuto() {
   if (reduce || cLista.length < 2) return;
   cTimer = setInterval(() => { if (!dlg.open && pl.hidden && !document.hidden) cMostrar((cIdx + 1) % cLista.length); }, 9000);
 }
-function abrirCol(id, viaEnlace) {
+function abrirCol(id, viaEnlace, silencio) {
   const c = typeof COLECCIONES !== 'undefined' && COLECCIONES.find(x => x.id === id);
   if (!c) { history.replaceState(null, '', location.pathname + location.search); cerrarCol(); return; }
   colActual = c; colHist = !!viaEnlace; tarjetasCol.clear();
-  const lista = pelisDe(c), pop = [...lista.filter(p => p.popular), ...lista.filter(p => !p.popular)].slice(0, POPULARES);
+  const lista = pelisDe(c); colFirma = lista.map(p => p.titulo).join('|');
+  const pop = [...lista.filter(p => p.popular), ...lista.filter(p => !p.popular)].slice(0, POPULARES);
   H('vista-col').style.setProperty('--ca', c.a);
+  const gp = PATRONES[c.patron]; H('vista-col').style.setProperty('--patron', gp ? svgUrl(gp(c.patronColor || '#ffffff')) : 'none');   // dibujo de fondo
   H('c-titulo').textContent = c.nombre;
+  document.body.classList.add('colmode');
   const an = c.anuncio || {}, A = H('c-anun');                    // banner de anuncio (lo escribes tú en colecciones.js)
   A.hidden = !(an.titulo || an.texto || an.imagen);
   if (!A.hidden) {
@@ -1279,6 +1318,7 @@ function abrirCol(id, viaEnlace) {
     A.style.setProperty('--img', an.imagen ? urlCss(an.imagen) : 'none');
     if (an.enlace) { A.href = an.enlace; A.target = '_blank'; A.rel = 'noopener'; } else { A.removeAttribute('href'); A.removeAttribute('target'); }
   }
+  A.classList.toggle('top', !A.hidden); H('chero').classList.toggle('top', A.hidden);   // el primer banner queda pegado arriba
   cLista = [...lista].sort(() => Math.random() - .5).slice(0, 5);   // banner grande: películas al azar de la colección
   H('c-dots').replaceChildren(...cLista.map((p, i) => { const d = el('button'); d.type = 'button'; d.setAttribute('aria-label', p.titulo); d.onclick = () => { cMostrar(i); cAuto(); }; return d; }));
   cMostrar(0); cAuto();
@@ -1286,26 +1326,42 @@ function abrirCol(id, viaEnlace) {
   H('c-pt').textContent = 'Populares de ' + c.nombre; H('c-rt').textContent = 'Todas las películas de ' + c.nombre;
   H('c-pop').hidden = H('c-rt').hidden = H('c-grid').hidden = !lista.length; H('c-vacio').hidden = !!lista.length;
   vistas.inicio.hidden = vistas.subs.hidden = true; vistas.col.hidden = false;
-  H('bbox').hidden = true; verCred(); scrollTo({ top: 0 });
+  H('bbox').hidden = true; verCred(); if (!silencio) scrollTo({ top: 0 });
+}
+function actualizarColAbierta() {                    // si llegan datos de TMDB con la colección abierta, se completa sin saltar
+  if (vistas.col.hidden || !colActual) return;
+  if (pelisDe(colActual).map(p => p.titulo).join('|') !== colFirma) abrirCol(colActual.id, colHist, true);
 }
 function cerrarCol() {
   clearInterval(cTimer);
+  document.body.classList.remove('colmode');
   if (vistas.col.hidden) return;
   vistas.col.hidden = true;
   if (sw.querySelector('.on').dataset.v === 'inicio') { vistas.inicio.hidden = false; H('bbox').hidden = false; }
 }
-function ruta(viaEnlace) { const m = location.hash.match(/^#\/c\/([\w-]+)$/); if (m) abrirCol(m[1], viaEnlace); else cerrarCol(); }
+const svgUrl = s => 'url("data:image/svg+xml,' + encodeURIComponent(s) + '")';
+const PATRONES = {           // fondos de las páginas de colección (patron: "aranas" | "murcielagos" en colecciones.js)
+  aranas: c => `<svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' width='120' height='120' viewBox='0 0 120 120'><defs><g id='s' fill='${c}' stroke='${c}' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><ellipse cx='20' cy='23' rx='4.2' ry='5.6' stroke='none'/><circle cx='20' cy='15' r='2.8' stroke='none'/><path fill='none' d='M23 15.5L30.5 9.5L35 13.5M23.6 18.6L32 16.5L36.5 21.5M23.6 22.6L32 25.5L35.5 31.5M22.6 26L29 32.5L31 37.5M17 15.5L9.5 9.5L5 13.5M16.4 18.6L8 16.5L3.5 21.5M16.4 22.6L8 25.5L4.5 31.5M17.4 26L11 32.5L9 37.5'/></g></defs><use xlink:href='#s' transform='translate(8 6) rotate(18 20 20) scale(.9)'/><use xlink:href='#s' transform='translate(68 66) rotate(-24 20 20) scale(.62)'/></svg>`,
+  murcielagos: c => `<svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' width='150' height='150' viewBox='0 0 150 150'><defs><path id='b' d='M20 5L21.8 1L23.2 5.6C27 4 32 4.4 38 7.6Q34.8 8.8 33.4 12Q30.4 10.2 28.2 11.4Q26.2 12 25.2 15Q22.8 13.4 20 19Z'/><g id='m' fill='${c}'><use xlink:href='#b'/><use xlink:href='#b' transform='translate(40 0) scale(-1 1)'/></g></defs><use xlink:href='#m' transform='translate(8 14) rotate(-8 20 10) scale(1.5)'/><use xlink:href='#m' transform='translate(92 86) rotate(10 20 10) scale(.95)'/></svg>`
+};
+function ruta(viaEnlace) {
+  const m = location.hash.match(/^#\/c\/([\w-]+)$/);
+  if (m) abrirCol(m[1], viaEnlace); else cerrarCol();
+}
 addEventListener('hashchange', () => ruta(true));
-H('c-back').addEventListener('click', e => {
+const volverDe = e => {
   e.preventDefault();
   if (colHist) history.back(); else { history.replaceState(null, '', location.pathname + location.search); cerrarCol(); }
-});
+};
+H('c-back').addEventListener('click', volverDe);
 { const cp = H('c-pop'), pasoK = () => H('c-track').clientWidth * .8;
   cp.querySelector('.prev').onclick = () => H('c-track').scrollBy({ left: -pasoK(), behavior: 'smooth' });
   cp.querySelector('.next').onclick = () => H('c-track').scrollBy({ left: pasoK(), behavior: 'smooth' }); }
 
-/* cuadros del inicio */
-if (typeof COLECCIONES !== 'undefined' && COLECCIONES.length) {
+/* cuadros del inicio (se repintan cuando llegan datos de TMDB, para actualizar el conteo) */
+function pintarTiles() {
+  const cols = H('cols'); cols.replaceChildren();
+  if (typeof COLECCIONES === 'undefined' || !COLECCIONES.length) { cols.hidden = true; return; }
   COLECCIONES.forEach(c => {
     const a = document.createElement('a');
     a.className = 'ctile t-' + (c.tema || 'liso') + (c.fondo ? ' img' : ''); a.href = '#/c/' + c.id;
@@ -1313,9 +1369,10 @@ if (typeof COLECCIONES !== 'undefined' && COLECCIONES.length) {
     if (c.fondo) a.style.setProperty('--fondo', urlCss(c.fondo));
     const n = pelisDe(c).length; a.setAttribute('aria-label', c.nombre + ', ' + n + (n === 1 ? ' película' : ' películas'));
     a.append(typeof marca === 'function' ? marca(c) : el('span', 'wm', c.nombre), el('span', 'cn', n + (n === 1 ? ' película' : ' películas')));
-    H('cols').appendChild(a);
+    cols.appendChild(a);
   });
-} else H('cols').hidden = true;
+}
+pintarTiles();
 ruta(false);
 
 </script>

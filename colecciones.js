@@ -6,6 +6,8 @@
      id          -> sin espacios ni acentos; va en el enlace (#/c/marvel)
      nombre      -> lo que se lee en el cuadro y en la página
      a, b        -> colores del cuadro (degradado)       tx -> color del nombre
+     patron      -> dibujo de fondo de la PÁGINA de la colección: "aranas", "murcielagos" o "" (ninguno)
+     patronColor -> color de ese dibujo (se ve muy suave)
      tema        -> dibujo de fondo del cuadro: "puntos" (cómic), "rayos", "estrellas" o "liso"
      fondo       -> OPCIONAL: foto de fondo del cuadro, p. ej. "/img/marvel.jpg" (sustituye al tema)
      logo        -> OPCIONAL: imagen del logo, p. ej. "/logos/marvel.png" (sustituye al nombre escrito)
@@ -13,18 +15,35 @@
      anuncio     -> el banner de arriba de la página de la colección. Llena lo que quieras:
                     titulo, texto, imagen (foto de fondo) y enlace (a dónde lleva al tocarlo).
                     Si lo dejas todo vacío ("") el banner no aparece.
-     peliculas   -> los títulos de las películas de esta colección, ESCRITOS IGUAL que el
-                    "titulo" que tienen en la lista de películas de index.html
+     tmdbEmpresas-> (automático) productoras de TMDB: toda película cuya ficha de TMDB tenga una de estas
+                    productoras entra sola en la colección. Escribe el nombre tal como sale en TMDB
+                    (o su número de empresa). Puedes combinarlo con "peliculas".
+     tmdbEmpresasContiene -> igual, pero basta con que el nombre de la productora CONTENGA la palabra.
+                    Útil para estudios con muchas ramas: ["warner"] atrapa Warner Bros. Pictures,
+                    Warner Bros. Animation, etc. Revisa que no entren productoras que no quieres.
+     peliculas   -> los títulos de las películas de esta colección, ESCRITOS IGUAL que en el catálogo.
+                    (También puedes poner el id de la colección en la columna "Colección" de la tabla de películas.)
    ============================================================ */
 const COLECCIONES = [
-  { id: "marvel", nombre: "Marvel", a: "#e62429", b: "#3a0509", tx: "#ffffff", logo: "https://static.wikia.nocookie.net/logopedia/images/c/cd/Marvel_Entertainment_Logo_%282012%29.jpg/revision/latest?cb=20190325210512",
+  { id: "marvel", nombre: "Marvel", a: "#e62429", b: "#3a0509", tx: "#ffffff", tema: "puntos",
     fuente: "Impact,'Arial Narrow Bold','Helvetica Neue',sans-serif", peso: "900", esp: ".03em", mayus: true,
-    anuncio: { titulo: "Camino a Doomsday", texto: "Una guia de las peliculas que debes ver para comprender mejor Avengers Doomsday", imagen: "", enlace: "" },
-    //  Ejemplo:  anuncio: { titulo: "Estreno esta semana", texto: "Ya disponible en Black BOX", imagen: "https://www.laughingplace.com/uploads/media/2026/10/httpsus.list-manage.comgh2v7iVI5CAe-c72bbcc132-c2id-6b02c62472d50de4d0289667542d94d3-(9).jpg/w1280", enlace: "" },
-    peliculas: ["Spiderman:Brand New day"] },
+    anuncio: { titulo: "", texto: "", imagen: "", enlace: "" },
+    //  Ejemplo:  anuncio: { titulo: "Estreno esta semana", texto: "Ya disponible en Black BOX", imagen: "", enlace: "" },
+    patron: "aranas", patronColor: "#ff4d52",
+    tmdbEmpresas: ["Marvel Studios", "Marvel Entertainment"],
+    peliculas: [] },
 
-  { id: "dc", nombre: "DC", a: "#0476f2", b: "#031a3a", tx: "#ffffff", logo: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQwySfFfOqBP-N9odmEADvpcaWTnWLFagdYWI_WZifL3_vskl_PJo-fW50&s=10",
+  { id: "dc", nombre: "DC", a: "#0476f2", b: "#031a3a", tx: "#ffffff", tema: "rayos",
     fuente: "'Avenir Next','Helvetica Neue',Arial,sans-serif", peso: "900", esp: ".08em", mayus: true,
     anuncio: { titulo: "", texto: "", imagen: "", enlace: "" },
+    patron: "murcielagos", patronColor: "#7db4ff",
+    tmdbEmpresas: ["DC Entertainment", "DC Films", "DC Studios", "DC Comics"],
     peliculas: [] }
+
+  // ----- EJEMPLO listo para usar: quita las dos barras // de cada línea (y pon una coma después del bloque anterior) -----
+  // ,{ id: "warner", nombre: "Warner Bros.", a: "#0b3d91", b: "#020b1f", tx: "#ffffff", tema: "estrellas",
+  //    fuente: "Georgia,'Times New Roman',serif", peso: "700", esp: ".04em", mayus: true,
+  //    anuncio: { titulo: "", texto: "", imagen: "", enlace: "" },
+  //    tmdbEmpresasContiene: ["warner"],
+  //    peliculas: [] }
 ];
