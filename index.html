@@ -499,6 +499,14 @@ body.colmode #chero:not(.top){margin-top:0}
       <button class="nav next" aria-label="Siguiente">›</button>
     </section>
   </div>
+  <div id="c-cro" hidden>
+    <h3 class="rt" id="c-crt">Orden cronológico</h3>
+    <section class="row" aria-label="Orden cronológico de la colección">
+      <button class="nav prev" aria-label="Anterior">‹</button>
+      <div class="track" id="c-ctrack"></div>
+      <button class="nav next" aria-label="Siguiente">›</button>
+    </section>
+  </div>
   <h3 class="rt" id="c-rt">Todas las películas</h3>
   <div class="grid" id="c-grid"></div>
   <p class="cvacio" id="c-vacio" hidden>Aún no hay películas en esta colección.</p>
@@ -802,20 +810,23 @@ peliculas.forEach(p => { if (p.codigo) CODIGOS[p.titulo] = p.codigo; });   // lo
    (y quedan guardados en el dispositivo para la próxima vez). */
 const TMDB_KEY = "28e735f7aea07e37f38a95d346bcdd7f";
 const TMDB = "https://api.themoviedb.org/3", IMG = "https://image.tmdb.org/t/p/";
-const clave = p => "tmdb3:" + (p.tmdb || p.buscar || p.titulo);
+const clave = p => "tmdb3:" + (p.tmdb || p.buscar || p.titulo);      // versión anterior (se sigue leyendo para mostrar algo al instante)
+const clave4 = p => "tmdb4:" + (p.tmdb || p.buscar || p.titulo);     // versión con saga, palabras clave, director y reparto
+let datosVer = 0;                                                    // sube cada vez que llegan datos nuevos (para recalcular colecciones)
 function aplicar(p, d) {
   let cambio = false;
   for (const f in d) if (d[f] && !p[f]) { p[f] = d[f]; cambio = true; }
+  if (cambio) datosVer++;
   return cambio;
 }
 function deCache(p) {
-  try { const d = JSON.parse(localStorage.getItem(clave(p))); if (d) aplicar(p, d); } catch (e) {}
+  for (const k of [clave(p), clave4(p)]) { try { const d = JSON.parse(localStorage.getItem(k)); if (d) aplicar(p, d); } catch (e) {} }
 }
 async function completar(p) {
   if (p.sinTmdb) return false;
   if (!TMDB_KEY || TMDB_KEY.startsWith("TU_")) return false;
   try {
-    if (JSON.parse(localStorage.getItem(clave(p)))) return false;   // ya estaba guardado
+    if (JSON.parse(localStorage.getItem(clave4(p)))) return false;   // ya estaba guardado
   } catch (e) {}
   try {
     const j = u => fetch(u, { signal: AbortSignal.timeout(8000) }).then(r => r.json());
@@ -826,7 +837,7 @@ async function completar(p) {
       if (!s.results || !s.results[0]) return false;
       id = s.results[0].id;
     }
-    const x = await j(`${TMDB}/movie/${id}?api_key=${TMDB_KEY}&language=es-MX`);
+    const x = await j(`${TMDB}/movie/${id}?api_key=${TMDB_KEY}&language=es-MX&append_to_response=keywords,credits`);
     if (!x || !x.id) return false;
     const r = x.runtime;
     const d = {
@@ -836,9 +847,16 @@ async function completar(p) {
       descripcion: x.overview || "",
       poster: x.poster_path ? IMG + "w500" + x.poster_path : "",
       fondo: x.backdrop_path ? IMG + "w1280" + x.backdrop_path : "",
-      empresas: (x.production_companies || []).map(c => ({ id: c.id, nombre: c.name }))   // para armar colecciones solas
+      empresas: (x.production_companies || []).map(c => ({ id: c.id, nombre: c.name })),   // para armar colecciones solas
+      /* más datos para agrupar: */
+      fecha: x.release_date || "",                                                        // fecha exacta (orden cronológico)
+      saga: x.belongs_to_collection ? { id: x.belongs_to_collection.id, nombre: x.belongs_to_collection.name } : "",
+      generosIds: (x.genres || []).map(g => g.id),
+      palabras: ((x.keywords && x.keywords.keywords) || []).slice(0, 40).map(k => ({ id: k.id, nombre: k.name })),
+      director: ((x.credits && x.credits.crew) || []).filter(c => c.job === "Director").map(c => ({ id: c.id, nombre: c.name })),
+      reparto: ((x.credits && x.credits.cast) || []).slice(0, 6).map(c => ({ id: c.id, nombre: c.name }))
     };
-    try { localStorage.setItem(clave(p), JSON.stringify(d)); } catch (e) {}
+    try { localStorage.setItem(clave4(p), JSON.stringify(d)); } catch (e) {}
     return aplicar(p, d);
   } catch (e) { return false; }
 }
@@ -892,7 +910,7 @@ function pintarPopulares() {
   lista.forEach(p => { const b = crearTarjeta(p); track.appendChild(b); tarjetasC.set(p, b); });
 }
 function ordenar() {
-  peliculas.sort((a, b) => (esActual(b) - esActual(a)) || (a._i - b._i));
+  peliculas.sort((a, b) => (esActual(b) - esActual(a)) || (a._i - b._i)); datosVer++;
   const grid = document.getElementById('grid');
   peliculas.forEach(p => { const b = tarjetas.get(p); if (b) grid.appendChild(b); });
   pintarPopulares();
@@ -1695,13 +1713,92 @@ H('s-out').onclick = async () => {
    Los cuadros salen de colecciones.js. Cada uno abre  #/c/<id>  (otra "página" dentro de la app, con su propio botón Volver). */
 const tarjetasCol = new Map();
 let cTimer, cIdx = 0, cLista = [], colHist = false, colActual = null, colFirma = '';
-const pelisDe = c => {
+/* ---------- Agrupación automática con datos de TMDB ----------
+   1) SEMILLA: lo que ya funcionaba (títulos, productoras, campo coleccion) + criterios nuevos y opcionales en colecciones.js:
+        tmdbSagas, tmdbPalabras, tmdbDirectores, tmdbReparto  (número de TMDB o parte del nombre)
+   2) EXPANSIÓN: se aprende el "perfil" de la semilla con saga, palabras clave, director, reparto, otras productoras y géneros,
+      y se suman las películas que lo comparten, sin revisar nada a mano. Es de un solo paso (lo agregado no genera más).
+   Reglas: la saga de TMDB basta sola; las palabras clave tienen que ser distintivas de la colección (raras en tu biblioteca o
+   casi exclusivas de la semilla); director, reparto, productoras y géneros solo suman, nunca bastan solos.
+   Opcional por colección: auto:false (sin expansión) y excluir:["Título"] (quitar alguna en particular). */
+const UMBRAL = 1.5, TOPE = { s: 3, k: 2.5, d: .5, a: .6, e: .5, g: .2 };
+let idxVer = -1, idxN = 0, idxDf = new Map(), idxRas = new Map();
+const rasgosDe = p => {
+  const r = [];
+  if (p.saga && p.saga.id) r.push('s' + p.saga.id);
+  (p.palabras || []).forEach(k => r.push('k' + k.id));
+  (p.director || []).forEach(d => r.push('d' + d.id));
+  (p.reparto || []).forEach(a => r.push('a' + a.id));
+  (p.empresas || []).forEach(e => r.push('e' + e.id));
+  (p.generosIds || []).forEach(g => r.push('g' + g));
+  return r;
+};
+function indice() {                                    // cuántas películas tiene cada rasgo (se recalcula solo al llegar datos)
+  if (idxVer === datosVer) return;
+  idxVer = datosVer; idxN = peliculas.length; idxDf = new Map(); idxRas = new Map();
+  peliculas.forEach(p => { const r = new Set(rasgosDe(p)); idxRas.set(p, r); r.forEach(f => idxDf.set(f, (idxDf.get(f) || 0) + 1)); });
+}
+function perfilDe(S) {                                 // qué rasgos distinguen a la semilla (y con qué valor)
+  const sup = new Map(), n = S.length, rara = Math.max(4, Math.round(idxN * .08)), perfil = new Map();
+  S.forEach(p => idxRas.get(p).forEach(f => sup.set(f, (sup.get(f) || 0) + 1)));
+  sup.forEach((k, f) => {
+    const t = f[0], df = idxDf.get(f), prec = k / df, cob = k / n, esRara = df <= rara;
+    if (t === 's') perfil.set(f, 1);
+    else if (t === 'k') { if (esRara && cob >= .75) perfil.set(f, .75); else if (prec >= .6 && k >= 3 && cob >= .6) perfil.set(f, prec); }
+    else if (t === 'd') { if (esRara && cob >= .75) perfil.set(f, .5); }
+    else if (t === 'a') { if (k >= 2 && cob >= .6 && (esRara || prec >= .6)) perfil.set(f, .3); }
+    else if (t === 'e') { if (cob >= .6 && (esRara || prec >= .6)) perfil.set(f, .5); }
+    else if (t === 'g') { if (n >= 2 && cob === 1 && df / idxN <= .5) perfil.set(f, .2); }
+  });
+  return perfil;
+}
+const NOMBRE_TIPO = { s: 'saga', k: 'palabra', d: 'director', a: 'reparto', e: 'productora', g: 'género' };
+function puntuar(m, perfil) {                          // ¿cuánto se parece m al perfil?
+  const por = {}, det = [];
+  idxRas.get(m).forEach(f => {
+    const v = perfil.get(f); if (v == null) return;
+    const t = f[0]; por[t] = (por[t] || 0) + (t === 's' ? TOPE.s : v);
+    const lista = t === 's' ? [m.saga] : t === 'k' ? m.palabras : t === 'd' ? m.director : t === 'a' ? m.reparto : t === 'e' ? m.empresas : [];
+    const o = (lista || []).find(x => x && t + x.id === f); det.push(NOMBRE_TIPO[t] + ': ' + (o ? o.nombre : f.slice(1)));
+  });
+  let total = 0; for (const t in por) total += Math.min(por[t], TOPE[t]);
+  return { ok: !!(por.s || (por.k >= .75 && total >= UMBRAL)), total, det };
+}
+const listaCrit = v => (v || []).map(e => typeof e === 'number' ? e : norm(e));
+const coincide = (crit, o) => crit.some(e => typeof e === 'number' ? e === o.id : norm(o.nombre).includes(e));
+const semillaDe = c => {
   const t = new Set((c.peliculas || []).map(norm));
   const emp = (c.tmdbEmpresas || []).map(e => typeof e === 'number' ? e : norm(e));      // productoras de TMDB: nombre exacto o número
   const sub = (c.tmdbEmpresasContiene || []).map(norm);                                   // o cualquier productora cuyo nombre contenga estas palabras
+  const sg = listaCrit(c.tmdbSagas), pa = listaCrit(c.tmdbPalabras), di = listaCrit(c.tmdbDirectores), re = listaCrit(c.tmdbReparto);
   return peliculas.filter(p => t.has(norm(p.titulo)) || String(p.coleccion || '').split(',').map(s => s.trim().toLowerCase()).includes(c.id)
-    || (p.empresas || []).some(x => emp.includes(x.id) || emp.includes(norm(x.nombre)) || sub.some(s => norm(x.nombre).includes(s))));
+    || (p.empresas || []).some(x => emp.includes(x.id) || emp.includes(norm(x.nombre)) || sub.some(s => norm(x.nombre).includes(s)))
+    || (p.saga && coincide(sg, p.saga)) || (p.palabras || []).some(k => coincide(pa, k))
+    || (p.director || []).some(d => coincide(di, d)) || (p.reparto || []).some(a => coincide(re, a)));
 };
+const colCache = new Map();
+function resolverCol(c) {
+  const h = colCache.get(c.id); if (h && h.ver === datosVer) return h;
+  const semilla = semillaDe(c), enSemilla = new Set(semilla), extra = [], why = new Map();
+  if (c.auto !== false && semilla.length) {
+    indice();
+    const perfil = perfilDe(semilla);
+    peliculas.forEach(m => { if (enSemilla.has(m)) return; const r = puntuar(m, perfil); if (r.ok) { extra.push(m); why.set(m, r); } });
+  }
+  const excl = new Set((c.excluir || []).map(norm)), todas = new Set([...semilla, ...extra]);
+  const res = { ver: datosVer, lista: peliculas.filter(p => todas.has(p) && !excl.has(norm(p.titulo))), semilla: enSemilla, why };
+  colCache.set(c.id, res); return res;
+}
+const pelisDe = c => resolverCol(c).lista;
+window.colExplica = id => {                            // consola:  colExplica("id-de-la-coleccion")  -> por qué entra cada película
+  const c = typeof COLECCIONES !== 'undefined' && COLECCIONES.find(x => x.id === id); if (!c) return console.warn('No existe esa colección');
+  const r = resolverCol(c);
+  console.table(r.lista.map(p => ({ pelicula: p.titulo, origen: r.semilla.has(p) ? 'semilla' : 'agrupada', puntos: r.why.has(p) ? +r.why.get(p).total.toFixed(2) : '', motivo: r.why.has(p) ? r.why.get(p).det.join(' | ') : '' })));
+};
+/* Orden cronológico: de la más antigua a la más reciente (sin año, al final) */
+const fechaClave = p => p.fecha || (p.anio ? p.anio + '-99' : '9999');
+const cronologico = l => [...l].sort((a, b) => { const x = fechaClave(a), y = fechaClave(b); return x < y ? -1 : x > y ? 1 : a._i - b._i; });
+const firmaCol = c => cronologico(pelisDe(c)).map(p => p.titulo).join('|');
 const urlCss = u => 'url("' + String(u).replace(/"/g, '%22') + '")';
 const tCol = p => { const b = crearTarjeta(p); if (!tarjetasCol.has(p)) tarjetasCol.set(p, []); tarjetasCol.get(p).push(b); return b; };
 
@@ -1735,7 +1832,7 @@ function abrirCol(id, viaEnlace, silencio) {
   const c = typeof COLECCIONES !== 'undefined' && COLECCIONES.find(x => x.id === id);
   if (!c) { history.replaceState(null, '', location.pathname + location.search); cerrarCol(); return; }
   colActual = c; colHist = !!viaEnlace; tarjetasCol.clear();
-  const lista = pelisDe(c); colFirma = lista.map(p => p.titulo).join('|');
+  const lista = pelisDe(c), cro = cronologico(lista); colFirma = cro.map(p => p.titulo).join('|');
   const pop = [...lista.filter(p => p.popular), ...lista.filter(p => !p.popular)].slice(0, POPULARES);
   H('vista-col').style.setProperty('--ca', c.a);
   const gp = PATRONES[c.patron]; H('vista-col').style.setProperty('--patron', gp ? svgUrl(gp(c.patronColor || '#ffffff')) : 'none');   // dibujo de fondo
@@ -1752,15 +1849,17 @@ function abrirCol(id, viaEnlace, silencio) {
   cLista = [...lista].sort(() => Math.random() - .5).slice(0, 5);   // banner grande: películas al azar de la colección
   H('c-dots').replaceChildren(...cLista.map((p, i) => { const d = el('button'); d.type = 'button'; d.setAttribute('aria-label', p.titulo); d.onclick = () => { cMostrar(i); cAuto(); }; return d; }));
   cMostrar(0); cAuto();
-  H('c-track').replaceChildren(...pop.map(tCol)); H('c-grid').replaceChildren(...lista.map(tCol));
+  H('c-track').replaceChildren(...pop.map(tCol)); H('c-ctrack').replaceChildren(...cro.map(tCol)); H('c-grid').replaceChildren(...cro.map(tCol));
   H('c-pt').textContent = 'Populares de ' + c.nombre; H('c-rt').textContent = 'Todas las películas de ' + c.nombre;
-  H('c-pop').hidden = H('c-rt').hidden = H('c-grid').hidden = !lista.length; H('c-vacio').hidden = !!lista.length;
+  H('c-pop').hidden = H('c-rt').hidden = H('c-grid').hidden = !lista.length; H('c-cro').hidden = cro.length < 2; H('c-vacio').hidden = !!lista.length;
   vistas.inicio.hidden = vistas.subs.hidden = true; vistas.col.hidden = false;
   H('bbox').hidden = true; verCred(); if (!silencio) scrollTo({ top: 0 });
 }
+let colTimer;
 function actualizarColAbierta() {                    // si llegan datos de TMDB con la colección abierta, se completa sin saltar
   if (vistas.col.hidden || !colActual) return;
-  if (pelisDe(colActual).map(p => p.titulo).join('|') !== colFirma) abrirCol(colActual.id, colHist, true);
+  clearTimeout(colTimer);
+  colTimer = setTimeout(() => { if (!vistas.col.hidden && colActual && firmaCol(colActual) !== colFirma) abrirCol(colActual.id, colHist, true); }, 500);
 }
 function cerrarCol() {
   clearInterval(cTimer);
@@ -1787,6 +1886,9 @@ H('c-back').addEventListener('click', volverDe);
 { const cp = H('c-pop'), pasoK = () => H('c-track').clientWidth * .8;
   cp.querySelector('.prev').onclick = () => H('c-track').scrollBy({ left: -pasoK(), behavior: 'smooth' });
   cp.querySelector('.next').onclick = () => H('c-track').scrollBy({ left: pasoK(), behavior: 'smooth' }); }
+{ const cc = H('c-cro'), pasoC = () => H('c-ctrack').clientWidth * .8;
+  cc.querySelector('.prev').onclick = () => H('c-ctrack').scrollBy({ left: -pasoC(), behavior: 'smooth' });
+  cc.querySelector('.next').onclick = () => H('c-ctrack').scrollBy({ left: pasoC(), behavior: 'smooth' }); }
 
 /* cuadros del inicio (se repintan cuando llegan datos de TMDB, para actualizar el conteo) */
 function pintarTiles() {

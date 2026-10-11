@@ -21,6 +21,17 @@
      tmdbEmpresasContiene -> igual, pero basta con que el nombre de la productora CONTENGA la palabra.
                     Útil para estudios con muchas ramas: ["warner"] atrapa Warner Bros. Pictures,
                     Warner Bros. Animation, etc. Revisa que no entren productoras que no quieres.
+     tmdbPalabras -> (automático) palabras clave de TMDB (están en inglés): entra toda película que tenga una palabra
+                    clave que CONTENGA este texto. Ejemplo: ["marvel cinematic universe"]. Sirve para atrapar películas
+                    cuya ficha no trae la productora que esperas.
+     tmdbSagas   -> (automático) saga de TMDB (por ejemplo "Spider-Man Collection"): el nombre, parte del nombre o su número.
+                    Si TMDB tiene el nombre traducido al español, escríbelo así o usa el número de la saga.
+     tmdbDirectores, tmdbReparto -> (automático) director o actores principales (nombre o parte del nombre).
+                    Úsalos en colecciones por persona (por ejemplo una colección "Nolan"), no en las de universos.
+     auto        -> OPCIONAL: pon  auto: false  para que esta colección NO sume sola películas parecidas.
+                    Sin esto, además de lo de arriba, entran solas las películas que comparten con las de la colección
+                    su saga y sus palabras clave. En la consola del navegador, colExplica("marvel") muestra por qué entra cada una.
+     excluir     -> OPCIONAL: títulos que NO quieres en esta colección:  excluir: ["Título exacto"]
      peliculas   -> los títulos de las películas de esta colección, ESCRITOS IGUAL que en el catálogo.
                     (También puedes poner el id de la colección en la columna "Colección" de la tabla de películas.)
    ============================================================ */
@@ -31,6 +42,11 @@ const COLECCIONES = [
     //  Ejemplo:  anuncio: { titulo: "Estreno esta semana", texto: "Ya disponible en Black BOX", imagen: "", enlace: "" },
     patron: "aranas", patronColor: "#ff4d52",
     tmdbEmpresas: ["Marvel Studios", "Marvel Entertainment"],
+    tmdbPalabras: ["marvel cinematic universe"],
+    //  Opcionales (quita las // para usarlos):
+    //  tmdbPalabras: ["marvel cinematic universe", "marvel comic"],   // "marvel comic" también mete X-Men, Spider-Man de Sony, etc.
+    //  excluir: ["Título exacto"],                                    // quitar una película en particular
+    //  auto: false,                                                   // sin agrupación automática en esta colección
     peliculas: [] },
 
   { id: "dc", nombre: "DC", a: "#0476f2", b: "#031a3a", tx: "#ffffff", tema: "rayos",
@@ -38,6 +54,7 @@ const COLECCIONES = [
     anuncio: { titulo: "", texto: "", imagen: "", enlace: "" },
     patron: "murcielagos", patronColor: "#7db4ff",
     tmdbEmpresas: ["DC Entertainment", "DC Films", "DC Studios", "DC Comics"],
+    tmdbPalabras: ["dc extended universe", "dc comics"],   // "dc comics" puede traer adaptaciones de DC/Vertigo; si entra una que no quieres, usa excluir: ["Título exacto"]
     peliculas: [] }
 
   // ----- EJEMPLO listo para usar: quita las dos barras // de cada línea (y pon una coma después del bloque anterior) -----
