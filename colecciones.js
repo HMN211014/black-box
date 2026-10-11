@@ -37,7 +37,7 @@
                     (También puedes poner el id de la colección en la columna "Colección" de la tabla de películas.)
    ============================================================ */
 const COLECCIONES = [
-  { id: "marvel", nombre: "Marvel", a: "#e62429", b: "#3a0509", tx: "#ffffff", tema: "puntos",
+  { id: "marvel", nombre: "Marvel", fondo: "https://static.vecteezy.com/system/resources/previews/020/336/409/non_2x/marvel-logo-marvel-icon-free-free-vector.jpg", sinNombre: true, a: "#e62429", b: "#3a0509", tx: "#ffffff", tema: "puntos",
     fuente: "Impact,'Arial Narrow Bold','Helvetica Neue',sans-serif", peso: "900", esp: ".03em", mayus: true,
     anuncio: { titulo: "", texto: "", imagen: "", enlace: "" },
     //  Ejemplo:  anuncio: { titulo: "Estreno esta semana", texto: "Ya disponible en Black BOX", imagen: "", enlace: "" },
@@ -50,7 +50,7 @@ const COLECCIONES = [
     //  auto: false,                                                   // sin agrupación automática en esta colección
     peliculas: [] },
 
-  { id: "dc", nombre: "DC", a: "#0476f2", b: "#031a3a", tx: "#ffffff", tema: "rayos",
+  { id: "dc", nombre: "DC", fondo: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSqnMNWGGu7XvBCDBbEC3PuBkWgHBNvx7YdOsuhXRtp7S0mdTyCNABQ_ik&s=10", sinNombre: true, a: "#0476f2", b: "#031a3a", tx: "#ffffff", tema: "rayos",
     fuente: "'Avenir Next','Helvetica Neue',Arial,sans-serif", peso: "900", esp: ".08em", mayus: true,
     anuncio: { titulo: "", texto: "", imagen: "", enlace: "" },
     patron: "murcielagos", patronColor: "#7db4ff",
@@ -60,14 +60,14 @@ const COLECCIONES = [
 
   // ----- Colecciones por director: entra toda película que él dirigió (según TMDB), sin tocar nada a mano.
   //       auto:false = solo sus películas, sin sumar otras parecidas. -----
-  { id: "nolan", nombre: "Christopher Nolan", a: "#5b6b7a", b: "#0a0e12", tx: "#ffffff", tema: "liso",
+  { id: "nolan", nombre: "Christopher Nolan", fondo "https://abiquiunews.com/uploads/3/4/4/8/34481141/christophernolan20240912_orig.png" , a: "#5b6b7a", b: "#0a0e12", tx: "#ffffff", tema: "liso",
     fuente: "'Helvetica Neue',Arial,sans-serif", peso: "700", esp: ".16em", mayus: true,
     anuncio: { titulo: "", texto: "", imagen: "", enlace: "" },
     patron: "",
     tmdbDirectores: ["Christopher Nolan"], auto: false,
     peliculas: [] },
 
-  { id: "tarantino", nombre: "Quentin Tarantino", a: "#d9a406", b: "#1a1200", tx: "#ffffff", tema: "liso",
+  { id: "tarantino", nombre: "Quentin Tarantino", fondo"https://soulrideblog.com/wp-content/uploads/2019/03/qt3.jpg" , a: "#d9a406", b: "#1a1200", tx: "#ffffff", tema: "liso",
     fuente: "'Courier New',Courier,monospace", peso: "900", esp: ".06em", mayus: true,
     anuncio: { titulo: "", texto: "", imagen: "", enlace: "" },
     patron: "",
