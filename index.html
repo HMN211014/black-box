@@ -356,6 +356,46 @@ body.colmode #chero:not(.top){margin-top:0}
  .cc .t{left:14px;right:14px;bottom:34px}
  .cc .q{left:14px;right:14px;bottom:14px}
 }
+
+/* ---------- Transmitir a la TV ---------- */
+#player.drive #ptv{display:none}
+#player.tv:not(:fullscreen){inset:0;width:auto;height:auto;transform:none;
+  --st:env(safe-area-inset-top,0px);--sb:env(safe-area-inset-bottom,0px);--sl:env(safe-area-inset-left,0px);--sr:env(safe-area-inset-right,0px)}
+#castp{position:absolute;inset:0;z-index:7;display:flex;flex-direction:column;align-items:center;gap:8px;color:#fff;touch-action:manipulation;
+  background:linear-gradient(180deg,rgba(0,0,0,.5),#000 72%),var(--g,#111);
+  padding:calc(var(--st) + 10px) calc(var(--sr) + 18px) calc(var(--sb) + 18px) calc(var(--sl) + 18px)}
+#castp[hidden]{display:none}
+.cp-top{width:100%;display:flex;align-items:center;gap:6px}
+.cp-dev{flex:1;text-align:center;font-size:14px;color:#d1d1d6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cp-mid{flex:1;min-height:0;width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;text-align:center}
+.cp-mid h2{font-size:22px;letter-spacing:-.02em;margin-bottom:4px}
+.cp-poster{position:relative;height:min(44vh,380px);aspect-ratio:2/3;max-width:68%;border-radius:18px;overflow:hidden;background:var(--g);box-shadow:0 24px 60px rgba(0,0,0,.6)}
+.cp-poster img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+.cp-ctl{width:100%;max-width:520px;display:flex;flex-direction:column;gap:6px}
+.cp-btns{display:flex;justify-content:center;align-items:center;gap:clamp(24px,10vw,64px)}
+.cp-vol{display:flex;align-items:center;gap:6px}
+#castp.el .cp-vol{display:none}
+.cp-stop{align-self:center;margin-top:4px}
+@media (max-height:480px){.cp-poster{display:none}.cp-mid{gap:6px}}
+#cplockov{position:absolute;inset:0;z-index:8;background:rgba(0,0,0,.96);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;color:#8e8e93;font-size:15px;touch-action:none;-webkit-user-select:none;user-select:none}
+#cplockov[hidden]{display:none}
+#cpring{width:88px;height:88px;border-radius:50%;display:grid;place-items:center;background:conic-gradient(#fff var(--r,0deg),rgba(255,255,255,.18) 0);cursor:pointer;touch-action:none;-webkit-tap-highlight-color:transparent}
+#cpring i{width:78px;height:78px;border-radius:50%;background:#0b0b0d;display:grid;place-items:center;color:#fff}
+#cpring svg{width:34px;height:34px}
+#tvsheet{position:absolute;inset:0;z-index:9;display:grid;place-items:center;background:rgba(0,0,0,.6);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);padding:16px;touch-action:manipulation}
+#tvsheet[hidden]{display:none}
+#tvsheet .cbox{width:min(420px,100%);max-height:100%;overflow:auto;touch-action:pan-y}
+#tvopts,#tvotras{display:flex;flex-direction:column;gap:8px}
+#tvotras[hidden]{display:none}
+.tvopt{display:flex;flex-direction:column;gap:2px;text-align:left;width:100%;padding:13px 16px;border-radius:16px;border:0;background:rgba(255,255,255,.1);color:#fff;font-family:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.tvopt b{font-size:16px;font-weight:600}.tvopt span{font-size:13px;color:#c7c7cc}
+.tvopt:disabled{opacity:.42;cursor:default}
+#tvotras .tvopt{background:rgba(255,255,255,.06)}
+#tvotras p{font-size:13px;color:#98989d;line-height:1.45}
+#tver{color:#ff8a80;font-size:14px;min-height:0}
+#tver:empty{display:none}
+#tvtoast{position:absolute;left:50%;bottom:calc(var(--sb) + 96px);transform:translateX(-50%);z-index:20;max-width:88%;padding:12px 18px;border-radius:14px;background:rgba(40,40,44,.94);color:#fff;font-size:14px;line-height:1.4;text-align:center;pointer-events:none}
+#tvtoast[hidden]{display:none}
 </style>
 <link rel="manifest" href="/manifest.webmanifest">
 <meta name="theme-color" content="#000000">
@@ -493,6 +533,8 @@ body.colmode #chero:not(.top){margin-top:0}
   <div class="ctl ptop">
     <button class="ib" id="pb" aria-label="Volver"><svg class="st" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg></button>
     <span class="ptitle" id="pt"></span>
+    <span class="grow"></span>
+    <button class="ib" id="ptv" aria-label="Transmitir a la TV"><svg viewBox="0 0 24 24"><path d="M1 18v3h3c0-1.66-1.34-3-3-3zm0-4v2c2.76 0 5 2.24 5 5h2c0-3.87-3.13-7-7-7zm0-4v2c4.97 0 9 4.03 9 9h2c0-6.08-4.93-11-11-11zm20-7H3c-1.1 0-2 .9-2 2v3h2V5h18v14h-7v2h7c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/></svg></button>
   </div>
   <div class="ctl pmid">
     <button class="ib big" id="pr" aria-label="Retroceder 10 segundos"><svg class="st" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/><text x="12" y="15.2" font-size="7.2" font-weight="700" text-anchor="middle" font-family="Arial,sans-serif">10</text></svg></button>
@@ -509,6 +551,44 @@ body.colmode #chero:not(.top){margin-top:0}
       <button class="ib" id="pfs" aria-label="Pantalla completa"><svg class="st" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
     </div>
   </div>
+
+  <div id="castp" hidden>
+    <div class="cp-top">
+      <button class="ib" id="cpb" aria-label="Volver"><svg class="st" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg></button>
+      <span class="cp-dev" id="cpdev"></span>
+      <button class="ib" id="cplock" aria-label="Bloquear pantalla"><svg class="st" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></button>
+    </div>
+    <div class="cp-mid">
+      <div class="cp-poster" id="cpposter"></div>
+      <div><h2 id="cptit"></h2><p class="meta" id="cpsub"></p></div>
+    </div>
+    <div class="cp-ctl">
+      <div class="prow"><span id="cpc">0:00</span><input class="seek" id="cps" type="range" min="0" max="0" step="0.1" value="0" aria-label="Progreso"><span id="cpd">0:00</span></div>
+      <div class="cp-btns">
+        <button class="ib big" id="cpr" aria-label="Retroceder 10 segundos"></button>
+        <button class="ib huge" id="cpp" aria-label="Reproducir o pausar"></button>
+        <button class="ib big" id="cpf" aria-label="Adelantar 10 segundos"></button>
+      </div>
+      <div class="cp-vol"><button class="ib" id="cpm" aria-label="Silenciar la TV"></button><input class="seek" id="cpv" type="range" min="0" max="1" step="0.02" value="1" aria-label="Volumen de la TV"></div>
+      <button class="btn ghost cp-stop" id="cpstop">Dejar de transmitir</button>
+    </div>
+    <div id="cplockov" hidden>
+      <div id="cpring" role="button" aria-label="Mantén presionado para desbloquear"><i><svg class="st" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></i></div>
+      <p>Pantalla bloqueada</p>
+      <p>Mantén presionado el candado para desbloquear</p>
+    </div>
+  </div>
+  <div id="tvsheet" hidden>
+    <div class="cbox">
+      <h2>Transmitir a la TV</h2>
+      <p class="meta">La TV recibe el video directo y el teléfono queda como control remoto.</p>
+      <div id="tvopts"></div>
+      <div id="tvotras" hidden></div>
+      <p id="tver" role="alert"></p>
+      <div class="actions"><button class="btn ghost" id="tvcerrar">Cerrar</button></div>
+    </div>
+  </div>
+  <div id="tvtoast" role="status" hidden></div>
 </div>
 
 <dialog id="cdlg" aria-labelledby="ct">
@@ -751,9 +831,30 @@ const crearTarjeta = p => {
    La cuadrícula "Todas las películas" muestra todas, en dos columnas. */
 const POPULARES = 7;
 const tarjetasC = new Map();
-[...peliculas.filter(p => p.popular), ...peliculas.filter(p => !p.popular)].slice(0, POPULARES)
-  .forEach(p => { const b = crearTarjeta(p); track.appendChild(b); tarjetasC.set(p, b); });
+
+/* ---------- Orden de las películas ----------
+   Primero las del año en curso; después las demás, en el orden en que las subiste.
+   El año sale de TMDB (o del campo  anio  si lo escribes a mano). Se reacomoda solo cuando llegan los datos. */
+const ANIO_ACTUAL = new Date().getFullYear();
+peliculas.forEach((p, i) => { p._i = i; });                      // posición original = orden en que se subieron
+const esActual = p => +p.anio === ANIO_ACTUAL;
+let ordenPend;
+function programarOrden() { clearTimeout(ordenPend); ordenPend = setTimeout(ordenar, 500); }
+function pintarPopulares() {
+  const lista = [...peliculas.filter(p => p.popular), ...peliculas.filter(p => !p.popular)].slice(0, POPULARES);
+  const ya = [...tarjetasC.keys()];
+  if (ya.length === lista.length && lista.every((p, i) => ya[i] === p)) return;   // sin cambios: no se mueve el carrusel
+  track.innerHTML = ''; tarjetasC.clear();
+  lista.forEach(p => { const b = crearTarjeta(p); track.appendChild(b); tarjetasC.set(p, b); });
+}
+function ordenar() {
+  peliculas.sort((a, b) => (esActual(b) - esActual(a)) || (a._i - b._i));
+  const grid = document.getElementById('grid');
+  peliculas.forEach(p => { const b = tarjetas.get(p); if (b) grid.appendChild(b); });
+  pintarPopulares();
+}
 peliculas.forEach(p => { const b = crearTarjeta(p); document.getElementById('grid').appendChild(b); tarjetas.set(p, b); });
+ordenar();
 
 let abierta = null;
 function abrir(p) {
@@ -777,14 +878,29 @@ document.querySelector('#rowpel .next').onclick = () => track.scrollBy({left: pa
 /* ---------- Banner destacado: películas al azar ---------- */
 const H = id => document.getElementById(id);
 const hero = H('hero'), hv = H('hv'), reduce = matchMedia('(prefers-reduced-motion:reduce)').matches;
-const orden = [...peliculas].sort(() => Math.random() - .5);
-let idx = 0, timer;
-orden.forEach((p, i) => {
-  const d = document.createElement('button');
-  d.setAttribute('aria-label', p.titulo);
-  d.onclick = () => { mostrar(i); auto(); };
-  H('dots').appendChild(d);
-});
+/* El banner muestra solo 9, al azar: primero del año en curso; si faltan, del año anterior; si aún faltan, de cualquier año. */
+const BANNER_N = 9;
+let orden = [], idx = 0, timer;
+const azar = a => { a = [...a]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+function elegirBanner() {
+  const out = [];
+  const llenar = lista => azar(lista).forEach(p => { if (out.length < BANNER_N && !out.includes(p)) out.push(p); });
+  llenar(peliculas.filter(p => +p.anio === ANIO_ACTUAL));
+  llenar(peliculas.filter(p => +p.anio === ANIO_ACTUAL - 1));
+  llenar(peliculas);
+  return out;
+}
+function armarBanner() {
+  orden = elegirBanner(); idx = 0;
+  H('dots').innerHTML = '';
+  orden.forEach((p, i) => {
+    const d = document.createElement('button');
+    d.setAttribute('aria-label', p.titulo);
+    d.onclick = () => { mostrar(i); auto(); };
+    H('dots').appendChild(d);
+  });
+  if (orden.length) { mostrar(0); auto(); }
+}
 /* ---------- Resplandor del banner: color dominante del póster ---------- */
 const wrap = H('herowrap'), colores = new Map();
 const hueDe = t => { let h = 0; for (const c of t) h = (h*31 + c.charCodeAt(0)) % 360; return `hsl(${h} 70% 48%)`; };
@@ -822,7 +938,7 @@ function resplandor(p) {
   i.src = url;
 }
 function mostrar(i) {
-  idx = i; const p = orden[i];
+  idx = i; const p = orden[i]; if (!p) return;
   hero.classList.add('out');
   setTimeout(() => {
     hero.style.setProperty('--g', grad(p.titulo));
@@ -845,7 +961,7 @@ function auto() {
   if (reduce || orden.length < 2) return;
   timer = setInterval(() => { if (!dlg.open && pl.hidden && !document.hidden) mostrar((idx + 1) % orden.length); }, 9000);
 }
-mostrar(0); auto();
+/* (el banner se arma más abajo, cuando ya se sabe el año de cada película) */
 
 /* ---------- Reproductor propio (subpágina estilo Disney+) ---------- */
 const pl = H('player'), V = H('pv'), ps = H('ps'), coarse = matchMedia('(pointer:coarse)').matches;
@@ -857,6 +973,7 @@ const ICON = {
 };
 const VEL = [1, 1.25, 1.5, 2, 0.75];
 let hideT, dragging = false, hls = null, fsAuto = false, vi = 0, actualP = null, reanudar = 0, ultGuardado = 0;
+let tvModo = null, tvPeli = null, tvUrl = '', tvBloq = false;   // transmisión a TV: null | 'cast' | 'el'
 
 const fmt = s => { s = Math.max(0, Math.floor(s || 0)); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60;
   return (h ? h + ':' + String(m).padStart(2, '0') : m) + ':' + String(x).padStart(2, '0'); };
@@ -913,6 +1030,7 @@ async function horizontal() {
 function iniciar(p, url) {
   const id = driveId(url);
   actualP = id ? null : p;                       // los videos de Drive no permiten medir el avance
+  tvPeli = p; tvUrl = url;
   const g = id ? null : leerProg()[p.titulo];
   reanudar = g ? g.t : 0;
   H('pt').textContent = p.titulo; H('per').hidden = true;
@@ -967,6 +1085,7 @@ aplicarFit();
 function cerrarPlayer(desdePop) {
   if (pl.hidden) return;
   guardar(true); actualP = null;
+  tvCerrar();
   pl.hidden = true; clearTimeout(hideT); pl.classList.remove('c', 'wait');
   V.pause(); if (hls) { hls.destroy(); hls = null; }
   V.removeAttribute('src'); V.load(); H('pdrive').innerHTML = '';
@@ -1013,9 +1132,9 @@ pl.addEventListener('click', e => {
   if (pl.classList.contains('c')) hideC(); else showC();
 });
 document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && fsAuto) { fsAuto = false; cerrarPlayer(); } });
-addEventListener('popstate', () => cerrarPlayer(true));
+addEventListener('popstate', () => { if (tvBloq) { history.pushState({player: 1}, ''); return; } cerrarPlayer(true); });   // con la pantalla bloqueada, "atrás" no cierra
 addEventListener('keydown', e => {
-  if (pl.hidden) return;
+  if (pl.hidden || tvBloq) return;
   const k = e.key;
   if (k === ' ' && e.target.closest('button')) return;
   if (k === 'Escape') cerrarPlayer();
@@ -1027,6 +1146,244 @@ addEventListener('keydown', e => {
   else if (k === 'a') H('pa').click();
 });
 H('pp').innerHTML = ICON.play; H('pm').innerHTML = ICON.vol;
+
+
+/* ---------- Transmitir a la TV: Chromecast + AirPlay + pantalla del navegador en un solo botón ----------
+   La TV descarga el video directo del enlace; el teléfono queda como control remoto (y se puede bloquear). */
+const tvp = H('castp'), tvs = H('tvsheet'), cps = H('cps'), cpv = H('cpv');
+let rp = null, rc = null, castOk = false, tvUlt = 0, tvArrastra = false, tvVisto = false, tvToastT;
+const airOk = typeof V.webkitShowPlaybackTargetPicker === 'function';
+const remOk = !!(V.remote && typeof V.remote.prompt === 'function');
+const urlAbs = u => { try { return new URL(u, location.href).href; } catch (e) { return u; } };
+const mimeDe = u => /\.m3u8(\?|$)/i.test(u) ? 'application/x-mpegURL' : /\.webm(\?|$)/i.test(u) ? 'video/webm' : /\.mkv(\?|$)/i.test(u) ? 'video/x-matroska' : 'video/mp4';
+const sesion = () => { try { return cast.framework.CastContext.getInstance().getCurrentSession(); } catch (e) { return null; } };
+function tvTiempo() { return tvModo === 'cast' && rp ? (rp.currentTime || 0) : V.currentTime; }
+function tvDur() { return tvModo === 'cast' && rp && rp.duration ? rp.duration : duracion(); }
+function tvAviso(t) {
+  const e = H('tvtoast'); e.textContent = t; e.hidden = false;
+  clearTimeout(tvToastT); tvToastT = setTimeout(() => { e.hidden = true; }, 5000);
+}
+H('cpr').innerHTML = H('pr').innerHTML; H('cpf').innerHTML = H('pfw').innerHTML;
+H('cpp').innerHTML = ICON.play; H('cpm').innerHTML = ICON.vol;
+
+/* --- Chromecast (SDK oficial de Google; usa el receptor estándar, sin registrar nada) --- */
+function iniciarCast() {
+  try {
+    const X = cast.framework, ctx = X.CastContext.getInstance();
+    ctx.setOptions({ receiverApplicationId: chrome.cast.media.DEFAULT_MEDIA_RECEIVER_APP_ID,
+      autoJoinPolicy: chrome.cast.AutoJoinPolicy.ORIGIN_SCOPED, resumeSavedSession: false });
+    rp = new X.RemotePlayer(); rc = new X.RemotePlayerController(rp);
+    rc.addEventListener(X.RemotePlayerEventType.ANY_CHANGE, castCambio);
+    ctx.addEventListener(X.CastContextEventType.SESSION_STATE_CHANGED, e => {
+      const S = X.SessionState;
+      if (e.sessionState === S.SESSION_STARTED || e.sessionState === S.SESSION_RESUMED) entrarCast();
+      else if (e.sessionState === S.SESSION_ENDED && tvModo === 'cast') salirTv(true);
+    });
+    castOk = true;
+  } catch (err) { castOk = false; }
+}
+window.__onGCastApiAvailable = ok => { if (ok) iniciarCast(); };
+if (!airOk) {                                                       // Safari/iPhone no usan Chromecast: ahí va AirPlay
+  const sc = document.createElement('script'); sc.async = true;
+  sc.src = 'https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1';
+  document.head.appendChild(sc);
+}
+async function enviarACast(ses, t) {
+  const url = urlAbs(tvUrl), mi = new chrome.cast.media.MediaInfo(url, mimeDe(url));
+  mi.streamType = chrome.cast.media.StreamType.BUFFERED;
+  const md = new chrome.cast.media.GenericMediaMetadata(); md.title = tvPeli.titulo;
+  if (tvPeli.poster) md.images = [new chrome.cast.Image(tvPeli.poster)];
+  mi.metadata = md;
+  const rq = new chrome.cast.media.LoadRequest(mi); rq.autoplay = true; rq.currentTime = t;
+  tvVisto = false;
+  let err; try { err = await ses.loadMedia(rq); } catch (e) { err = 'error'; }
+  return err;
+}
+async function entrarCast() {
+  const ses = sesion();
+  if (!ses || pl.hidden || !tvPeli || tvModo) return;
+  if (driveId(tvUrl)) { tvAviso('Este video es de Google Drive y no se puede transmitir.'); try { ses.endSession(true); } catch (e) {} return; }
+  const t = V.currentTime || Math.max(0, reanudar - 3) || 0;
+  tvModo = 'cast'; tvUlt = t;
+  V.pause();
+  let dev = ''; try { dev = (ses.getCastDevice() || {}).friendlyName || ''; } catch (e) {}
+  mostrarPanel(dev);
+  const err = await enviarACast(ses, t);
+  if (err) { tvAviso('La TV no pudo reproducir este video. Suele pasar con .mkv o formatos que no son H.264/AAC.'); salirTv(true); }
+}
+function castCambio() { if (tvModo !== 'cast' || !rp) return; pintarPanel(); guardar(false); if (rp.playerState === 'IDLE' && tvVisto && actualP) quitarProg(actualP); }
+
+/* --- AirPlay y "pantalla del navegador": el propio <video> es quien se envía --- */
+function entrarEl(nombre) {
+  if (tvModo || pl.hidden) return;
+  tvModo = 'el'; mostrarPanel(nombre); V.play().catch(() => {});
+}
+if (airOk) {
+  V.addEventListener('webkitcurrentplaybacktargetiswirelesschanged', () => {
+    if (V.webkitCurrentPlaybackTargetIsWireless) entrarEl('AirPlay'); else if (tvModo === 'el') salirTv(true);
+  });
+}
+if (remOk && !airOk) {
+  V.remote.addEventListener('connect', () => entrarEl('la TV'));
+  V.remote.addEventListener('disconnect', () => { if (tvModo === 'el') salirTv(true); });
+}
+['timeupdate', 'play', 'pause'].forEach(n => V.addEventListener(n, () => { if (tvModo === 'el') pintarPanel(); }));
+
+/* --- Panel de control remoto (el teléfono queda como mando) --- */
+function mostrarPanel(dev) {
+  tvp.classList.toggle('el', tvModo !== 'cast');
+  H('cptit').textContent = tvPeli ? tvPeli.titulo : '';
+  const pe = H('cpposter'); pe.innerHTML = ''; if (tvPeli) poster(tvPeli, pe);
+  tvp.style.setProperty('--g', grad(tvPeli ? tvPeli.titulo : ''));
+  H('cpdev').textContent = dev ? 'Transmitiendo a ' + dev : 'Transmitiendo a la TV';
+  pl.classList.add('tv'); tvp.hidden = false; tvs.hidden = true;
+  if (document.fullscreenElement) { fsAuto = false; document.exitFullscreen().catch(() => {}); }
+  try { screen.orientation.unlock(); } catch (e) {}
+  mediaSesion(true); pintarPanel();
+}
+function ocultarPanel() { tvp.hidden = true; pl.classList.remove('tv'); tvBloquear(false); mediaSesion(false); }
+function pintarPanel() {
+  if (!tvModo) return;
+  const cast = tvModo === 'cast' && rp;
+  const t = tvArrastra ? +cps.value : tvTiempo(), d = tvDur() || 0;
+  let pausado, sub;
+  if (cast) {
+    const st = rp.playerState; if (st === 'PLAYING') tvVisto = true;
+    pausado = st !== 'PLAYING' && st !== 'BUFFERING';
+    sub = st === 'BUFFERING' ? 'Cargando…' : (st === 'IDLE' && tvVisto) ? 'Terminó' : pausado ? 'En pausa' : 'Reproduciendo en la TV';
+    if (!tvArrastra && t > 0) tvUlt = t;
+    H('cpm').innerHTML = rp.isMuted ? ICON.mute : ICON.vol;
+    if (document.activeElement !== cpv) cpv.value = rp.volumeLevel;
+  } else { pausado = V.paused; sub = pausado ? 'En pausa' : 'Reproduciendo en la TV'; }
+  if (!tvArrastra) { cps.max = d; cps.value = t; }
+  const pc = d ? Math.min(100, t / d * 100) : 0;
+  cps.style.setProperty('--p', pc + '%'); cps.style.setProperty('--b', pc + '%');
+  H('cpc').textContent = fmt(t); H('cpd').textContent = '-' + fmt(d - t);
+  H('cpp').innerHTML = pausado ? ICON.play : ICON.pause;
+  H('cpsub').textContent = sub;
+  try { if ('mediaSession' in navigator) navigator.mediaSession.playbackState = pausado ? 'paused' : 'playing'; } catch (e) {}
+}
+function tvIr(t) {
+  const d = tvDur(); t = Math.max(0, d ? Math.min(t, d) : t);
+  if (tvModo === 'cast' && rp) { rp.currentTime = t; rc.seek(); tvUlt = t; } else V.currentTime = t;
+  pintarPanel();
+}
+const tvSaltar = d => tvIr(tvTiempo() + d);
+async function tvAlternar() {
+  if (tvModo === 'cast' && rp) {
+    const ses = sesion();
+    if (rp.playerState === 'IDLE' && tvVisto && ses) { await enviarACast(ses, 0); return; }   // ya terminó: volver a empezar
+    rc.playOrPause();
+  } else if (tvModo === 'el') alternar();
+}
+H('cpp').onclick = tvAlternar;
+H('cpr').onclick = () => tvSaltar(-10);
+H('cpf').onclick = () => tvSaltar(10);
+H('cpm').onclick = () => { if (tvModo === 'cast' && rc) rc.muteOrUnmute(); };
+cpv.addEventListener('input', () => { if (tvModo === 'cast' && rp) { rp.volumeLevel = +cpv.value; rc.setVolumeLevel(); } });
+cps.addEventListener('input', () => { tvArrastra = true; pintarPanel(); });
+cps.addEventListener('change', () => { const v = +cps.value; tvArrastra = false; tvIr(v); });
+H('cpb').onclick = () => cerrarPlayer();
+H('cpstop').onclick = () => salirTv(true);
+tvp.addEventListener('click', e => e.stopPropagation());
+tvs.addEventListener('click', e => { e.stopPropagation(); if (e.target === tvs) tvs.hidden = true; });
+
+/* Salir de la TV y seguir viendo en el teléfono, donde iba */
+function salirTv(volver) {
+  const era = tvModo; if (!era) return;
+  const t = tvUlt;
+  tvModo = null; ocultarPanel();
+  if (era === 'cast') { try { const s = sesion(); if (s) s.endSession(true); } catch (e) {} }
+  if (volver && !pl.hidden) {
+    if (era === 'cast' && t > 1) { try { V.currentTime = Math.max(0, t - 2); } catch (e) {} }
+    V.play().catch(() => {}); horizontal();
+  }
+}
+function tvCerrar() {                                              // al cerrar el reproductor se corta la transmisión
+  const era = tvModo; tvModo = null; ocultarPanel(); tvs.hidden = true; tvPeli = null; tvUrl = '';
+  if (era === 'cast') { try { const s = sesion(); if (s) s.endSession(true); } catch (e) {} }
+}
+
+/* --- Bloqueo táctil: pantalla casi negra que ignora los toques; se desbloquea manteniendo presionado el candado --- */
+function tvBloquear(on) { tvBloq = !!on; H('cplockov').hidden = !on; }
+H('cplock').onclick = () => tvBloquear(true);
+const anillo = H('cpring'); let lockRaf = 0, lockT0 = 0;
+function lockPaso() {
+  const f = Math.min(1, (performance.now() - lockT0) / 700);
+  anillo.style.setProperty('--r', f * 360 + 'deg');
+  if (f >= 1) { lockRaf = 0; anillo.style.setProperty('--r', '0deg'); tvBloquear(false); } else lockRaf = requestAnimationFrame(lockPaso);
+}
+anillo.addEventListener('pointerdown', e => { e.preventDefault(); lockT0 = performance.now(); cancelAnimationFrame(lockRaf); lockRaf = requestAnimationFrame(lockPaso); });
+['pointerup', 'pointercancel', 'pointerleave'].forEach(n => anillo.addEventListener(n, () => { cancelAnimationFrame(lockRaf); lockRaf = 0; anillo.style.setProperty('--r', '0deg'); }));
+H('cplockov').addEventListener('contextmenu', e => e.preventDefault());
+
+/* --- Controles en la pantalla de bloqueo del teléfono (Android / iPhone) --- */
+function mediaSesion(on) {
+  if (!('mediaSession' in navigator)) return;
+  const h = (a, f) => { try { navigator.mediaSession.setActionHandler(a, f); } catch (e) {} };
+  try {
+    if (on && tvPeli) {
+      navigator.mediaSession.metadata = new MediaMetadata({ title: tvPeli.titulo, artist: 'Black BOX',
+        artwork: tvPeli.poster ? [{ src: tvPeli.poster, sizes: '500x750', type: 'image/jpeg' }] : [] });
+      h('play', () => { if (tvModo === 'cast' ? rp && rp.isPaused : V.paused) tvAlternar(); });
+      h('pause', () => { if (tvModo === 'cast' ? rp && !rp.isPaused : !V.paused) tvAlternar(); });
+      h('seekbackward', () => tvSaltar(-10)); h('seekforward', () => tvSaltar(10));
+      h('seekto', d => tvIr(d.seekTime));
+    } else {
+      navigator.mediaSession.metadata = null;
+      ['play', 'pause', 'seekbackward', 'seekforward', 'seekto'].forEach(a => h(a, null));
+    }
+  } catch (e) {}
+}
+
+/* --- Selector de dispositivo: un solo menú para todas las TV --- */
+function opcionTv(titulo, sub, fn, off) {
+  const b = document.createElement('button'); b.className = 'tvopt'; b.disabled = !!off;
+  const t = document.createElement('b'); t.textContent = titulo;
+  const s = document.createElement('span'); s.textContent = sub;
+  b.append(t, s); b.onclick = fn; return b;
+}
+async function copiar(t) {
+  try { await navigator.clipboard.writeText(t); return true; } catch (e) {}
+  try { const a = document.createElement('textarea'); a.value = t; a.style.cssText = 'position:fixed;opacity:0'; document.body.appendChild(a); a.select(); const ok = document.execCommand('copy'); a.remove(); return ok; } catch (e) { return false; }
+}
+async function pedirCast() {
+  try {
+    const err = await cast.framework.CastContext.getInstance().requestSession();
+    if (err && err !== 'cancel') tvAviso(err === 'receiver_unavailable' ? 'No se encontró ninguna TV. Revisa que estén en la misma red Wi-Fi.' : 'No se pudo conectar con la TV (' + err + ').');
+  } catch (e) { tvAviso('No se pudo conectar con la TV.'); }
+}
+function pedirAir() { try { V.webkitShowPlaybackTargetPicker(); } catch (e) { tvAviso('No se pudo abrir AirPlay.'); } }
+function pedirRem() {
+  V.remote.prompt().catch(e => {
+    if (e && e.name === 'NotAllowedError') return;
+    tvAviso(e && e.name === 'NotFoundError' ? 'No se encontró ninguna TV cerca.' : 'Este navegador no pudo conectar con la TV.');
+  });
+}
+function armarOtras(drive) {
+  const o = H('tvotras'); o.innerHTML = '';
+  const fila = (t, sub, fn, off) => o.appendChild(opcionTv(t, sub, fn, off));
+  fila('Copiar enlace del video', 'Pégalo en una app DLNA (BubbleUPnP, Web Video Caster…) y la TV lo reproduce sola', async () => { tvAviso(await copiar(urlAbs(tvUrl)) ? 'Enlace del video copiado.' : 'No se pudo copiar el enlace.'); }, drive);
+  if (navigator.share) fila('Compartir enlace del video', 'Enviarlo directo a otra app', () => { navigator.share({ title: tvPeli ? tvPeli.titulo : 'Black BOX', url: urlAbs(tvUrl) }).catch(() => {}); }, drive);
+  fila('Copiar enlace de Black BOX', 'Ábrelo en el navegador de la TV', async () => { tvAviso(await copiar(location.origin + location.pathname) ? 'Enlace de Black BOX copiado.' : 'No se pudo copiar el enlace.'); });
+  const p = document.createElement('p');
+  p.textContent = 'Smart View (Samsung) duplica la pantalla: el teléfono tiene que quedarse encendido. Para transmitir sin duplicar usa Chromecast, AirPlay o una app DLNA.';
+  o.appendChild(p);
+}
+function abrirTv() {
+  const cont = H('tvopts'); cont.innerHTML = ''; H('tvotras').hidden = true;
+  const drive = !!driveId(tvUrl);
+  H('tver').textContent = drive ? 'Este video está en Google Drive y no se puede transmitir. Usa un enlace directo (.mp4).' : '';
+  cont.append(
+    opcionTv('Chromecast y Google TV', castOk ? 'Android TV, Google TV y TV con Chromecast integrado' : 'Disponible en Chrome (Android o PC)', () => { tvs.hidden = true; pedirCast(); }, drive || !castOk),
+    opcionTv('AirPlay', airOk ? 'Apple TV y TV con AirPlay (Samsung, LG, Sony…)' : 'Disponible en iPhone, iPad y Safari', () => { tvs.hidden = true; pedirAir(); }, drive || !airOk));
+  if (remOk && !castOk && !airOk) cont.append(opcionTv('Pantalla del navegador', 'Elige una TV o pantalla cercana', () => { tvs.hidden = true; pedirRem(); }, drive));
+  cont.append(opcionTv('Otras TV (Samsung, LG…)', 'Enlace para apps DLNA o para abrir en la TV', () => { H('tvotras').hidden = !H('tvotras').hidden; }));
+  armarOtras(drive);
+  tvs.hidden = false;
+}
+H('ptv').onclick = () => { if (!tvModo) abrirTv(); };
+H('tvcerrar').onclick = () => { tvs.hidden = true; };
 
 /* sin zoom de pellizco en iOS */
 document.addEventListener('gesturestart', e => e.preventDefault());
@@ -1042,8 +1399,23 @@ function refrescar(p) {
   if (dlg.open && abierta === p) abrir(p);
   actualizarCont();
   pintarTiles(); actualizarColAbierta();
+  programarOrden();                                              // llegó el año: se reacomodan las películas
 }
-peliculas.forEach(p => completar(p).then(c => { if (c) refrescar(p); }));
+const faltaAnio = peliculas.some(p => !p.anio && !p.sinTmdb);    // ¿hay años que todavía no llegan de TMDB?
+let tmdbListo = false;
+const cargaTmdb = Promise.all(peliculas.map(p => completar(p).then(c => { if (c) refrescar(p); }).catch(() => {})))
+  .then(() => { tmdbListo = true; });
+
+/* Banner: si ya se conocen los años (caché) sale al instante; si no, espera hasta 2 s a TMDB para elegir bien. */
+if (!faltaAnio) armarBanner();
+else {
+  hero.classList.add('out');
+  Promise.race([cargaTmdb, new Promise(r => setTimeout(r, 2000))]).then(() => {
+    const temprano = !tmdbListo;
+    armarBanner();
+    if (temprano) cargaTmdb.then(armarBanner);                   // conexión lenta: se corrige al terminar
+  });
+}
 
 /* ---------- Buscador: filtra las tarjetas mientras escribes ---------- */
 const bq = H('bq'), bbox = H('bbox'), rt = H('rt');
@@ -1079,7 +1451,7 @@ function hayProg(p) { return !!leerProg()[p.titulo]; }
 function quitarProg(p) { const o = leerProg(); delete o[p.titulo]; escribirProg(o); }
 function guardar(forzar) {
   if (!actualP) return;
-  const t = V.currentTime, d = duracion(), ahora = Date.now();
+  const t = tvTiempo(), d = tvDur(), ahora = Date.now();
   if (!d || !isFinite(t)) return;                          // aún no cargó el video
   if (!forzar && ahora - ultGuardado < 5000) return;       // como máximo cada 5 s
   ultGuardado = ahora;
