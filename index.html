@@ -252,7 +252,7 @@ svg.st text{fill:currentColor;stroke:none}
 .ctile.t-rayos:not(.img)::before{background:repeating-conic-gradient(from 0deg at 50% 130%,rgba(255,255,255,.11) 0 5deg,transparent 5deg 13deg),radial-gradient(60% 70% at 50% 110%,rgba(255,255,255,.22),transparent 70%)}
 .ctile.t-estrellas:not(.img)::before{background:radial-gradient(1.5px 1.5px at 20% 30%,#fff,transparent),radial-gradient(1px 1px at 70% 20%,#fff,transparent),radial-gradient(1.5px 1.5px at 85% 70%,#fff,transparent),radial-gradient(1px 1px at 35% 80%,#fff,transparent),radial-gradient(1px 1px at 55% 55%,#fff,transparent)}
 .ctile:hover,.ctile:focus-visible{transform:scale(1.04);box-shadow:0 26px 60px rgba(0,0,0,.85),0 0 0 3px rgba(255,255,255,.9);outline:none}
-.ctile .wm{font-size:clamp(24px,3vw,34px);filter:drop-shadow(0 2px 10px rgba(0,0,0,.4))}
+.ctile .wm{font-size:clamp(24px,3vw,34px);filter:drop-shadow(0 2px 10px rgba(0,0,0,.4));white-space:normal;max-width:100%;line-height:1.05;text-wrap:balance}   /* nombres largos (p. ej. Christopher Nolan) bajan a dos líneas */
 .ctile .cn{font-size:12px;font-weight:600;letter-spacing:.02em;color:rgba(255,255,255,.85)}
 @media(max-width:620px){#cols{grid-auto-columns:44vw;gap:12px;padding:18px 20px 4px}.ctile{border-radius:18px}.ctile .wm{font-size:24px}}
 

@@ -55,6 +55,22 @@ const COLECCIONES = [
     patron: "murcielagos", patronColor: "#7db4ff",
     tmdbEmpresas: ["DC Entertainment", "DC Films", "DC Studios", "DC Comics"],
     tmdbPalabras: ["dc extended universe", "dc comics"],   // "dc comics" puede traer adaptaciones de DC/Vertigo; si entra una que no quieres, usa excluir: ["Título exacto"]
+    peliculas: [] },
+
+  // ----- Colecciones por director: entra toda película que él dirigió (según TMDB), sin tocar nada a mano.
+  //       auto:false = solo sus películas, sin sumar otras parecidas. -----
+  { id: "nolan", nombre: "Christopher Nolan", a: "#5b6b7a", b: "#0a0e12", tx: "#ffffff", tema: "liso",
+    fuente: "'Helvetica Neue',Arial,sans-serif", peso: "700", esp: ".16em", mayus: true,
+    anuncio: { titulo: "", texto: "", imagen: "", enlace: "" },
+    patron: "",
+    tmdbDirectores: ["Christopher Nolan"], auto: false,
+    peliculas: [] },
+
+  { id: "tarantino", nombre: "Quentin Tarantino", a: "#d9a406", b: "#1a1200", tx: "#ffffff", tema: "liso",
+    fuente: "'Courier New',Courier,monospace", peso: "900", esp: ".06em", mayus: true,
+    anuncio: { titulo: "", texto: "", imagen: "", enlace: "" },
+    patron: "",
+    tmdbDirectores: ["Quentin Tarantino"], auto: false,
     peliculas: [] }
 
   // ----- EJEMPLO listo para usar: quita las dos barras // de cada línea (y pon una coma después del bloque anterior) -----
