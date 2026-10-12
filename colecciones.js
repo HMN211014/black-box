@@ -88,6 +88,7 @@ const COLECCIONES = [
     anuncio: { titulo: "", texto: "", imagen: "", enlace: "" },
     patron: "armas", patronColor: "#ff4d52",
     tmdbSagas: [10],
+    excluir: ["Chainsaw man: Arco Reze" , "Batman El Caballero de la noche asciende"],
     peliculas: [] },
 
   { id: "tarantino", nombre: "Tarantino", fondo: "https://soulrideblog.com/wp-content/uploads/2019/03/qt3.jpg" , a: "#d9a406", b: "#1a1200", tx: "#ffffff", tema: "liso",
