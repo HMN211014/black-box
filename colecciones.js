@@ -76,12 +76,12 @@ const COLECCIONES = [
     tmdbSagas: [125574, 556, 573436, 531241 ],
     peliculas: ["Spiderman", "Spiderman 2, Spiderman 3, Spiderman: Homecoming, Spiderman: Brand New Day,"] },
 
-{   id: "spiderman", nombre: "Spider-Man", fondo: "https://i.pinimg.com/736x/5a/73/92/5a7392098bb54a27a33329ed88cadc9f.jpg" , a: "#d11f2a", b: "#0a1a4a", tx: "#ffffff", tema: "puntos",
+{   id: "johnwick", nombre: "John Wick Universe", fondo: "https://wellfixitinpost.com/wp-content/uploads/2023/04/John-Wick-Chapter-4-f02-res-1280x640.jpg" , a: "#d11f2a", b: "#0a1a4a", tx: "#ffffff", tema: "puntos",
     fuente: "Impact,'Arial Narrow Bold','Helvetica Neue',sans-serif", peso: "900", esp: ".03em", mayus: true,
     anuncio: { titulo: "", texto: "", imagen: "", enlace: "" },
-    patron: "aranas", patronColor: "#ff4d52",
-    tmdbPalabras: ["spider-man", "Spiderman", "El hombre araña"],
-    peliculas: ["Spiderman", "Spiderman 2, Spiderman 3, Spiderman: Homecoming, Spiderman: Brand New Day,"] },
+    patron: "armas", patronColor: "#ff4d52",
+    tmdbSagas: [404609],
+    peliculas: [] },
 
   { id: "tarantino", nombre: "Tarantino", fondo: "https://soulrideblog.com/wp-content/uploads/2019/03/qt3.jpg" , a: "#d9a406", b: "#1a1200", tx: "#ffffff", tema: "liso",
     fuente: "'Courier New',Courier,monospace", peso: "900", esp: ".06em", mayus: true,
