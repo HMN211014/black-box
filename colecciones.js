@@ -73,7 +73,7 @@ const COLECCIONES = [
     anuncio: { titulo: "", texto: "", imagen: "", enlace: "" },
     patron: "aranas", patronColor: "#ff4d52",
     tmdbPalabras: ["spider-man"],
-    peliculas: ["Spiderman", "Spiderman 2, Spiderman 3, Spiderman: De regreso a casa, Spiderman: Brand New Day,"] },
+    peliculas: ["Spiderman", "Spiderman 2, Spiderman 3, Spiderman: Homecoming, Spiderman: Brand New Day,"] },
 
   { id: "tarantino", nombre: "Tarantino", fondo: "https://soulrideblog.com/wp-content/uploads/2019/03/qt3.jpg" , a: "#d9a406", b: "#1a1200", tx: "#ffffff", tema: "liso",
     fuente: "'Courier New',Courier,monospace", peso: "900", esp: ".06em", mayus: true,
