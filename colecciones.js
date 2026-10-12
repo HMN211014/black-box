@@ -48,7 +48,8 @@ const COLECCIONES = [
     //  tmdbPalabras: ["marvel cinematic universe", "marvel comic"],   // "marvel comic" también mete X-Men, Spider-Man de Sony, etc.
     //  excluir: ["Título exacto"],                                    // quitar una película en particular
     //  auto: false,                                                   // sin agrupación automática en esta colección
-    peliculas: [] },
+   excluir: ["The Batman", "Aquaman"],
+   peliculas: [] },
 
   { id: "dc", nombre: "DC", fondo: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSqnMNWGGu7XvBCDBbEC3PuBkWgHBNvx7YdOsuhXRtp7S0mdTyCNABQ_ik&s=10", sinNombre: true, a: "#0476f2", b: "#031a3a", tx: "#ffffff", tema: "rayos",
     fuente: "'Avenir Next','Helvetica Neue',Arial,sans-serif", peso: "900", esp: ".08em", mayus: true,
@@ -56,7 +57,7 @@ const COLECCIONES = [
     patron: "murcielagos", patronColor: "#7db4ff",
     tmdbEmpresas: ["DC Entertainment", "DC Films", "DC Studios", "DC Comics"],
     tmdbPalabras: ["dc extended universe", "dc comics"],   // "dc comics" puede traer adaptaciones de DC/Vertigo; si entra una que no quieres, usa excluir: ["Título exacto"]
-    peliculas: [] },
+    peliculas: ["Batman Inicia" , "Batman el caballero de la noche" , "Batman el caballero de la noche asciende"] },
 
   // ----- Colecciones por director: entra toda película que él dirigió (según TMDB), sin tocar nada a mano.
   //       auto:false = solo sus películas, sin sumar otras parecidas. -----
