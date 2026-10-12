@@ -81,7 +81,7 @@ const COLECCIONES = [
     anuncio: { titulo: "", texto: "", imagen: "", enlace: "" },
     patron: "armas", patronColor: "#ff4d52",
     tmdbSagas: [404609],
-    peliculas: [] },
+    peliculas: ["Balerina"] },
 
   { id: "tarantino", nombre: "Tarantino", fondo: "https://soulrideblog.com/wp-content/uploads/2019/03/qt3.jpg" , a: "#d9a406", b: "#1a1200", tx: "#ffffff", tema: "liso",
     fuente: "'Courier New',Courier,monospace", peso: "900", esp: ".06em", mayus: true,
