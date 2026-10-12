@@ -83,6 +83,13 @@ const COLECCIONES = [
     tmdbSagas: [404609],
     peliculas: ["Balerina"] },
 
+{   id: "starwars", nombre: "Star Wars", fondo: "https://wallpapers.com/images/featured/logo-de-star-wars-xcw4lfbj6xjx2qvm.jpg" , sinNombre: true , a: "#d11f2a", b: "#0a1a4a", tx: "#ffffff", tema: "puntos",
+    fuente: "Impact,'Arial Narrow Bold','Helvetica Neue',sans-serif", peso: "900", esp: ".03em", mayus: true,
+    anuncio: { titulo: "", texto: "", imagen: "", enlace: "" },
+    patron: "armas", patronColor: "#ff4d52",
+    tmdbSagas: [10],
+    peliculas: [] },
+
   { id: "tarantino", nombre: "Tarantino", fondo: "https://soulrideblog.com/wp-content/uploads/2019/03/qt3.jpg" , a: "#d9a406", b: "#1a1200", tx: "#ffffff", tema: "liso",
     fuente: "'Courier New',Courier,monospace", peso: "900", esp: ".06em", mayus: true,
     anuncio: { titulo: "", texto: "", imagen: "", enlace: "" },
