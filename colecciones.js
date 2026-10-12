@@ -73,6 +73,14 @@ const COLECCIONES = [
     anuncio: { titulo: "", texto: "", imagen: "", enlace: "" },
     patron: "aranas", patronColor: "#ff4d52",
     tmdbPalabras: ["spider-man", "Spiderman", "El hombre araña"],
+    tmdbSagas: [125574, 556, 573436, 531241 ],
+    peliculas: ["Spiderman", "Spiderman 2, Spiderman 3, Spiderman: Homecoming, Spiderman: Brand New Day,"] },
+
+{   id: "spiderman", nombre: "Spider-Man", fondo: "https://i.pinimg.com/736x/5a/73/92/5a7392098bb54a27a33329ed88cadc9f.jpg" , a: "#d11f2a", b: "#0a1a4a", tx: "#ffffff", tema: "puntos",
+    fuente: "Impact,'Arial Narrow Bold','Helvetica Neue',sans-serif", peso: "900", esp: ".03em", mayus: true,
+    anuncio: { titulo: "", texto: "", imagen: "", enlace: "" },
+    patron: "aranas", patronColor: "#ff4d52",
+    tmdbPalabras: ["spider-man", "Spiderman", "El hombre araña"],
     peliculas: ["Spiderman", "Spiderman 2, Spiderman 3, Spiderman: Homecoming, Spiderman: Brand New Day,"] },
 
   { id: "tarantino", nombre: "Tarantino", fondo: "https://soulrideblog.com/wp-content/uploads/2019/03/qt3.jpg" , a: "#d9a406", b: "#1a1200", tx: "#ffffff", tema: "liso",
