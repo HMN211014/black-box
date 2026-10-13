@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
 <title>Black BOX</title>
 <style>
 :root{--bg:#000;--fg:#f5f5f7;--muted:#98989d;--glass:rgba(40,40,44,.72);--r:22px}
@@ -399,6 +399,175 @@ body.colmode #chero:not(.top){margin-top:0}
 #tver:empty{display:none}
 #tvtoast{position:absolute;left:50%;bottom:calc(var(--sb) + 96px);transform:translateX(-50%);z-index:20;max-width:88%;padding:12px 18px;border-radius:14px;background:rgba(40,40,44,.94);color:#fff;font-size:14px;line-height:1.4;text-align:center;pointer-events:none}
 #tvtoast[hidden]{display:none}
+
+/* ================= REDISEÑO: banner a pantalla casi completa, barra flotante, búsqueda y ficha ================= */
+:root{--dockh:70px;--kb:0px}
+body{padding:0}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.hero[hidden],#herowrap[hidden],.herowrap[hidden]{display:none}
+
+/* ---- Encabezado: logo arriba a la izquierda, transparente sobre el banner ---- */
+#top{position:fixed;top:0;left:0;right:0;z-index:55;margin:0;padding:calc(env(safe-area-inset-top,0px) + 18px) clamp(18px,3vw,48px) 0;display:flex;flex-direction:row;justify-content:flex-start;align-items:center;gap:12px;pointer-events:none;background:none}
+#top::before{content:"";position:absolute;left:0;right:0;top:0;height:140px;z-index:-1;pointer-events:none;background:linear-gradient(180deg,rgba(0,0,0,.62),transparent)}
+#top>*{pointer-events:auto}
+.brand{display:flex;align-items:center;gap:10px;color:#fff;text-decoration:none;font-weight:700;font-size:18px;letter-spacing:-.02em;-webkit-tap-highlight-color:transparent}
+.brand img{width:42px;height:42px;border-radius:12px;display:block}
+.brand b{text-shadow:0 1px 10px rgba(0,0,0,.5)}
+.hback{display:none;place-items:center;width:44px;height:44px;border:0;border-radius:50%;background:rgba(0,0,0,.35);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);color:#fff;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.hback svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+body.detmode .hback{display:grid}
+body.colmode #top{padding-left:calc(max(14px,3vw) + 62px)}
+#top .cred{position:fixed;margin:0;top:calc(env(safe-area-inset-top,0px) + 16px);right:calc(clamp(20px,3vw,48px) + 440px);height:44px}
+
+/* ---- Banner principal: casi toda la pantalla ---- */
+.herowrap::before{display:none}
+.hero{margin:0;height:calc(100vh - 78px);height:calc(100svh - 78px);min-height:520px;border-radius:0;box-shadow:none;background:var(--g)}
+.hero::before{background-position:center 22%}
+.hero::after{background:linear-gradient(180deg,rgba(0,0,0,.55) 0,transparent 24%),linear-gradient(0deg,#000 0,rgba(0,0,0,.8) 13%,rgba(0,0,0,.28) 44%,transparent 70%),linear-gradient(90deg,rgba(0,0,0,.62),transparent 62%)}
+.hcopy{left:clamp(24px,4.5vw,72px);right:clamp(24px,4.5vw,72px);bottom:clamp(88px,14vh,160px);max-width:680px}
+.hcopy::before{display:none}
+.hlogo{display:block;max-width:min(80%,500px);max-height:160px;width:auto;height:auto;object-fit:contain;object-position:left bottom;margin:0 0 16px;filter:drop-shadow(0 4px 22px rgba(0,0,0,.55))}
+.hlogo[hidden]{display:none}
+.hcopy h2{margin:6px 0 12px}
+.hmeta{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:16px;font-weight:600;margin:4px 0 12px;color:#fff}
+.hmeta .dot{font-style:normal;color:rgba(255,255,255,.55)}
+.hmeta .rate{display:inline-flex;align-items:center;gap:6px}
+.hd{-webkit-line-clamp:4;font-size:clamp(15px,1.4vw,19px);font-weight:500;text-shadow:none}
+.hact{display:flex;gap:12px;align-items:center;margin-top:22px}
+.hact .hplay{flex:none;width:auto;display:inline-flex;align-items:center;justify-content:center;gap:10px;height:54px;min-height:0;padding:0 30px 0 24px;font-size:18px}
+.hplay svg{width:22px;height:22px;flex:none}
+.hact .hinfo{flex:none;width:54px;height:54px;min-height:0;padding:0;display:grid;place-items:center;border-radius:50%;background:rgba(255,255,255,.2);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);color:#fff}
+.hinfo svg{width:26px;height:26px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
+.dots{right:clamp(24px,4.5vw,72px);bottom:clamp(88px,14vh,160px)}
+#vacio{padding:18vh 24px 8vh;text-align:center;color:var(--muted);font-size:18px}
+#vacio b{display:block;color:#fff;font-size:24px;margin-bottom:8px}
+#vacio[hidden]{display:none}
+
+/* ---- Barra flotante: abajo en teléfono, arriba a la derecha en computadora ---- */
+#dock{position:fixed;z-index:60;display:flex;align-items:center;justify-content:space-around;gap:2px;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 14px);transform:translateX(-50%);width:min(92vw,440px);height:var(--dockh);padding:7px;border-radius:999px;
+  background:rgba(26,26,30,.62);backdrop-filter:blur(26px) saturate(1.7);-webkit-backdrop-filter:blur(26px) saturate(1.7);border:1px solid rgba(255,255,255,.14);box-shadow:0 12px 40px rgba(0,0,0,.55);transition:transform .35s cubic-bezier(.3,1,.4,1),opacity .25s}
+.dk{flex:1;min-width:0;height:100%;border:0;border-radius:999px;background:none;color:rgba(255,255,255,.72);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font:inherit;font-size:11px;font-weight:600;letter-spacing:-.01em;cursor:pointer;white-space:nowrap;-webkit-tap-highlight-color:transparent;transition:background .25s,color .25s}
+.dk[hidden]{display:none}
+.dk svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.dk.on{background:rgba(255,255,255,.17);color:#fff}
+.dk:focus-visible{outline:2px solid #fff;outline-offset:-2px}
+.dsep{display:none}
+body.buscando #dock{transform:translate(-50%,170%);opacity:0;pointer-events:none}
+
+/* ---- Búsqueda: píldora flotante (como One UI) ---- */
+.sb{position:fixed;z-index:62;display:flex;align-items:center;gap:6px;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 14px + var(--kb,0px));transform:translate(-50%,190%);width:min(88vw,460px);height:58px;padding:0 8px 0 18px;border-radius:999px;opacity:0;pointer-events:none;
+  background:rgba(30,30,34,.84);backdrop-filter:blur(26px) saturate(1.7);-webkit-backdrop-filter:blur(26px) saturate(1.7);border:1px solid rgba(255,255,255,.16);box-shadow:0 12px 40px rgba(0,0,0,.6);transition:transform .35s cubic-bezier(.3,1,.4,1),opacity .25s}
+body.buscando .sb{transform:translate(-50%,0);opacity:1;pointer-events:auto}
+.sb>svg{width:22px;height:22px;flex:none;fill:none;stroke:#c7c7cc;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.sb input{flex:1;min-width:0;height:100%;border:0;background:transparent;color:#fff;font:inherit;font-size:18px;font-weight:500;outline:none;-webkit-appearance:none;appearance:none;-webkit-user-select:text;user-select:text;padding:0 4px}
+.sb input::placeholder{color:#a1a1a6;font-weight:600}
+.sb input::-webkit-search-cancel-button,.sb input::-webkit-search-decoration{-webkit-appearance:none;display:none}
+.sb button{flex:none;width:42px;height:42px;border:0;border-radius:50%;background:transparent;color:#fff;display:grid;place-items:center;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.sb button svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.sb .x{background:rgba(255,255,255,.14)}
+.sb .mic[hidden]{display:none}
+.sb .mic.oyendo{background:#ff453a}
+.sb.lleno .mic{display:none}
+body.colmode .cback{z-index:70}
+#vista-busq{display:none;padding:clamp(88px,12vh,120px) 5vw calc(var(--dockh) + 120px);min-height:100svh}
+#vista-busq h3{font-size:22px;letter-spacing:-.02em;padding:0 0 2px}
+#vista-busq .grid{padding:18px 0 0}
+.sinres{padding:34px 4px;color:var(--muted);font-size:18px;text-align:center}
+.sinres[hidden]{display:none}
+body.con-q #vista-inicio,body.con-q #vista-col,body.con-q #vista-subs,body.con-q #vista-det{display:none!important}
+body.con-q #vista-busq{display:block}
+body.con-q #top .cred{display:none}
+
+/* ---- Ficha de la película (al tocar una película) ---- */
+#vista-det{position:relative;isolation:isolate;min-height:100svh;padding-bottom:calc(var(--dockh) + 70px)}
+#vista-det[hidden]{display:none}
+.dbgwrap{position:absolute;left:0;right:0;top:0;height:min(100svh,900px);z-index:-1;overflow:hidden;background:var(--g)}
+.dbg{position:absolute;inset:0;background:var(--img,none) center 20%/cover}
+.dbgwrap::after{content:"";position:absolute;inset:0;background:linear-gradient(0deg,#000 1%,rgba(0,0,0,.82) 26%,rgba(0,0,0,.36) 58%,rgba(0,0,0,.18)),linear-gradient(90deg,rgba(0,0,0,.72),transparent 64%)}
+.dwrap{min-height:100svh;display:flex;align-items:flex-end;justify-content:space-between;gap:48px;padding:120px clamp(24px,4.5vw,72px) 36px}
+.dmain{max-width:740px;min-width:0}
+.dlogo{display:block;max-width:min(86%,520px);max-height:170px;width:auto;height:auto;object-fit:contain;object-position:left bottom;margin:0 0 14px;filter:drop-shadow(0 4px 22px rgba(0,0,0,.55))}
+.dlogo[hidden]{display:none}
+.dtit{font-size:clamp(34px,5vw,60px);letter-spacing:-.035em;line-height:1.02;margin:0 0 12px}
+.dgen{font-size:19px;font-weight:600;color:#fff;margin-bottom:18px}
+.dact{margin-bottom:22px;display:flex}
+.dact .btn{width:auto;min-height:0;justify-content:center}
+.dact .btn{display:inline-flex;align-items:center;gap:10px;height:54px;padding:0 32px 0 26px;font-size:18px}
+.dact .btn svg{width:22px;height:22px}
+.dchips{display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:17px;font-weight:600;color:#fff;margin-bottom:10px}
+.dchips .cert{border:1.5px solid rgba(255,255,255,.7);border-radius:6px;padding:1px 8px;font-size:14px;line-height:1.5}
+.dchips .rate{display:inline-flex;align-items:center;gap:6px}
+.dchips svg,.hmeta svg{width:18px;height:18px;color:#ffc933}
+.ddir{color:#a1a1a6;font-size:17px;margin-bottom:14px}
+.ddir b{color:#fff;font-weight:600}
+.dsin{font-size:18px;line-height:1.55;color:#d8d8dc;max-width:62ch;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.dsin.abierta{-webkit-line-clamp:unset;display:block}
+.dmas{border:0;background:none;color:#a1a1a6;font:inherit;font-size:16px;font-weight:600;padding:8px 0;cursor:pointer}
+.dmas[hidden]{display:none}
+.dinfo{flex:none;width:min(340px,100%);display:flex;flex-direction:column;gap:18px}
+.dtabla{border:1px solid rgba(255,255,255,.14);border-radius:18px;background:rgba(20,20,22,.6);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);overflow:hidden}
+.irow{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:12px 16px;font-size:14px;border-top:1px solid rgba(255,255,255,.1)}
+.irow:first-child{border-top:0}
+.irow span{color:#a1a1a6;flex:none}
+.irow b{font-weight:600;text-align:right}
+button.irow{width:100%;background:none;border:0;border-top:1px solid rgba(255,255,255,.1);color:#fff;font:inherit;font-size:14px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.dest{display:flex;gap:22px;align-items:center;flex-wrap:wrap}
+.dest img{height:26px;max-width:120px;object-fit:contain;filter:brightness(0) invert(1);opacity:.62}
+.dest span{font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#a1a1a6}
+#dcast-w{padding:0 0 10px}
+.dcast{display:flex;gap:20px;overflow-x:auto;padding:14px clamp(24px,4.5vw,72px) 12px;scrollbar-width:none}
+.dcast::-webkit-scrollbar{display:none}
+.ci{flex:0 0 104px;text-align:center;font-size:13px}
+.ci i{display:grid;place-items:center;width:104px;height:104px;margin-bottom:10px;border-radius:50%;background:#2a2a2e center/cover;box-shadow:0 8px 24px rgba(0,0,0,.5);font-style:normal;font-size:30px;font-weight:700;color:#8e8e93}
+.ci b{display:block;font-weight:600;line-height:1.25}
+.ci span{display:block;color:#a1a1a6;margin-top:2px;line-height:1.25}
+body.detmode #top::before{display:none}
+
+/* ---- Teléfono y tablet vertical ---- */
+@media(max-width:820px){
+  body{padding-bottom:calc(var(--dockh) + 36px + env(safe-area-inset-bottom,0px))}
+  .brand b{display:none}
+  .brand img{width:44px;height:44px}
+  #top .cred{right:20px}
+  .hero{height:calc(100vh - 64px);height:calc(100svh - 64px)}
+  .hero::before{background-position:center top}
+  .hero::after{background:linear-gradient(180deg,rgba(0,0,0,.5) 0,transparent 22%),linear-gradient(0deg,#000 0,rgba(0,0,0,.82) 20%,rgba(0,0,0,.3) 46%,transparent 68%)}
+  .hcopy{left:20px;right:20px;bottom:calc(var(--dockh) + 56px + env(safe-area-inset-bottom,0px));max-width:none;display:flex;flex-direction:column;align-items:center;text-align:center}
+  .hlogo{object-position:center bottom;max-width:84%;max-height:130px}
+  .hmeta{justify-content:center;font-size:15px}
+  .hd{-webkit-line-clamp:2;text-align:center;font-size:15px}
+  .hact{justify-content:center;width:100%;margin-top:18px}
+  .dots{left:50%;right:auto;transform:translateX(-50%);bottom:calc(var(--dockh) + 30px + env(safe-area-inset-bottom,0px))}
+  .dwrap{display:block;text-align:center;padding:calc(46svh - 40px) 20px 10px}
+  .dbgwrap{height:72svh}
+  .dbg{background-position:center top}
+  .dbgwrap::after{background:linear-gradient(0deg,#000 3%,rgba(0,0,0,.78) 30%,rgba(0,0,0,.25) 62%,rgba(0,0,0,.2))}
+  .dlogo{margin:0 auto 14px;object-position:center bottom;max-width:86%;max-height:120px}
+  .dact{justify-content:center}
+  .dact .btn{width:min(100%,320px)}
+  .dchips{justify-content:center;font-size:16px}
+  .dsin{margin:0 auto;font-size:17px}
+  .dinfo{width:100%;margin-top:18px;text-align:left}
+  .dest{justify-content:center}
+  #vista-busq{padding-top:calc(env(safe-area-inset-top,0px) + 84px)}
+}
+
+/* ---- Computadora: la barra va arriba a la derecha ---- */
+@media(min-width:821px){
+  #dock{left:auto;right:clamp(20px,3vw,48px);top:20px;bottom:auto;transform:none;width:auto;height:52px;padding:5px;justify-content:flex-start;gap:2px}
+  body.buscando #dock{transform:translateY(-160%)}
+  .dk{flex:none;flex-direction:row;height:42px;padding:0 20px;font-size:15px;gap:8px}
+  .dk svg{display:none;width:18px;height:18px}
+  .dk.on{background:#fff;color:#000}
+  .dk.on svg{display:block}
+  #dk-buscar{padding:0 14px}
+  #dk-buscar svg{display:block;width:20px;height:20px}
+  #dk-buscar span{display:none}
+  .dsep{display:block;width:1px;height:22px;background:rgba(255,255,255,.22);margin:0 4px}
+  .sb{left:auto;right:clamp(20px,3vw,48px);top:20px;bottom:auto;transform:translateY(-190%);width:min(560px,calc(100vw - 40px));height:52px}
+  body.buscando .sb{transform:none}
+  #top{padding-top:22px}
+}
 </style>
 <link rel="manifest" href="/manifest.webmanifest">
 <meta name="theme-color" content="#000000">
@@ -421,35 +590,42 @@ body.colmode #chero:not(.top){margin-top:0}
 </script>
 </head>
 <body>
-<header><h1>Black BOX</h1><p>Tu colección de películas</p>
-  <div class="buscar" id="bbox" role="search">
-    <svg class="st" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
-    <input id="bq" type="search" placeholder="Buscar" aria-label="Buscar películas" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search">
-    <button class="x" id="bx" type="button" aria-label="Borrar búsqueda">✕</button>
-  </div>
+<header id="top">
+  <button class="hback" id="hback" type="button" aria-label="Volver"><svg viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg></button>
+  <a class="brand" id="brand" href="./" aria-label="Black BOX, inicio"><img src="/icon-192.png" alt="" onerror="this.remove()"><b>Black BOX</b></a>
   <div class="cred" id="cred" hidden aria-live="polite"><small>Créditos</small><b id="cred-n">0</b></div>
 </header>
-<nav class="sw" role="tablist" aria-label="Secciones">
-  <i aria-hidden="true"></i>
-  <button class="on" role="tab" aria-selected="true" data-v="inicio">Películas</button>
-  <button role="tab" aria-selected="false" data-v="subs">Suscripciones</button>
+<nav id="dock" aria-label="Secciones">
+  <button type="button" class="dk on" data-v="inicio" aria-label="Películas" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h16v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><path d="M4 9l2-5 3.5.8L7.5 9.5M10 9l2-5 3.5.8-2 4.7M16 9l2-5 3 .7"/></svg><span>Películas</span></button>
+  <button type="button" class="dk" data-v="series" aria-label="Series"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="2.5"/><path d="M8 3l4 3.5L16 3"/></svg><span>Series</span></button>
+  <button type="button" class="dk" data-v="subs" id="dk-subs" aria-label="Suscripciones"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M3 10h18M7 15h4"/></svg><span>Suscripciones</span></button>
+  <i class="dsep" aria-hidden="true"></i>
+  <button type="button" class="dk" id="dk-buscar" aria-label="Buscar" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><span>Buscar</span></button>
 </nav>
+<div class="sb" id="bbox" role="search">
+  <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+  <input id="bq" type="search" placeholder="Buscar" aria-label="Buscar películas y series" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search">
+  <button class="mic" id="bmic" type="button" aria-label="Buscar por voz"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
+  <button class="x" id="bx" type="button" aria-label="Cerrar búsqueda"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+</div>
 <div id="vista-inicio">
 <div class="herowrap" id="herowrap">
 <section class="hero" id="hero" aria-label="Destacadas">
   <video id="hv" muted playsinline loop hidden></video>
   <div class="hcopy">
-    <p class="hmeta" id="hm"></p>
+    <img class="hlogo" id="hlogo" alt="" hidden>
     <h2 id="ht"></h2>
+    <p class="hmeta" id="hm"></p>
     <p class="hd" id="hd"></p>
     <div class="hact">
-      <button class="btn primary" id="hl">Ver ahora</button>
-      <button class="btn ghost" id="hi">Más información</button>
+      <button class="btn primary hplay" id="hl" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor"/></svg><span id="hlt">Ver ahora</span></button>
+      <button class="btn ghost hinfo" id="hi" type="button" aria-label="Más información"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.6v.01"/></svg></button>
     </div>
   </div>
   <div class="dots" id="dots"></div>
 </section>
 </div>
+<div id="vacio" hidden><b>Pronto habrá series aquí</b>Todavía no se agrega ninguna.</div>
 <div id="cols" aria-label="Colecciones"></div>
 <div id="cont" hidden>
   <h3 class="rt">Continuar viendo</h3>
@@ -534,6 +710,29 @@ body.colmode #chero:not(.top){margin-top:0}
   </div>
 </section>
 <div class="sheet" id="sheet" hidden><div class="sp" id="sp"></div></div>
+<section id="vista-busq" aria-label="Resultados de búsqueda">
+  <h3 id="bt"></h3>
+  <div class="grid" id="bres"></div>
+  <p class="sinres" id="sinres" hidden></p>
+</section>
+
+<section id="vista-det" hidden aria-label="Ficha">
+  <div class="dbgwrap" id="dbgwrap"><div class="dbg" id="dbg"></div></div>
+  <div class="dwrap">
+    <div class="dmain">
+      <img class="dlogo" id="dlogo" alt="" hidden>
+      <h1 class="dtit" id="dtit"></h1>
+      <p class="dgen" id="dgen"></p>
+      <div class="dact"><button class="btn primary" id="dplay" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor"/></svg><span id="dplayt">Ver ahora</span></button></div>
+      <div class="dchips" id="dchips"></div>
+      <p class="ddir" id="ddir"></p>
+      <p class="dsin" id="dsin"></p><button class="dmas" id="dmas" type="button" hidden>Leer más</button>
+    </div>
+    <aside class="dinfo"><div class="dtabla" id="dtabla"></div><div class="dest" id="dest"></div></aside>
+  </div>
+  <div id="dcast-w"><h3 class="rt">Reparto</h3><div class="dcast" id="dcast"></div></div>
+</section>
+
 <footer class="end"><b>Black BOX</b><span>Tu colección de películas</span><small>Datos e imágenes de TMDB. Este producto usa la API de TMDB pero no está avalado ni certificado por TMDB.</small></footer>
 
 <div id="player" hidden>
@@ -874,16 +1073,21 @@ const CODIGOS = {
  "La noche del demonio : estan entre nosotros": "Insidius5",
   
 };   // también puedes escribir uno aquí:  "Título exacto": "CODIGO"
-peliculas.forEach(p => { if (p.codigo) CODIGOS[p.titulo] = p.codigo; });   // los de la base de datos
+/* Series: las entradas del catálogo con  tipo:"serie"  van a la sección Series y no salen en Películas. */
+const series = [];
+for (let i = peliculas.length - 1; i >= 0; i--) if (peliculas[i].tipo === 'serie') series.unshift(peliculas.splice(i, 1)[0]);
+const todas = () => peliculas.concat(series);
+todas().forEach(p => { if (p.codigo) CODIGOS[p.titulo] = p.codigo; });   // los de la base de datos
 
 /* ---------- TMDB: completa los datos de cada película ----------
    La página se dibuja al instante; los datos se rellenan solos al llegar
    (y quedan guardados en el dispositivo para la próxima vez). */
 const TMDB_KEY = "28e735f7aea07e37f38a95d346bcdd7f";
 const TMDB = "https://api.themoviedb.org/3", IMG = "https://image.tmdb.org/t/p/";
-const clave = p => "tmdb3:" + (p.tmdb || p.buscar || p.titulo);      // versión anterior (se sigue leyendo para mostrar algo al instante)
-const clave4 = p => "tmdb4:" + (p.tmdb || p.buscar || p.titulo);     // versión con saga, palabras clave, director y reparto
-let datosVer = 0;                                                    // sube cada vez que llegan datos nuevos (para recalcular colecciones)
+const clave = p => "tmdb3:" + (p.tmdb || p.buscar || p.titulo);      // versiones anteriores (se siguen leyendo para mostrar algo al instante)
+const clave4 = p => "tmdb4:" + (p.tmdb || p.buscar || p.titulo);
+const clave5 = p => "tmdb5:" + (p.tmdb || p.buscar || p.titulo);     // versión con logo, calificación, reparto con fotos, estudios...
+let datosVer = 0;                                                    // sube cada vez que llegan datos nuevos (para recalcular colecciones y búsqueda)
 function aplicar(p, d) {
   let cambio = false;
   for (const f in d) if (d[f] && !p[f]) { p[f] = d[f]; cambio = true; }
@@ -891,28 +1095,41 @@ function aplicar(p, d) {
   return cambio;
 }
 function deCache(p) {
-  for (const k of [clave(p), clave4(p)]) { try { const d = JSON.parse(localStorage.getItem(k)); if (d) aplicar(p, d); } catch (e) {} }
+  for (const k of [clave(p), clave4(p), clave5(p)]) { try { const d = JSON.parse(localStorage.getItem(k)); if (d) aplicar(p, d); } catch (e) {} }
 }
 async function completar(p) {
   if (p.sinTmdb) return false;
   if (!TMDB_KEY || TMDB_KEY.startsWith("TU_")) return false;
   try {
-    if (JSON.parse(localStorage.getItem(clave4(p)))) return false;   // ya estaba guardado
+    if (JSON.parse(localStorage.getItem(clave5(p)))) return false;   // ya estaba guardado
   } catch (e) {}
+  const serie = p.tipo === 'serie', tipo = serie ? 'tv' : 'movie';
   try {
     const j = u => fetch(u, { signal: AbortSignal.timeout(8000) }).then(r => r.json());
     let id = p.tmdb;
     if (!id) {
-      const y = p.anio ? "&year=" + p.anio : "";
-      const s = await j(`${TMDB}/search/movie?api_key=${TMDB_KEY}&language=es-MX&query=${encodeURIComponent(p.buscar || p.titulo)}${y}`);
+      const y = p.anio ? (serie ? "&first_air_date_year=" : "&year=") + p.anio : "";
+      const s = await j(`${TMDB}/search/${tipo}?api_key=${TMDB_KEY}&language=es-MX&query=${encodeURIComponent(p.buscar || p.titulo)}${y}`);
       if (!s.results || !s.results[0]) return false;
       id = s.results[0].id;
     }
-    const x = await j(`${TMDB}/movie/${id}?api_key=${TMDB_KEY}&language=es-MX&append_to_response=keywords,credits`);
+    const x = await j(`${TMDB}/${tipo}/${id}?api_key=${TMDB_KEY}&language=es-MX&include_image_language=es,en,null&append_to_response=keywords,credits,images,${serie ? 'content_ratings' : 'release_dates'}`);
     if (!x || !x.id) return false;
-    const r = x.runtime;
+    const fecha = x.release_date || x.first_air_date || "";
+    const r = serie ? ((x.episode_run_time || [])[0] || (x.last_episode_to_air || {}).runtime || 0) : x.runtime;
+    const claves = serie ? ((x.keywords && x.keywords.results) || []) : ((x.keywords && x.keywords.keywords) || []);
+    const crew = (x.credits && x.credits.crew) || [], cast = (x.credits && x.credits.cast) || [];
+    const dirs = serie ? (x.created_by || []).map(c => ({ id: c.id, nombre: c.name })) : crew.filter(c => c.job === "Director").map(c => ({ id: c.id, nombre: c.name }));
+    const logos = ((x.images && x.images.logos) || []).filter(g => g.file_path && !/\.svg$/i.test(g.file_path));
+    const mejor = f => logos.filter(g => f(g.iso_639_1)).sort((a, b) => (b.vote_average - a.vote_average) || (b.width - a.width))[0];
+    const lg = mejor(l => l === "es") || mejor(l => l === "en") || mejor(l => !l) || mejor(() => true);
+    let cert = "";
+    try {
+      if (serie) { const l = (x.content_ratings && x.content_ratings.results) || []; const e = l.find(z => z.iso_3166_1 === "MX" && z.rating) || l.find(z => z.iso_3166_1 === "US" && z.rating); cert = e ? e.rating : ""; }
+      else { const l = (x.release_dates && x.release_dates.results) || []; for (const pais of ["MX", "US"]) { const e = l.find(z => z.iso_3166_1 === pais); const c = e && (e.release_dates || []).find(z => z.certification); if (c) { cert = c.certification; break; } } }
+    } catch (e) {}
     const d = {
-      anio: (x.release_date || "").slice(0, 4),
+      anio: fecha.slice(0, 4),
       genero: (x.genres || []).map(g => g.name).join(", "),
       duracion: r ? Math.floor(r / 60) + " h " + (r % 60) + " min" : "",
       descripcion: x.overview || "",
@@ -920,18 +1137,28 @@ async function completar(p) {
       fondo: x.backdrop_path ? IMG + "w1280" + x.backdrop_path : "",
       empresas: (x.production_companies || []).map(c => ({ id: c.id, nombre: c.name })),   // para armar colecciones solas
       /* más datos para agrupar: */
-      fecha: x.release_date || "",                                                        // fecha exacta (orden cronológico)
+      fecha,                                                                              // fecha exacta (orden cronológico)
       saga: x.belongs_to_collection ? { id: x.belongs_to_collection.id, nombre: x.belongs_to_collection.name } : "",
       generosIds: (x.genres || []).map(g => g.id),
-      palabras: ((x.keywords && x.keywords.keywords) || []).slice(0, 40).map(k => ({ id: k.id, nombre: k.name })),
-      director: ((x.credits && x.credits.crew) || []).filter(c => c.job === "Director").map(c => ({ id: c.id, nombre: c.name })),
-      reparto: ((x.credits && x.credits.cast) || []).slice(0, 6).map(c => ({ id: c.id, nombre: c.name }))
+      palabras: claves.slice(0, 40).map(k => ({ id: k.id, nombre: k.name })),
+      director: dirs,
+      reparto: cast.slice(0, 6).map(c => ({ id: c.id, nombre: c.name })),
+      /* para la ficha de la película: */
+      logo: lg ? IMG + "w500" + lg.file_path : "",
+      cert,
+      rating: x.vote_average ? (Math.round(x.vote_average * 10) / 10).toFixed(1) : "",
+      idioma: (x.original_language || "").toUpperCase(),
+      minutos: r || 0,
+      presupuesto: x.budget || 0,
+      ingresos: x.revenue || 0,
+      estudios: (x.production_companies || []).slice(0, 4).map(c => ({ id: c.id, nombre: c.name, logo: c.logo_path ? IMG + "w185" + c.logo_path : "" })),
+      elenco: cast.slice(0, 14).map(c => ({ id: c.id, nombre: c.name, personaje: c.character || "", foto: c.profile_path ? IMG + "w185" + c.profile_path : "" }))
     };
-    try { localStorage.setItem(clave4(p), JSON.stringify(d)); } catch (e) {}
+    try { localStorage.setItem(clave5(p), JSON.stringify(d)); } catch (e) {}
     return aplicar(p, d);
   } catch (e) { return false; }
 }
-peliculas.forEach(deCache);          // lo que ya se guardó sale al instante
+todas().forEach(deCache);          // lo que ya se guardó sale al instante
 const tarjetas = new Map();
 
 const track = document.getElementById('track'), dlg = document.getElementById('dlg');
@@ -968,38 +1195,35 @@ const tarjetasC = new Map();
 /* ---------- Orden de las películas ----------
    Primero las del año en curso; después las demás, en el orden en que las subiste.
    El año sale de TMDB (o del campo  anio  si lo escribes a mano). Se reacomoda solo cuando llegan los datos. */
+let modo = 'peliculas';                                   // sección que se ve en el inicio: 'peliculas' | 'series'
+const L = () => modo === 'series' ? series : peliculas;
 const ANIO_ACTUAL = new Date().getFullYear();
-peliculas.forEach((p, i) => { p._i = i; });                      // posición original = orden en que se subieron
+[peliculas, series].forEach(l => l.forEach((p, i) => { p._i = i; }));                      // posición original = orden en que se subieron
 const esActual = p => +p.anio === ANIO_ACTUAL;
 let ordenPend;
 function programarOrden() { clearTimeout(ordenPend); ordenPend = setTimeout(ordenar, 500); }
 function pintarPopulares() {
-  const lista = [...peliculas.filter(p => p.popular), ...peliculas.filter(p => !p.popular)].slice(0, POPULARES);
+  const lista = [...L().filter(p => p.popular), ...L().filter(p => !p.popular)].slice(0, POPULARES);
   const ya = [...tarjetasC.keys()];
   if (ya.length === lista.length && lista.every((p, i) => ya[i] === p)) return;   // sin cambios: no se mueve el carrusel
   track.innerHTML = ''; tarjetasC.clear();
   lista.forEach(p => { const b = crearTarjeta(p); track.appendChild(b); tarjetasC.set(p, b); });
 }
 function ordenar() {
-  peliculas.sort((a, b) => (esActual(b) - esActual(a)) || (a._i - b._i)); datosVer++;
-  const grid = document.getElementById('grid');
-  peliculas.forEach(p => { const b = tarjetas.get(p); if (b) grid.appendChild(b); });
+  [peliculas, series].forEach(l => l.sort((a, b) => (esActual(b) - esActual(a)) || (a._i - b._i))); datosVer++;
+  document.getElementById('grid').replaceChildren(...L().map(p => tarjetas.get(p)).filter(Boolean));
   pintarPopulares();
 }
-peliculas.forEach(p => { const b = crearTarjeta(p); document.getElementById('grid').appendChild(b); tarjetas.set(p, b); });
+todas().forEach(p => tarjetas.set(p, crearTarjeta(p)));
 ordenar();
 
 let abierta = null;
-function abrir(p) {
-  abierta = p;
-  document.getElementById('dt').textContent = p.titulo;
-  document.getElementById('dm').textContent = [p.anio, p.genero, p.duracion].filter(Boolean).join('  ·  ');
-  document.getElementById('dd').textContent = p.descripcion;
-  document.getElementById('dl').textContent = p.link ? (hayProg(p) ? 'Continuar' : 'Ver ahora') : 'Próximamente';
-  document.getElementById('dl').disabled = !p.link;
-  document.getElementById('dl').onclick = () => reproducir(p);
-  const dp = document.getElementById('dp'); dp.innerHTML = ''; poster(p, dp);
-  if (!dlg.open) dlg.showModal();
+function abrir(p) {                                  // al tocar una película se abre su ficha (con datos de TMDB)
+  if (!p) return;
+  cerrarBusqueda();
+  volverY = scrollY; detHist = true;
+  history.pushState(null, '', location.pathname + location.search + '#/p/' + slugDe(p));
+  ruta(true);
 }
 document.getElementById('dc').onclick = () => dlg.close();
 dlg.addEventListener('click', e => { if (e.target === dlg) dlg.close(); });
@@ -1012,15 +1236,38 @@ document.querySelector('#rowpel .next').onclick = () => track.scrollBy({left: pa
 const H = id => document.getElementById(id);
 const hero = H('hero'), hv = H('hv'), reduce = matchMedia('(prefers-reduced-motion:reduce)').matches;
 /* El banner muestra solo 9, al azar: primero del año en curso; si faltan, del año anterior; si aún faltan, de cualquier año. */
+
+/* ---------- Ayudas del rediseño ---------- */
+const mk = (t, c, x) => { const n = document.createElement(t); if (c) n.className = c; if (x !== undefined) n.textContent = x; return n; };
+const esMovil = () => matchMedia('(max-width:820px)').matches;
+const mejorPoster = p => p.poster ? p.poster.replace('/w500/', '/w780/') : '';
+const mejorFondo = p => p.fondo ? (innerWidth > 1500 ? p.fondo.replace('/w1280/', '/original/') : p.fondo) : '';
+const heroImg = p => esMovil() ? (mejorPoster(p) || mejorFondo(p)) : (mejorFondo(p) || mejorPoster(p));   // teléfono: póster vertical; computadora: fondo horizontal
+const ICN = { star: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z" fill="currentColor"/></svg>' };
+function metaHero(p, el) {
+  el.replaceChildren();
+  const partes = [];
+  if (p.rating) { const r = mk('span', 'rate'); r.innerHTML = ICN.star; r.append(p.rating + '/10'); partes.push(r); }
+  if (p.anio) partes.push(mk('span', '', p.anio));
+  const g = (p.genero || '').split(',')[0].trim(); if (g) partes.push(mk('span', '', g));
+  partes.forEach((n, i) => { if (i) el.appendChild(mk('i', 'dot', '·')); el.appendChild(n); });
+}
+function ponerTitulo(p, logoEl, tEl) {                    // logo del título (TMDB) o, si no hay, el nombre escrito
+  tEl.textContent = p.titulo;
+  if (p.logo) {
+    logoEl.onerror = () => { logoEl.hidden = true; tEl.classList.remove('sr'); };
+    logoEl.src = p.logo; logoEl.hidden = false; tEl.classList.add('sr');
+  } else { logoEl.hidden = true; logoEl.removeAttribute('src'); tEl.classList.remove('sr'); }
+}
 const BANNER_N = 9;
 let orden = [], idx = 0, timer;
 const azar = a => { a = [...a]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 function elegirBanner() {
   const out = [];
   const llenar = lista => azar(lista).forEach(p => { if (out.length < BANNER_N && !out.includes(p)) out.push(p); });
-  llenar(peliculas.filter(p => +p.anio === ANIO_ACTUAL));
-  llenar(peliculas.filter(p => +p.anio === ANIO_ACTUAL - 1));
-  llenar(peliculas);
+  llenar(L().filter(p => +p.anio === ANIO_ACTUAL));
+  llenar(L().filter(p => +p.anio === ANIO_ACTUAL - 1));
+  llenar(L());
   return out;
 }
 function armarBanner() {
@@ -1032,6 +1279,7 @@ function armarBanner() {
     d.onclick = () => { mostrar(i); auto(); };
     H('dots').appendChild(d);
   });
+  H('herowrap').hidden = !orden.length;
   if (orden.length) { mostrar(0); auto(); }
 }
 /* ---------- Resplandor del banner: color dominante del póster ---------- */
@@ -1075,13 +1323,12 @@ function mostrar(i) {
   hero.classList.add('out');
   setTimeout(() => {
     hero.style.setProperty('--g', grad(p.titulo));
-    const bg = p.fondo || p.poster;
+    const bg = heroImg(p);
     hero.style.setProperty('--img', bg ? `url("${bg}")` : 'none');
-    resplandor(p);
-    H('hm').textContent = [p.anio, p.genero, p.duracion].filter(Boolean).join('  ·  ');
-    H('ht').textContent = p.titulo;
+    metaHero(p, H('hm'));
+    ponerTitulo(p, H('hlogo'), H('ht'));
     H('hd').textContent = p.descripcion;
-    H('hl').textContent = p.link ? (hayProg(p) ? 'Continuar' : 'Ver ahora') : 'Próximamente'; H('hl').disabled = !p.link; H('hl').onclick = () => reproducir(p);
+    H('hlt').textContent = p.link ? (hayProg(p) ? 'Continuar' : 'Ver ahora') : 'Próximamente'; H('hl').disabled = !p.link; H('hl').onclick = () => reproducir(p);
     H('hi').onclick = () => abrir(p);
     if (p.trailer && !reduce) { hv.src = p.trailer; hv.hidden = false; hv.play().catch(() => { hv.hidden = true; }); }
     else { hv.hidden = true; hv.removeAttribute('src'); hv.load(); }
@@ -1092,7 +1339,7 @@ function mostrar(i) {
 function auto() {
   clearInterval(timer);
   if (reduce || orden.length < 2) return;
-  timer = setInterval(() => { if (!dlg.open && pl.hidden && !document.hidden) mostrar((idx + 1) % orden.length); }, 9000);
+  timer = setInterval(() => { if (!dlg.open && pl.hidden && !document.hidden && !vistas.inicio.hidden && !document.body.classList.contains('con-q')) mostrar((idx + 1) % orden.length); }, 9000);
 }
 /* (el banner se arma más abajo, cuando ya se sabe el año de cada película) */
 
@@ -1476,7 +1723,7 @@ function opcionTv(titulo, sub, fn, off) {
   const s = document.createElement('span'); s.textContent = sub;
   b.append(t, s); b.onclick = fn; return b;
 }
-async function copiar(t) {
+async function copiarTexto(t) {
   try { await navigator.clipboard.writeText(t); return true; } catch (e) {}
   try { const a = document.createElement('textarea'); a.value = t; a.style.cssText = 'position:fixed;opacity:0'; document.body.appendChild(a); a.select(); const ok = document.execCommand('copy'); a.remove(); return ok; } catch (e) { return false; }
 }
@@ -1496,9 +1743,9 @@ function pedirRem() {
 function armarOtras(drive) {
   const o = H('tvotras'); o.innerHTML = '';
   const fila = (t, sub, fn, off) => o.appendChild(opcionTv(t, sub, fn, off));
-  fila('Copiar enlace del video', 'Pégalo en una app DLNA (BubbleUPnP, Web Video Caster…) y la TV lo reproduce sola', async () => { tvAviso(await copiar(urlAbs(tvUrl)) ? 'Enlace del video copiado.' : 'No se pudo copiar el enlace.'); }, drive);
+  fila('Copiar enlace del video', 'Pégalo en una app DLNA (BubbleUPnP, Web Video Caster…) y la TV lo reproduce sola', async () => { tvAviso(await copiarTexto(urlAbs(tvUrl)) ? 'Enlace del video copiado.' : 'No se pudo copiar el enlace.'); }, drive);
   if (navigator.share) fila('Compartir enlace del video', 'Enviarlo directo a otra app', () => { navigator.share({ title: tvPeli ? tvPeli.titulo : 'Black BOX', url: urlAbs(tvUrl) }).catch(() => {}); }, drive);
-  fila('Copiar enlace de Black BOX', 'Ábrelo en el navegador de la TV', async () => { tvAviso(await copiar(location.origin + location.pathname) ? 'Enlace de Black BOX copiado.' : 'No se pudo copiar el enlace.'); });
+  fila('Copiar enlace de Black BOX', 'Ábrelo en el navegador de la TV', async () => { tvAviso(await copiarTexto(location.origin + location.pathname) ? 'Enlace de Black BOX copiado.' : 'No se pudo copiar el enlace.'); });
   const p = document.createElement('p');
   p.textContent = 'Smart View (Samsung) duplica la pantalla: el teléfono tiene que quedarse encendido. Para transmitir sin duplicar usa Chromecast, AirPlay o una app DLNA.';
   o.appendChild(p);
@@ -1529,14 +1776,14 @@ function refrescar(p) {
   if (c && !c.querySelector('img')) poster(p, c);
   (tarjetasCol.get(p) || []).forEach(x => { if (!x.querySelector('img')) poster(p, x); });
   if (orden[idx] === p) mostrar(idx);
-  if (dlg.open && abierta === p) abrir(p);
+  if (detActual === p && !vistas.det.hidden) pintarDetalle(p);
   actualizarCont();
   pintarTiles(); actualizarColAbierta();
   programarOrden();                                              // llegó el año: se reacomodan las películas
 }
-const faltaAnio = peliculas.some(p => !p.anio && !p.sinTmdb);    // ¿hay años que todavía no llegan de TMDB?
+const faltaAnio = todas().some(p => !p.anio && !p.sinTmdb);    // ¿hay años que todavía no llegan de TMDB?
 let tmdbListo = false;
-const cargaTmdb = Promise.all(peliculas.map(p => completar(p).then(c => { if (c) refrescar(p); }).catch(() => {})))
+const cargaTmdb = Promise.all(todas().map(p => completar(p).then(c => { if (c) refrescar(p); }).catch(() => {})))
   .then(() => { tmdbListo = true; });
 
 /* Banner: si ya se conocen los años (caché) sale al instante; si no, espera hasta 2 s a TMDB para elegir bien. */
@@ -1550,30 +1797,105 @@ else {
   });
 }
 
-/* ---------- Buscador: filtra las tarjetas mientras escribes ---------- */
-const bq = H('bq'), bbox = H('bbox'), rt = H('rt');
+/* ---------- Buscador (píldora flotante): nombres exactos o aproximados; al teclear solo salen los resultados ---------- */
+const bq = H('bq'), bbox = H('bbox'), rt = H('rt'), sinres = H('sinres');
 const norm = t => (t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
-const sinres = document.createElement('p');
-sinres.className = 'sinres'; sinres.hidden = true; sinres.textContent = 'No hay películas con ese nombre.';
-H('grid').after(sinres);
+const palabrasDe = t => norm(t).split(/[^a-z0-9]+/).filter(Boolean);
+function lev(a, b, max) {                                  // distancia de edición (se corta al pasar del máximo)
+  if (Math.abs(a.length - b.length) > max) return max + 1;
+  let prev = Array.from({ length: b.length + 1 }, (_, i) => i), prev2 = prev;
+  for (let i = 1; i <= a.length; i++) {
+    const cur = [i]; let min = i;
+    for (let j = 1; j <= b.length; j++) {
+      let c = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+      if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) c = Math.min(c, prev2[j - 2] + 1);   // letras cambiadas de lugar cuentan como un solo error
+      cur[j] = c; if (c < min) min = c;
+    }
+    if (min > max) return max + 1;
+    prev2 = prev; prev = cur;
+  }
+  return prev[b.length];
+}
+function casaPalabra(t, ws) {                              // qué tanto se parece lo escrito a alguna palabra de la lista
+  let best = 0; const d = t.length >= 7 ? 2 : t.length >= 4 ? 1 : 0;
+  for (const w of ws) {
+    let s = 0;
+    if (w === t) s = 10; else if (w.startsWith(t)) s = 8; else if (t.length >= 3 && w.includes(t)) s = 6;
+    else if (d) { if (lev(t, w, d) <= d) s = 4; else if (lev(t, w.slice(0, t.length), d) <= d) s = 3; }
+    if (s > best) best = s;
+    if (best === 10) break;
+  }
+  return best;
+}
+const fichas = new Map();
+function ficha(p) {                                        // palabras buscables de cada título (se rehace al llegar datos de TMDB)
+  let f = fichas.get(p); if (f && f.v === datosVer) return f;
+  const cols = (typeof COLECCIONES !== 'undefined' && p.tipo !== 'serie') ? COLECCIONES.filter(c => pelisDe(c).includes(p)).map(c => c.nombre) : [];
+  const tit = norm(p.titulo + ' ' + (p.buscar || ''));
+  const extra = [p.saga && p.saga.nombre, p.genero, p.anio, ...(p.director || []).map(d => d.nombre), ...(p.reparto || []).map(a => a.nombre), ...cols].filter(Boolean).join(' ');
+  f = { v: datosVer, tit, tw: palabrasDe(tit), ew: palabrasDe(extra) };
+  fichas.set(p, f); return f;
+}
+function puntaje(p, qn, toks) {
+  const f = ficha(p); let s = 0;
+  if (f.tit === qn) s = 200; else if (f.tit.startsWith(qn)) s = 150; else if (f.tit.includes(qn)) s = 110;
+  else if (qn.length >= 4) { const d = qn.length >= 8 ? 2 : 1; if (lev(qn, f.tit.slice(0, qn.length), d) <= d) s = 70; }
+  let tot = 0, ok = true;
+  for (const t of toks) {
+    const m = Math.max(casaPalabra(t, f.tw), casaPalabra(t, f.ew) * .6);
+    if (!m) { ok = false; break; }
+    tot += m;
+  }
+  if (ok) s += tot; else if (!s) return 0;
+  return s;
+}
+let busq = false, reco = null;
 function filtrar() {
-  const q = norm(bq.value); let n = 0;
-  bbox.classList.toggle('lleno', !!bq.value);
-  tarjetas.forEach((b, p) => {
-    const ok = !q || norm(p.titulo + ' ' + (p.buscar || '')).includes(q);
-    b.hidden = !ok; if (ok) n++;
-  });
-  rt.textContent = q ? 'Resultados' : 'Todas las películas';
-  sinres.hidden = !q || n > 0;
-  H('pop').hidden = H('plat').hidden = H('cols').hidden = !!q;                       // al buscar, solo se ven los resultados
+  const raw = bq.value, qn = norm(raw);
+  bbox.classList.toggle('lleno', !!raw);
+  H('bx').setAttribute('aria-label', raw ? 'Borrar búsqueda' : 'Cerrar búsqueda');
+  document.body.classList.toggle('con-q', busq && !!qn);
+  if (!qn) { actualizarCont(); return; }
+  const toks = palabrasDe(qn);
+  const res = todas().map(p => [p, puntaje(p, qn, toks)]).filter(x => x[1] > 0)
+    .sort((a, b) => b[1] - a[1] || (+b[0].anio || 0) - (+a[0].anio || 0)).slice(0, 80).map(x => x[0]);
+  H('bres').replaceChildren(...res.map(p => crearTarjeta(p)));
+  H('bt').textContent = res.length ? 'Resultados para “' + raw.trim() + '”' : '';
+  sinres.hidden = res.length > 0; sinres.textContent = 'No encontramos nada parecido a “' + raw.trim() + '”.';
   actualizarCont();
 }
+function abrirBusqueda() {
+  busq = true; document.body.classList.add('buscando'); H('dk-buscar').setAttribute('aria-expanded', 'true');
+  filtrar(); setTimeout(() => bq.focus(), 60);
+}
+function cerrarBusqueda() {
+  if (!busq && !bq.value) return;
+  busq = false; bq.value = ''; if (reco) { try { reco.stop(); } catch (e) {} }
+  document.body.classList.remove('buscando', 'con-q'); bbox.classList.remove('lleno'); bq.blur();
+  H('dk-buscar').setAttribute('aria-expanded', 'false'); actualizarCont();
+}
+H('dk-buscar').onclick = () => busq ? cerrarBusqueda() : abrirBusqueda();
 bq.addEventListener('input', filtrar);
 bq.addEventListener('keydown', e => {
-  if (e.key === 'Escape') { bq.value = ''; filtrar(); bq.blur(); }
+  if (e.key === 'Escape') cerrarBusqueda();
   else if (e.key === 'Enter') bq.blur();                          // cierra el teclado en el móvil
 });
-H('bx').onclick = () => { bq.value = ''; filtrar(); bq.focus(); };
+H('bx').onclick = () => { if (bq.value) { bq.value = ''; filtrar(); bq.focus(); } else cerrarBusqueda(); };
+if (window.visualViewport) {                                      // en iPhone la píldora sube sobre el teclado
+  const vv = visualViewport, kb = () => { const h = Math.max(0, innerHeight - vv.height - vv.offsetTop); document.documentElement.style.setProperty('--kb', h > 80 ? h + 'px' : '0px'); };
+  vv.addEventListener('resize', kb); vv.addEventListener('scroll', kb);
+}
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition, mic = H('bmic');
+if (!SR) mic.hidden = true;
+else mic.onclick = () => {                                        // búsqueda por voz
+  if (reco) { try { reco.stop(); } catch (e) {} return; }
+  try {
+    reco = new SR(); reco.lang = 'es-MX'; reco.interimResults = true; reco.maxAlternatives = 1;
+    reco.onresult = e => { bq.value = [...e.results].map(r => r[0].transcript).join(' '); filtrar(); };
+    reco.onend = reco.onerror = () => { reco = null; mic.classList.remove('oyendo'); };
+    reco.start(); mic.classList.add('oyendo');
+  } catch (e) { reco = null; }
+};
 
 /* ---------- Continuar viendo (estilo Netflix) ----------
    El avance de cada película se guarda en este dispositivo (localStorage, clave "bbprog").
@@ -1598,7 +1920,7 @@ const cont = H('cont'), ctrack = H('ctrack');
 const quedan = s => { const m = Math.max(1, Math.round(s / 60)); return m >= 60 ? Math.floor(m / 60) + ' h ' + (m % 60) + ' min' : m + ' min'; };
 function actualizarCont() {
   const pr = leerProg();
-  const lista = peliculas.filter(p => p.link && pr[p.titulo]).sort((a, b) => pr[b.titulo].f - pr[a.titulo].f);
+  const lista = L().filter(p => p.link && pr[p.titulo]).sort((a, b) => pr[b.titulo].f - pr[a.titulo].f);
   ctrack.innerHTML = '';
   lista.forEach(p => {
     const g = pr[p.titulo], resto = quedan(g.d - g.t);
@@ -1616,7 +1938,7 @@ function actualizarCont() {
   });
   cont.hidden = !lista.length || !!bq.value;
   const ph = orden[idx];                                   // el botón del banner dice "Continuar" si ya la empezó
-  if (ph && ph.link) H('hl').textContent = pr[ph.titulo] ? 'Continuar' : 'Ver ahora';
+  if (ph && ph.link) H('hlt').textContent = pr[ph.titulo] ? 'Continuar' : 'Ver ahora';
 }
 const pasoC = () => ctrack.clientWidth * .8;
 cont.querySelector('.prev').onclick = () => ctrack.scrollBy({ left: -pasoC(), behavior: 'smooth' });
@@ -1637,28 +1959,111 @@ if (typeof PLATAFORMAS !== 'undefined') {
   H('rowplat').querySelector('.next').onclick = () => ptrack.scrollBy({ left: pasoP(), behavior: 'smooth' });
 } else H('plat').hidden = true;
 
-/* ---------- Switcher superior: Películas | Suscripciones ---------- */
-const sw = document.querySelector('.sw'), swBtns = [...sw.querySelectorAll('button')];
-const vistas = { inicio: H('vista-inicio'), subs: H('vista-subs'), col: H('vista-col') };
-function posSw() {                                   // coloca la "burbuja" de vidrio bajo la opción activa
-  const b = sw.querySelector('.on');
-  sw.style.setProperty('--x', b.offsetLeft + 'px'); sw.style.setProperty('--w', b.offsetWidth + 'px');
+/* ---------- Navegación: barra flotante (Películas · Series · Suscripciones · Buscar) ---------- */
+const SUSCRIPCIONES_EN_BARRA = true;                 // pon false para quitar "Suscripciones" de la barra
+H('dk-subs').hidden = !SUSCRIPCIONES_EN_BARRA;
+const vistas = { inicio: H('vista-inicio'), subs: H('vista-subs'), col: H('vista-col'), det: H('vista-det') };
+let detActual = null, detHist = false, volverY = null;
+const slugDe = p => norm(p.titulo).replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+function marcarDock(v) {
+  document.querySelectorAll('#dock .dk[data-v]').forEach(b => {
+    const on = b.dataset.v === v; b.classList.toggle('on', on);
+    if (on) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
+  });
 }
-function irA(v) {
-  document.body.classList.remove('colmode');
-  if (location.hash) history.replaceState(null, '', location.pathname + location.search);   // salir de una colección
+function ponerModo(m) {                              // el inicio sirve para Películas y para Series
+  const cambio = m !== modo; modo = m;
+  const s = m === 'series';
+  H('cols').hidden = s || typeof COLECCIONES === 'undefined' || !COLECCIONES.length;
+  H('plat').hidden = s || typeof PLATAFORMAS === 'undefined';
+  rt.textContent = s ? 'Todas las series' : 'Todas las películas';
+  H('vacio').hidden = !(s && !series.length);
+  if (cambio) { ordenar(); armarBanner(); actualizarCont(); }
+  H('herowrap').hidden = s && !series.length;
+}
+function irA(v, desdeRuta) {                         // v: inicio | series | subs
+  if (!desdeRuta) {
+    const h = v === 'inicio' ? '' : '#/' + v, base = location.pathname + location.search;
+    if (location.hash !== h && (h || location.hash)) history.pushState(null, '', base + h);
+    volverY = null;
+  }
   clearInterval(cTimer);
-  swBtns.forEach(b => { const on = b.dataset.v === v; b.classList.toggle('on', on); b.setAttribute('aria-selected', on); });
-  Object.entries(vistas).forEach(([k, el]) => el.hidden = k !== v);
-  H('bbox').hidden = v !== 'inicio';                 // el buscador es solo de películas
-  verCred();
-  posSw(); scrollTo({ top: 0, behavior: 'smooth' });
+  document.body.classList.remove('colmode', 'detmode');
+  vistas.col.hidden = vistas.det.hidden = true; detActual = null;
+  vistas.subs.hidden = v !== 'subs'; vistas.inicio.hidden = v === 'subs';
+  if (v !== 'subs') { ponerModo(v === 'series' ? 'series' : 'peliculas'); auto(); }
+  marcarDock(v); verCred();
   if (v === 'subs') cargarCuenta();
+  const y = volverY; volverY = null;
+  scrollTo(0, y || 0);
 }
-swBtns.forEach(b => b.addEventListener('click', () => irA(b.dataset.v)));
-addEventListener('resize', posSw);
-if (document.fonts) document.fonts.ready.then(posSw);
-posSw();
+document.querySelectorAll('#dock .dk[data-v]').forEach(b => b.addEventListener('click', () => { cerrarBusqueda(); irA(b.dataset.v); }));
+H('brand').addEventListener('click', e => { e.preventDefault(); cerrarBusqueda(); irA('inicio'); });
+matchMedia('(max-width:820px)').addEventListener('change', () => { if (orden.length) mostrar(idx); if (detActual && !vistas.det.hidden) pintarDetalle(detActual); });
+
+/* ---------- Ficha de la película / serie (datos de TMDB; solo el botón de ver) ---------- */
+const fmtMin = m => Math.floor(m / 60) + 'h ' + (m % 60) + 'm';
+const fmtDinero = n => '$' + Math.round(n).toLocaleString('en-US');
+const fmtFecha = s => { const [y, m, d] = String(s).split('-').map(Number); return y ? new Date(y, (m || 1) - 1, d || 1).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' }) : ''; };
+const horaFin = m => new Date(Date.now() + m * 60000).toLocaleTimeString('es-MX', { hour: 'numeric', minute: '2-digit' });
+function abrirDetalle(slug) {
+  const p = todas().find(x => slugDe(x) === slug);
+  if (!p) { history.replaceState(null, '', location.pathname + location.search); ruta(false); return; }
+  detActual = p; clearInterval(timer); clearInterval(cTimer);
+  document.body.classList.remove('colmode'); document.body.classList.add('detmode');
+  vistas.inicio.hidden = vistas.subs.hidden = vistas.col.hidden = true; vistas.det.hidden = false;
+  pintarDetalle(p); verCred(); scrollTo(0, 0);
+}
+function pintarDetalle(p) {
+  const serie = p.tipo === 'serie';
+  H('dbgwrap').style.setProperty('--g', grad(p.titulo));
+  const bg = heroImg(p); H('dbg').style.setProperty('--img', bg ? `url("${bg}")` : 'none');
+  ponerTitulo(p, H('dlogo'), H('dtit'));
+  H('dgen').textContent = (p.genero || '').split(',').map(x => x.trim()).filter(Boolean).slice(0, 3).join(' · ');
+  H('dplayt').textContent = p.link ? (hayProg(p) ? 'Continuar' : 'Ver ahora') : 'Próximamente';
+  H('dplay').disabled = !p.link; H('dplay').onclick = () => reproducir(p);
+  const ch = H('dchips'); ch.replaceChildren();
+  if (p.anio) ch.appendChild(mk('span', '', p.anio));
+  if (p.minutos || p.duracion) ch.appendChild(mk('span', '', p.minutos ? fmtMin(p.minutos) : p.duracion));
+  if (p.cert) ch.appendChild(mk('span', 'cert', p.cert));
+  if (p.rating) { const r = mk('span', 'rate'); r.innerHTML = ICN.star; r.append(p.rating); ch.appendChild(r); }
+  const nombres = (p.director || []).map(d => d.nombre).join(', '), dr = H('ddir');
+  dr.hidden = !nombres; dr.replaceChildren(document.createTextNode(serie ? 'Creador: ' : 'Director: '), mk('b', '', nombres));
+  const sn = H('dsin'), mas = H('dmas');
+  sn.textContent = p.descripcion || ''; sn.classList.remove('abierta'); mas.hidden = true; mas.textContent = 'Leer más';
+  requestAnimationFrame(() => { if (sn.scrollHeight > sn.clientHeight + 2) mas.hidden = false; });
+  mas.onclick = () => { const a = sn.classList.toggle('abierta'); mas.textContent = a ? 'Leer menos' : 'Leer más'; };
+  const t = H('dtabla'); t.replaceChildren();
+  const fila = (k, v) => { const r = mk('div', 'irow'); r.append(mk('span', '', k), mk('b', '', v)); t.appendChild(r); };
+  if (p.minutos) fila(serie ? 'Por episodio' : 'Duración', fmtMin(p.minutos) + (serie ? '' : ' · Termina ' + horaFin(p.minutos)));
+  if (p.idioma) fila('Idioma', p.idioma);
+  if (p.fecha) fila(serie ? 'Primer episodio' : 'Estreno', fmtFecha(p.fecha));
+  if (p.presupuesto) fila('Presupuesto', fmtDinero(p.presupuesto));
+  if (p.ingresos) fila('Recaudación', fmtDinero(p.ingresos));
+  if (p.saga && p.saga.nombre) {
+    const b = mk('button', 'irow'); b.type = 'button'; b.append(mk('span', '', 'Saga'), mk('b', '', p.saga.nombre + '  ›'));
+    b.onclick = () => { abrirBusqueda(); bq.value = p.saga.nombre.replace(/\s*(collection|colecci[oó]n|saga)\s*$/i, '').replace(/^(colecci[oó]n|saga)\s+(de\s+)?/i, ''); filtrar(); };
+    t.appendChild(b);
+  }
+  t.hidden = !t.children.length;
+  const de = H('dest'); de.replaceChildren();
+  (p.estudios || []).slice(0, 4).forEach(e => {
+    if (e.logo) { const i = new Image(); i.src = e.logo; i.alt = e.nombre; i.title = e.nombre; i.onerror = () => i.replaceWith(mk('span', '', e.nombre)); de.appendChild(i); }
+    else de.appendChild(mk('span', '', e.nombre));
+  });
+  const ca = H('dcast'); ca.replaceChildren();
+  (p.elenco || []).forEach(a => {
+    const x = mk('div', 'ci'), f = mk('i');
+    if (a.foto) f.style.backgroundImage = `url("${a.foto}")`; else f.textContent = (a.nombre || '?').trim().charAt(0).toUpperCase();
+    x.append(f, mk('b', '', a.nombre), mk('span', '', a.personaje)); ca.appendChild(x);
+  });
+  H('dcast-w').hidden = !(p.elenco || []).length;
+}
+H('hback').onclick = () => {
+  if (detHist) history.back();
+  else { history.replaceState(null, '', location.pathname + location.search); ruta(false); }
+};
+addEventListener('resize', () => { if (detActual && !vistas.det.hidden) { const bg = heroImg(detActual); H('dbg').style.setProperty('--img', bg ? `url("${bg}")` : 'none'); } });
 
 /* ---------- Suscripciones: código de acceso + Tienda ----------
    Esta página NO revisa códigos ni créditos: todo lo decide el servidor (carpeta functions/api),
@@ -1923,8 +2328,9 @@ function abrirCol(id, viaEnlace, silencio) {
   H('c-track').replaceChildren(...pop.map(tCol)); H('c-ctrack').replaceChildren(...cro.map(tCol)); H('c-grid').replaceChildren(...cro.map(tCol));
   H('c-pt').textContent = 'Populares de ' + c.nombre; H('c-rt').textContent = 'Todas las películas de ' + c.nombre;
   H('c-pop').hidden = H('c-rt').hidden = H('c-grid').hidden = !lista.length; H('c-cro').hidden = cro.length < 2; H('c-vacio').hidden = !!lista.length;
-  vistas.inicio.hidden = vistas.subs.hidden = true; vistas.col.hidden = false;
-  H('bbox').hidden = true; verCred(); if (!silencio) scrollTo({ top: 0 });
+  vistas.inicio.hidden = vistas.subs.hidden = vistas.det.hidden = true; vistas.col.hidden = false; detActual = null;
+  document.body.classList.remove('detmode'); marcarDock('inicio'); verCred();
+  if (!silencio) { scrollTo(0, volverY || 0); volverY = null; }
 }
 let colTimer;
 function actualizarColAbierta() {                    // si llegan datos de TMDB con la colección abierta, se completa sin saltar
@@ -1935,9 +2341,7 @@ function actualizarColAbierta() {                    // si llegan datos de TMDB 
 function cerrarCol() {
   clearInterval(cTimer);
   document.body.classList.remove('colmode');
-  if (vistas.col.hidden) return;
   vistas.col.hidden = true;
-  if (sw.querySelector('.on').dataset.v === 'inicio') { vistas.inicio.hidden = false; H('bbox').hidden = false; }
 }
 const svgUrl = s => 'url("data:image/svg+xml,' + encodeURIComponent(s) + '")';
 const PATRONES = {           // fondos de las páginas de colección (patron: "aranas" | "murcielagos" en colecciones.js)
@@ -1945,13 +2349,16 @@ const PATRONES = {           // fondos de las páginas de colección (patron: "a
   murcielagos: c => `<svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' width='150' height='150' viewBox='0 0 150 150'><defs><path id='b' d='M20 5L21.8 1L23.2 5.6C27 4 32 4.4 38 7.6Q34.8 8.8 33.4 12Q30.4 10.2 28.2 11.4Q26.2 12 25.2 15Q22.8 13.4 20 19Z'/><g id='m' fill='${c}'><use xlink:href='#b'/><use xlink:href='#b' transform='translate(40 0) scale(-1 1)'/></g></defs><use xlink:href='#m' transform='translate(8 14) rotate(-8 20 10) scale(1.5)'/><use xlink:href='#m' transform='translate(92 86) rotate(10 20 10) scale(.95)'/></svg>`
 };
 function ruta(viaEnlace) {
-  const m = location.hash.match(/^#\/c\/([\w-]+)$/);
-  if (m) abrirCol(m[1], viaEnlace); else cerrarCol();
+  const h = location.hash; let m;
+  if ((m = h.match(/^#\/c\/([\w-]+)$/))) { abrirCol(m[1], viaEnlace); return; }
+  if ((m = h.match(/^#\/p\/(.+)$/))) { abrirDetalle(decodeURIComponent(m[1])); return; }
+  cerrarCol();
+  irA(h === '#/series' ? 'series' : h === '#/subs' ? 'subs' : 'inicio', true);
 }
 addEventListener('hashchange', () => ruta(true));
 const volverDe = e => {
   e.preventDefault();
-  if (colHist) history.back(); else { history.replaceState(null, '', location.pathname + location.search); cerrarCol(); }
+  if (colHist) history.back(); else { history.replaceState(null, '', location.pathname + location.search); ruta(false); }
 };
 H('c-back').addEventListener('click', volverDe);
 { const cp = H('c-pop'), pasoK = () => H('c-track').clientWidth * .8;
