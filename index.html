@@ -1114,7 +1114,10 @@ const CODIGOS = {
   
 };   // también puedes escribir uno aquí:  "Título exacto": "CODIGO"
 /* Series: las entradas del catálogo con  tipo:"serie"  van a la sección Series y no salen en Películas. */
-const series = [];
+const series = [
+  { titulo:"El espectacular Spiderman", tmdb: 3854 ,
+    link:"" }
+];
 for (let i = peliculas.length - 1; i >= 0; i--) if (peliculas[i].tipo === 'serie') series.unshift(peliculas.splice(i, 1)[0]);
 const todas = () => peliculas.concat(series);
 todas().forEach(p => { if (p.codigo) CODIGOS[p.titulo] = p.codigo; });   // los de la base de datos
