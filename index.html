@@ -1200,10 +1200,10 @@ const SERIES_LOCAL = [
   //   carpeta:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/Mi-Serie/",
   //   nombre:"T{tt}E{ee}.mp4",
   //   capitulos:[7, 13] },
-{ titulo:"El Sorprendente Hombre Araña", tmdb:3854,
+{ titulo:"El Sorprendente Hombre Araña", tmdb: /tv/3854 ,
 carpeta:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/Mi-Serie/",
- nombre:"T{tt}E{ee}.mp4",
-   capitulos:[7, 13] },
+nombre:"T{tt}E{ee}.mp4",
+capitulos:[7, 13] },
 ];
 SERIES_LOCAL.forEach(s => {
   const ya = series.find(x => x.titulo === s.titulo);
