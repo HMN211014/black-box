@@ -614,6 +614,38 @@ body.con-q #vista-ped{display:none!important}
 @media(max-width:820px){#dock{width:min(96vw,480px);padding:7px 5px}.dk{font-size:10px;letter-spacing:-.02em;padding:0 2px}}
 @media(max-width:380px){.dk{font-size:9px}}
 @media(min-width:821px){#top .cred{right:calc(clamp(20px,3vw,48px) + 540px)}}
+
+/* ================= Series: temporadas y episodios ================= */
+#deps{padding:6px 0 18px}
+#deps[hidden]{display:none}
+.deps-h{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:0 clamp(24px,4.5vw,72px)}
+.deps-h .rt{padding:0;margin:0}
+.tmps{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding:4px 0;max-width:100%}
+.tmps::-webkit-scrollbar{display:none}
+.tmp{flex:none;border:0;border-radius:999px;padding:9px 18px;background:rgba(255,255,255,.12);color:#fff;font:inherit;font-size:15px;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.tmp.on{background:#fff;color:#000}
+.eplist{display:flex;flex-direction:column;gap:10px;padding:14px clamp(24px,4.5vw,72px) 0;max-width:1100px}
+.ep{display:flex;gap:16px;align-items:flex-start;width:100%;padding:12px;border:0;border-radius:18px;background:rgba(255,255,255,.07);color:#fff;font:inherit;text-align:left;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:background .2s}
+.ep:hover,.ep:focus-visible{background:rgba(255,255,255,.14);outline:none}
+.ep:disabled{opacity:.45;cursor:default}
+.epth{position:relative;flex:none;width:clamp(128px,22vw,200px);aspect-ratio:16/9;border-radius:12px;overflow:hidden;background:#2a2a2e center/cover;display:grid;place-items:center;font-style:normal;font-size:26px;font-weight:700;color:#8e8e93}
+.epbar{position:absolute;left:0;right:0;bottom:0;height:4px;background:rgba(255,255,255,.28)}
+.epbar i{display:block;height:100%;background:#fff}
+.epc{min-width:0;display:flex;flex-direction:column;gap:4px}
+.epc b{font-size:16px;font-weight:600;line-height:1.25}
+.epm{font-size:13px;color:#a1a1a6}
+.epm .epv{color:#34c759;font-weight:600}
+.epd{font-size:14px;line-height:1.45;color:#c7c7cc;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.epvacio{padding:14px 0;color:#a1a1a6;font-size:16px}
+#player:not(.serie) #ppv,#player:not(.serie) #pnx{display:none}
+#ppv[hidden],#pnx[hidden]{display:none}
+#pnxt{position:absolute;right:calc(var(--sr) + 20px);bottom:calc(var(--sb) + 120px);z-index:12;display:flex;flex-direction:column;gap:10px;min-width:260px;max-width:min(360px,calc(100vw - 40px));padding:16px;border-radius:20px;background:rgba(28,28,32,.9);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.14);color:#fff}
+#pnxt[hidden]{display:none}
+#pnxt small{color:#a1a1a6;font-size:13px}
+#pnxt b{font-size:17px;line-height:1.25}
+#pnxt .acc{display:flex;gap:8px}
+#pnxt .btn{flex:1;min-height:44px;padding:0 14px;font-size:15px}
+@media(max-width:820px){.ep{gap:12px;padding:10px}.epth{width:128px}#pnxt{left:20px;right:20px;max-width:none;bottom:calc(var(--sb) + 110px)}}
 </style>
 <link rel="manifest" href="/manifest.webmanifest">
 <meta name="theme-color" content="#000000">
@@ -786,6 +818,10 @@ body.con-q #vista-ped{display:none!important}
     </div>
     <aside class="dinfo"><div class="dtabla" id="dtabla"></div><div class="dest" id="dest"></div></aside>
   </div>
+  <div id="deps" hidden>
+    <div class="deps-h"><h3 class="rt">Episodios</h3><div class="tmps" id="tmps" aria-label="Temporadas"></div></div>
+    <div class="eplist" id="eplist"></div>
+  </div>
   <div id="dcast-w"><h3 class="rt">Reparto</h3><div class="dcast" id="dcast"></div></div>
 </section>
 
@@ -800,6 +836,8 @@ body.con-q #vista-ped{display:none!important}
     <button class="ib" id="pb" aria-label="Volver"><svg class="st" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg></button>
     <span class="ptitle" id="pt"></span>
     <span class="grow"></span>
+    <button class="ib" id="ppv" aria-label="Episodio anterior" hidden><svg class="st" viewBox="0 0 24 24"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5"/></svg></button>
+    <button class="ib" id="pnx" aria-label="Episodio siguiente" hidden><svg class="st" viewBox="0 0 24 24"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg></button>
     <button class="ib" id="ptv" aria-label="Transmitir a la TV"><svg viewBox="0 0 24 24"><path d="M1 18v3h3c0-1.66-1.34-3-3-3zm0-4v2c2.76 0 5 2.24 5 5h2c0-3.87-3.13-7-7-7zm0-4v2c4.97 0 9 4.03 9 9h2c0-6.08-4.93-11-11-11zm20-7H3c-1.1 0-2 .9-2 2v3h2V5h18v14h-7v2h7c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/></svg></button>
   </div>
   <div class="ctl pmid">
@@ -818,6 +856,11 @@ body.con-q #vista-ped{display:none!important}
     </div>
   </div>
 
+  <div id="pnxt" hidden role="status">
+    <small>Siguiente episodio</small>
+    <b id="pnxt-t"></b>
+    <div class="acc"><button class="btn primary" id="pnxt-ok" type="button">Reproducir</button><button class="btn ghost" id="pnxt-no" type="button">Cancelar</button></div>
+  </div>
   <div id="castp" hidden>
     <div class="cp-top">
       <button class="ib" id="cpb" aria-label="Volver"><svg class="st" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg></button>
@@ -898,7 +941,7 @@ body.con-q #vista-ped{display:none!important}
    ============================================================ */
 /* La lista sale de la base de datos (/api/catalogo). Si todavía no está conectada, se usan estos ejemplos (sin enlace). */
 const peliculas = (window.PELICULAS_DB && window.PELICULAS_DB.length) ? window.PELICULAS_DB : [
-   { titulo:"Spider-man:Brand New day", buscar:"Spider-Man: Brand New Day",
+   { titulo:"Spiderman:Brand New day", buscar:"Spider-Man: Brand New Day",
     link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/%5BPeliculasBluray.Com%5D%20Spider-Man%20Un%20nuevo%20d%C3%ADa%20(2026)%20%5B720P%5D%5BHD%5D.mp4" },
   { titulo:"Coyote vs Acme", buscar:"Coyote vs. Acme",
     link:"https://drive.google.com/file/d/1FToLhskC3P-QbVfO_jfNT0UlrAmhoDEc/view?usp=drivesdk" },
@@ -912,10 +955,6 @@ const peliculas = (window.PELICULAS_DB && window.PELICULAS_DB.length) ? window.P
     link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/%5BPeliculasBluray.Com%5D%20Paw%20Patrol%20La%20dino%20pel%C3%ADcula%20(2026)%20%5B720P%5D%5BHD%5D.mp4" },
   { titulo:"Él final de Oak Street", buscar:"The End of Oak Street",
     link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/THE%20END%20OF%20OAK%20STREAT.mp4" },
-  { titulo:"¿que paso ayer? parte 2", buscar:"¿Qué Pasó Ayer? Parte II",
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/%C2%BFQu%C3%A9%20pas%C3%B3%20ayer%20Parte%20II%20.mp4" },
-  { titulo:"Percy Jackson y el mar de los monstruos", buscar:"Percy Jackson y el mar de los monstruos",
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/Percy%20Jackson%20y%20el%20Mar%20de%20los%20Monstruos%20(2013).mp4" },
   { titulo:"Super Mario Galaxy", buscar:"Super Mario Galaxy",
     link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/Super.Mario.Galaxy.la.pelicula.2026.DVDRip-Lat.mp4" },
   { titulo:"La noche del demonio : estan entre nosotros", buscar:"La noche del demonio : estan entre nosotros",
@@ -924,112 +963,6 @@ const peliculas = (window.PELICULAS_DB && window.PELICULAS_DB.length) ? window.P
     link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/Minions.y.Monstruos.2026.DVDRip-Lat.mp4" },
    { titulo:"Obsesión", buscar:"Obsesión",
     link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/Obsesion.2026.DVDRip-Lat.mp4" },
-  { titulo:"John Wick", tmdb: 245891 ,
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/%5BPeliculasBluray.Com%5D%20John%20Wick%20-%20Cap%C3%ADtulo%201%20(2014)%20%5B720P%5D%5BHD%5D.mp4" },
-  { titulo:"John Wick 2 ", buscar:"John Wick: Pacto de sangre",
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/%5BPeliculasBluray.Com%5D%20John%20Wick%20-%20Cap%C3%ADtulo%202%20(2017)%20%5B720P%5D%5BHD%5D.mp4" },
-  { titulo:"John Wick 3", buscar:"John Wick: Capítulo 3 - Parabellum",
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/%5BPeliculasBluray.Com%5D%20John%20Wick%20-%20Cap%C3%ADtulo%203%20(2019)%20%5B720P%5D%5BHD%5D.mp4" },
-  { titulo:"John Wick 4", buscar:"John Wick 4 ",
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/%5BPeliculasBluray.Com%5D%20John%20Wick%204%20(2023)%20%5B720P%5D%5BHD%5D.mp4" },
-  { titulo:"Balerina", buscar:"Ballerina",
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/%5BPeliculasBluray.Com%5D%20Ballerina%20(2025)%20%5B720P%5D%5BHD%5D.mp4" },
-  { titulo:"Capitan America: Civil War", buscar:"Capitan America: Civil War",
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/Capitan%20America%20Civil%20war.mp4" },
-  { titulo:"Avengers", buscar:"Avengers",
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/Avnegers.mp4" },
-  { titulo:"Avengers: La era de ultron", buscar:"Avengers: La era de ultron",
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/Avengers%20Age%20of%20Ultron.mp4" },
-  { titulo:"Guardianes de la Galaxia Vol. 2", buscar:"Guardianes de la galaxia Vol. 2",
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/guardianes%20de%20la%20galaxia%20vol%202.mp4" },
-  { titulo:"Guardianes de la Galaxia Vol. 3", buscar:"Guardianes de la Galaxia: Volumen 3",
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/Guardianes%20De%20La%20Galaxia%20Vol%203%20(Latino).mp4" },
-  { titulo:"El Sorprendente Spider-man", tmdb: 1930 ,
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/The%20Amazing%20Spiderman.mp4" },
-  { titulo:"El Sorprendente Spider-man 2", tmdb: 102382 ,
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/The%20Amazing%20Spiderman%202.mp4" },
-  { titulo:"Spider-man: Homecoming", tmdb: 315635 ,
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/Spiderman%20Homecoming.mp4" },
-  { titulo:"Spider-man: Far From Home", tmdb: 429617 ,
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/Spider-Man%20-%20Lejos%20De%20Casa%20(Latino)%201080p.mp4" },
-  { titulo:"Spider-man: No Way Home", tmdb: 634649 ,
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/Spider-Man%20-%20Sin%20Camino%20A%20Casa%20(Latino)%201080p.mp4" },
-  { titulo:"Spider-man: Un nuevo universo", tmdb: 324857 ,
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/Spider.Man.Into.the.Spider.Verse.2018.DVDRip-Lat.mp4" },
-  { titulo:"Spider-man: A traves del Spiderverse", tmdb: 569094 ,
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/%5BPeliculasBluray.Com%5D%20Spider-Man%20A%20trav%C3%A9s%20del%20Spider-Verso%20(2023)%20%5B720P%5D%5BHD%5D.mp4" },
-  { titulo:"Ant-Man", buscar:"Ant-Man",
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/Ant%20Man.mp4" },
-  { titulo:"Pasante de Modas", buscar:"El becario",
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/Pasante%20de%20Modas%7D.mp4" },
-  { titulo:"Los fantasmas de mi ex", buscar:"Los fantasmas de mis exnovias ",
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/Los.Fantasmas.de.Mis.Ex.2009.DVDRip-Lat.mp4" },
-  { titulo:"Jumanji: en la jungla ", buscar:"Jumanji: Bienvenidos a la jungla",
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/Jumanji%20in%20the%20jungle.mp4" },
-  { titulo:"Diamante de sangre", buscar:"Diamante de sangre",
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/Diamante.de.sangre.2006.DVDRip-Lat.mp4" },
-  { titulo:"El Smoking", buscar:"The Tuxedo",
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/El.smoking.2002.DVDRip-Lat.mp4" },
-  { titulo:"La mejor de mis bodas", buscar:"The Wedding Singer",
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/La.mejor.de.mis.bodas.1998.DVDRip-Lat.mp4" },
-  { titulo:"Tres hombres y 1 bebe", buscar:"3 Men and a Baby",
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/Tres.hombres.y.un.bebe.1987.DVDRip-Lat.mp4" },
-  { titulo:"Puñales por la espalda: De entre los muertos", buscar:"Puñales por la espalda: De entre los muertos",
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/Wake.Up.Dead.Man.Un.misterio.de.Knives.Out.2025.DVDRip-Lat.mp4" },
-  { titulo:"Detective por error", tmdb: 9074 ,
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/Detective.por.Error.2005.DVDRip-Lat.mp4" },
-  { titulo:"Legalmente rubia 2", buscar:"Legally Blonde 2: Red, White & Blonde",
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/Legalmente.rubia.2.Mas.rubia.que.nunca.2003.DVDRip-Lat.mp4" },
-  { titulo:"Como saber si es amor", buscar:"How Do You Know",
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/Como.Saber.Si.Es.Amor.2010.DVDRip-Lat.mp4" },
-  { titulo:"Hechizo de amor 2", buscar:"Practical Magic 2",
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/Hechizo.de.amor.La.magia.continua.2026.DVDRip-Lat.mp4" },
-  { titulo:"Scary Movie 5", tmdb: 1273221 ,
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/Scary.Movie.Terrorificamente.incorrecta.2026.DVDRip-Lat.mp4" },
-  { titulo:"Jujutsu Kaisen: El tesoro escondido", tmdb: 1338799 ,
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/JUJUTSU.KAISEN.El.tesoro.escondido.El.tesoro.perdido.La.pelicula.2025.DVDRip-Lat.mp4" },
-  { titulo:"Hoppers: Operacion Castor", buscar:"Hoppers",
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/Hoppers.Operacion.castor.2026.DVDRip-Lat.mp4" },
-  { titulo:"Frankestein", tmdb: 1062722 ,
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/Frankenstein.2025.DVDRip-Lat.mp4" },
-  { titulo:"Buenos Muchachos", buscar:"Goodfellas",
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/Buenos.Muchachos.1990.DVDRip-Lat.mp4" },
-  { titulo:"Dia de Entrenamiento", buscar:"Training Day",
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/Dia.de.Entrenamiento.2001.DVDRip-Lat.mp4" },
-  { titulo:"Juego de Gemelas", tmdb: 9820 ,
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/Juego.de.gemelas.1998.DVDRip-Lat.mp4" },
-  { titulo:"Zootopia 2", buscar:"Zootopia 2",
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/Zootopia.2.2025.DVDRip-Lat.mp4" },
-  { titulo:"Rain Man", buscar:"Rain Man",
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/Cuando.los.hermanos.se.encuentran.1988.DVDRip-Lat.mp4" },
-  { titulo:"Alguien tiene que ceder", buscar:"Cuando menos te lo esperas",
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/Alguien%20tiene%20que%20ceder.mp4" },
-  { titulo:"Django sin cadenas", buscar:"Django Unchained",
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/Django%20sin%20cadenas.mp4" },
-  { titulo:"El gran truco", buscar:"The Prestige",
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/el%20gran%20truco.mp4" },
-  { titulo:"Diamantes en bruto", buscar:"Diamantes en bruto",
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/Diamantes%20en%20bruto.mp4" },
-  { titulo:"El precio del mañana", buscar:"In Time",
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/EL%20precio%20del%20ma%C3%B1ana.mp4" },
-  { titulo:"Memento", buscar:"Memento",
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/Memento.2000.DVDRip-Lat.mp4" },
-  { titulo:"Aquaman", tmdb: 297802 ,
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/Aquaman.mp4" },
-  { titulo:"Chainsaw man: Arco Reze", buscar:"Chainsaw Man - La película: El arco de Reze",
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/Chainsaw.Man.la.pelicula.Arco.de.Reze.2025.DVDRip-Lat.mp4" },
-  { titulo:"Star Wars: Rogue One", buscar:"Star Wars: Rogue One",
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/STAR%20WARS%20ROGUE%20ONE.mp4" },
-  { titulo:"Demon Slayer: El Castillo Infinito", buscar:"Guardianes de la noche: Kimetsu no Yaiba La fortaleza infinita",
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/Demon.Slayer.Kimetsu.no.Yaiba.Castillo.infinito.2025.DVDRip-Lat.mp4" },
-  { titulo:"Star Wars Episodio 3", buscar:"La guerra de las galaxias. Episodio III: La venganza de los Sith",
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/star%20wars%20episodeo%203.mp4" },
-  { titulo:"Moana", tmdb: 1108427 ,
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/Moana.2026.DVDRip-Lat.mp4" },
-  { titulo:"Mortal Kombat II", buscar:"Mortal Kombat II",
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/Mortal.Kombat.II.2026.DVDRip-Lat.mp4" },
-  { titulo:"21 Gramos", buscar:"21 gramos",
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/21.Gramos.2003.DVDRip-Lat.mp4" },
   { titulo:"Zombieland 2", buscar:"Zombieland: Double Tap",
     link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/Zombieland%202.mp4" },
   { titulo:"Freddy Vs Jason", buscar:"Freddy vs. Jason",
@@ -1050,56 +983,14 @@ const peliculas = (window.PELICULAS_DB && window.PELICULAS_DB.length) ? window.P
     link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/The%20Dark%20knight%20(2008).mp4" },
   { titulo:"Batman El Caballero de la noche asciende", buscar:"Batman the dark knight rises",
     link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/Batman%3B%20El%20Caballero%20de%20la%20Noche%20Asciende%20(2012).mp4" },
-  { titulo:"The Batman", tmdb: 414906 ,
+  { titulo:"The Batman", buscar:"The batman",
     link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/The%20Batman%20(2022).mp4" },
   { titulo:"Pecadores", buscar:"Sinners",
     link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/Pecadores%20(2025).mp4" },
   { titulo:"Sumar, una adicción cualquiera", buscar:"addition",
     link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/Addition%20(2026).mp4" },
-  { titulo:"¿que paso ayer? parte 2", buscar:"¿Qué Pasó Ayer? Parte II ",
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/%C2%BFQu%C3%A9%20pas%C3%B3%20ayer%20Parte%20II%20.mp4" },
-  { titulo:"Piratas del caribe: La venganza de Salazar", buscar:"Piratas del Caribe 5: La Venganza de Salazar",
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/Piratas%20del%20Caribe%20-%20la%20venganza%20de%20Salazar.mp4" },
-  { titulo:"El Conjuro 4: Ultimos ritos", buscar:"El Conjuro 4: Últimos ritos",
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/El%20Conjuro%204%20%C3%9Altimos%20ritos%20(2025).mp4" },
-  { titulo:"Los ilusionistas 3", buscar:"Los ilusionistas 3: Ahora me ves, ahora no",
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/%5BPeliculasBluray.Com%5D%20Los%20ilusionistas%203%20(2025)%20%5B720P%5D%5BHD%5D.mp4" },
-  { titulo:"Capitan America: El primer vengador", buscar:"Capitán América: El Primer Vengador",
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/Capit%C3%A1n%20Am%C3%A9rica%20-%20El%20Primer%20Vengador%20(Latino)%201080p.mp4" },
-  { titulo:"Capitan America: El soldado del invierno", buscar:"Capitán América y el Soldado del Invierno",
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/Capit%C3%A1n%20Am%C3%A9rica%20y%20El%20Soldado%20Del%20Invierno%20(Latino)%201080p.mp4" },
-  { titulo:"Iron Man 2", buscar:"Iron Man 2",
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/Iron%20Man%202.mp4" },
-  { titulo:"Iron Man 3", buscar:"Iron Man 3",
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/Iron%20Man%203.mp4" },
-  { titulo:"X-men", tmdb: 36657,
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/X-Men%20(Latino)%201080p.mp4" },
-  { titulo:"Avengers Infinity War", buscar:"Avengers: Infinity War",
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/Los%20Vengadores%203%20-%20Infinity%20War%20(Latino)%201080p.mp4" },
   { titulo:"Vertigo 2", buscar:"fall 2 deadpoint",
     link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/%5BPeliculasBluray.Com%5D%20Vertigo%202%20Punto%20muerto%20(2026)%20%5B720P%5D%5BHD%5D.mp4" },
-  { titulo:"X-men: Dias del futuro pasado", buscar:"X-Men: Days of Future Past",
-    link:"" },
-  { titulo:"X-men 2", tmdb: 36658 ,
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/X-Men%202%20(Latino)%201080p.mp4" },
-  { titulo:"Entre besos y tiros", buscar:"Kiss Kiss Bang Bang",
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/La.Empleada.2025.DVDRip-Lat.mp4" },
-  { titulo:"La empleada", buscar:"The Housemaid",
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/La.Empleada.2025.DVDRip-Lat.mp4" },
-  { titulo:"Un lugar en el silencio 2", buscar:"a quiet place 2",
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/Un%20Lugar%20En%20Silencio%202.mp4" },
-  { titulo:"¿que paso ayer?", buscar:"The Hangover",
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/%C2%BFQu%C3%A9%20pas%C3%B3%20ayer%20(2009)%20.mp4" },
-  { titulo:"R.I.P.D. Departamento de policia mortal", buscar:"R.I.P.D.",
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/R.I.P.D.Departamento.de.Polic%C3%ADa.Mortal.2013.1080p-dual-lat.mp4" },
-  { titulo:"Tiempo para mi", buscar:"Tiempo para mí",
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/Tiempo%20para%20mi%CC%81%20)2022)%20720p.mp4" },
-  { titulo:"La larga marcha", buscar:"The Long Walk",
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/La%20larga%20marcha%20(2025).mp4" },
-  { titulo:"Los 4 Fantasticos: Primeros pasos", buscar:"Fantastic Four: First Steps",
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/Los%204%20Fant%C3%A1sticos%20Primeros%20pasos%20(2025).mp4" },
-  { titulo:"Piratas del caribe: la maldicion del perla negra", buscar:"Pirates of the Caribbean: The Curse of the Black Pearl",
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/Piratas%20del%20caribe%20La%20maldicion%20de%20la%20perla%20Negra%20(2003%20).mp4" },
   { titulo:"La hipotesis del amor", buscar:"The Love Hypothesis",
     link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/%5BPeliculasBluray.Com%5D%20La%20hip%C3%B3tesis%20del%20amor%20(2026)%20%5B720P%5D%5BHD%5D.mp4" },
   { titulo:"La purga", buscar:"The Purge",
@@ -1120,20 +1011,12 @@ const peliculas = (window.PELICULAS_DB && window.PELICULAS_DB.length) ? window.P
     link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/%5BPeliculasBluray.Com%5D%20Deadpool%20%26%20Wolverine%20(2024)%20%5B720P%5D%5BHD%5D.mp4" },
   { titulo:"El Laberinto del fauno", buscar:"El laberinto del fauno",
     link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/EL%20LABERINTO%20DEL%20FAUNO%20(2006)%20CASTELLANO%20720p.mp4" },
-    { titulo:"Spider-man", tmdb:557,
+    { titulo:"SpiderMan", tmdb:557,
     link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/%5BPeliculasBluray.Com%5D%20El%20hombre%20ara%C3%B1a%201%20(2002)%20%5B720P%5D%5BHD%5D.mp4" },
-   { titulo:"Spider-man 2", tmdb:558,
+   { titulo:"SpiderMan 2", tmdb:558,
     link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/%5BPeliculasBluray.Com%5D%20El%20hombre%20ara%C3%B1a%202%20(2004)%20%5B720P%5D%5BHD%5D.mp4" },
-   { titulo:"Spider-man 3", tmdb:559,
+   { titulo:"SpiderMan 3", tmdb:559,
     link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/%5BPeliculasBluray.Com%5D%20El%20hombre%20ara%C3%B1a%203%20(2007)%20%5B720P%5D%5BHD%5D.mp4" },
-  { titulo:"La hermanastra fea", tmdb: 1284120 ,
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/La.hermanastra.fea.2025.DVDRip-Lat.mp4" },
-  { titulo:"Star Wars: The Mandalorian and Grogu", tmdb: 1228710 ,
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/Star.Wars.The.Mandalorian.and.Grogu.2026.DVDRip-Lat.mp4" },
-  { titulo:"X-Men 3: La batalla final ", tmdb: 36668 ,
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/Star.Wars.The.Mandalorian.and.Grogu.2026.DVDRip-Lat.mp4" },
-  { titulo:"Las ventajas de ser invisible", tmdb: 84892 ,
-    link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/Las.ventajas.de.ser.invisible.2012.DVDRip-Lat.mp4" },
   { titulo:"Evil Dead: En llamas", buscar:"Evil Dead Burn",
     link:"https://pub-1443424c5a904f3298903a419ccb22c9.r2.dev/Evil.Dead.En.llamas.2026.720p-Dual-Lat.mkv" }
 ];
@@ -1181,6 +1064,9 @@ const CODIGOS = {
 const series = [];
 for (let i = peliculas.length - 1; i >= 0; i--) if (peliculas[i].tipo === 'serie') series.unshift(peliculas.splice(i, 1)[0]);
 const todas = () => peliculas.concat(series);
+/* Cada serie puede traer  enlace: "https://.../T{t}/E{e}.mp4"  (plantilla: {t} temporada, {e} capítulo, {tt}/{ee} con cero)
+   y/o  episodios: { "1x1": "enlace", "1x2": "enlace" }  para los que tengan un nombre distinto. */
+series.forEach(p => { p.plantilla = p.enlace || (/\{[te]{1,2}\}/.test(p.link || '') ? p.link : ''); if (!p.link && (p.plantilla || p.episodios)) p.link = p.plantilla || '#serie'; });
 todas().forEach(p => { if (p.codigo) CODIGOS[p.titulo] = p.codigo; });   // los de la base de datos
 
 /* ---------- TMDB: completa los datos de cada película ----------
@@ -1205,7 +1091,8 @@ async function completar(p) {
   if (p.sinTmdb) return false;
   if (!TMDB_KEY || TMDB_KEY.startsWith("TU_")) return false;
   try {
-    if (JSON.parse(localStorage.getItem(clave5(p)))) return false;   // ya estaba guardado
+    const c = JSON.parse(localStorage.getItem(clave5(p)));
+    if (c && (p.tipo !== 'serie' || c.temporadas)) return false;   // ya estaba guardado (las series sin temporadas se piden de nuevo)
   } catch (e) {}
   const serie = p.tipo === 'serie', tipo = serie ? 'tv' : 'movie';
   try {
@@ -1256,7 +1143,9 @@ async function completar(p) {
       presupuesto: x.budget || 0,
       ingresos: x.revenue || 0,
       estudios: (x.production_companies || []).slice(0, 4).map(c => ({ id: c.id, nombre: c.name, logo: c.logo_path ? IMG + "w185" + c.logo_path : "" })),
-      elenco: cast.slice(0, 14).map(c => ({ id: c.id, nombre: c.name, personaje: c.character || "", foto: c.profile_path ? IMG + "w185" + c.profile_path : "" }))
+      elenco: cast.slice(0, 14).map(c => ({ id: c.id, nombre: c.name, personaje: c.character || "", foto: c.profile_path ? IMG + "w185" + c.profile_path : "" })),
+      tmdbId: id,
+      temporadas: serie ? (x.seasons || []).filter(z => z.season_number > 0).map(z => ({ n: z.season_number, nombre: z.name || "", eps: z.episode_count || 0 })) : ""
     };
     try { localStorage.setItem(clave5(p), JSON.stringify(d)); } catch (e) {}
     return aplicar(p, d);
@@ -1397,8 +1286,8 @@ const HAPT = (() => {
   };
 })();
 const HAPT_NIVEL = [
-  ['medio', '#hl, #hi, #dplay, #dk-buscar, #ptv, #cplock, #bmic, #cpp, #pp, #hback, .cback, .sbtn, .btn.primary'],
-  ['suave', '#dock .dk, .dots button, .card, .tcard, .ctile, .plat, .nav, .tvopt, .dmas, .irow, #bx, .ib, .ci']
+  ['medio', '#hl, #hi, #dplay, #dk-buscar, #ptv, #cplock, #bmic, #cpp, #pp, #hback, .cback, .sbtn, .btn.primary, #ppv, #pnx'],
+  ['suave', '#dock .dk, .dots button, .card, .tcard, .ctile, .plat, .nav, .tvopt, .dmas, .irow, #bx, .ib, .ci, .ep, .tmp']
 ];
 document.addEventListener('click', e => {
   const t = e.target.closest && e.target.closest('button, a, [role="button"]');
@@ -1521,7 +1410,7 @@ const ICON = {
   mute: '<svg class="st" viewBox="0 0 24 24"><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5H4z" style="fill:currentColor"/><path d="M16 9.5l5 5M21 9.5l-5 5"/></svg>'
 };
 const VEL = [1, 1.25, 1.5, 2, 0.75];
-let hideT, dragging = false, hls = null, fsAuto = false, vi = 0, actualP = null, reanudar = 0, ultGuardado = 0;
+let hideT, dragging = false, hls = null, fsAuto = false, vi = 0, actualP = null, actualEp = null, reanudar = 0, ultGuardado = 0;
 let tvModo = null, tvPeli = null, tvUrl = '', tvBloq = false;   // transmisión a TV: null | 'cast' | 'el'
 
 const fmt = s => { s = Math.max(0, Math.floor(s || 0)); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60;
@@ -1576,13 +1465,14 @@ async function horizontal() {
     if (fs && matchMedia('(orientation:portrait)').matches) { fsAuto = false; try { await document.exitFullscreen(); } catch (_) {} }
   }
 }
-function iniciar(p, url) {
+function iniciar(p, url, sinHist) {
   const id = driveId(url);
   actualP = id ? null : p;                       // los videos de Drive no permiten medir el avance
   tvPeli = p; tvUrl = url;
   const g = id ? null : leerProg()[p.titulo];
   reanudar = g ? g.t : 0;
-  H('pt').textContent = p.titulo; H('per').hidden = true;
+  H('pt').textContent = p.tituloVista || p.titulo; H('per').hidden = true;
+  actualEp = p.serie ? p : null; pl.classList.toggle('serie', !!actualEp); ocultarNxt(); actualizarNavEp();
   pl.classList.remove('wait'); pl.classList.toggle('drive', !!id);
   H('pdrive').innerHTML = '';
   vi = 0; V.playbackRate = 1; V.muted = false;
@@ -1592,10 +1482,10 @@ function iniciar(p, url) {
   document.body.style.overflow = 'hidden';
   if (id) H('pdrive').innerHTML = '<iframe src="https://drive.google.com/file/d/' + id + '/preview" allow="autoplay"></iframe>';
   else cargar(url);
-  history.pushState({player: 1}, '');
+  if (!sinHist) history.pushState({player: 1}, '');
   showC(); horizontal();
 }
-const cdlg = H('cdlg'), cin = H('cin'), cer = H('cer'); let cpeli = null;
+const cdlg = H('cdlg'), cin = H('cin'), cer = H('cer'); let cpeli = null, cep = null;
 let tempFin = 0;
 const temporal = () => { try { tempFin = Math.max(tempFin, +localStorage.getItem('bbtemp_fin') || 0); } catch (e) {} return Date.now() < tempFin; };
 const tempUsado = () => { try { return !!localStorage.getItem('bbtemp_fin'); } catch (e) { return tempFin > 0; } };
@@ -1604,8 +1494,9 @@ const maestro = () => { try { return maestroOk || localStorage.getItem('bbmaster
 function reproducir(p) {
   if (!p.link) return;
   if (dlg.open) dlg.close();
+  if (conEpisodios(p)) { const x = puntoSerie(p); reproducirEp(p, x.t, x.e); return; }
   if (!CODIGOS[p.titulo] || maestro() || temporal()) { iniciar(p, p.link); return; }
-  cpeli = p; cin.value = ''; cer.textContent = '';
+  cep = null; cpeli = p; cin.value = ''; cer.textContent = '';
   H('cm').textContent = p.titulo; cdlg.showModal(); setTimeout(() => cin.focus(), 60);
 }
 function validar() {
@@ -1617,7 +1508,8 @@ function validar() {
   } else if (c === CODIGO_MAESTRO.toLowerCase()) {
     maestroOk = true; try { localStorage.setItem('bbmaster', CODIGO_MAESTRO); } catch (e) {}
   } else if (String(CODIGOS[p.titulo]).trim().toLowerCase() !== c) { cer.textContent = 'Código incorrecto.'; return; }
-  cdlg.close(); iniciar(p, p.link);
+  cdlg.close();
+  if (cep) { const x = cep; cep = null; abrirSerie(p); iniciarEp(p, x.t, x.e); } else iniciar(p, p.link);
 }
 H('cok').onclick = validar;
 H('cno').onclick = () => cdlg.close();
@@ -1634,7 +1526,9 @@ aplicarFit();
 function cerrarPlayer(desdePop) {
   if (pl.hidden) return;
   guardar(true); actualP = null;
+  actualEp = null; pl.classList.remove('serie'); ocultarNxt();
   tvCerrar();
+  if (detActual && !vistas.det.hidden) pintarDetalle(detActual);                 // la ficha de la serie actualiza "Continuar T1 E2" y los capítulos vistos
   pl.hidden = true; clearTimeout(hideT); pl.classList.remove('c', 'wait');
   V.pause(); if (hls) { hls.destroy(); hls = null; }
   V.removeAttribute('src'); V.load(); H('pdrive').innerHTML = '';
@@ -1654,7 +1548,7 @@ V.addEventListener('pause', () => { H('pp').innerHTML = ICON.play; showC(); guar
 V.addEventListener('loadedmetadata', () => {      // retoma donde se quedó (unos segundos antes)
   if (reanudar > 0) { V.currentTime = Math.max(0, reanudar - 3); reanudar = 0; }
 });
-V.addEventListener('ended', () => { if (actualP) quitarProg(actualP); });
+V.addEventListener('ended', () => { if (actualP) terminado(actualP); if (actualEp) mostrarSiguiente(); });
 addEventListener('pagehide', () => guardar(true));
 document.addEventListener('visibilitychange', () => { if (document.hidden) guardar(true); });
 V.addEventListener('waiting', () => pl.classList.add('wait'));
@@ -1740,7 +1634,7 @@ if (!airOk) {                                                       // Safari/iP
 async function enviarACast(ses, t) {
   const url = urlAbs(tvUrl), mi = new chrome.cast.media.MediaInfo(url, mimeDe(url));
   mi.streamType = chrome.cast.media.StreamType.BUFFERED;
-  const md = new chrome.cast.media.GenericMediaMetadata(); md.title = tvPeli.titulo;
+  const md = new chrome.cast.media.GenericMediaMetadata(); md.title = tvPeli.tituloVista || tvPeli.titulo;
   if (tvPeli.poster) md.images = [new chrome.cast.Image(tvPeli.poster)];
   mi.metadata = md;
   const rq = new chrome.cast.media.LoadRequest(mi); rq.autoplay = true; rq.currentTime = t;
@@ -1760,7 +1654,7 @@ async function entrarCast() {
   const err = await enviarACast(ses, t);
   if (err) { tvAviso('La TV no pudo reproducir este video. Suele pasar con .mkv o formatos que no son H.264/AAC.'); salirTv(true); }
 }
-function castCambio() { if (tvModo !== 'cast' || !rp) return; pintarPanel(); guardar(false); if (rp.playerState === 'IDLE' && tvVisto && actualP) quitarProg(actualP); }
+function castCambio() { if (tvModo !== 'cast' || !rp) return; pintarPanel(); guardar(false); if (rp.playerState === 'IDLE' && tvVisto && actualP) terminado(actualP); }
 
 /* --- AirPlay y "pantalla del navegador": el propio <video> es quien se envía --- */
 function entrarEl(nombre) {
@@ -1781,7 +1675,7 @@ if (remOk && !airOk) {
 /* --- Panel de control remoto (el teléfono queda como mando) --- */
 function mostrarPanel(dev) {
   tvp.classList.toggle('el', tvModo !== 'cast');
-  H('cptit').textContent = tvPeli ? tvPeli.titulo : '';
+  H('cptit').textContent = tvPeli ? (tvPeli.tituloVista || tvPeli.titulo) : '';
   const pe = H('cpposter'); pe.innerHTML = ''; if (tvPeli) poster(tvPeli, pe);
   tvp.style.setProperty('--g', grad(tvPeli ? tvPeli.titulo : ''));
   H('cpdev').textContent = dev ? 'Transmitiendo a ' + dev : 'Transmitiendo a la TV';
@@ -1874,7 +1768,7 @@ function mediaSesion(on) {
   const h = (a, f) => { try { navigator.mediaSession.setActionHandler(a, f); } catch (e) {} };
   try {
     if (on && tvPeli) {
-      navigator.mediaSession.metadata = new MediaMetadata({ title: tvPeli.titulo, artist: 'Black BOX',
+      navigator.mediaSession.metadata = new MediaMetadata({ title: tvPeli.tituloVista || tvPeli.titulo, artist: 'Black BOX',
         artwork: tvPeli.poster ? [{ src: tvPeli.poster, sizes: '500x750', type: 'image/jpeg' }] : [] });
       h('play', () => { if (tvModo === 'cast' ? rp && rp.isPaused : V.paused) tvAlternar(); });
       h('pause', () => { if (tvModo === 'cast' ? rp && !rp.isPaused : !V.paused) tvAlternar(); });
@@ -2077,7 +1971,7 @@ else mic.onclick = () => {                                        // búsqueda p
    Se considera terminada cuando faltan menos de ~4 % (mín. 90 s): sale de la fila. */
 function leerProg() { try { return JSON.parse(localStorage.getItem('bbprog')) || {}; } catch (e) { return {}; } }
 function escribirProg(o) { try { localStorage.setItem('bbprog', JSON.stringify(o)); } catch (e) {} }
-function hayProg(p) { return !!leerProg()[p.titulo]; }
+function hayProg(p) { return conEpisodios(p) ? (!!ultimoProgKey(p, leerProg()) || !!leerVistos()[p.titulo]) : !!leerProg()[p.titulo]; }
 function quitarProg(p) { const o = leerProg(); delete o[p.titulo]; escribirProg(o); }
 function guardar(forzar) {
   if (!actualP) return;
@@ -2085,7 +1979,7 @@ function guardar(forzar) {
   if (!d || !isFinite(t)) return;                          // aún no cargó el video
   if (!forzar && ahora - ultGuardado < 5000) return;       // como máximo cada 5 s
   ultGuardado = ahora;
-  if (d - t < Math.max(90, d * .04)) { quitarProg(actualP); return; }
+  if (d - t < Math.max(90, d * .04)) { terminado(actualP); return; }
   if (t < 15) return;                                      // recién empezó: no cuenta
   const o = leerProg();
   o[actualP.titulo] = { t: Math.floor(t), d: Math.floor(d), f: ahora };
@@ -2094,26 +1988,31 @@ function guardar(forzar) {
 const cont = H('cont'), ctrack = H('ctrack');
 const quedan = s => { const m = Math.max(1, Math.round(s / 60)); return m >= 60 ? Math.floor(m / 60) + ' h ' + (m % 60) + ' min' : m + ' min'; };
 function actualizarCont() {
-  const pr = leerProg();
-  const lista = L().filter(p => p.link && pr[p.titulo]).sort((a, b) => pr[b.titulo].f - pr[a.titulo].f);
+  const pr = leerProg(), lista = [];
+  L().forEach(p => {
+    if (!p.link) return;
+    if (conEpisodios(p)) { const k = ultimoProgKey(p, pr); if (k) lista.push({ p, k, g: pr[k], ...parEp(k) }); }
+    else if (pr[p.titulo]) lista.push({ p, k: p.titulo, g: pr[p.titulo] });
+  });
+  lista.sort((a, b) => b.g.f - a.g.f);
   ctrack.innerHTML = '';
-  lista.forEach(p => {
-    const g = pr[p.titulo], resto = quedan(g.d - g.t);
+  lista.forEach(({ p, k, g, t, e }) => {
+    const resto = quedan(g.d - g.t), nom = conEpisodios(p) ? p.titulo + ' · T' + t + ' E' + e : p.titulo;
     const b = document.createElement('button');
     b.className = 'card cc';
-    b.setAttribute('aria-label', 'Continuar ' + p.titulo + ', quedan ' + resto);
+    b.setAttribute('aria-label', 'Continuar ' + nom + ', quedan ' + resto);
     b.innerHTML = '<span class="t"></span><span class="q"></span><span class="shine"></span><span class="prog"><i></i></span><span class="cx" role="button" aria-label="Quitar de Continuar viendo">✕</span>';
-    b.querySelector('.t').textContent = p.titulo;
+    b.querySelector('.t').textContent = nom;
     b.querySelector('.q').textContent = 'Quedan ' + resto;
     b.querySelector('.prog i').style.width = Math.min(100, g.t / g.d * 100) + '%';
     poster(p, b);
-    b.addEventListener('click', () => reproducir(p));
-    b.querySelector('.cx').addEventListener('click', e => { e.stopPropagation(); quitarProg(p); actualizarCont(); });
+    b.addEventListener('click', () => conEpisodios(p) ? reproducirEp(p, t, e) : reproducir(p));
+    b.querySelector('.cx').addEventListener('click', ev => { ev.stopPropagation(); quitarProg({ titulo: k }); actualizarCont(); });
     ctrack.appendChild(b);
   });
   cont.hidden = !lista.length || !!bq.value;
   const ph = orden[idx];                                   // el botón del banner dice "Continuar" si ya la empezó
-  if (ph && ph.link) H('hlt').textContent = pr[ph.titulo] ? 'Continuar' : 'Ver ahora';
+  if (ph && ph.link) H('hlt').textContent = hayProg(ph) ? 'Continuar' : 'Ver ahora';
 }
 const pasoC = () => ctrack.clientWidth * .8;
 cont.querySelector('.prev').onclick = () => ctrack.scrollBy({ left: -pasoC(), behavior: 'smooth' });
@@ -2194,13 +2093,172 @@ function abrirDetalle(slug) {
   vistas.inicio.hidden = vistas.subs.hidden = vistas.ped.hidden = vistas.col.hidden = true; vistas.det.hidden = false;
   pintarDetalle(p); verCred(); scrollTo(0, 0);
 }
+/* ---------- Series: temporadas y capítulos ---------- */
+function conEpisodios(p) { return p.tipo === 'serie' && !!(p.plantilla || p.episodios); }   // una serie con un solo enlace normal se reproduce como una película
+function leerVistos() { try { return JSON.parse(localStorage.getItem('bbsvis')) || {}; } catch (e) { return {}; } }
+function escribirVistos(o) { try { localStorage.setItem('bbsvis', JSON.stringify(o)); } catch (e) {} }
+function marcarVisto(ep) {
+  const o = leerVistos(), t = ep.serie.titulo, s = o[t] || { v: [], u: '', f: 0 }, k = ep.t + 'x' + ep.e;
+  if (!s.v.includes(k)) s.v.push(k);
+  s.u = k; s.f = Date.now(); o[t] = s; escribirVistos(o);
+}
+function terminado(p) { quitarProg(p); if (p.serie) marcarVisto(p); }
+const clavEp = (p, t, e) => p.titulo + '|' + t + 'x' + e;
+function ultimoProgKey(p, pr) {
+  const pref = p.titulo + '|'; let mejor = null;
+  for (const k in pr) if (k.startsWith(pref) && (!mejor || pr[k].f > pr[mejor].f)) mejor = k;
+  return mejor;
+}
+function parEp(k) { const [t, e] = k.split('|').pop().split('x').map(Number); return { t, e }; }
+function temporadasDe(p) {                           // las de TMDB; si no hay, las que se deduzcan de episodios:{...}
+  if (p.temporadas && p.temporadas.length) return p.temporadas;
+  const m = p.episodios; if (!m) return [];
+  const n = {};
+  for (const k in m) {
+    let t, e;
+    if (/^\d+x\d+$/.test(k)) [t, e] = k.split('x').map(Number);
+    else if (/^\d+$/.test(k)) { t = +k; e = Array.isArray(m[k]) ? m[k].length : Math.max(0, ...Object.keys(m[k] || {}).map(Number)); }
+    else continue;
+    n[t] = Math.max(n[t] || 0, e);
+  }
+  return Object.keys(n).map(Number).sort((a, b) => a - b).map(t => ({ n: t, nombre: 'Temporada ' + t, eps: n[t] }));
+}
+function primerEp(p) { const ts = temporadasDe(p); return { t: ts.length ? ts[0].n : 1, e: 1 }; }
+function siguienteDe(p, t, e) {
+  const ts = temporadasDe(p), i = ts.findIndex(x => x.n === t); if (i < 0) return null;
+  if (e < ts[i].eps) return { t, e: e + 1 };
+  for (let j = i + 1; j < ts.length; j++) if (ts[j].eps > 0) return { t: ts[j].n, e: 1 };
+  return null;
+}
+function anteriorDe(p, t, e) {
+  const ts = temporadasDe(p), i = ts.findIndex(x => x.n === t); if (i < 0) return null;
+  if (e > 1) return { t, e: e - 1 };
+  for (let j = i - 1; j >= 0; j--) if (ts[j].eps > 0) return { t: ts[j].n, e: ts[j].eps };
+  return null;
+}
+function puntoSerie(p) {                             // qué toca ver: seguir el capítulo empezado, el que sigue al último visto, o el primero
+  const pr = leerProg(), k = ultimoProgKey(p, pr), sv = leerVistos()[p.titulo];
+  if (k && (!sv || pr[k].f >= sv.f)) return { ...parEp(k), tipo: 'cont' };
+  if (sv && sv.u) { const u = parEp(sv.u), n = siguienteDe(p, u.t, u.e); return n ? { ...n, tipo: 'sig' } : { ...primerEp(p), tipo: 'otra' }; }
+  return { ...primerEp(p), tipo: 'ini' };
+}
+function etiquetaSerie(p) {
+  const x = puntoSerie(p), te = 'T' + x.t + ' E' + x.e;
+  return x.tipo === 'cont' ? 'Continuar ' + te : x.tipo === 'otra' ? 'Ver otra vez ' + te : 'Ver ' + te;
+}
+function linkEp(p, t, e) {
+  const m = p.episodios;
+  if (m) {
+    const k = t + 'x' + e;
+    if (typeof m[k] === 'string') return m[k];
+    const s = m[t];
+    if (Array.isArray(s) && s[e - 1]) return s[e - 1];
+    if (s && typeof s === 'object' && !Array.isArray(s) && s[e]) return s[e];
+  }
+  const pl_ = p.plantilla || '';
+  return pl_ ? pl_.replace(/\{tt\}/g, String(t).padStart(2, '0')).replace(/\{ee\}/g, String(e).padStart(2, '0')).replace(/\{t\}/g, t).replace(/\{e\}/g, e) : '';
+}
+const idDe = p => p.tmdbId || p.tmdb, epMem = new Map();
+const datosEp = (p, t, e) => (epMem.get(idDe(p) + ':' + t) || []).find(x => x.e === e);
+async function temporadaEps(p, t) {                  // nombre, imagen, duración y sinopsis de cada capítulo (TMDB, se guardan en el dispositivo)
+  const id = idDe(p); if (!id) return null;
+  const k = id + ':' + t;
+  if (epMem.has(k)) return epMem.get(k);
+  try { const c = JSON.parse(localStorage.getItem('tmdbs:' + k)); if (c) { epMem.set(k, c); return c; } } catch (e) {}
+  if (!TMDB_KEY || TMDB_KEY.startsWith("TU_")) return null;
+  try {
+    const j = await fetch(`${TMDB}/tv/${id}/season/${t}?api_key=${TMDB_KEY}&language=es-MX`, { signal: AbortSignal.timeout(8000) }).then(r => r.json());
+    const eps = (j.episodes || []).map(x => ({ e: x.episode_number, nombre: x.name || '', desc: x.overview || '', min: x.runtime || 0, still: x.still_path ? IMG + 'w300' + x.still_path : '' }));
+    if (eps.length) { epMem.set(k, eps); try { localStorage.setItem('tmdbs:' + k, JSON.stringify(eps)); } catch (e) {} }
+    return eps;
+  } catch (e) { return null; }
+}
+const serieOk = p => { try { return JSON.parse(sessionStorage.getItem('bbsok') || '[]').includes(p.titulo); } catch (e) { return false; } };
+const abrirSerie = p => { try { const a = JSON.parse(sessionStorage.getItem('bbsok') || '[]'); if (!a.includes(p.titulo)) { a.push(p.titulo); sessionStorage.setItem('bbsok', JSON.stringify(a)); } } catch (e) {} };
+function reproducirEp(p, t, e) {                     // el código de la serie se pide una vez y vale para todos sus capítulos
+  if (!linkEp(p, t, e)) return;
+  if (dlg.open) dlg.close();
+  if (!CODIGOS[p.titulo] || maestro() || temporal() || serieOk(p)) { iniciarEp(p, t, e); return; }
+  cpeli = p; cep = { t, e }; cin.value = ''; cer.textContent = '';
+  H('cm').textContent = p.titulo; cdlg.showModal(); setTimeout(() => cin.focus(), 60);
+}
+function iniciarEp(p, t, e, sinHist) {
+  const url = linkEp(p, t, e); if (!url) return;
+  const d = datosEp(p, t, e), te = p.titulo + ' · T' + t + ' E' + e;
+  iniciar({ titulo: clavEp(p, t, e), tituloVista: te + (d && d.nombre ? ' · ' + d.nombre : ''), serie: p, t, e, poster: p.poster, fondo: p.fondo }, url, sinHist);
+  if (!d) temporadaEps(p, t).then(() => {
+    const dd = datosEp(p, t, e);
+    if (dd && dd.nombre && actualEp && actualEp.serie === p && actualEp.t === t && actualEp.e === e) { actualEp.tituloVista = te + ' · ' + dd.nombre; H('pt').textContent = actualEp.tituloVista; }
+  });
+}
+function actualizarNavEp() {
+  if (!actualEp) return;
+  H('ppv').hidden = !anteriorDe(actualEp.serie, actualEp.t, actualEp.e); H('pnx').hidden = !siguienteDe(actualEp.serie, actualEp.t, actualEp.e);
+}
+function irEp(dir) {
+  if (!actualEp) return;
+  const { serie: p, t, e } = actualEp, n = dir > 0 ? siguienteDe(p, t, e) : anteriorDe(p, t, e);
+  if (!n) return;
+  guardar(true); iniciarEp(p, n.t, n.e, true);
+}
+let nxtT = 0;
+function ocultarNxt() { clearInterval(nxtT); H('pnxt').hidden = true; }
+function mostrarSiguiente() {                        // al terminar un capítulo: cuenta regresiva para el siguiente
+  const n = siguienteDe(actualEp.serie, actualEp.t, actualEp.e); if (!n) return;
+  const d = datosEp(actualEp.serie, n.t, n.e);
+  H('pnxt-t').textContent = 'T' + n.t + ' E' + n.e + (d && d.nombre ? ' · ' + d.nombre : '');
+  let s = 8; H('pnxt-ok').textContent = 'Reproducir (' + s + ')'; H('pnxt').hidden = false; clearInterval(nxtT);
+  nxtT = setInterval(() => { s--; if (s <= 0) { ocultarNxt(); irEp(1); } else H('pnxt-ok').textContent = 'Reproducir (' + s + ')'; }, 1000);
+}
+H('pnxt-ok').onclick = () => { ocultarNxt(); irEp(1); };
+H('pnxt-no').onclick = ocultarNxt;
+H('ppv').onclick = () => irEp(-1);
+H('pnx').onclick = () => irEp(1);
+
+/* ---- Ficha de la serie: temporadas y lista de capítulos ---- */
+const tempSel = new Map();
+function filaEp(p, t, d) {
+  const g = leerProg()[clavEp(p, t, d.e)], vis = ((leerVistos()[p.titulo] || {}).v || []).includes(t + 'x' + d.e);
+  const b = mk('button', 'ep'); b.type = 'button'; b.disabled = !linkEp(p, t, d.e);
+  const th = mk('i', 'epth'); if (d.still) th.style.backgroundImage = `url("${d.still}")`; else th.textContent = d.e;
+  if (g && g.d) { const barra = mk('span', 'epbar'), r = mk('i'); r.style.width = Math.min(100, g.t / g.d * 100) + '%'; barra.appendChild(r); th.appendChild(barra); }
+  const c = mk('div', 'epc'), m = mk('span', 'epm', d.min ? d.min + ' min' : '');
+  if (vis) { if (d.min) m.append(' · '); m.appendChild(mk('span', 'epv', 'Visto ✓')); }
+  c.append(mk('b', '', d.e + '. ' + (d.nombre || 'Episodio ' + d.e)), m);
+  if (d.desc) c.appendChild(mk('span', 'epd', d.desc));
+  b.append(th, c); b.onclick = () => reproducirEp(p, t, d.e);
+  return b;
+}
+async function pintarEps(p, t) {
+  const lista = H('eplist'), n = (temporadasDe(p).find(x => x.n === t) || {}).eps || 0;
+  const pintar = eps => {
+    if (detActual !== p || tempSel.get(p) !== t) return;
+    lista.replaceChildren(...eps.map(d => filaEp(p, t, d)));
+    if (!eps.length) lista.appendChild(mk('p', 'epvacio', 'Esta temporada todavía no tiene episodios.'));
+  };
+  const mem = epMem.get(idDe(p) + ':' + t);
+  pintar(mem || Array.from({ length: n }, (_, i) => ({ e: i + 1 })));
+  if (!mem) { const r = await temporadaEps(p, t); if (r && r.length) pintar(r); }
+}
+function pintarSerie(p) {
+  const w = H('deps'), esSerie = conEpisodios(p);
+  w.hidden = !esSerie; if (!esSerie) return;
+  const ts = temporadasDe(p), chips = H('tmps'), lista = H('eplist');
+  chips.replaceChildren(); lista.replaceChildren();
+  if (!ts.length) { lista.appendChild(mk('p', 'epvacio', 'Aún no hay datos de temporadas.')); return; }
+  let t = tempSel.get(p); if (!ts.some(x => x.n === t)) t = puntoSerie(p).t; if (!ts.some(x => x.n === t)) t = ts[0].n;
+  tempSel.set(p, t);
+  ts.forEach(x => { const b = mk('button', 'tmp' + (x.n === t ? ' on' : ''), 'Temporada ' + x.n); b.type = 'button'; b.onclick = () => { tempSel.set(p, x.n); pintarSerie(p); }; chips.appendChild(b); });
+  pintarEps(p, t);
+}
+
 function pintarDetalle(p) {
   const serie = p.tipo === 'serie';
   H('dbgwrap').style.setProperty('--g', grad(p.titulo));
   const bg = heroImg(p); H('dbg').style.setProperty('--img', bg ? `url("${bg}")` : 'none');
   ponerTitulo(p, H('dlogo'), H('dtit'));
   H('dgen').textContent = (p.genero || '').split(',').map(x => x.trim()).filter(Boolean).slice(0, 3).join(' · ');
-  H('dplayt').textContent = p.link ? (hayProg(p) ? 'Continuar' : 'Ver ahora') : 'Próximamente';
+  H('dplayt').textContent = p.link ? (conEpisodios(p) ? etiquetaSerie(p) : (hayProg(p) ? 'Continuar' : 'Ver ahora')) : 'Próximamente';
   H('dplay').disabled = !p.link; H('dplay').onclick = () => reproducir(p);
   const ch = H('dchips'); ch.replaceChildren();
   if (p.anio) ch.appendChild(mk('span', '', p.anio));
@@ -2238,6 +2296,7 @@ function pintarDetalle(p) {
     x.append(f, mk('b', '', a.nombre), mk('span', '', a.personaje)); ca.appendChild(x);
   });
   H('dcast-w').hidden = !(p.elenco || []).length;
+  pintarSerie(p);
 }
 const swH = H('hapt-sw');
 function pintarSwH() { const a = HAPT.activo(); swH.setAttribute('aria-checked', String(a)); swH.textContent = 'Vibración al tocar: ' + (a ? 'activada' : 'desactivada'); }
