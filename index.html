@@ -1226,7 +1226,16 @@ const CODIGOS = {
   
 };   // también puedes escribir uno aquí:  "Título exacto": "CODIGO"
 /* Series: las entradas del catálogo con  tipo:"serie"  van a la sección Series y no salen en Películas. */
-const series = [];
+const series = [
+  { titulo:"El espectacular hombre araña", tipo:"serie", tmdb:3854,
+    enlace:"" },
+  { titulo:"Linternas", tipo:"serie", tmdb:95350,
+    enlace:"" },
+  { titulo:"Liga de la Justicia Ilimitada", tipo:"serie", tmdb:84200,
+    enlace:"" },
+  { titulo:"Liga de la Justicia", tipo:"serie", tmdb:1618,
+    enlace:"" }
+];
 for (let i = peliculas.length - 1; i >= 0; i--) if (peliculas[i].tipo === 'serie') series.unshift(peliculas.splice(i, 1)[0]);
 const todas = () => peliculas.concat(series);
 /* Cada serie puede traer  enlace: "https://.../T{t}/E{e}.mp4"  (plantilla: {t} temporada, {e} capítulo, {tt}/{ee} con cero)
