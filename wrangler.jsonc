@@ -7,7 +7,9 @@
     "directory": "./",                             // la carpeta donde está tu index.html (./ = la raíz del repositorio)
     "binding": "ASSETS"
   },
-  "kv_namespaces": [
-    { "binding": "USUARIOS", "id": "npx wrangler kv namespace create BINDING_NAME" }   // <-- CAMBIA: el ID del KV USUARIOS
+ "kv_namespaces": [
+    { 
+      "binding": "USUARIOS", 
+      "id": "2881106716284f359fef79109ce039b4" 
+    }
   ]
-}
