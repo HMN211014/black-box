@@ -4,7 +4,7 @@
   "main": "src/worker.js",
   "compatibility_date": "2025-01-01",
   "assets": {
-    "directory": "https://github.com/HMN211014/black-box.git",                             // la carpeta donde está tu index.html (./ = la raíz del repositorio)
+    "directory": "./",                             // la carpeta donde está tu index.html (./ = la raíz del repositorio)
     "binding": "ASSETS"
   },
   "kv_namespaces": [
