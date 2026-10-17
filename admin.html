@@ -2,158 +2,265 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
-<meta name="theme-color" content="#000000">
-<title>Panel · Black BOX</title>
+<title>Administración · Black BOX</title>
 <style>
-:root{--fg:#f5f5f7;--mut:#a1a1a6}
 *{box-sizing:border-box;margin:0}
-html,body{background:#000;color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue",Arial,sans-serif;-webkit-font-smoothing:antialiased}
-body{min-height:100dvh;padding:calc(env(safe-area-inset-top,0px) + 20px) 16px calc(40px + env(safe-area-inset-bottom,0px));
-  background:radial-gradient(60% 40% at 15% 0,rgba(31,128,224,.4),transparent 70%),radial-gradient(50% 35% at 90% 30%,rgba(122,60,255,.32),transparent 70%),#000 fixed}
-main{max-width:760px;margin:0 auto}
-h1{font-size:30px;letter-spacing:-.03em;margin-bottom:16px}
-h2{font-size:21px;letter-spacing:-.02em;margin-bottom:10px}
-h3{font-size:15px;color:var(--mut);margin:16px 0 6px;font-weight:600}
-.card{margin-bottom:16px;padding:20px;border-radius:28px;background:linear-gradient(180deg,rgba(255,255,255,.14),rgba(255,255,255,.05));border:1px solid rgba(255,255,255,.16);
-  backdrop-filter:blur(30px) saturate(1.7);-webkit-backdrop-filter:blur(30px) saturate(1.7);box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 24px 60px rgba(0,0,0,.5)}
-.mut{color:var(--mut);font-size:14px;line-height:1.45;margin-bottom:10px}
-code{background:rgba(255,255,255,.12);padding:2px 6px;border-radius:6px;font-size:13px}
-input,textarea,select{display:block;width:100%;margin-bottom:10px;padding:13px 14px;border-radius:14px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.1);color:#fff;font:inherit;font-size:16px;outline:none}
-textarea{resize:vertical;min-height:84px}
-select option{color:#000}
-button{border:0;border-radius:14px;padding:12px 16px;background:#fff;color:#000;font:inherit;font-size:15px;font-weight:600;cursor:pointer}
-button.s{background:rgba(255,255,255,.16);color:#fff;border:1px solid rgba(255,255,255,.2);padding:8px 12px;font-size:14px;border-radius:999px}
+body{background:#0b0b0f;color:#f5f5f7;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue",Inter,Arial,sans-serif;padding:28px 16px 60px;-webkit-font-smoothing:antialiased}
+main{max-width:640px;margin:0 auto;display:grid;gap:18px}
+h1{font-size:28px;letter-spacing:-.03em}
+h2{font-size:18px;letter-spacing:-.02em;margin-bottom:12px}
+p.s{color:#a1a1a6;font-size:14px;line-height:1.45}
+.c{background:#17171c;border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:20px}
+label{display:block;color:#d1d1d6;font-size:13px;font-weight:600;margin-bottom:12px}
+input,select{display:block;width:100%;height:46px;margin-top:6px;padding:0 14px;border-radius:12px;border:1px solid rgba(255,255,255,.18);background:#0f0f13;color:#fff;font:inherit;font-size:16px;outline:none}
+input:focus,select:focus{border-color:rgba(255,255,255,.6)}
+.f{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+@media(max-width:520px){.f{grid-template-columns:1fr}}
+button{height:46px;padding:0 18px;border:0;border-radius:12px;background:#fff;color:#000;font:inherit;font-size:16px;font-weight:600;cursor:pointer}
+button.g{background:rgba(255,255,255,.14);color:#fff}
 button:disabled{opacity:.5}
-.err{color:#ff9f9a;font-size:15px;margin:6px 0}
-.row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:12px 0;border-top:1px solid rgba(255,255,255,.1)}
-.row .n{flex:1 1 150px;min-width:0}.row small{display:block;color:var(--mut);font-size:13px}
-.row.off{opacity:.5}
-.cod{font-family:ui-monospace,Menlo,monospace;font-size:13px}
-pre{white-space:pre-wrap;word-break:break-all;background:rgba(255,255,255,.1);padding:12px;border-radius:14px;font-size:14px;margin-bottom:10px}
-[hidden]{display:none!important}
+.m{margin-top:12px;font-size:14px}.m.e{color:#ff9f9a}.m.o{color:#8ee6a4}
+textarea{width:100%;min-height:120px;margin-top:12px;padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.18);background:#0f0f13;color:#fff;font:14px/1.6 ui-monospace,Menlo,Consolas,monospace;resize:vertical}
+table{width:100%;border-collapse:collapse;font-size:14px;margin-top:12px}
+th,td{text-align:left;padding:8px 6px;border-top:1px solid rgba(255,255,255,.1)}
+th{color:#a1a1a6;font-weight:600;font-size:12px}
+td.k{font-family:ui-monospace,Menlo,Consolas,monospace;white-space:nowrap}
+.tag{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:600}
+.tag.d{background:rgba(48,209,88,.18);color:#8ee6a4}.tag.u{background:rgba(255,255,255,.12);color:#c7c7cc}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+.tw{overflow-x:auto}
+.it{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:10px 0;border-top:1px solid rgba(255,255,255,.1)}
+.it .tx{min-width:0;flex:1}.it b{display:block;font-size:15px;word-break:break-word}.it small{color:#a1a1a6;font-size:12px}
+.it button{height:36px;padding:0 12px;font-size:14px;flex:none}
+.pe{padding:14px 0;border-top:1px solid rgba(255,255,255,.1)}
+.pe b{font-size:16px}.pe small{display:block;color:#a1a1a6;font-size:13px;margin:2px 0 8px}
+.pe input{height:42px;margin:0 0 8px;font-size:15px}
+.pe .row button{height:40px;font-size:14px}
+.tag.p{background:rgba(255,214,10,.18);color:#ffd60a}.tag.r{background:rgba(255,69,58,.18);color:#ff9f9a}
 </style>
 </head>
 <body>
 <main>
-<h1>Panel · Black BOX</h1>
+  <h1>Administración</h1>
+  <p class="s">Aquí generas códigos de acceso y das días a una cuenta. Todo se protege con tu clave de administrador.</p>
 
-<form id="login" class="card">
-  <h2>Entrar</h2>
-  <input id="k" type="password" placeholder="Clave de administrador" autocomplete="current-password" required>
-  <button type="submit">Entrar</button>
-  <p class="err" id="lerr" hidden></p>
-</form>
+  <div class="c">
+    <label>Clave de administrador<input id="clave" type="password" autocomplete="off" placeholder="La que pusiste en ADMIN_CLAVE"></label>
+  </div>
 
-<div id="panel" hidden>
-  <p class="mut" id="disp"></p>
+  <div class="c">
+    <h2>Generar códigos</h2>
+    <div class="f">
+      <label>Plan<select id="g-plan"><option value="basico">Básico</option><option value="plus">Plus</option><option value="pedidos">Películas por pedido</option></select></label>
+      <label>Días de acceso<input id="g-dias" type="number" min="1" max="3650" value="30" inputmode="numeric"></label>
+      <label>Cantidad<input id="g-cant" type="number" min="1" max="50" value="5" inputmode="numeric"></label>
+    </div>
+    <button id="g-go" type="button">Generar</button>
+    <p class="m" id="g-m" hidden></p>
+    <textarea id="g-out" readonly hidden></textarea>
+    <div class="row" id="g-acc" style="margin-top:10px" hidden><button class="g" id="g-cp" type="button">Copiar todos</button></div>
+  </div>
 
-  <section class="card">
-    <h2>Usuarios y códigos de acceso</h2>
-    <p class="mut">Aquí se <b>crean los códigos</b>. Escribe una persona por línea: <code>nombre,créditos</code>. El código se genera solo. Si quieres uno tuyo: <code>nombre,créditos,CÓDIGO</code>.</p>
-    <textarea id="nu" placeholder="Ana,30&#10;Luis,50"></textarea>
-    <button id="bnu">Crear códigos</button>
-    <div id="rbox" hidden style="margin-top:12px"><pre id="res"></pre><button class="s" id="bcop">Copiar lista</button></div>
-    <h3>Usuarios</h3>
-    <div id="ul"></div>
-  </section>
+  <div class="c">
+    <h2>Dar días a una cuenta</h2>
+    <div class="f">
+      <label>Correo<input id="c-correo" type="email" autocapitalize="off" placeholder="cliente@correo.com"></label>
+      <label>Plan<select id="c-plan"><option value="basico">Básico</option><option value="plus">Plus</option><option value="pedidos">Películas por pedido</option></select></label>
+      <label>Días<input id="c-dias" type="number" min="1" max="3650" value="30" inputmode="numeric"></label>
+    </div>
+    <button id="c-go" type="button">Agregar días</button>
+    <p class="m" id="c-m" hidden></p>
+  </div>
 
-  <section class="card">
-    <h2>Cuentas para vender</h2>
-    <div id="inv"></div>
-    <h3>Agregar cuentas</h3>
-    <p class="mut">Una por línea: <code>correo,contraseña,perfil</code></p>
-    <select id="pl"></select>
-    <textarea id="nc" placeholder="correo@ejemplo.com,clave,Perfil 1"></textarea>
-    <button id="bnc">Agregar cuentas</button>
-  </section>
+  <div class="c">
+    <h2>Pedidos de clientes</h2>
+    <p class="s">Aquí llegan las películas que piden. Elige el título tal como está en tu catálogo y agrégalo a su cuenta.</p>
+    <div class="row" style="margin-top:12px"><button class="g" id="p-go" type="button">Actualizar pedidos</button><button class="g" id="p-cp" type="button" hidden>Copiar líneas de todos los pendientes</button></div>
+    <p class="s" style="margin-top:10px">Pega el enlace del video y toca <b>Publicar y agregar a su cuenta</b>: la película aparece en la biblioteca y en la lista del cliente, sin tocar <b>index.html</b>. Las series se siguen agregando a mano en <b>index.html</b> (usa "Copiar línea").</p>
+    <p class="m" id="p-m" hidden></p>
+    <div id="p-lista"></div>
+  </div>
 
-  <section class="card">
-    <h2>Actividad</h2>
-    <h3>Últimos accesos</h3><div id="ac"></div>
-    <h3>Últimas ventas</h3><div id="ve"></div>
-  </section>
-</div>
+  <div class="c">
+    <h2>Lista de una cuenta</h2>
+    <p class="s">Consulta qué puede reproducir una cuenta con plan por pedido, agrega una película directo o quítala.</p>
+    <label style="margin-top:12px">Correo<input id="a-correo" type="email" autocapitalize="off" placeholder="cliente@correo.com"></label>
+    <label>Película (título del catálogo)<input id="a-tit" list="titulos" autocomplete="off" placeholder="Escribe para buscar"></label>
+    <div class="row"><button id="a-add" type="button">Agregar a su lista</button><button class="g" id="a-ver" type="button">Ver su lista</button></div>
+    <p class="m" id="a-m" hidden></p>
+    <div id="a-lista"></div>
+  </div>
+  <datalist id="titulos"></datalist>
+
+  <div class="c">
+    <h2>Películas publicadas desde aquí</h2>
+    <button class="g" id="x-go" type="button">Ver publicadas</button>
+    <p class="m" id="x-m" hidden></p>
+    <div id="x-lista"></div>
+  </div>
+
+  <div class="c">
+    <h2>Todos los códigos</h2>
+    <button class="g" id="l-go" type="button">Actualizar lista</button>
+    <p class="m" id="l-m" hidden></p>
+    <div class="tw"><table id="l-t" hidden><thead><tr><th>Código</th><th>Plan</th><th>Días</th><th>Estado</th></tr></thead><tbody></tbody></table></div>
+  </div>
 </main>
-
+<script src="/api/catalogo"></script>
 <script>
 const $ = id => document.getElementById(id);
-const el = (t, c, x) => { const n = document.createElement(t); if (c) n.className = c; if (x !== undefined) n.textContent = x; return n; };
-const fecha = ms => ms ? new Date(ms).toLocaleString('es-MX', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'nunca';
-let clave = sessionStorage.getItem('bbk') || '';
-
-async function api(accion, datos = {}) {
-  const r = await fetch('/api/admin', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Admin-Key': clave }, body: JSON.stringify({ accion, ...datos }) });
+async function admin(cuerpo) {
+  const r = await fetch('/api/usuario/admin', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clave: $('clave').value, ...cuerpo }) });
   let j = null; try { j = await r.json(); } catch (e) {}
-  if (!j) throw new Error('El servidor respondió con el código ' + r.status + ' y no con datos. ' + (r.status >= 500 ? 'Es una falla interna del servidor.' : 'Cloudflare no encuentra la carpeta functions: debe estar en GitHub junto a index.html.'));
-  if (r.status === 401) { sessionStorage.removeItem('bbk'); $('panel').hidden = true; $('login').hidden = false; }
-  if (!r.ok) throw new Error(j.error || 'Error');
+  if (!j) throw new Error('No se pudo conectar con el servidor. ¿Ya subiste la carpeta functions y creaste el KV USUARIOS?');
+  if (!r.ok) throw new Error(j.error || 'No se pudo completar.');
   return j;
 }
-const copiar = async (t, b) => { try { await navigator.clipboard.writeText(t); const o = b.textContent; b.textContent = 'Copiado'; setTimeout(() => b.textContent = o, 1400); } catch (e) { prompt('Copia esto:', t); } };
-const aviso = e => alert(e.message || e);
-
-async function cargar() {
-  const j = await api('resumen');
-  $('login').hidden = true; $('panel').hidden = false;
-  $('disp').textContent = 'Accesos por dispositivo: ' + (j.dispositivos.map(d => d.dispositivo + ' ' + d.n).join(' · ') || 'todavía ninguno');
-
-  const ul = $('ul'); ul.innerHTML = '';
-  if (!j.usuarios.length) ul.appendChild(el('p', 'mut', 'Todavía no hay usuarios.'));
-  j.usuarios.forEach(u => {
-    const f = el('div', 'row' + (u.activo ? '' : ' off')), n = el('div', 'n');
-    n.append(el('b', '', u.nombre), el('small', '', (u.dispositivo ? u.dispositivo + ' · ' : '') + 'último acceso: ' + fecha(u.ultimo) + ' · ' + u.compras + ' compras'));
-    const cod = el('button', 's cod', u.codigo); cod.onclick = () => copiar(u.codigo, cod);
-    const cr = el('b', '', u.creditos + ' cr');
-    const mas = el('button', 's', '± créditos'); mas.onclick = async () => {
-      const v = prompt('Créditos para ' + u.nombre + ' (tiene ' + u.creditos + ').\nEscribe un número para SUMAR (usa − para restar), o "=40" para dejarlo en 40:', '10');
-      if (v === null) return; const fijar = v.trim().startsWith('=');
-      try { await api('creditos', { id: u.id, cantidad: v.replace('=', '').trim(), modo: fijar ? 'fijar' : 'sumar' }); cargar(); } catch (e) { aviso(e); }
-    };
-    const blo = el('button', 's', u.activo ? 'Bloquear' : 'Activar'); blo.onclick = async () => { try { await api('activo', { id: u.id, activo: !u.activo }); cargar(); } catch (e) { aviso(e); } };
-    f.append(n, cod, cr, mas, blo); ul.appendChild(f);
-  });
-
-  const inv = $('inv'); inv.innerHTML = ''; const pl = $('pl'), sel = pl.value; pl.innerHTML = '';
-  j.inventario.forEach(p => {
-    const f = el('div', 'row'), n = el('div', 'n');
-    n.append(el('b', '', p.nombre), el('small', '', p.disponibles + ' disponibles · ' + p.vendidas + ' vendidas'));
-    const pr = el('button', 's', p.precio + ' créditos'); pr.onclick = async () => {
-      const v = prompt('Precio de ' + p.nombre + ' en créditos:', p.precio); if (v === null) return;
-      try { await api('precio', { plataforma: p.id, precio: v.trim() }); cargar(); } catch (e) { aviso(e); }
-    };
-    f.append(n, pr); inv.appendChild(f);
-    const o = el('option', '', p.nombre); o.value = p.id; pl.appendChild(o);
-  });
-  if (sel) pl.value = sel;
-
-  const ac = $('ac'); ac.innerHTML = ''; j.accesos.forEach(a => { const f = el('div', 'row'); f.append(el('span', 'n', a.nombre + ' · ' + a.dispositivo), el('small', '', fecha(a.fecha))); ac.appendChild(f); });
-  if (!j.accesos.length) ac.appendChild(el('p', 'mut', 'Sin accesos todavía.'));
-  const ve = $('ve'); ve.innerHTML = ''; j.ventas.forEach(a => { const f = el('div', 'row'); f.append(el('span', 'n', a.nombre + ' compró ' + a.plataforma + ' (' + a.precio + ' cr)'), el('small', '', fecha(a.fecha))); ve.appendChild(f); });
-  if (!j.ventas.length) ve.appendChild(el('p', 'mut', 'Sin ventas todavía.'));
+function msg(id, t, ok) { const m = $(id); m.textContent = t; m.className = 'm ' + (ok ? 'o' : 'e'); m.hidden = !t; }
+async function con(btn, id, fn) {
+  btn.disabled = true; msg(id, '', true);
+  try { await fn(); } catch (e) { msg(id, e.message, false); }
+  btn.disabled = false;
 }
+const nombrePlan = p => ({ plus: 'Plus', pedidos: 'Películas por pedido' })[p] || 'Básico';
+const fecha = t => new Date(t).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' });
 
-$('login').addEventListener('submit', async e => {
-  e.preventDefault(); clave = $('k').value; $('lerr').hidden = true;
-  try { await cargar(); sessionStorage.setItem('bbk', clave); $('k').value = ''; } catch (x) { $('lerr').textContent = x.message; $('lerr').hidden = false; }
+$('g-go').onclick = () => con($('g-go'), 'g-m', async () => {
+  const j = await admin({ op: 'generar', plan: $('g-plan').value, dias: $('g-dias').value, cantidad: $('g-cant').value });
+  $('g-out').value = j.codigos.join('\n'); $('g-out').hidden = false; $('g-acc').hidden = false;
+  msg('g-m', j.codigos.length + ' código(s) de ' + j.dias + ' días, plan ' + nombrePlan(j.plan) + '. Cada uno se puede usar una sola vez.', true);
 });
-$('bnu').onclick = async () => {
-  const b = $('bnu'); b.disabled = true;
-  try {
-    const j = await api('crear_usuarios', { texto: $('nu').value });
-    const txt = j.creados.map(c => c.nombre + ' → ' + c.codigo + ' (' + c.creditos + ' créditos)').join('\n');
-    $('res').textContent = (txt || 'No se creó ninguno.') + (j.errores.length ? '\n\nNo se pudieron crear:\n' + j.errores.join('\n') : '');
-    $('rbox').hidden = false; $('bcop').onclick = () => copiar(txt, $('bcop')); $('nu').value = ''; cargar();
-  } catch (e) { aviso(e); }
-  b.disabled = false;
+$('g-cp').onclick = async () => {
+  const t = $('g-out').value;
+  try { await navigator.clipboard.writeText(t); $('g-cp').textContent = 'Copiado ✓'; } catch (e) { $('g-out').select(); document.execCommand('copy'); $('g-cp').textContent = 'Copiado ✓'; }
+  setTimeout(() => { $('g-cp').textContent = 'Copiar todos'; }, 1800);
 };
-$('bnc').onclick = async () => {
-  const b = $('bnc'); b.disabled = true;
-  try { const j = await api('agregar_cuentas', { plataforma: $('pl').value, texto: $('nc').value }); alert('Se agregaron ' + j.agregadas + ' cuentas.'); $('nc').value = ''; cargar(); } catch (e) { aviso(e); }
-  b.disabled = false;
-};
-if (clave) cargar().catch(() => {});
+$('c-go').onclick = () => con($('c-go'), 'c-m', async () => {
+  const j = await admin({ op: 'conceder', correo: $('c-correo').value, plan: $('c-plan').value, dias: $('c-dias').value });
+  msg('c-m', j.correo + ': plan ' + nombrePlan(j.acceso.plan) + ', vence el ' + fecha(j.acceso.vence) + '.', true);
+});
+$('l-go').onclick = () => con($('l-go'), 'l-m', async () => {
+  const j = await admin({ op: 'listar' });
+  const tb = $('l-t').querySelector('tbody'); tb.replaceChildren();
+  j.codigos.forEach(c => {
+    const tr = document.createElement('tr');
+    const k = document.createElement('td'); k.className = 'k'; k.textContent = c.codigo;
+    const p = document.createElement('td'); p.textContent = nombrePlan(c.plan);
+    const d = document.createElement('td'); d.textContent = c.dias;
+    const e = document.createElement('td'), t = document.createElement('span');
+    t.className = 'tag ' + (c.usado ? 'u' : 'd'); t.textContent = c.usado ? 'Usado' : 'Disponible'; e.appendChild(t);
+    if (c.usado) { const s = document.createElement('div'); s.className = 's'; s.style.cssText = 'color:#a1a1a6;font-size:12px;margin-top:3px'; s.textContent = c.usado.por + ' · ' + fecha(c.usado.fecha); e.appendChild(s); }
+    tr.append(k, p, d, e); tb.appendChild(tr);
+  });
+  $('l-t').hidden = !j.codigos.length;
+  msg('l-m', j.codigos.length ? '' : 'Todavía no hay códigos.', true);
+});
+
+/* ---- catálogo para sugerir títulos y emparejar pedidos ---- */
+const CAT = (window.PELICULAS_DB || []);
+const dl = $('titulos'); CAT.forEach(x => { const o = document.createElement('option'); o.value = x.titulo; dl.appendChild(o); });
+const enCat = t => CAT.find(x => x.titulo === t);
+
+function filaLista(correo, l, donde) {
+  const box = $(donde); box.replaceChildren();
+  if (!l.length) { const p = document.createElement('p'); p.className = 'm'; p.textContent = 'Su lista está vacía.'; box.appendChild(p); return; }
+  l.forEach(x => {
+    const d = document.createElement('div'); d.className = 'it';
+    const tx = document.createElement('div'); tx.className = 'tx';
+    const b = document.createElement('b'); b.textContent = x.t; tx.appendChild(b);
+    const q = document.createElement('button'); q.className = 'g'; q.type = 'button'; q.textContent = 'Quitar';
+    q.onclick = () => con(q, 'a-m', async () => { const j = await admin({ op: 'quitar', correo, titulo: x.t }); filaLista(correo, j.lista, donde); });
+    d.append(tx, q); box.appendChild(d);
+  });
+}
+$('a-ver').onclick = () => con($('a-ver'), 'a-m', async () => {
+  const j = await admin({ op: 'cuenta', correo: $('a-correo').value });
+  msg('a-m', 'Plan ' + nombrePlan(j.acceso.plan) + (j.acceso.vence ? (j.acceso.activo ? ', vence el ' : ', venció el ') + fecha(j.acceso.vence) : ', sin acceso') + '.', true);
+  filaLista(j.correo, j.lista, 'a-lista');
+});
+$('a-add').onclick = () => con($('a-add'), 'a-m', async () => {
+  const t = $('a-tit').value.trim(), c = enCat(t);
+  if (CAT.length && !c && !confirm('No encuentro "' + t + '" tal cual en el catálogo. Si el título no coincide exacto, el cliente no podrá reproducirla. ¿Agregarla de todos modos?')) return;
+  const j = await admin({ op: 'asignar', correo: $('a-correo').value, titulo: t, tmdb: c && c.tmdb ? c.tmdb : 0 });
+  msg('a-m', 'Agregada. Ahora tiene ' + j.lista.length + ' película(s) en su lista.', true);
+  filaLista(j.correo, j.lista, 'a-lista'); $('a-tit').value = '';
+});
+
+/* ---- pedidos de clientes ---- */
+const lineaIndex = x => x.tipo === 'tv'
+  ? '  { titulo:' + JSON.stringify(x.titulo) + ', tipo:"serie", tmdb:' + x.tmdb + ' },'
+  : '  { titulo:' + JSON.stringify(x.titulo) + ', tmdb:' + x.tmdb + ', link:"PEGA_AQUI_EL_ENLACE" },';
+async function copiar(texto, btn, normal) {
+  try { await navigator.clipboard.writeText(texto); } catch (e) { const t = document.createElement('textarea'); t.value = texto; document.body.appendChild(t); t.select(); document.execCommand('copy'); t.remove(); }
+  btn.textContent = 'Copiado ✓'; setTimeout(() => { btn.textContent = normal; }, 1800);
+}
+let pendientes = [];
+$('p-cp').onclick = () => copiar(pendientes.map(lineaIndex).join('\n'), $('p-cp'), 'Copiar líneas de todos los pendientes');
+$('p-go').onclick = () => con($('p-go'), 'p-m', async () => {
+  const j = await admin({ op: 'pedidos' });
+  const box = $('p-lista'); box.replaceChildren();
+  pendientes = j.pedidos.filter(x => x.estado === 'pendiente'); $('p-cp').hidden = !pendientes.length;
+  if (!j.pedidos.length) { msg('p-m', 'Todavía no hay pedidos.', true); return; }
+  j.pedidos.forEach(x => {
+    const d = document.createElement('div'); d.className = 'pe';
+    const t = document.createElement('div');
+    const b = document.createElement('b'); b.textContent = x.titulo + (x.anio ? ' (' + x.anio + ')' : '');
+    const tg = document.createElement('span'); tg.className = 'tag ' + (x.estado === 'listo' ? 'd' : x.estado === 'rechazado' ? 'r' : 'p'); tg.style.marginLeft = '8px';
+    tg.textContent = x.estado === 'listo' ? 'Listo' : x.estado === 'rechazado' ? 'Rechazado' : 'Pendiente';
+    t.append(b, tg);
+    const sm = document.createElement('small'); sm.textContent = x.correo + ' · ' + (x.tipo === 'tv' ? 'Serie' : 'Película') + ' · TMDB ' + x.tmdb + ' · ' + fecha(x.creado);
+    d.append(t, sm);
+    if (x.estado === 'pendiente') {
+      const hit = CAT.find(c => c.tmdb && Number(c.tmdb) === x.tmdb);
+      const inp = document.createElement('input'); inp.setAttribute('list', 'titulos'); inp.placeholder = 'Título tal como quedó en tu lista';
+      inp.value = hit ? hit.titulo : x.titulo;
+      const en = document.createElement('input'); en.type = 'url'; en.placeholder = 'Enlace del video (https://…)'; en.autocapitalize = 'off'; en.spellcheck = false;
+      const pub = document.createElement('button'); pub.type = 'button'; pub.textContent = 'Publicar y agregar a su cuenta';
+      if (x.tipo === 'tv') { en.hidden = true; pub.hidden = true; }
+      const ok = document.createElement('button'); ok.type = 'button'; ok.className = 'g'; ok.textContent = 'Solo agregar a su cuenta (ya está en index.html)';
+      const no = document.createElement('button'); no.type = 'button'; no.className = 'g'; no.textContent = 'Rechazar';
+      ok.onclick = () => con(ok, 'p-m', async () => {
+        const ti = inp.value.trim(); if (!ti) throw new Error('Escribe el título tal como está en el catálogo.');
+        if (CAT.length && !enCat(ti) && !confirm('No encuentro "' + ti + '" tal cual en el catálogo. ¿Agregarla de todos modos?')) return;
+        await admin({ op: 'asignar', correo: x.correo, titulo: ti, tmdb: x.tmdb, pedido: x.id });
+        tg.className = 'tag d'; tg.textContent = 'Listo'; row.remove();
+        msg('p-m', 'Agregada a ' + x.correo + '.', true);
+      });
+      pub.onclick = () => con(pub, 'p-m', async () => {
+        const ti = inp.value.trim(); if (!ti) throw new Error('Escribe el título como quieres que se vea en la biblioteca.');
+        if (!en.value.trim()) throw new Error('Pega el enlace del video.');
+        await admin({ op: 'publicar', correo: x.correo, titulo: ti, tmdb: x.tmdb, link: en.value.trim(), pedido: x.id });
+        row.remove(); en.remove(); inp.remove(); tg.className = 'tag d'; tg.textContent = 'Listo';
+        msg('p-m', 'Publicada y agregada a ' + x.correo + '. En menos de un minuto aparece en la biblioteca.', true);
+      });
+      no.onclick = () => con(no, 'p-m', async () => { await admin({ op: 'rechazar', pedido: x.id }); tg.className = 'tag r'; tg.textContent = 'Rechazado'; row.remove(); });
+      const cl = document.createElement('button'); cl.type = 'button'; cl.className = 'g'; cl.textContent = 'Copiar línea para index.html'; cl.onclick = () => copiar(lineaIndex(x), cl, 'Copiar línea para index.html');
+      const row = document.createElement('div'); row.className = 'row'; row.append(pub, ok, cl, no);
+      d.append(inp, en, row);
+    }
+    box.appendChild(d);
+  });
+  msg('p-m', j.pedidos.filter(x => x.estado === 'pendiente').length + ' pendiente(s).', true);
+});
+
+/* ---- películas publicadas desde el panel ---- */
+$('x-go').onclick = () => con($('x-go'), 'x-m', async () => {
+  const j = await admin({ op: 'publicadas' });
+  const box = $('x-lista'); box.replaceChildren();
+  msg('x-m', j.items.length ? j.items.length + ' publicada(s).' : 'Todavía no has publicado ninguna desde aquí.', true);
+  j.items.forEach(x => {
+    const d = document.createElement('div'); d.className = 'it';
+    const tx = document.createElement('div'); tx.className = 'tx';
+    const b = document.createElement('b'); b.textContent = x.titulo;
+    const sm = document.createElement('small'); sm.textContent = 'TMDB ' + x.tmdb;
+    tx.append(b, sm);
+    const q = document.createElement('button'); q.className = 'g'; q.type = 'button'; q.textContent = 'Quitar de la biblioteca';
+    q.onclick = () => { if (!confirm('¿Quitar "' + x.titulo + '" de la biblioteca? Los clientes dejarán de verla.')) return; con(q, 'x-m', async () => { await admin({ op: 'despublicar', tmdb: x.tmdb }); d.remove(); }); };
+    d.append(tx, q); box.appendChild(d);
+  });
+});
 </script>
 </body>
 </html>
