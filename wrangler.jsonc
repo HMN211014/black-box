@@ -11,5 +11,8 @@
       "binding": "USUARIOS",
       "id": "2881106716284f359fef79109ce039b4"
     }
-  ]
+  ],
+  "vars": {
+    "ADMIN_CLAVE": "CTMYOSOYELADMIN1111"
+  }
 }
