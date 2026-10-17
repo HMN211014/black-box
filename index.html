@@ -603,13 +603,18 @@ html[data-vt="poster"]::view-transition-new(root){animation-duration:.3s}
 /* ---- Sección Pedidos (por ahora solo un aviso) ---- */
 #vista-ped{min-height:100svh;display:grid;place-items:center;padding:calc(env(safe-area-inset-top,0px) + 100px) 24px calc(var(--dockh) + 80px)}
 #vista-ped[hidden]{display:none}
+#vista-rec{min-height:100svh;padding:clamp(88px,12vh,120px) 0 calc(var(--dockh) + 80px)}
+#vista-rec[hidden]{display:none}
+#vista-rec .rt{margin-top:0}
+.rsub{padding:2px 5vw 0;color:var(--muted);font-size:15px}
+#vista-rec .cvacio{padding:34px 5vw;color:var(--muted);font-size:18px;text-align:center}
 .vped{max-width:460px;text-align:center}
 .vped .vico{width:84px;height:84px;margin:0 auto 22px;border-radius:26px;display:grid;place-items:center;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.14)}
 .vped .vico svg{width:40px;height:40px;fill:none;stroke:#fff;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
 .vped h2{font-size:clamp(30px,4vw,44px);letter-spacing:-.03em;margin-bottom:10px}
 .vped p{color:var(--muted);font-size:18px;line-height:1.5;margin-bottom:22px}
 .vped .pronto{display:inline-block;padding:9px 18px;border-radius:999px;background:rgba(255,255,255,.12);font-size:14px;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
-body.con-q #vista-ped{display:none!important}
+body.con-q #vista-ped,body.con-q #vista-rec{display:none!important}
 .dk span{max-width:100%;overflow:hidden;text-overflow:ellipsis}
 @media(max-width:820px){#dock{width:min(96vw,480px);padding:7px 5px}.dk{font-size:10px;letter-spacing:-.02em;padding:0 2px}}
 @media(max-width:380px){.dk{font-size:9px}}
@@ -650,6 +655,39 @@ body.con-q #vista-ped{display:none!important}
 /* ---- Series: insignia de temporadas y filas por género ---- */
 .card .ins{position:absolute;top:12px;left:12px;padding:5px 10px;border-radius:999px;background:rgba(0,0,0,.55);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.18);font-size:12px;font-weight:700;letter-spacing:.01em;line-height:1.2;text-shadow:none;pointer-events:none}
 #gen:empty{display:none}
+
+/* ---------- Títulos fuera del póster + difuminado que se funde con el fondo ---------- */
+.card{--fade:linear-gradient(180deg,#000 0,#000 52%,rgba(0,0,0,.62) 78%,transparent 100%);
+  overflow:visible;margin-bottom:70px;background:transparent;box-shadow:none}
+/* el póster se desvanece hacia el fondo de la página (que se acopla a su difuminado) */
+.card::before{content:"";position:absolute;inset:0;z-index:0;background:var(--g);border-radius:inherit;
+  -webkit-mask-image:var(--fade);mask-image:var(--fade)}
+.card img,.card .shine{border-radius:inherit;-webkit-mask-image:var(--fade);mask-image:var(--fade)}
+.card img{transition:filter .25s ease}
+.card::after{display:none}
+.card:hover,.card:focus-visible{box-shadow:none}
+.card:hover img,.card:focus-visible img{filter:brightness(1.12) saturate(1.08)}
+/* título debajo, más grande, justificado y con sombreado fuerte */
+.card .t{
+  left:2px;right:2px;top:calc(100% + 6px);bottom:auto;z-index:2;pointer-events:none;
+  font-size:clamp(17px,1.55vw,21px);font-weight:600;letter-spacing:-.005em;line-height:1.25;
+  text-align:justify;hyphens:auto;-webkit-hyphens:auto;
+  color:#fff;
+  text-shadow:0 1px 3px rgba(0,0,0,1),0 3px 12px rgba(0,0,0,.95),0 6px 26px rgba(0,0,0,.85);
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+  transition:transform .25s ease}
+.card:hover .t,.card:focus-visible .t{transform:translateY(2px)}
+/* Continuar viendo */
+.card.cc .t{-webkit-line-clamp:1}
+.card.cc .q{left:2px;right:2px;top:calc(100% + 30px);bottom:auto;font-size:13px;color:rgba(255,255,255,.62);text-shadow:0 1px 10px rgba(0,0,0,1)}
+.card.cc .prog{border-radius:0 0 var(--r) var(--r);overflow:hidden}
+@media(max-width:620px){
+  .card{margin-bottom:66px}
+  .card .t{font-size:17px;left:2px;right:2px}
+  .card.cc .q{left:2px;right:2px}
+  .card.cc .prog{border-radius:0 0 18px 18px}
+}
+.track{padding-bottom:14px}
 </style>
 <link rel="manifest" href="/manifest.webmanifest">
 <meta name="theme-color" content="#000000">
@@ -681,7 +719,7 @@ body.con-q #vista-ped{display:none!important}
   <button type="button" class="dk on" data-v="inicio" aria-label="Películas" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h16v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><path d="M4 9l2-5 3.5.8L7.5 9.5M10 9l2-5 3.5.8-2 4.7M16 9l2-5 3 .7"/></svg><span>Películas</span></button>
   <button type="button" class="dk" data-v="series" aria-label="Series"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="2.5"/><path d="M8 3l4 3.5L16 3"/></svg><span>Series</span></button>
   <button type="button" class="dk" data-v="pedidos" id="dk-ped" aria-label="Pedidos"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><path d="M12 8v8M8 12h8"/></svg><span>Pedidos</span></button>
-  <button type="button" class="dk" data-v="subs" id="dk-subs" aria-label="Suscripciones"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M3 10h18M7 15h4"/></svg><span>Suscripciones</span></button>
+  <button type="button" class="dk" data-v="recientes" id="dk-rec" aria-label="Recientes"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg><span>Recientes</span></button>
   <i class="dsep" aria-hidden="true"></i>
   <button type="button" class="dk" id="dk-buscar" aria-label="Buscar" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><span>Buscar</span></button>
 </nav>
@@ -745,6 +783,7 @@ body.con-q #vista-ped{display:none!important}
   <section class="hero" id="chero" aria-label="Destacadas de la colección">
     <div class="hcopy">
       <p class="hmeta" id="c-hm"></p>
+      <img class="hlogo" id="c-hlogo" alt="" hidden>
       <h2 id="c-ht"></h2>
       <p class="hd" id="c-hd"></p>
       <div class="hact">
@@ -794,6 +833,12 @@ body.con-q #vista-ped{display:none!important}
   </div>
 </section>
 <div class="sheet" id="sheet" hidden><div class="sp" id="sp"></div></div>
+<section id="vista-rec" hidden aria-label="Recientes">
+  <h3 class="rt">Recientes</h3>
+  <p class="rsub">Las últimas películas que se subieron.</p>
+  <div class="grid" id="rec-grid"></div>
+  <p class="cvacio" id="rec-vacio" hidden>Aún no hay películas.</p>
+</section>
 <section id="vista-ped" hidden aria-label="Pedidos">
   <div class="vped">
     <div class="vico"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><path d="M12 8v8M8 12h8"/></svg></div>
@@ -2273,12 +2318,12 @@ if (typeof PLATAFORMAS !== 'undefined') {
   H('rowplat').querySelector('.next').onclick = () => ptrack.scrollBy({ left: pasoP(), behavior: 'smooth' });
 } else H('plat').hidden = true;
 
-/* ---------- Navegación: barra flotante (Películas · Series · Suscripciones · Buscar) ---------- */
-const SUSCRIPCIONES_EN_BARRA = true;                 // pon false para quitar "Suscripciones" de la barra
-H('dk-subs').hidden = !SUSCRIPCIONES_EN_BARRA;
+/* ---------- Navegación: barra flotante (Películas · Series · Pedidos · Recientes · Buscar) ---------- */
+const RECIENTES_EN_BARRA = true;                      // pon false para quitar "Recientes" de la barra
+H('dk-rec').hidden = !RECIENTES_EN_BARRA;
 const PEDIDOS_EN_BARRA = true;                       // pon false para quitar "Pedidos" de la barra
 H('dk-ped').hidden = !PEDIDOS_EN_BARRA;
-const vistas = { inicio: H('vista-inicio'), subs: H('vista-subs'), ped: H('vista-ped'), col: H('vista-col'), det: H('vista-det') };
+const vistas = { inicio: H('vista-inicio'), subs: H('vista-subs'), ped: H('vista-ped'), rec: H('vista-rec'), col: H('vista-col'), det: H('vista-det') };
 let detActual = null, detHist = false, volverY = null;
 const slugDe = p => norm(p.titulo).replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 function marcarDock(v) {
@@ -2298,16 +2343,17 @@ function ponerModo(m) {                              // el inicio sirve para Pel
   if (cambio) { ordenar(); armarBanner(); actualizarCont(); }
   H('herowrap').hidden = s && !series.length;
 }
-function irA(v, desdeRuta) {                         // v: inicio | series | pedidos | subs
+function irA(v, desdeRuta) {                         // v: inicio | series | pedidos | recientes | subs
   const hacer = () => {
     clearInterval(cTimer);
     document.body.classList.remove('colmode', 'detmode');
     vistas.col.hidden = vistas.det.hidden = true; detActual = null;
-    vistas.subs.hidden = v !== 'subs'; vistas.ped.hidden = v !== 'pedidos';
-    vistas.inicio.hidden = v === 'subs' || v === 'pedidos';
+    vistas.subs.hidden = v !== 'subs'; vistas.ped.hidden = v !== 'pedidos'; vistas.rec.hidden = v !== 'recientes';
+    vistas.inicio.hidden = v === 'subs' || v === 'pedidos' || v === 'recientes';
     if (!vistas.inicio.hidden) { ponerModo(v === 'series' ? 'series' : 'peliculas'); auto(); }
     marcarDock(v); verCred();
     if (v === 'subs') cargarCuenta();
+    if (v === 'recientes') pintarRecientes();
     const y = volverY; volverY = null;
     scrollTo(0, y || 0);
   };
@@ -2316,6 +2362,21 @@ function irA(v, desdeRuta) {                         // v: inicio | series | ped
   if (location.hash !== h && (h || location.hash)) history.pushState(null, '', base + h);
   volverY = null; fuenteVT = null;
   conTransicion(hacer, { tipo: 'tab' });
+}
+/* ---------- Recientes: las últimas películas subidas ----------
+   Si la base de datos trae una fecha (creado / created_at / agregado / fecha_subida) se ordena por ella;
+   si no, por la posición en la lista. RECIENTES_AL_FINAL = true -> las últimas subidas son las del final de la lista. */
+const RECIENTES_AL_FINAL = true, RECIENTES_MAX = 40;
+const fechaSubida = p => { const v = p.creado || p.created_at || p.agregado || p.fecha_subida || p.subida || ''; const t = v ? Date.parse(v) : NaN; return isNaN(t) ? null : t; };
+function pintarRecientes() {
+  const lista = [...peliculas].sort((a, b) => {
+    const x = fechaSubida(a), y = fechaSubida(b);
+    if (x !== null && y !== null && x !== y) return y - x;                       // fecha más nueva primero
+    return RECIENTES_AL_FINAL ? b._i - a._i : a._i - b._i;                      // si no hay fecha: por posición en la lista
+  }).slice(0, RECIENTES_MAX);
+  tarjetasCol.clear();                                                           // las tarjetas de la colección anterior ya no están en pantalla
+  H('rec-grid').replaceChildren(...lista.map(tCol));
+  H('rec-vacio').hidden = !!lista.length; H('rec-grid').hidden = !lista.length;
 }
 document.querySelectorAll('#dock .dk[data-v]').forEach(b => b.addEventListener('click', () => { cerrarBusqueda(); irA(b.dataset.v); }));
 H('brand').addEventListener('click', e => { e.preventDefault(); cerrarBusqueda(); irA('inicio'); });
@@ -2331,7 +2392,7 @@ function abrirDetalle(slug) {
   if (!p) { history.replaceState(null, '', location.pathname + location.search); ruta(false); return; }
   detActual = p; clearInterval(timer); clearInterval(cTimer);
   document.body.classList.remove('colmode'); document.body.classList.add('detmode');
-  vistas.inicio.hidden = vistas.subs.hidden = vistas.ped.hidden = vistas.col.hidden = true; vistas.det.hidden = false;
+  vistas.inicio.hidden = vistas.subs.hidden = vistas.ped.hidden = vistas.rec.hidden = vistas.col.hidden = true; vistas.det.hidden = false;
   pintarDetalle(p); verCred(); scrollTo(0, 0);
 }
 /* ---------- Series: temporadas y capítulos ---------- */
@@ -2776,13 +2837,13 @@ function cMostrar(i) {
       hero.style.setProperty('--g', grad(p.titulo)); const bg = p.fondo || p.poster;
       hero.style.setProperty('--img', bg ? urlCss(bg) : 'none');
       H('c-hm').textContent = [c.nombre, p.anio, p.genero, p.duracion].filter(Boolean).join('  ·  ');
-      H('c-ht').textContent = p.titulo; H('c-hd').textContent = p.descripcion || '';
+      ponerTitulo(p, H('c-hlogo'), H('c-ht')); H('c-hd').textContent = p.descripcion || '';   // logo de TMDB (como en la ficha individual) o, si no hay, el nombre escrito
       const l = H('c-hl'); l.hidden = H('c-hi').hidden = false;
       l.textContent = p.link ? (hayProg(p) ? 'Continuar' : 'Ver ahora') : 'Próximamente'; l.disabled = !p.link;
       l.onclick = () => reproducir(p); H('c-hi').onclick = () => abrir(p);
     } else {                                           // colección sin películas todavía
       hero.style.setProperty('--g', 'linear-gradient(135deg,' + c.a + ',' + c.b + ')'); hero.style.setProperty('--img', 'none');
-      H('c-hm').textContent = 'Colección'; H('c-ht').textContent = c.nombre; H('c-hd').textContent = 'Muy pronto habrá películas aquí.';
+      H('c-hm').textContent = 'Colección'; H('c-ht').textContent = c.nombre; H('c-ht').classList.remove('sr'); H('c-hlogo').hidden = true; H('c-hd').textContent = 'Muy pronto habrá películas aquí.';
       H('c-hl').hidden = H('c-hi').hidden = true;
     }
     [...H('c-dots').children].forEach((d, k) => d.classList.toggle('on', k === i));
@@ -2818,7 +2879,7 @@ function abrirCol(id, viaEnlace, silencio) {
   H('c-track').replaceChildren(...pop.map(tCol)); H('c-ctrack').replaceChildren(...cro.map(tCol)); H('c-grid').replaceChildren(...cro.map(tCol));
   H('c-pt').textContent = 'Populares de ' + c.nombre; H('c-rt').textContent = 'Todas las películas de ' + c.nombre;
   H('c-pop').hidden = H('c-rt').hidden = H('c-grid').hidden = !lista.length; H('c-cro').hidden = cro.length < 2; H('c-vacio').hidden = !!lista.length;
-  vistas.inicio.hidden = vistas.subs.hidden = vistas.ped.hidden = vistas.det.hidden = true; vistas.col.hidden = false; detActual = null;
+  vistas.inicio.hidden = vistas.subs.hidden = vistas.ped.hidden = vistas.rec.hidden = vistas.det.hidden = true; vistas.col.hidden = false; detActual = null;
   document.body.classList.remove('detmode'); marcarDock('inicio'); verCred();
   if (!silencio) { scrollTo(0, volverY || 0); volverY = null; }
 }
@@ -2846,7 +2907,7 @@ function ruta(viaEnlace) {
     if ((m = h.match(/^#\/c\/([\w-]+)$/))) { abrirCol(m[1], viaEnlace); return; }
     if ((m = h.match(/^#\/p\/(.+)$/))) { abrirDetalle(decodeURIComponent(m[1])); return; }
     cerrarCol();
-    irA(h === '#/series' ? 'series' : h === '#/subs' ? 'subs' : h === '#/pedidos' ? 'pedidos' : 'inicio', true);
+    irA(h === '#/series' ? 'series' : h === '#/subs' ? 'subs' : h === '#/pedidos' ? 'pedidos' : h === '#/recientes' ? 'recientes' : 'inicio', true);
   }, opc);
 }
 addEventListener('hashchange', () => ruta(true));
