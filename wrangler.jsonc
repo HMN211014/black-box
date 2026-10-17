@@ -8,6 +8,6 @@
     "binding": "ASSETS"
   },
   "kv_namespaces": [
-    { "binding": "USUARIOS", "id": "PEGA-AQUI-EL-ID-DE-TU-KV" }   // <-- CAMBIA: el ID del KV USUARIOS
+    { "binding": "USUARIOS", "id": "npx wrangler kv namespace create BINDING_NAME" }   // <-- CAMBIA: el ID del KV USUARIOS
   ]
 }
