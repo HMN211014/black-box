@@ -1,10 +1,10 @@
 // Configuración del Worker de Black BOX. Solo cambia las 2 líneas marcadas con  <-- CAMBIA
 {
-  "name": "PON-AQUI-EL-NOMBRE-DE-TU-WORKER",       // <-- CAMBIA: el nombre exacto de tu Worker en Cloudflare
+  "name": "black-box",       // <-- CAMBIA: el nombre exacto de tu Worker en Cloudflare
   "main": "src/worker.js",
   "compatibility_date": "2025-01-01",
   "assets": {
-    "directory": "./",                             // la carpeta donde está tu index.html (./ = la raíz del repositorio)
+    "directory": "https://github.com/HMN211014/black-box.git",                             // la carpeta donde está tu index.html (./ = la raíz del repositorio)
     "binding": "ASSETS"
   },
   "kv_namespaces": [
