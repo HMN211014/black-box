@@ -1,0 +1,22 @@
+BLACK BOX - ACTUALIZACION PARA WORKER (cuentas, planes, pedidos y panel)
+
+CONTENIDO
+  index.html       -> reemplaza el index.html de tu repositorio
+  admin.html       -> nuevo, junto al index.html
+  src/worker.js    -> nuevo (punto de entrada del Worker)
+  src/usuario.js   -> nuevo (cuentas, codigos, pedidos y panel)
+  wrangler.jsonc   -> nuevo: configuracion del Worker (hay que cambiar 2 lineas)
+  .assetsignore    -> nuevo: evita que src y la configuracion se publiquen como archivos de la pagina
+
+PASOS
+1. En Cloudflare, abre tu Worker (Workers & Pages) y copia su NOMBRE exacto.
+2. En Cloudflare crea un KV llamado USUARIOS (Storage & Databases > KV > Create) y copia su ID.
+3. Abre wrangler.jsonc con un editor de texto y cambia las 2 lineas marcadas "CAMBIA":
+   el nombre del Worker y el ID del KV. Guarda.
+4. Sube todo a la RAIZ de tu repositorio en GitHub (index.html, admin.html, wrangler.jsonc, .assetsignore y la carpeta src).
+   Si tu index.html esta dentro de una carpeta (por ejemplo "public"), cambia "./" por el nombre de esa carpeta en wrangler.jsonc
+   y deja index.html y admin.html dentro de esa carpeta; lo demas va en la raiz.
+5. En tu Worker: Settings > Variables and Secrets > Add: nombre ADMIN_CLAVE, valor = la contrasena para tu panel (tipo Secret).
+6. Al subir a GitHub se despliega solo. Abre tupagina.com/admin.html y escribe tu ADMIN_CLAVE.
+
+Tus archivos plataformas.js y colecciones.js no cambiaron.

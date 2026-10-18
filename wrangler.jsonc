@@ -1,18 +1,13 @@
+// Configuración del Worker de Black BOX. Solo cambia las 2 líneas marcadas con  <-- CAMBIA
 {
-  "name": "black-box",
+  "name": "PON-AQUI-EL-NOMBRE-DE-TU-WORKER",       // <-- CAMBIA: el nombre exacto de tu Worker en Cloudflare
   "main": "src/worker.js",
   "compatibility_date": "2025-01-01",
   "assets": {
-    "directory": "./",
+    "directory": "./",                             // la carpeta donde está tu index.html (./ = la raíz del repositorio)
     "binding": "ASSETS"
   },
   "kv_namespaces": [
-    {
-      "binding": "USUARIOS",
-      "id": "2881106716284f359fef79109ce039b4"
-    }
-  ],
-  "vars": {
-    "ADMIN_CLAVE": "CTMYOSOYELADMIN1111"
-  }
+    { "binding": "USUARIOS", "id": "PEGA-AQUI-EL-ID-DE-TU-KV" }   // <-- CAMBIA: el ID del KV USUARIOS
+  ]
 }
