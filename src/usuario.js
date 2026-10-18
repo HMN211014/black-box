@@ -28,7 +28,7 @@ function iguales(a, b) {
   let d = 0; for (let i = 0; i < a.length; i++) d |= a[i] ^ b[i];
   return d === 0;
 }
-async function mismaClave(a, b) {          // compara dos textos sin revelar en qué letra difieren
+async function mismaClave(a, b) {
   const ha = new Uint8Array(await crypto.subtle.digest('SHA-256', enc.encode(a)));
   const hb = new Uint8Array(await crypto.subtle.digest('SHA-256', enc.encode(b)));
   return iguales(ha, hb);
@@ -47,34 +47,27 @@ async function sumarDias(kv, correo, dias, plan) {
   const base = Math.max(Date.now(), antes.vence);
   const rango = { pedidos: 0, basico: 1, plus: 2 };
   const nuevo = PLANES_OK.includes(plan) ? plan : 'basico';
-  const nuevoPlan = antes.activo && (rango[antes.plan] ?? 0) > rango[nuevo] ? antes.plan : nuevo;   // un plan superior que sigue activo no baja de nivel
+  const nuevoPlan = antes.activo && (rango[antes.plan] ?? 0) > rango[nuevo] ? antes.plan : nuevo;
   await kv.put('a:' + correo, JSON.stringify({ vence: base + dias * DIA, plan: nuevoPlan }));
   return accesoDe(kv, correo);
 }
 
-/* AQUÍ ESTÁ INTEGRADO EL LÍMITE DE PANTALLAS SIMULTÁNEAS */
+/* ---- NUEVO: Límite de pantallas simultáneas según el plan ---- */
 async function crearSesion(kv, correo) {
   const token = b64url(crypto.getRandomValues(new Uint8Array(32)));
   
-  // NUEVO: Obtener el plan del usuario para saber su límite de pantallas
   const acceso = await accesoDe(kv, correo);
-  // Si el plan es 'plus', permite 3. Cualquier otro plan (básico, pedidos), permite 1.
   const limitePantallas = (acceso.plan === 'plus') ? 3 : 1;
   
-  // 1. Obtener la lista de dispositivos (tokens) activos de esta cuenta
   let tokens = (await kv.get('t:' + correo, 'json')) || [];
-  
-  // 2. Agregar el nuevo dispositivo
   tokens.push(token);
   
-  // 3. Borrar las sesiones más viejas si supera el límite de su plan
   while (tokens.length > limitePantallas) {
     const viejo = tokens.shift();
     await kv.delete('s:' + viejo);
   }
   
-  // 4. Guardar los cambios en la base de datos
-  await kv.put('t:' + correo, JSON.stringify(tokens));
+  if (tokens.length) await kv.put('t:' + correo, JSON.stringify(tokens));
   await kv.put('s:' + token, correo, { expirationTtl: SESION_DIAS * 86400 });
   
   return token;
@@ -101,7 +94,7 @@ function normalizarCodigo(x) {
   return 'BB-' + raw.slice(2, 6) + '-' + raw.slice(6);
 }
 
-/* ---- Lista de películas permitidas por cuenta (para el plan "Películas por pedido") ---- */
+/* ---- Lista de películas permitidas por cuenta ---- */
 async function listaDe(kv, correo) {
   const l = await kv.get('l:' + correo, 'json');
   return (l && l.items ? l.items : []).map(x => ({ t: x.t, id: x.id || null }));
@@ -110,7 +103,7 @@ async function estadoDe(kv, correo) {
   return { acceso: await accesoDe(kv, correo), lista: await listaDe(kv, correo) };
 }
 const PLANES_CON_PEDIDOS = ['plus', 'pedidos'];
-async function pedidosDe(kv, correo) {        // pedidos de una cuenta (o de todas si no se da correo)
+async function pedidosDe(kv, correo) {
   const out = []; let cursor;
   do {
     const r = await kv.list({ prefix: 'q:', limit: 1000, cursor });
@@ -123,7 +116,7 @@ async function guardarPedido(kv, ped) {
   await kv.put('q:' + ped.id, JSON.stringify(ped), { metadata: ped });
 }
 
-/* Agrega una película a la lista de una cuenta y, si viene de un pedido, lo marca como listo */
+/* Agrega una película a la lista de una cuenta */
 async function asignarLista(kv, correo, titulo, tmdb, pedidoId) {
   if (!titulo) return { error: 'Escribe el título tal como está en el catálogo.', status: 400 };
   if (!correo || !(await kv.get('u:' + correo))) return { error: 'Ese correo no tiene cuenta.', status: 404 };
@@ -141,7 +134,6 @@ async function asignarLista(kv, correo, titulo, tmdb, pedidoId) {
 export async function onRequest({ request, env, params }) {
   const kv = env.USUARIOS;
 
-  /* Películas publicadas desde el panel */
   if (params.accion === 'extras' && request.method === 'GET') {
     let items = [];
     try { const x = kv && await kv.get('x:catalogo', 'json'); if (x && x.items) items = x.items.map(i => ({ titulo: i.titulo, tmdb: i.tmdb, link: i.link })); } catch (e) {}
@@ -193,7 +185,7 @@ export async function onRequest({ request, env, params }) {
     const u = await kv.get('u:' + correo, 'json');
     let ok = false;
     if (u) ok = iguales(await hashClave(clave, deb64(u.salt)), deb64(u.hash));
-    else await hashClave(clave, new Uint8Array(16));           // mismo tiempo de respuesta exista o no la cuenta
+    else await hashClave(clave, new Uint8Array(16));
     if (!ok) {
       await kv.put(kFallos, String(fallos + 1), { expirationTtl: 900 });
       return json({ error: 'Correo o contraseña incorrectos.' }, 401);
@@ -209,7 +201,7 @@ export async function onRequest({ request, env, params }) {
     if (t) {
       const correo = await kv.get('s:' + t);
       await kv.delete('s:' + t);
-      if (correo) { // Quitarlo también de la lista de dispositivos
+      if (correo) {
         let tokens = (await kv.get('t:' + correo, 'json')) || [];
         tokens = tokens.filter(tok => tok !== t);
         if (tokens.length) await kv.put('t:' + correo, JSON.stringify(tokens));
