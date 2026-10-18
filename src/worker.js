@@ -1,4 +1,4 @@
-import { onRequest } from '../usuario.js';
+import { onRequest } from './usuario.js';
 
 export default {
   async fetch(request, env, ctx) {
