@@ -164,6 +164,9 @@ async function guardarDatos(env, correo, texto) {
   await env.DB.prepare('INSERT INTO datos (correo, json) VALUES (?1, ?2) ON CONFLICT(correo) DO UPDATE SET json = ?2').bind(correo, texto).run();
 }
 
+/* Serie o película de un título guardado en KV. Los publicados antes de este cambio no traían "tipo": se deduce por la plantilla {t}/{e} del enlace. */
+const tipoDe = i => i.tipo === 'serie' || i.episodios || /\{(t|e|tt|ee)\}/.test(String(i.link || '')) ? 'serie' : 'pelicula';
+
 async function manejar({ request, env, params }) {
   const db = env.DB;
   const kv = env.USUARIOS;          // solo para las películas publicadas desde el panel
@@ -341,7 +344,7 @@ async function manejar({ request, env, params }) {
   /* ---- Películas publicadas desde el panel (siguen en KV) ---- */
   if (accion === 'extras' && request.method === 'GET') {
     let items = [];
-    try { const x = kv && await kv.get('x:catalogo', 'json'); if (x && x.items) items = x.items.map(i => ({ titulo: i.titulo, tmdb: i.tmdb, link: i.link })); } catch (e) {}
+    try { const x = kv && await kv.get('x:catalogo', 'json'); if (x && x.items) items = x.items.map(i => { const tipo = tipoDe(i), eps = i.episodios && Object.keys(i.episodios).length ? i.episodios : null; return { titulo: i.titulo, tmdb: i.tmdb, link: i.link, ...(tipo === 'serie' ? { tipo } : {}), ...(eps ? { episodios: eps } : {}) }; }); } catch (e) {}
     const js = 'window.PELICULAS_EXTRA=' + JSON.stringify(items).replace(/</g, '\\u003c') + ';';
     return new Response(js, { headers: { 'Content-Type': 'application/javascript; charset=utf-8', 'Cache-Control': 'public, max-age=30' } });
   }
@@ -426,8 +429,9 @@ async function manejar({ request, env, params }) {
       if (!titulo || !tmdb) return json({ error: 'Faltan el título o el código de TMDB.' }, 400);
       if (!/^https?:\/\/\S{4,2000}$/.test(link)) return json({ error: 'El enlace debe empezar con http:// o https://' }, 400);
       const x = (await kv.get('x:catalogo', 'json')) || { items: [] };
+      const tipo = cuerpo.tipo === 'serie' ? 'serie' : 'pelicula';
       const ya = x.items.find(i => i.tmdb === tmdb);
-      if (ya) { ya.titulo = titulo; ya.link = link; } else x.items.push({ titulo, tmdb, link, creado: Date.now() });
+      if (ya) { ya.titulo = titulo; ya.link = link; ya.tipo = tipo; } else x.items.push({ titulo, tmdb, link, tipo, creado: Date.now() });
       if (x.items.length > 1500) return json({ error: 'Ya hay demasiadas películas publicadas desde el panel.' }, 400);
       await kv.put('x:catalogo', JSON.stringify(x));
       let lista = null;
@@ -442,7 +446,40 @@ async function manejar({ request, env, params }) {
     if (cuerpo.op === 'publicadas') {
       if (!kv) return sinKV();
       const x = (await kv.get('x:catalogo', 'json')) || { items: [] };
-      return json({ items: x.items.slice().sort((a, b) => (b.creado || 0) - (a.creado || 0)).map(i => ({ titulo: i.titulo, tmdb: i.tmdb, link: i.link })) });
+      return json({ items: x.items.slice().sort((a, b) => (b.creado || 0) - (a.creado || 0)).map(i => ({ titulo: i.titulo, tmdb: i.tmdb, link: i.link, tipo: tipoDe(i), eps: i.episodios ? Object.keys(i.episodios).length : 0 })) });
+    }
+
+    /* Capítulos sueltos de una serie: ver los guardados y guardar/actualizar uno ("1x3" = temporada 1, capítulo 3). */
+    if (cuerpo.op === 'episodios') {
+      if (!kv) return sinKV();
+      const tmdb = Math.floor(Number(cuerpo.tmdb)) || 0;
+      const x = (await kv.get('x:catalogo', 'json')) || { items: [] };
+      const it = x.items.find(i => i.tmdb === tmdb);
+      return json({ episodios: (it && it.episodios) || {}, plantilla: (it && it.link) || '' });
+    }
+
+    if (cuerpo.op === 'publicar_ep') {
+      if (!kv) return sinKV();
+      const titulo = String(cuerpo.titulo || '').trim().slice(0, 200);
+      const tmdb = Math.floor(Number(cuerpo.tmdb)) || 0;
+      const t = Math.floor(Number(cuerpo.t)), e = Math.floor(Number(cuerpo.e));
+      const link = String(cuerpo.link || '').trim();
+      if (!titulo || !tmdb) return json({ error: 'Faltan el título o el código de TMDB.' }, 400);
+      if (!(t >= 1 && t <= 100 && e >= 1 && e <= 1000)) return json({ error: 'Temporada o capítulo no válidos.' }, 400);
+      if (!/^https?:\/\/\S{4,2000}$/.test(link)) return json({ error: 'El enlace debe empezar con http:// o https://' }, 400);
+      const x = (await kv.get('x:catalogo', 'json')) || { items: [] };
+      let it = x.items.find(i => i.tmdb === tmdb);
+      if (!it) {
+        if (x.items.length >= 1500) return json({ error: 'Ya hay demasiadas películas publicadas desde el panel.' }, 400);
+        it = { titulo, tmdb, link: '', tipo: 'serie', creado: Date.now() };
+        x.items.push(it);
+      }
+      it.tipo = 'serie'; it.titulo = titulo;
+      it.episodios = it.episodios || {};
+      if (!it.episodios[t + 'x' + e] && Object.keys(it.episodios).length >= 3000) return json({ error: 'Esta serie ya tiene demasiados capítulos.' }, 400);
+      it.episodios[t + 'x' + e] = link;
+      await kv.put('x:catalogo', JSON.stringify(x));
+      return json({ episodios: it.episodios });
     }
 
     if (cuerpo.op === 'despublicar') {
