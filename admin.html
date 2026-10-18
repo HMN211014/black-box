@@ -38,6 +38,15 @@ td.k{font-family:ui-monospace,Menlo,Consolas,monospace;white-space:nowrap}
 .pe b{font-size:16px}.pe small{display:block;color:#a1a1a6;font-size:13px;margin:2px 0 8px}
 .pe input{height:42px;margin:0 0 8px;font-size:15px}
 .pe .row button{height:40px;font-size:14px}
+.sr{display:grid;gap:6px;margin-top:10px}
+.sr button{display:flex;gap:12px;align-items:center;height:auto;padding:8px;text-align:left;background:rgba(255,255,255,.07);color:#fff;font-size:15px;border-radius:14px}
+.sr button img,.sr button .ni{width:42px;height:62px;border-radius:8px;object-fit:cover;background:#26262c;flex:none}
+.sr button small{display:block;color:#a1a1a6;font-size:12px;margin-top:2px}
+.sel{display:flex;gap:14px;margin-top:14px;padding:12px;border-radius:16px;background:rgba(255,255,255,.06)}
+.sel img{width:70px;height:104px;border-radius:10px;object-fit:cover;flex:none;background:#26262c}
+.sel .d{min-width:0;flex:1}.sel .d input{margin-bottom:6px}
+.ph{display:flex;gap:8px;flex-wrap:wrap;margin:-2px 0 10px}
+.ph button{height:30px;padding:0 10px;font-size:13px;border-radius:999px}
 .tag.p{background:rgba(255,214,10,.18);color:#ffd60a}.tag.r{background:rgba(255,69,58,.18);color:#ff9f9a}
 </style>
 </head>
@@ -54,7 +63,8 @@ td.k{font-family:ui-monospace,Menlo,Consolas,monospace;white-space:nowrap}
     <h2>Generar códigos</h2>
     <div class="f">
       <label>Plan<select id="g-plan"><option value="basico">Básico</option><option value="plus">Plus</option><option value="pedidos">Películas por pedido</option></select></label>
-      <label>Días de acceso<input id="g-dias" type="number" min="1" max="3650" value="30" inputmode="numeric"></label>
+      <label id="g-dias-l">Días de acceso<input id="g-dias" type="number" min="1" max="3650" value="30" inputmode="numeric"></label>
+      <label id="g-pel-l" hidden>Películas por código<input id="g-pel" type="number" min="1" max="20" value="1" inputmode="numeric"></label>
       <label>Cantidad<input id="g-cant" type="number" min="1" max="50" value="5" inputmode="numeric"></label>
     </div>
     <button id="g-go" type="button">Generar</button>
@@ -68,26 +78,60 @@ td.k{font-family:ui-monospace,Menlo,Consolas,monospace;white-space:nowrap}
     <div class="f">
       <label>Correo<input id="c-correo" type="email" autocapitalize="off" placeholder="cliente@correo.com"></label>
       <label>Plan<select id="c-plan"><option value="basico">Básico</option><option value="plus">Plus</option><option value="pedidos">Películas por pedido</option></select></label>
-      <label>Días<input id="c-dias" type="number" min="1" max="3650" value="30" inputmode="numeric"></label>
+      <label id="c-dias-l">Días<input id="c-dias" type="number" min="1" max="3650" value="30" inputmode="numeric"></label>
+      <label id="c-pel-l" hidden>Películas<input id="c-pel" type="number" min="1" max="50" value="1" inputmode="numeric"></label>
     </div>
     <button id="c-go" type="button">Agregar días</button>
     <p class="m" id="c-m" hidden></p>
   </div>
 
   <div class="c">
+    <h2>Subir película o serie</h2>
+    <p class="s">Busca el título (los datos, el póster y la sinopsis salen solos de TMDB), pega el enlace y publica. Aparece en la biblioteca de todos en menos de un minuto, sin tocar <b>index.html</b>.</p>
+    <label style="margin-top:12px">Buscar en TMDB<input id="s-q" type="search" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Nombre de la película o serie"></label>
+    <div class="sr" id="s-res"></div>
+    <div id="s-sel" hidden>
+      <div class="sel"><img id="s-img" alt=""><div class="d">
+        <label style="margin:0">Título como se verá<input id="s-tit" autocomplete="off"></label>
+        <small id="s-info" style="color:#a1a1a6;font-size:13px"></small>
+      </div></div>
+      <label style="margin-top:14px"><span id="s-lbl">Enlace del video</span><input id="s-link" type="url" autocapitalize="off" spellcheck="false" placeholder="https://…"></label>
+      <div class="ph" id="s-ph" hidden>
+        <button class="g" type="button" data-v="{t}">+ {t} temporada</button><button class="g" type="button" data-v="{e}">+ {e} capítulo</button><button class="g" type="button" data-v="{tt}">+ {tt} temp. con cero</button><button class="g" type="button" data-v="{ee}">+ {ee} cap. con cero</button>
+      </div>
+      <p class="s" id="s-ayuda" hidden>Pon el enlace de un capítulo y cambia los números por las marcas. Ejemplo: <b>https://…/Serie/T{t}/E{e}.mp4</b> sirve para todos los capítulos.</p>
+      <div class="row" style="margin-top:12px"><button id="s-go" type="button">Publicar en la biblioteca</button><button class="g" id="s-no" type="button">Cancelar</button></div>
+    </div>
+    <p class="m" id="s-m" hidden></p>
+  </div>
+
+  <div class="c">
     <h2>Pedidos de clientes</h2>
-    <p class="s">Aquí llegan las películas que piden. Elige el título tal como está en tu catálogo y agrégalo a su cuenta.</p>
+    <p class="s">Aquí llegan las películas que piden (las de plan por pedido ya gastaron un vale; si rechazas una, el vale vuelve a su cuenta). Elige el título tal como está en tu catálogo y agrégalo a su cuenta.</p>
     <div class="row" style="margin-top:12px"><button class="g" id="p-go" type="button">Actualizar pedidos</button><button class="g" id="p-cp" type="button" hidden>Copiar líneas de todos los pendientes</button></div>
-    <p class="s" style="margin-top:10px">Pega el enlace del video y toca <b>Publicar y agregar a su cuenta</b>: la película aparece en la biblioteca y en la lista del cliente, sin tocar <b>index.html</b>. Las series se siguen agregando a mano en <b>index.html</b> (usa "Copiar línea").</p>
+    <p class="s" style="margin-top:10px">Pega el enlace del video y toca <b>Publicar y agregar a su cuenta</b>: la película aparece en la biblioteca y en la lista del cliente, sin tocar <b>index.html</b>. En una serie pega el enlace con <b>{t}</b> y <b>{e}</b> (temporada y capítulo), por ejemplo <b>https://…/T{t}/E{e}.mp4</b>.</p>
     <p class="m" id="p-m" hidden></p>
     <div id="p-lista"></div>
   </div>
 
   <div class="c">
     <h2>Lista de una cuenta</h2>
-    <p class="s">Consulta qué puede reproducir una cuenta con plan por pedido, agrega una película directo o quítala.</p>
+    <p class="s">Consulta qué puede reproducir una cuenta con plan por pedido, agrega una película o serie buscándola en TMDB (con su póster) o quítala.</p>
     <label style="margin-top:12px">Correo<input id="a-correo" type="email" autocapitalize="off" placeholder="cliente@correo.com"></label>
-    <label>Película (título del catálogo)<input id="a-tit" list="titulos" autocomplete="off" placeholder="Escribe para buscar"></label>
+    <label>Buscar película o serie en TMDB<input id="a-q" type="search" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Nombre del título"></label>
+    <div class="sr" id="a-res"></div>
+    <div id="a-sel" hidden>
+      <div class="sel"><img id="a-img" alt=""><div class="d">
+        <label style="margin:0">Título como está en tu catálogo<input id="a-tit" list="titulos" autocomplete="off"></label>
+        <small id="a-info" style="display:block;color:#a1a1a6;font-size:13px"></small>
+        <small id="a-sin" style="display:block;color:#a1a1a6;font-size:12px;margin-top:6px;line-height:1.35"></small>
+      </div></div>
+      <label style="margin-top:14px"><span id="a-lbl">Enlace del video (solo si todavía no está en la biblioteca)</span><input id="a-link" type="url" autocapitalize="off" spellcheck="false" placeholder="https://…"></label>
+      <div class="ph" id="a-ph" hidden>
+        <button class="g" type="button" data-v="{t}">+ {t} temporada</button><button class="g" type="button" data-v="{e}">+ {e} capítulo</button><button class="g" type="button" data-v="{tt}">+ {tt} temp. con cero</button><button class="g" type="button" data-v="{ee}">+ {ee} cap. con cero</button>
+      </div>
+      <p class="s" id="a-hint" style="margin-bottom:12px">Si pegas el enlace, el título se publica en la biblioteca de todos y además se agrega a la lista de esta cuenta. Si ya está en la biblioteca, déjalo vacío y solo se agrega a su lista.</p>
+    </div>
     <div class="row"><button id="a-add" type="button">Agregar a su lista</button><button class="g" id="a-ver" type="button">Ver su lista</button></div>
     <p class="m" id="a-m" hidden></p>
     <div id="a-lista"></div>
@@ -95,7 +139,7 @@ td.k{font-family:ui-monospace,Menlo,Consolas,monospace;white-space:nowrap}
   <datalist id="titulos"></datalist>
 
   <div class="c">
-    <h2>Películas publicadas desde aquí</h2>
+    <h2>Películas y series publicadas desde aquí</h2>
     <button class="g" id="x-go" type="button">Ver publicadas</button>
     <p class="m" id="x-m" hidden></p>
     <div id="x-lista"></div>
@@ -105,7 +149,7 @@ td.k{font-family:ui-monospace,Menlo,Consolas,monospace;white-space:nowrap}
     <h2>Todos los códigos</h2>
     <button class="g" id="l-go" type="button">Actualizar lista</button>
     <p class="m" id="l-m" hidden></p>
-    <div class="tw"><table id="l-t" hidden><thead><tr><th>Código</th><th>Plan</th><th>Días</th><th>Estado</th></tr></thead><tbody></tbody></table></div>
+    <div class="tw"><table id="l-t" hidden><thead><tr><th>Código</th><th>Plan</th><th>Días / películas</th><th>Estado</th></tr></thead><tbody></tbody></table></div>
   </div>
 </main>
 <script src="/api/catalogo"></script>
@@ -127,10 +171,12 @@ async function con(btn, id, fn) {
 const nombrePlan = p => ({ plus: 'Plus', pedidos: 'Películas por pedido' })[p] || 'Básico';
 const fecha = t => new Date(t).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' });
 
+function campoPlan(selId, diasL, pelL) { const f = () => { const v = $(selId).value === 'pedidos'; $(diasL).hidden = v; $(pelL).hidden = !v; }; $(selId).addEventListener('change', f); f(); }
+campoPlan('g-plan', 'g-dias-l', 'g-pel-l'); campoPlan('c-plan', 'c-dias-l', 'c-pel-l');
 $('g-go').onclick = () => con($('g-go'), 'g-m', async () => {
-  const j = await admin({ op: 'generar', plan: $('g-plan').value, dias: $('g-dias').value, cantidad: $('g-cant').value });
+  const j = await admin({ op: 'generar', plan: $('g-plan').value, dias: $('g-dias').value, peliculas: $('g-pel').value, cantidad: $('g-cant').value });
   $('g-out').value = j.codigos.join('\n'); $('g-out').hidden = false; $('g-acc').hidden = false;
-  msg('g-m', j.codigos.length + ' código(s) de ' + j.dias + ' días, plan ' + nombrePlan(j.plan) + '. Cada uno se puede usar una sola vez.', true);
+  msg('g-m', j.codigos.length + ' código(s) ' + (j.plan === 'pedidos' ? 'válidos por ' + j.peliculas + ' película(s) cada uno' : 'de ' + j.dias + ' días') + ', plan ' + nombrePlan(j.plan) + '. Cada uno se puede usar una sola vez.', true);
 });
 $('g-cp').onclick = async () => {
   const t = $('g-out').value;
@@ -138,7 +184,8 @@ $('g-cp').onclick = async () => {
   setTimeout(() => { $('g-cp').textContent = 'Copiar todos'; }, 1800);
 };
 $('c-go').onclick = () => con($('c-go'), 'c-m', async () => {
-  const j = await admin({ op: 'conceder', correo: $('c-correo').value, plan: $('c-plan').value, dias: $('c-dias').value });
+  const j = await admin({ op: 'conceder', correo: $('c-correo').value, plan: $('c-plan').value, dias: $('c-dias').value, peliculas: $('c-pel').value });
+  if ($('c-plan').value === 'pedidos') { msg('c-m', j.correo + ': ahora tiene ' + j.acceso.vales + ' película(s) por canjear.', true); return; }
   msg('c-m', j.correo + ': plan ' + nombrePlan(j.acceso.plan) + ', vence el ' + fecha(j.acceso.vence) + '.', true);
 });
 $('l-go').onclick = () => con($('l-go'), 'l-m', async () => {
@@ -148,7 +195,7 @@ $('l-go').onclick = () => con($('l-go'), 'l-m', async () => {
     const tr = document.createElement('tr');
     const k = document.createElement('td'); k.className = 'k'; k.textContent = c.codigo;
     const p = document.createElement('td'); p.textContent = nombrePlan(c.plan);
-    const d = document.createElement('td'); d.textContent = c.dias;
+    const d = document.createElement('td'); d.textContent = c.plan === 'pedidos' && c.peliculas ? c.peliculas + (c.peliculas === 1 ? ' película' : ' películas') : c.dias;
     const e = document.createElement('td'), t = document.createElement('span');
     t.className = 'tag ' + (c.usado ? 'u' : 'd'); t.textContent = c.usado ? 'Usado' : 'Disponible'; e.appendChild(t);
     if (c.usado) { const s = document.createElement('div'); s.className = 's'; s.style.cssText = 'color:#a1a1a6;font-size:12px;margin-top:3px'; s.textContent = c.usado.por + ' · ' + fecha(c.usado.fecha); e.appendChild(s); }
@@ -180,12 +227,34 @@ $('a-ver').onclick = () => con($('a-ver'), 'a-m', async () => {
   msg('a-m', 'Plan ' + nombrePlan(j.acceso.plan) + (j.acceso.vence ? (j.acceso.activo ? ', vence el ' : ', venció el ') + fecha(j.acceso.vence) : ', sin acceso') + '.', true);
   filaLista(j.correo, j.lista, 'a-lista');
 });
+let aElegido = null;
+buscadorTmdb('a-q', 'a-res', 'a-m', r => {
+  aElegido = r;
+  const serie = r.media_type === 'tv', hit = CAT.find(c => c.tmdb && Number(c.tmdb) === r.id);
+  $('a-img').src = r.poster_path ? IMG + 'w185' + r.poster_path : '';
+  $('a-tit').value = hit ? hit.titulo : (r.title || r.name || '');
+  $('a-info').textContent = [(r.release_date || r.first_air_date || '').slice(0, 4), serie ? 'Serie' : 'Película', 'TMDB ' + r.id].filter(Boolean).join(' · ') + (hit ? ' · ya está en el catálogo' : '');
+  const sin = (r.overview || '').trim(); $('a-sin').textContent = sin.length > 180 ? sin.slice(0, 177) + '…' : sin;
+  $('a-lbl').textContent = serie ? 'Enlace de los capítulos con {t} y {e} (solo si todavía no está en la biblioteca)' : 'Enlace del video (solo si todavía no está en la biblioteca)';
+  $('a-link').placeholder = serie ? 'https://…/T{t}/E{e}.mp4' : 'https://…';
+  $('a-link').value = ''; $('a-ph').hidden = !serie; $('a-sel').hidden = false; msg('a-m', '', true);
+});
 $('a-add').onclick = () => con($('a-add'), 'a-m', async () => {
-  const t = $('a-tit').value.trim(), c = enCat(t);
-  if (CAT.length && !c && !confirm('No encuentro "' + t + '" tal cual en el catálogo. Si el título no coincide exacto, el cliente no podrá reproducirla. ¿Agregarla de todos modos?')) return;
-  const j = await admin({ op: 'asignar', correo: $('a-correo').value, titulo: t, tmdb: c && c.tmdb ? c.tmdb : 0 });
-  msg('a-m', 'Agregada. Ahora tiene ' + j.lista.length + ' película(s) en su lista.', true);
-  filaLista(j.correo, j.lista, 'a-lista'); $('a-tit').value = '';
+  const correo = $('a-correo').value.trim().toLowerCase();
+  if (!correo) throw new Error('Escribe el correo de la cuenta.');
+  if (!aElegido) throw new Error('Busca el título en TMDB y elígelo.');
+  const t = $('a-tit').value.trim(), link = $('a-link').value.trim(), serie = aElegido.media_type === 'tv';
+  if (!t) throw new Error('Escribe el título.');
+  let j;
+  if (link) {
+    if (serie && !/\{(e|ee)\}/.test(link)) throw new Error('En una serie el enlace debe llevar {e} (capítulo) y {t} (temporada). Usa los botones de arriba.');
+    j = await admin({ op: 'publicar', correo, titulo: t, tmdb: aElegido.id, tipo: serie ? 'serie' : 'pelicula', link });
+  } else {
+    if (!enCat(t) && !confirm('No encuentro "' + t + '" en el catálogo de la base de datos. Si ya está en index.html, acepta; si no, pega el enlace para publicarla o la cuenta no podrá verla. ¿Agregarla de todos modos?')) return;
+    j = await admin({ op: 'asignar', correo, titulo: t, tmdb: aElegido.id });
+  }
+  msg('a-m', (link ? 'Publicada en la biblioteca y agregada. ' : 'Agregada. ') + 'Ahora tiene ' + j.lista.length + ' título(s) en su lista.', true);
+  filaLista(correo, j.lista, 'a-lista'); aElegido = null; $('a-sel').hidden = true;
 });
 
 /* ---- pedidos de clientes ---- */
@@ -210,7 +279,7 @@ $('p-go').onclick = () => con($('p-go'), 'p-m', async () => {
     const tg = document.createElement('span'); tg.className = 'tag ' + (x.estado === 'listo' ? 'd' : x.estado === 'rechazado' ? 'r' : 'p'); tg.style.marginLeft = '8px';
     tg.textContent = x.estado === 'listo' ? 'Listo' : x.estado === 'rechazado' ? 'Rechazado' : 'Pendiente';
     t.append(b, tg);
-    const sm = document.createElement('small'); sm.textContent = x.correo + ' · ' + (x.tipo === 'tv' ? 'Serie' : 'Película') + ' · TMDB ' + x.tmdb + ' · ' + fecha(x.creado);
+    const sm = document.createElement('small'); sm.textContent = x.correo + ' · ' + (x.tipo === 'tv' ? 'Serie' : 'Película') + ' · TMDB ' + x.tmdb + ' · ' + fecha(x.creado) + (x.vale ? ' · pagado con vale' : '');
     d.append(t, sm);
     if (x.estado === 'pendiente') {
       const hit = CAT.find(c => c.tmdb && Number(c.tmdb) === x.tmdb);
@@ -218,7 +287,7 @@ $('p-go').onclick = () => con($('p-go'), 'p-m', async () => {
       inp.value = hit ? hit.titulo : x.titulo;
       const en = document.createElement('input'); en.type = 'url'; en.placeholder = 'Enlace del video (https://…)'; en.autocapitalize = 'off'; en.spellcheck = false;
       const pub = document.createElement('button'); pub.type = 'button'; pub.textContent = 'Publicar y agregar a su cuenta';
-      if (x.tipo === 'tv') { en.hidden = true; pub.hidden = true; }
+      if (x.tipo === 'tv') en.placeholder = 'Enlace con {t} y {e}: https://…/T{t}/E{e}.mp4';
       const ok = document.createElement('button'); ok.type = 'button'; ok.className = 'g'; ok.textContent = 'Solo agregar a su cuenta (ya está en index.html)';
       const no = document.createElement('button'); no.type = 'button'; no.className = 'g'; no.textContent = 'Rechazar';
       ok.onclick = () => con(ok, 'p-m', async () => {
@@ -231,7 +300,7 @@ $('p-go').onclick = () => con($('p-go'), 'p-m', async () => {
       pub.onclick = () => con(pub, 'p-m', async () => {
         const ti = inp.value.trim(); if (!ti) throw new Error('Escribe el título como quieres que se vea en la biblioteca.');
         if (!en.value.trim()) throw new Error('Pega el enlace del video.');
-        await admin({ op: 'publicar', correo: x.correo, titulo: ti, tmdb: x.tmdb, link: en.value.trim(), pedido: x.id });
+        await admin({ op: 'publicar', correo: x.correo, titulo: ti, tmdb: x.tmdb, tipo: x.tipo === 'tv' ? 'serie' : 'pelicula', link: en.value.trim(), pedido: x.id });
         row.remove(); en.remove(); inp.remove(); tg.className = 'tag d'; tg.textContent = 'Listo';
         msg('p-m', 'Publicada y agregada a ' + x.correo + '. En menos de un minuto aparece en la biblioteca.', true);
       });
@@ -254,12 +323,84 @@ $('x-go').onclick = () => con($('x-go'), 'x-m', async () => {
     const d = document.createElement('div'); d.className = 'it';
     const tx = document.createElement('div'); tx.className = 'tx';
     const b = document.createElement('b'); b.textContent = x.titulo;
-    const sm = document.createElement('small'); sm.textContent = 'TMDB ' + x.tmdb;
+    const sm = document.createElement('small'); sm.textContent = (x.tipo === 'serie' ? 'Serie' : 'Película') + ' · TMDB ' + x.tmdb;
     tx.append(b, sm);
     const q = document.createElement('button'); q.className = 'g'; q.type = 'button'; q.textContent = 'Quitar de la biblioteca';
-    q.onclick = () => { if (!confirm('¿Quitar "' + x.titulo + '" de la biblioteca? Los clientes dejarán de verla.')) return; con(q, 'x-m', async () => { await admin({ op: 'despublicar', tmdb: x.tmdb }); d.remove(); }); };
+    q.onclick = () => { if (!confirm('¿Quitar "' + x.titulo + '" de la biblioteca? Los clientes dejarán de verla.')) return; con(q, 'x-m', async () => { await admin({ op: 'despublicar', tmdb: x.tmdb, tipo: x.tipo }); d.remove(); }); };
     d.append(tx, q); box.appendChild(d);
   });
+});
+
+/* ---- subir película o serie con datos de TMDB ---- */
+const TMDB_KEY = '28e735f7aea07e37f38a95d346bcdd7f', TMDB = 'https://api.themoviedb.org/3', IMG = 'https://image.tmdb.org/t/p/';
+let sElegido = null;
+const sTipo = () => sElegido && sElegido.media_type === 'tv' ? 'serie' : 'pelicula';
+function sLimpiar() { sElegido = null; $('s-sel').hidden = true; }
+/* Buscador de TMDB reutilizable: escribe en inpId, pinta los resultados en resId y llama a alElegir(resultado) */
+function buscadorTmdb(inpId, resId, msgId, alElegir) {
+  let timer = null, n = 0;
+  async function buscar(q) {
+    const mi = ++n;
+    try {
+      const j = await fetch(`${TMDB}/search/multi?api_key=${TMDB_KEY}&language=es-MX&include_adult=false&query=${encodeURIComponent(q)}`, { signal: AbortSignal.timeout(8000) }).then(r => r.json());
+      if (mi !== n) return;
+      const L = (j.results || []).filter(x => x.media_type === 'movie' || x.media_type === 'tv').slice(0, 8);
+      const box = $(resId); box.replaceChildren();
+      if (!L.length) { msg(msgId, 'No encontré resultados para "' + q + '".', false); return; }
+      msg(msgId, '', true);
+      L.forEach(r => {
+        const b = document.createElement('button'); b.type = 'button';
+        let im; if (r.poster_path) { im = document.createElement('img'); im.src = IMG + 'w92' + r.poster_path; im.alt = ''; } else { im = document.createElement('div'); im.className = 'ni'; }
+        const t = document.createElement('div'), nm = document.createElement('b'), sm = document.createElement('small');
+        nm.textContent = r.title || r.name; sm.textContent = [(r.release_date || r.first_air_date || '').slice(0, 4), r.media_type === 'tv' ? 'Serie' : 'Película'].filter(Boolean).join(' · ');
+        t.append(nm, sm); b.append(im, t);
+        b.onclick = () => { n++; box.replaceChildren(); $(inpId).value = ''; alElegir(r); };
+        box.appendChild(b);
+      });
+    } catch (e) { if (mi === n) msg(msgId, 'No se pudo buscar en TMDB. Inténtalo de nuevo.', false); }
+  }
+  $(inpId).addEventListener('input', () => {
+    clearTimeout(timer); const q = $(inpId).value.trim();
+    if (q.length < 2) { n++; $(resId).replaceChildren(); return; }
+    timer = setTimeout(() => buscar(q), 400);
+  });
+}
+buscadorTmdb('s-q', 's-res', 's-m', r => sElegir(r));
+function sElegir(r) {
+  sElegido = r;
+  const serie = r.media_type === 'tv';
+  $('s-img').src = r.poster_path ? IMG + 'w185' + r.poster_path : '';
+  $('s-tit').value = r.title || r.name || '';
+  $('s-info').textContent = [(r.release_date || r.first_air_date || '').slice(0, 4), serie ? 'Serie' : 'Película', 'TMDB ' + r.id].filter(Boolean).join(' · ');
+  $('s-lbl').textContent = serie ? 'Enlace de los capítulos (con {t} y {e})' : 'Enlace del video';
+  $('s-link').placeholder = serie ? 'https://…/T{t}/E{e}.mp4' : 'https://…';
+  $('s-link').value = ''; $('s-ph').hidden = $('s-ayuda').hidden = !serie;
+  $('s-sel').hidden = false; msg('s-m', '', true); $('s-link').focus();
+}
+$('s-ph').addEventListener('click', e => {
+  const v = e.target.dataset && e.target.dataset.v; if (!v) return;
+  const i = $('s-link'), a = i.selectionStart == null ? i.value.length : i.selectionStart, b = i.selectionEnd == null ? a : i.selectionEnd;
+  i.value = i.value.slice(0, a) + v + i.value.slice(b); i.focus(); const c = a + v.length; i.setSelectionRange(c, c);
+});
+function marcasEn(phId, linkId) {
+  $(phId).addEventListener('click', e => {
+    const v = e.target.dataset && e.target.dataset.v; if (!v) return;
+    const i = $(linkId), a = i.selectionStart == null ? i.value.length : i.selectionStart, b = i.selectionEnd == null ? a : i.selectionEnd;
+    i.value = i.value.slice(0, a) + v + i.value.slice(b); i.focus(); const c = a + v.length; i.setSelectionRange(c, c);
+  });
+}
+marcasEn('a-ph', 'a-link');
+$('s-no').onclick = () => { sLimpiar(); msg('s-m', '', true); };
+$('s-go').onclick = () => con($('s-go'), 's-m', async () => {
+  if (!sElegido) throw new Error('Primero busca y elige el título.');
+  const titulo = $('s-tit').value.trim(), link = $('s-link').value.trim();
+  if (!titulo) throw new Error('Escribe el título.');
+  if (!link) throw new Error('Pega el enlace.');
+  const serie = sTipo() === 'serie';
+  if (serie && !/\{(e|ee)\}/.test(link)) throw new Error('En una serie el enlace debe llevar {e} (capítulo) y {t} (temporada). Usa los botones de arriba.');
+  const j = await admin({ op: 'publicar', titulo, tmdb: sElegido.id, tipo: sTipo(), link });
+  msg('s-m', (j.actualizada ? 'Actualizada: ' : 'Publicada: ') + titulo + '. En menos de un minuto aparece en la biblioteca.', true);
+  sLimpiar();
 });
 </script>
 </body>
