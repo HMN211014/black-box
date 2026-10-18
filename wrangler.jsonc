@@ -15,7 +15,7 @@
     {
       "binding": "DB",
       "database_name": "black-box-usuarios",
-      "database_id": "PEGA-AQUI-EL-ID-DE-TU-BASE-D1"
+      "database_id": "fe51c8f0-5bbf-4081-b0d7-279569f87acd"
     }
   ],
 
@@ -23,7 +23,7 @@
   "r2_buckets": [
     {
       "binding": "DATOS",
-      "bucket_name": "black-box-datos"
+      "bucket_name": "bucketmovie"
     }
   ],
 
