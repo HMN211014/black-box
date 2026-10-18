@@ -47,6 +47,12 @@ td.k{font-family:ui-monospace,Menlo,Consolas,monospace;white-space:nowrap}
 .sel .d{min-width:0;flex:1}.sel .d input{margin-bottom:6px}
 .ph{display:flex;gap:8px;flex-wrap:wrap;margin:-2px 0 10px}
 .ph button{height:30px;padding:0 10px;font-size:13px;border-radius:999px}
+.ep{padding:10px 0;border-top:1px solid rgba(255,255,255,.1)}
+.ep .eh{display:flex;gap:8px;align-items:center;justify-content:space-between}
+.ep .eh b{font-size:14px;min-width:0;word-break:break-word}
+.ep .er{display:flex;gap:8px;margin-top:6px}
+.ep .er input{margin:0;height:42px;font-size:15px;flex:1;min-width:0}
+.ep .er button{height:42px;width:46px;padding:0;font-size:22px;flex:none}
 .tag.p{background:rgba(255,214,10,.18);color:#ffd60a}.tag.r{background:rgba(255,69,58,.18);color:#ff9f9a}
 </style>
 </head>
@@ -87,7 +93,7 @@ td.k{font-family:ui-monospace,Menlo,Consolas,monospace;white-space:nowrap}
 
   <div class="c">
     <h2>Subir película o serie</h2>
-    <p class="s">Busca el título (los datos, el póster y la sinopsis salen solos de TMDB), pega el enlace y publica. Aparece en la biblioteca de todos en menos de un minuto, sin tocar <b>index.html</b>.</p>
+    <p class="s">Busca el título (los datos, el póster y la sinopsis salen solos de TMDB), pega el enlace y publica. En una serie eliges la temporada y pegas el enlace de cada capítulo. Aparece en la biblioteca de todos en menos de un minuto, sin tocar <b>index.html</b>.</p>
     <label style="margin-top:12px">Buscar en TMDB<input id="s-q" type="search" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Nombre de la película o serie"></label>
     <div class="sr" id="s-res"></div>
     <div id="s-sel" hidden>
@@ -95,12 +101,22 @@ td.k{font-family:ui-monospace,Menlo,Consolas,monospace;white-space:nowrap}
         <label style="margin:0">Título como se verá<input id="s-tit" autocomplete="off"></label>
         <small id="s-info" style="color:#a1a1a6;font-size:13px"></small>
       </div></div>
+      <div id="s-eps" hidden style="margin-top:14px">
+        <label>Temporada<select id="s-temp"></select></label>
+        <p class="s" id="s-prog"></p>
+        <div id="s-lista"></div>
+        <p class="s" style="margin-top:10px">Pega el enlace de cada capítulo y toca <b>+</b> o presiona <b>Enter</b>. Se publica al instante, sin tocar <b>index.html</b>.</p>
+        <button class="g" id="s-usa-plan" type="button" style="margin-top:10px;height:38px;font-size:14px">Usar un solo enlace con plantilla</button>
+      </div>
+      <div id="s-plant">
       <label style="margin-top:14px"><span id="s-lbl">Enlace del video</span><input id="s-link" type="url" autocapitalize="off" spellcheck="false" placeholder="https://…"></label>
       <div class="ph" id="s-ph" hidden>
         <button class="g" type="button" data-v="{t}">+ {t} temporada</button><button class="g" type="button" data-v="{e}">+ {e} capítulo</button><button class="g" type="button" data-v="{tt}">+ {tt} temp. con cero</button><button class="g" type="button" data-v="{ee}">+ {ee} cap. con cero</button>
       </div>
       <p class="s" id="s-ayuda" hidden>Pon el enlace de un capítulo y cambia los números por las marcas. Ejemplo: <b>https://…/Serie/T{t}/E{e}.mp4</b> sirve para todos los capítulos.</p>
-      <div class="row" style="margin-top:12px"><button id="s-go" type="button">Publicar en la biblioteca</button><button class="g" id="s-no" type="button">Cancelar</button></div>
+      <div class="row" style="margin-top:12px"><button id="s-go" type="button">Publicar en la biblioteca</button></div>
+      </div>
+      <div class="row" style="margin-top:12px"><button class="g" id="s-no" type="button">Cerrar</button></div>
     </div>
     <p class="m" id="s-m" hidden></p>
   </div>
@@ -323,7 +339,7 @@ $('x-go').onclick = () => con($('x-go'), 'x-m', async () => {
     const d = document.createElement('div'); d.className = 'it';
     const tx = document.createElement('div'); tx.className = 'tx';
     const b = document.createElement('b'); b.textContent = x.titulo;
-    const sm = document.createElement('small'); sm.textContent = (x.tipo === 'serie' ? 'Serie' : 'Película') + ' · TMDB ' + x.tmdb;
+    const sm = document.createElement('small'); sm.textContent = (x.tipo === 'serie' ? 'Serie' : 'Película') + (x.eps ? ' · ' + x.eps + ' capítulo(s) sueltos' : '') + ' · TMDB ' + x.tmdb;
     tx.append(b, sm);
     const q = document.createElement('button'); q.className = 'g'; q.type = 'button'; q.textContent = 'Quitar de la biblioteca';
     q.onclick = () => { if (!confirm('¿Quitar "' + x.titulo + '" de la biblioteca? Los clientes dejarán de verla.')) return; con(q, 'x-m', async () => { await admin({ op: 'despublicar', tmdb: x.tmdb, tipo: x.tipo }); d.remove(); }); };
@@ -333,9 +349,9 @@ $('x-go').onclick = () => con($('x-go'), 'x-m', async () => {
 
 /* ---- subir película o serie con datos de TMDB ---- */
 const TMDB_KEY = '28e735f7aea07e37f38a95d346bcdd7f', TMDB = 'https://api.themoviedb.org/3', IMG = 'https://image.tmdb.org/t/p/';
-let sElegido = null;
+let sElegido = null, sTemps = [], sEps = {}, sCache = {};   // sEps: capítulos ya publicados de la serie elegida ("1x3" → enlace)
 const sTipo = () => sElegido && sElegido.media_type === 'tv' ? 'serie' : 'pelicula';
-function sLimpiar() { sElegido = null; $('s-sel').hidden = true; }
+function sLimpiar() { sElegido = null; sTemps = []; sEps = {}; sCache = {}; $('s-sel').hidden = true; }
 /* Buscador de TMDB reutilizable: escribe en inpId, pinta los resultados en resId y llama a alElegir(resultado) */
 function buscadorTmdb(inpId, resId, msgId, alElegir) {
   let timer = null, n = 0;
@@ -375,8 +391,92 @@ function sElegir(r) {
   $('s-lbl').textContent = serie ? 'Enlace de los capítulos (con {t} y {e})' : 'Enlace del video';
   $('s-link').placeholder = serie ? 'https://…/T{t}/E{e}.mp4' : 'https://…';
   $('s-link').value = ''; $('s-ph').hidden = $('s-ayuda').hidden = !serie;
-  $('s-sel').hidden = false; msg('s-m', '', true); $('s-link').focus();
+  $('s-eps').hidden = !serie; $('s-plant').hidden = serie; $('s-usa-plan').textContent = 'Usar un solo enlace con plantilla';
+  sTemps = []; sEps = {}; sCache = {}; $('s-temp').replaceChildren(); $('s-lista').replaceChildren(); $('s-prog').textContent = '';
+  $('s-sel').hidden = false; msg('s-m', '', true);
+  if (serie) sCargarSerie(r); else $('s-link').focus();
 }
+
+/* ---- series: temporada → lista de capítulos → pegar el enlace de cada uno ---- */
+async function sCargarSerie(r) {
+  msg('s-m', 'Cargando temporadas…', true);
+  try {
+    const [d, pub] = await Promise.all([
+      fetch(`${TMDB}/tv/${r.id}?api_key=${TMDB_KEY}&language=es-MX`, { signal: AbortSignal.timeout(8000) }).then(x => x.json()),
+      admin({ op: 'episodios', tmdb: r.id })
+    ]);
+    if (sElegido !== r) return;
+    sTemps = (d.seasons || []).filter(z => z.season_number > 0).sort((a, b) => a.season_number - b.season_number);
+    sEps = pub.episodios || {};
+    if (!sTemps.length) throw new Error('TMDB no trae temporadas para esta serie.');
+    const sel = $('s-temp'); sel.replaceChildren();
+    sTemps.forEach(z => {
+      const o = document.createElement('option'); o.value = z.season_number;
+      o.textContent = 'Temporada ' + z.season_number + (z.episode_count ? ' · ' + z.episode_count + ' capítulos' : '');
+      sel.appendChild(o);
+    });
+    msg('s-m', '', true); sPintar();
+  } catch (e) {
+    msg('s-m', (e && e.message) || 'No se pudieron cargar las temporadas.', false);
+    if (/clave/i.test(String(e && e.message))) msg('s-m', 'Escribe tu clave de administrador arriba y vuelve a elegir la serie.', false);
+  }
+}
+async function sPintar() {
+  const r = sElegido, t = Number($('s-temp').value), box = $('s-lista');
+  box.replaceChildren(); $('s-prog').textContent = '';
+  if (!r || !t) return;
+  let eps = sCache[t];
+  if (!eps) {
+    try {
+      const j = await fetch(`${TMDB}/tv/${r.id}/season/${t}?api_key=${TMDB_KEY}&language=es-MX`, { signal: AbortSignal.timeout(8000) }).then(x => x.json());
+      eps = (j.episodes || []).map(x => ({ e: x.episode_number, n: x.name || '' }));
+    } catch (e) {}
+    if (!eps || !eps.length) { const z = sTemps.find(x => x.season_number === t) || {}; eps = Array.from({ length: z.episode_count || 0 }, (_, i) => ({ e: i + 1, n: '' })); }
+    sCache[t] = eps;
+  }
+  if (sElegido !== r || Number($('s-temp').value) !== t) return;
+  box.replaceChildren(); eps.forEach(x => box.appendChild(sFila(t, x)));
+  sProg();
+}
+function sProg() {
+  const t = Number($('s-temp').value), eps = sCache[t] || [];
+  const n = eps.filter(x => sEps[t + 'x' + x.e]).length;
+  $('s-prog').textContent = eps.length ? 'Temporada ' + t + ': ' + n + ' de ' + eps.length + ' capítulos con enlace.' : '';
+}
+function sFila(t, x) {
+  const k = t + 'x' + x.e;
+  const d = document.createElement('div'); d.className = 'ep';
+  const h = document.createElement('div'); h.className = 'eh';
+  const b = document.createElement('b'); b.textContent = 'E' + x.e + (x.n ? ' · ' + x.n : '');
+  const tg = document.createElement('span'); tg.className = 'tag d'; tg.textContent = 'Publicado ✓';
+  h.append(b, tg);
+  const f = document.createElement('div'); f.className = 'er';
+  const inp = document.createElement('input'); inp.type = 'url'; inp.autocapitalize = 'off'; inp.spellcheck = false; inp.placeholder = 'https://…';
+  const ad = document.createElement('button'); ad.type = 'button'; ad.textContent = '+'; ad.title = 'Agregar este capítulo';
+  f.append(inp, ad); d.append(h, f);
+  const marca = () => { tg.hidden = !sEps[k]; if (sEps[k]) inp.value = sEps[k]; };
+  marca();
+  const guardar = () => con(ad, 's-m', async () => {
+    const link = inp.value.trim(), titulo = $('s-tit').value.trim();
+    if (!titulo) throw new Error('Escribe el título.');
+    if (!link) throw new Error('Pega el enlace del capítulo ' + x.e + '.');
+    inp.disabled = true;
+    try {
+      const j = await admin({ op: 'publicar_ep', titulo, tmdb: sElegido.id, t, e: x.e, link });
+      sEps = j.episodios || sEps; marca(); sProg();
+      msg('s-m', 'T' + t + ' E' + x.e + ' publicado. En menos de un minuto aparece en la biblioteca.', true);
+      const sig = d.nextElementSibling && d.nextElementSibling.querySelector('input'); if (sig) sig.focus();
+    } finally { inp.disabled = false; }
+  });
+  ad.onclick = guardar;
+  inp.addEventListener('keydown', ev => { if (ev.key === 'Enter') { ev.preventDefault(); if (!ad.disabled) guardar(); } });
+  return d;
+}
+$('s-temp').addEventListener('change', sPintar);
+$('s-usa-plan').onclick = () => {
+  const ver = $('s-plant').hidden; $('s-plant').hidden = !ver;
+  $('s-usa-plan').textContent = ver ? 'Volver a capítulo por capítulo' : 'Usar un solo enlace con plantilla';
+};
 $('s-ph').addEventListener('click', e => {
   const v = e.target.dataset && e.target.dataset.v; if (!v) return;
   const i = $('s-link'), a = i.selectionStart == null ? i.value.length : i.selectionStart, b = i.selectionEnd == null ? a : i.selectionEnd;
