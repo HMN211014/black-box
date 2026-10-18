@@ -1,15 +1,12 @@
 /* Cuentas de usuario (correo + contraseña), tiempo de acceso y códigos canjeables para Black BOX.
-   Ruta:  /api/usuario/registro | entrar | salir | yo | datos | canjear | pedir | pedidos | extras | admin
-   Necesita:
-     - un KV de Cloudflare enlazado con el nombre  USUARIOS
-     - una variable de entorno  ADMIN_CLAVE  (tu clave para generar códigos; solo se usa en /admin.html) */
+   Ruta:  /api/usuario/registro | entrar | salir | yo | datos | canjear | pedir | pedidos | extras | admin */
 
 const enc = new TextEncoder();
 const SESION_DIAS = 30;
-const PRUEBA_DIAS = 0;               // días de prueba gratis al crear una cuenta (0 = sin prueba)
+const PRUEBA_DIAS = 0;               
 const DIA = 86400000;
 const PLANES_OK = ['basico', 'plus', 'pedidos'];
-const LETRAS = '23456789ABCDEFGHJKMNPQRSTUVWXYZ';   // sin 0/O/1/I/L para que no se confundan
+const LETRAS = '23456789ABCDEFGHJKMNPQRSTUVWXYZ';   
 
 const json = (o, status = 200, extra = {}) => new Response(JSON.stringify(o), {
   status,
@@ -36,7 +33,6 @@ async function mismaClave(a, b) {
 const cookieSesion = (token, dias) =>
   `bb_sesion=${token}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${Math.round(dias * 86400)}`;
 
-/* ---- Tiempo de acceso de cada cuenta: { vence: <fecha en ms>, plan: 'basico' | 'plus' } ---- */
 async function accesoDe(kv, correo) {
   const a = (await kv.get('a:' + correo, 'json')) || {};
   const vence = a.vence || 0;
@@ -52,7 +48,7 @@ async function sumarDias(kv, correo, dias, plan) {
   return accesoDe(kv, correo);
 }
 
-/* ---- NUEVO: Límite de pantallas simultáneas según el plan ---- */
+/* ---- LÍMITE DE PANTALLAS SIMULTÁNEAS ---- */
 async function crearSesion(kv, correo) {
   const token = b64url(crypto.getRandomValues(new Uint8Array(32)));
   
@@ -82,7 +78,6 @@ async function correoDeSesion(request, kv) {
   return t ? await kv.get('s:' + t) : null;
 }
 
-/* ---- Códigos:  BB-XXXX-XXXX ---- */
 function nuevoCodigo() {
   const r = crypto.getRandomValues(new Uint8Array(8));
   const t = Array.from(r, n => LETRAS[n % LETRAS.length]).join('');
@@ -94,7 +89,6 @@ function normalizarCodigo(x) {
   return 'BB-' + raw.slice(2, 6) + '-' + raw.slice(6);
 }
 
-/* ---- Lista de películas permitidas por cuenta ---- */
 async function listaDe(kv, correo) {
   const l = await kv.get('l:' + correo, 'json');
   return (l && l.items ? l.items : []).map(x => ({ t: x.t, id: x.id || null }));
@@ -116,7 +110,6 @@ async function guardarPedido(kv, ped) {
   await kv.put('q:' + ped.id, JSON.stringify(ped), { metadata: ped });
 }
 
-/* Agrega una película a la lista de una cuenta */
 async function asignarLista(kv, correo, titulo, tmdb, pedidoId) {
   if (!titulo) return { error: 'Escribe el título tal como está en el catálogo.', status: 400 };
   if (!correo || !(await kv.get('u:' + correo))) return { error: 'Ese correo no tiene cuenta.', status: 404 };
