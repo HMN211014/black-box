@@ -2726,12 +2726,19 @@ function uAplicar(d) {
   try { localStorage.setItem('bbprog', JSON.stringify(d.prog)); localStorage.setItem('bbsvis', JSON.stringify(d.vis)); } catch (e) {}
   actualizarCont(); if (detActual && !vistas.det.hidden) pintarDetalle(detActual);
 }
-const uSubir = () => api('usuario/datos', { datos: uLocal() });
+let uUltimoSubido = '';                                   // lo último que se mandó: si no cambió, no se vuelve a mandar
+const uSubir = async () => {
+  const d = uLocal(), t = JSON.stringify(d);
+  if (t === uUltimoSubido) return { ok: true, sinCambios: true };
+  const j = await api('usuario/datos', { datos: d });
+  if (j && j.ok) uUltimoSubido = t;
+  return j;
+};
 async function uBajar() {                               // al entrar: junta lo de este dispositivo con lo de la cuenta y lo guarda en ambos lados
   const j = await api('usuario/datos');
   if (j && j.datos) { uAplicar(uFusionar(uLocal(), { prog: j.datos.prog || {}, vis: j.datos.vis || {} })); await uSubir(); }
 }
-window.bbSync = () => { if (!U.correo) return; clearTimeout(uPush); uPush = setTimeout(() => { uPush = 0; uSubir().catch(() => {}); }, 4000); };
+window.bbSync = () => { if (!U.correo || uPush) return; uPush = setTimeout(() => { uPush = 0; uSubir().catch(() => {}); }, 60000); };   // como máximo 1 guardado por minuto (antes: tras cada cambio)
 document.addEventListener('visibilitychange', () => {   // al salir de la página no se pierde el último avance
   if (document.visibilityState === 'hidden' && uPush && U.correo) {
     clearTimeout(uPush); uPush = 0;
@@ -2820,6 +2827,7 @@ function uVistaPerfil() {
   out.onclick = async () => {
     out.disabled = true;
     try { await uSubir(); } catch (x) {}                               // último guardado antes de salir
+    uUltimoSubido = '';
     try { await api('usuario/salir', {}); } catch (x) {}
     U.correo = ''; U.acceso = null; U.lista = []; uBtn(); uPlan();
     try { localStorage.removeItem('bbprog'); localStorage.removeItem('bbsvis'); } catch (x) {}   // el siguiente que use este dispositivo empieza limpio

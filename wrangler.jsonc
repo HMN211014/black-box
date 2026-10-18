@@ -6,15 +6,40 @@
     "directory": "./",
     "binding": "ASSETS"
   },
+
+  // D1: cuentas, sesiones, códigos, listas y pedidos.
+  // 1) Crea la base en Cloudflare > D1 > Create database (nombre: black-box-usuarios)
+  // 2) Copia su "Database ID" y pégalo en database_id
+  // 3) Pega schema.sql en la pestaña Console de esa base y ejecútalo
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "black-box-usuarios",
+      "database_id": "PEGA-AQUI-EL-ID-DE-TU-BASE-D1"
+    }
+  ],
+
+  // R2: progreso y capítulos vistos (el bucket debe existir).
+  "r2_buckets": [
+    {
+      "binding": "DATOS",
+      "bucket_name": "black-box-datos"
+    }
+  ],
+
+  // KV: SOLO las películas publicadas desde el panel de admin (se escribe muy pocas veces).
+  // Si borraste este KV, crea uno nuevo (gratis) y cambia este id por el nuevo.
   "kv_namespaces": [
     {
       "binding": "USUARIOS",
       "id": "2f3a0ba0097e4f8e95c9e1caf335db6a"
     }
   ],
+
   "vars": {
     "ADMIN_CLAVE": "CTMYOSOYELADMIN1111"
   },
+
   // Muestra los errores reales del Worker en: Cloudflare > Workers > black-box > Logs
   "observability": { "enabled": true }
 }
