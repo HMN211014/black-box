@@ -19,9 +19,11 @@ export default {
         });
       }
 
+      // Cualquier otra ruta /api/ no existe en este servidor: se avisa claramente en lugar de responder "{}" con éxito
       if (url.pathname.startsWith('/api/')) {
-        return new Response(JSON.stringify({}), { 
-          headers: { 'Content-Type': 'application/json' } 
+        return new Response(JSON.stringify({ error: 'Esta función no está disponible en el servidor.' }), {
+          status: 404,
+          headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' }
         });
       }
 

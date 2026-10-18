@@ -36,15 +36,24 @@ const cookieSesion = (token, dias) =>
 async function accesoDe(kv, correo) {
   const a = (await kv.get('a:' + correo, 'json')) || {};
   const vence = a.vence || 0;
-  return { vence, plan: a.plan || null, activo: vence > Date.now() };
+  // vales = películas por canjear (plan "Películas por pedido"); canje = la cuenta usa vales en vez de días
+  return { vence, plan: a.plan || null, activo: vence > Date.now(), vales: a.vales | 0, canje: a.canje === true };
 }
 async function sumarDias(kv, correo, dias, plan) {
+  const actual = (await kv.get('a:' + correo, 'json')) || {};
   const antes = await accesoDe(kv, correo);
   const base = Math.max(Date.now(), antes.vence);
   const rango = { pedidos: 0, basico: 1, plus: 2 };
   const nuevo = PLANES_OK.includes(plan) ? plan : 'basico';
   const nuevoPlan = antes.activo && (rango[antes.plan] ?? 0) > rango[nuevo] ? antes.plan : nuevo;
-  await kv.put('a:' + correo, JSON.stringify({ vence: base + dias * DIA, plan: nuevoPlan }));
+  await kv.put('a:' + correo, JSON.stringify({ ...actual, vence: base + dias * DIA, plan: nuevoPlan }));   // ...actual conserva los vales
+  return accesoDe(kv, correo);
+}
+async function ajustarVales(kv, correo, delta) {      // delta positivo = suma vales, negativo = descuenta (nunca baja de 0)
+  const actual = (await kv.get('a:' + correo, 'json')) || {};
+  actual.vales = Math.max(0, (actual.vales | 0) + delta);
+  actual.canje = true;
+  await kv.put('a:' + correo, JSON.stringify(actual));
   return accesoDe(kv, correo);
 }
 
@@ -250,10 +259,11 @@ export async function onRequest({ request, env, params }) {
       return json({ error: 'Código no válido o ya usado.' }, 400);
     }
     c.usado = { por: correo, fecha: Date.now() };
-    await kv.put('c:' + codigo, JSON.stringify(c), { metadata: { dias: c.dias, plan: c.plan, creado: c.creado, usado: c.usado } });
-    const acceso = await sumarDias(kv, correo, c.dias, c.plan);
+    await kv.put('c:' + codigo, JSON.stringify(c), { metadata: { dias: c.dias, plan: c.plan, peliculas: c.peliculas, creado: c.creado, usado: c.usado } });
+    const esVale = c.plan === 'pedidos' && Number(c.peliculas) > 0;      // los códigos viejos de plan "pedidos" (con días) siguen funcionando
+    const acceso = esVale ? await ajustarVales(kv, correo, Math.floor(c.peliculas)) : await sumarDias(kv, correo, c.dias, c.plan);
     if (fallos) await kv.delete(kFallos);
-    return json({ acceso, lista: await listaDe(kv, correo), canjeado: { dias: c.dias, plan: c.plan } });
+    return json({ acceso, lista: await listaDe(kv, correo), canjeado: { dias: c.dias, plan: c.plan, peliculas: c.peliculas } });
   }
 
   /* ---- Pedidos del cliente ---- */
@@ -267,7 +277,10 @@ export async function onRequest({ request, env, params }) {
     const correo = await correoDeSesion(request, kv);
     if (!correo) return json({ error: 'Inicia sesión para hacer un pedido.' }, 401);
     const acc = await accesoDe(kv, correo);
-    if (!acc.activo || !PLANES_CON_PEDIDOS.includes(acc.plan)) return json({ error: 'Tu plan no incluye pedidos.' }, 403);
+    const porVales = acc.canje && !acc.activo;                 // plan "Películas por pedido": cada película cuesta 1 vale
+    if (porVales) {
+      if (acc.vales < 1) return json({ error: 'Ya canjeaste todas tus películas. Canjea otro código para pedir otra.' }, 403);
+    } else if (!acc.activo || !PLANES_CON_PEDIDOS.includes(acc.plan)) return json({ error: 'Tu plan no incluye pedidos.' }, 403);
 
     const tmdb = Math.floor(Number(cuerpo.tmdb));
     const tipo = cuerpo.tipo === 'tv' ? 'tv' : 'movie';
@@ -275,15 +288,27 @@ export async function onRequest({ request, env, params }) {
     const anio = /^\d{4}$/.test(String(cuerpo.anio || '')) ? String(cuerpo.anio) : '';
     const poster = /^\/[\w.-]{1,60}$/.test(String(cuerpo.poster || '')) ? String(cuerpo.poster) : '';
     if (!(tmdb > 0) || !titulo) return json({ error: 'Pedido no válido.' }, 400);
+    if (porVales && tipo === 'tv') return json({ error: 'Con este plan solo puedes pedir películas.' }, 400);
+
+    /* La película ya está en la biblioteca: se agrega directo a la lista de la cuenta (cuesta 1 vale si es por vales) */
+    const biblioteca = String(cuerpo.biblioteca || '').trim().slice(0, 200);
+    if (biblioteca) {
+      const yaEnLista = (await listaDe(kv, correo)).some(x => x.t === biblioteca || (x.id && Number(x.id) === tmdb));
+      const r = await asignarLista(kv, correo, biblioteca, tmdb, null);
+      if (r.error) return json({ error: r.error }, r.status);
+      const vales = porVales && !yaEnLista ? (await ajustarVales(kv, correo, -1)).vales : acc.vales;
+      return json({ lista: r.lista, ...(porVales ? { vales } : {}) });
+    }
 
     const mios = await pedidosDe(kv, correo);
     if (mios.some(x => x.tmdb === tmdb && x.tipo === tipo && x.estado !== 'rechazado')) return json({ error: 'Ya hiciste este pedido.' }, 409);
     if (mios.filter(x => x.estado === 'pendiente').length >= 10) return json({ error: 'Tienes 10 pedidos pendientes. Espera a que se cumplan algunos.' }, 429);
 
     const id = Date.now().toString(36) + b64url(crypto.getRandomValues(new Uint8Array(4)));
-    const ped = { id, correo, tmdb, tipo, titulo, anio, poster, estado: 'pendiente', creado: Date.now() };
+    const ped = { id, correo, tmdb, tipo, titulo, anio, poster, estado: 'pendiente', creado: Date.now(), ...(porVales ? { vale: true } : {}) };
     await guardarPedido(kv, ped);
-    return json({ pedido: ped });
+    const vales = porVales ? (await ajustarVales(kv, correo, -1)).vales : undefined;
+    return json({ pedido: ped, ...(porVales ? { vales } : {}) });
   }
 
   /* ---- Administración ---- */
@@ -300,19 +325,23 @@ export async function onRequest({ request, env, params }) {
 
     const plan = PLANES_OK.includes(cuerpo.plan) ? cuerpo.plan : 'basico';
     const dias = Math.floor(Number(cuerpo.dias));
+    const peliculas = Math.floor(Number(cuerpo.peliculas));
 
     if (cuerpo.op === 'generar') {
       const cantidad = Math.floor(Number(cuerpo.cantidad));
-      if (!(dias >= 1 && dias <= 3650)) return json({ error: 'Los días deben ser entre 1 y 3650.' }, 400);
+      const vale = plan === 'pedidos';                       // plan "Películas por pedido": el código vale por N películas, no por días
+      if (vale && !(peliculas >= 1 && peliculas <= 20)) return json({ error: 'Las películas por código deben ser entre 1 y 20.' }, 400);
+      if (!vale && !(dias >= 1 && dias <= 3650)) return json({ error: 'Los días deben ser entre 1 y 3650.' }, 400);
       if (!(cantidad >= 1 && cantidad <= 50)) return json({ error: 'La cantidad debe ser entre 1 y 50.' }, 400);
       const codigos = [], creado = Date.now();
+      const datos = vale ? { plan, peliculas, creado, usado: null } : { dias, plan, creado, usado: null };
       while (codigos.length < cantidad) {
         const cod = nuevoCodigo();
         if (codigos.includes(cod) || (await kv.get('c:' + cod))) continue;
-        await kv.put('c:' + cod, JSON.stringify({ dias, plan, creado, usado: null }), { metadata: { dias, plan, creado, usado: null } });
+        await kv.put('c:' + cod, JSON.stringify(datos), { metadata: datos });
         codigos.push(cod);
       }
-      return json({ codigos, dias, plan });
+      return json(vale ? { codigos, plan, peliculas } : { codigos, dias, plan });
     }
 
     if (cuerpo.op === 'listar') {
@@ -329,9 +358,11 @@ export async function onRequest({ request, env, params }) {
 
     if (cuerpo.op === 'conceder') {
       const correo = String(cuerpo.correo || '').trim().toLowerCase();
-      if (!(dias >= 1 && dias <= 3650)) return json({ error: 'Los días deben ser entre 1 y 3650.' }, 400);
+      const vale = plan === 'pedidos' && cuerpo.peliculas !== undefined && cuerpo.peliculas !== '';
+      if (vale && !(peliculas >= 1 && peliculas <= 50)) return json({ error: 'Las películas deben ser entre 1 y 50.' }, 400);
+      if (!vale && !(dias >= 1 && dias <= 3650)) return json({ error: 'Los días deben ser entre 1 y 3650.' }, 400);
       if (!correo || !(await kv.get('u:' + correo))) return json({ error: 'Ese correo no tiene cuenta.' }, 404);
-      return json({ correo, acceso: await sumarDias(kv, correo, dias, plan) });
+      return json({ correo, acceso: vale ? await ajustarVales(kv, correo, peliculas) : await sumarDias(kv, correo, dias, plan) });
     }
 
     if (cuerpo.op === 'pedidos') {
@@ -398,6 +429,7 @@ export async function onRequest({ request, env, params }) {
     if (cuerpo.op === 'rechazar') {
       const q = await kv.get('q:' + String(cuerpo.pedido || ''), 'json');
       if (!q) return json({ error: 'Ese pedido ya no existe.' }, 404);
+      if (q.estado === 'pendiente' && q.vale) { await ajustarVales(kv, q.correo, 1); q.vale = false; }   // pedido rechazado: se le devuelve la película
       q.estado = 'rechazado'; await guardarPedido(kv, q);
       return json({ ok: true });
     }
