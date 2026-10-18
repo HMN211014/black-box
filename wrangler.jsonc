@@ -14,5 +14,7 @@
   ],
   "vars": {
     "ADMIN_CLAVE": "CTMYOSOYELADMIN1111"
-  }
+  },
+  // Muestra los errores reales del Worker en: Cloudflare > Workers > black-box > Logs
+  "observability": { "enabled": true }
 }
