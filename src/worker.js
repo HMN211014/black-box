@@ -257,6 +257,7 @@ async function procesarPeticion({ request, env, params }) {
     const mios = (await pedidosDe(kv, correo)).sort((a, b) => (b.creado || 0) - (a.creado || 0)).slice(0, 100);
     return json({ pedidos: mios, lista: await listaDe(kv, correo) });
   }
+  
   if (accion === 'pedir' && esPost) {
     const correo = await correoDeSesion(request, kv);
     if (!correo) return json({ error: 'Inicia sesión para hacer un pedido.' }, 401);
