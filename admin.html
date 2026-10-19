@@ -174,7 +174,7 @@ const $ = id => document.getElementById(id);
 async function admin(cuerpo) {
   const r = await fetch('/api/usuario/admin', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clave: $('clave').value, ...cuerpo }) });
   let j = null; try { j = await r.json(); } catch (e) {}
-  if (!j) throw new Error('No se pudo conectar con el servidor. ¿Ya subiste la carpeta functions y creaste el KV USUARIOS?');
+  if (!j) throw new Error('No se pudo conectar con el servidor. ¿Ya subiste los archivos y está conectada la base D1?');
   if (!r.ok) throw new Error(j.error || 'No se pudo completar.');
   return j;
 }

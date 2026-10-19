@@ -65,3 +65,20 @@ CREATE TABLE IF NOT EXISTS datos (
   correo  TEXT PRIMARY KEY,
   json    TEXT NOT NULL
 ) WITHOUT ROWID;
+
+-- Películas y series publicadas desde el panel de admin (antes estaban en KV).
+-- El Worker también las crea solo la primera vez, así que ejecutar esto es opcional.
+-- "episodios" guarda los enlaces sueltos por capítulo como JSON: {"1x1":"https://…","1x2":"https://…"}
+CREATE TABLE IF NOT EXISTS publicados (
+  tmdb      INTEGER PRIMARY KEY,
+  titulo    TEXT NOT NULL,
+  tipo      TEXT NOT NULL DEFAULT 'pelicula',   -- pelicula | serie
+  link      TEXT NOT NULL DEFAULT '',           -- enlace de la película, o plantilla {t}/{e} de la serie
+  episodios TEXT NOT NULL DEFAULT '{}',
+  creado    INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS meta (
+  clave TEXT PRIMARY KEY,
+  valor TEXT
+) WITHOUT ROWID;
