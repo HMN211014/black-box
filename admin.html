@@ -65,6 +65,14 @@ details.dt{margin-top:14px;border-top:1px solid rgba(255,255,255,.1);padding-top
 details.dt summary{cursor:pointer;font-weight:600;font-size:15px;margin-bottom:12px}
 label small.h{display:block;color:#a1a1a6;font-weight:400;font-size:12px;margin-top:2px}
 .tag.p{background:rgba(255,214,10,.18);color:#ffd60a}.tag.r{background:rgba(255,69,58,.18);color:#ff9f9a}
+.tg{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:12px;margin-top:14px}
+.tl{min-width:0}.tf{position:relative;aspect-ratio:2/3;border-radius:12px;overflow:hidden;background:#26262c;box-shadow:inset 0 0 0 1px rgba(255,255,255,.14)}
+.tf img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}.tl.px img{filter:grayscale(.4) brightness(.78)}
+.tq{position:absolute;top:6px;right:6px;width:26px;height:26px;padding:0;border-radius:50%;border:0;background:rgba(0,0,0,.65);color:#fff;font-size:13px;line-height:26px}
+.tb{position:absolute;left:6px;bottom:6px;padding:3px 8px;border-radius:999px;background:rgba(0,0,0,.65);font-size:10px;font-weight:700}
+.tn{margin-top:6px;font-size:12px;color:#d1d1d6;line-height:1.2;word-break:break-word}
+.te{width:100%;height:32px;margin-top:6px;font-size:12px;padding:0 6px}
+.tl.ex img{filter:grayscale(.7) brightness(.55)}.tl.ex .tn{text-decoration:line-through;opacity:.7}
 </style>
 </head>
 <body>
@@ -198,6 +206,21 @@ label small.h{display:block;color:#a1a1a6;font-weight:400;font-size:12px;margin-
     <label>Imagen de fondo del cuadro (opcional)<small class="h">Dirección de una imagen. Sustituye al dibujo.</small><input id="co-fondo" type="url" autocapitalize="off" spellcheck="false" placeholder="https://…"></label>
     <label class="ck"><input type="checkbox" id="co-sin"> La imagen ya trae el nombre escrito (no repetirlo encima)</label>
     <label>Logo (opcional)<small class="h">Imagen del logo en lugar del nombre escrito.</small><input id="co-logo" type="url" autocapitalize="off" spellcheck="false" placeholder="https://…"></label>
+
+    <details class="dt" open>
+      <summary>Películas de la colección</summary>
+      <p class="s" style="margin-bottom:10px">Toca la <b>✕</b> de un cuadro para quitarla. Para agregar, búscala en TMDB: si ya está en tu catálogo entra normal; si no, entra como <b>Próximamente</b> y después le pones el enlace. No olvides tocar <b>Guardar colección</b>.</p>
+      <label>Agregar película o serie<input id="co-bq" type="search" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Buscar en TMDB…"></label>
+      <div class="sr" id="co-bres"></div>
+      <p class="m" id="co-bm" hidden></p>
+      <div class="sb" id="co-lk" hidden style="margin-top:12px"><label><span id="co-lk-t">Enlace</span><input id="co-lk-u" type="url" autocapitalize="off" spellcheck="false" placeholder="https://…"></label><div class="row"><button type="button" id="co-lk-go">Publicar y agregar</button><button class="g" type="button" id="co-lk-x">Cancelar</button></div></div>
+      <p class="s" id="co-est" hidden style="margin-top:12px">Leyendo los datos de TMDB… las que entran por reglas se irán sumando solas.</p>
+      <div class="tg" id="co-tiles"></div>
+      <p class="s" id="co-exh" hidden style="margin-top:18px"><b>Excluidas</b>: no entran aunque cumplan las reglas. Toca <b>↺ Devolver</b> para regresarlas.</p>
+      <div class="tg" id="co-extiles"></div>
+      <iframe id="co-fr" title="" tabindex="-1" aria-hidden="true" style="position:fixed;left:0;top:0;width:1100px;height:800px;opacity:0;pointer-events:none;z-index:-1;border:0"></iframe>
+      <p class="s" style="margin-top:12px">Aquí salen todas las que entran a la colección: las que agregas y las que entran solas por las reglas de abajo (saga, director, productora…). Si quitas una que entra por regla, pasa a Excluidas.</p>
+    </details>
 
     <details class="dt">
       <summary>Qué películas entran</summary>
@@ -432,7 +455,7 @@ const aFormaPanel = c => ({ ...c, fuente: fuenteKey(c.fuente), peso: String(c.pe
 const REGLAS = ['peliculas', 'tmdbSagas', 'tmdbDirectores', 'tmdbReparto', 'tmdbEmpresas', 'tmdbEmpresasContiene', 'tmdbPalabras'];
 const SUB_REGLAS = ['peliculas', 'tmdbSagas', 'tmdbDirectores', 'tmdbReparto', 'tmdbEmpresas'];
 const nReglas = c => REGLAS.filter(k => (c[k] || []).length).length + (c.subcategorias || []).filter(s => SUB_REGLAS.some(k => (s[k] || []).length)).length;
-let coManual = false, coEditando = null, coPanel = new Map();   // coPanel: las que están guardadas en la base (por id)
+let coManual = false, coEditando = null, coPanel = new Map(), coProx = [], coPos = new Map();   // coPanel: las que están guardadas en la base (por id)
 
 /* subcategorías: tarjetas dentro del formulario; se guardan al tocar "Guardar colección" */
 const SUB_CAMPOS = [['peliculas', 'Títulos exactos', 'Escritos igual que en tu catálogo'], ['tmdbSagas', 'Saga de TMDB (nombre o número)', 'Star Wars Collection'], ['tmdbDirectores', 'Director', 'George Lucas'], ['tmdbReparto', 'Actores principales', 'Mark Hamill'], ['tmdbEmpresas', 'Productora (nombre exacto o número)', 'Lucasfilm']];
@@ -466,7 +489,7 @@ function coLeer() {
     patron: $('co-patron').value, patronColor: $('co-pc').value,
     anuncio: { titulo: $('co-at').value.trim(), texto: $('co-ax').value.trim(), imagen: $('co-ai').value.trim(), enlace: $('co-ae').value.trim(), boton: $('co-ab').value.trim() },
     tmdbEmpresas: lin('co-emp'), tmdbEmpresasContiene: lin('co-empc'), tmdbPalabras: lin('co-pal'), tmdbSagas: lin('co-sag'), tmdbDirectores: lin('co-dir'), tmdbReparto: lin('co-rep'),
-    auto: $('co-auto').checked, excluir: lin('co-exc'), peliculas: lin('co-pel'), subcategorias: coSubsLeer()
+    auto: $('co-auto').checked, excluir: lin('co-exc'), peliculas: lin('co-pel'), subcategorias: coSubsLeer(), proximas: coProx
   };
 }
 function coPrev() {
@@ -479,7 +502,7 @@ function coPrev() {
 }
 function coPoner(c) {                                  // c = null → formulario en blanco
   c = c || {}; const an = c.anuncio || {}, v = (id, x, d) => { $(id).value = x == null || x === '' ? d : x; }, L = (id, a) => { $(id).value = (a || []).join('\n'); };
-  coEditando = c.id || null; coManual = !!c.id;
+  coEditando = c.id || null; coManual = !!c.id; coProx = (c.proximas || []).map(x => ({ ...x }));
   const esp = c.esp || '.08em';                        // si trae un espaciado que no está en la lista (p. ej. .06em), se agrega
   if (![...$('co-esp').options].some(o => o.value === esp)) { const o = document.createElement('option'); o.value = o.textContent = esp; $('co-esp').appendChild(o); }
   v('co-nombre', c.nombre, ''); v('co-id', c.id, ''); $('co-id').readOnly = !!c.id;
@@ -490,7 +513,7 @@ function coPoner(c) {                                  // c = null → formulari
   L('co-empc', c.tmdbEmpresasContiene); L('co-pal', c.tmdbPalabras); L('co-exc', c.excluir); $('co-auto').checked = c.auto !== false;
   v('co-at', an.titulo, ''); v('co-ax', an.texto, ''); v('co-ai', an.imagen, ''); v('co-ae', an.enlace, ''); v('co-ab', an.boton, '');
   $('co-subs').replaceChildren(); (c.subcategorias || []).forEach(coSubAgregar);
-  coPrev();
+  coPrev(); coTiles();
 }
 document.querySelectorAll('#col-card input, #col-card select, #col-card textarea').forEach(e => e.addEventListener('input', coPrev));
 $('co-nombre').addEventListener('input', () => { if (!coManual) $('co-id').value = slug($('co-nombre').value); });
@@ -578,6 +601,118 @@ function buscadorTmdb(inpId, resId, msgId, alElegir) {
   });
 }
 buscadorTmdb('s-q', 's-res', 's-m', r => sElegir(r));
+/* ---- cuadros de películas de la colección (agregar / quitar) ---- */
+function nTit(t) { return String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim(); }
+const coPubs = new Map(); let coPubsOk = false;                 // publicadas desde el panel; se piden una sola vez, al tocar el buscador
+function coCargarPubs() { if (coPubsOk || !$('clave').value) return; coPubsOk = true; admin({ op: 'publicadas' }).then(j => j.items.forEach(i => coPubs.set(Number(i.tmdb), i))).catch(() => {}); }
+const coBase = () => { const v = coVivo(); return v ? v.peliculas() : CAT; };                 // el catálogo del inicio, si ya cargó
+const enCatalogo = id => coBase().find(c => c.tmdb && Number(c.tmdb) === id) || coPubs.get(id) || null;
+const catPorTitulo = t => coBase().find(c => nTit(c.titulo) === nTit(t)) || [...coPubs.values()].find(c => nTit(c.titulo) === nTit(t)) || null;
+async function coPoster(t) {                                    // ruta del póster en TMDB (la del buscador o la pedida por código)
+  const k = t.tmdb + ':' + t.tipo; if (t.poster && !coPos.has(k)) coPos.set(k, t.poster);
+  if (coPos.has(k)) return coPos.get(k);
+  coPos.set(k, '');
+  try { const j = await coLim(() => fetch(`${TMDB}/${t.tipo === 'serie' ? 'tv' : 'movie'}/${t.tmdb}?api_key=${TMDB_KEY}`, { signal: AbortSignal.timeout(8000) }).then(r => r.json())); coPos.set(k, (j && j.poster_path) || ''); } catch (e) {}
+  return coPos.get(k);
+}
+/* --- motor del inicio: el panel carga el index en un marco oculto y usa su mismo cálculo de colecciones --- */
+let coN = 0, coVerVista = -1, coUlt = 0, coCola = 0, coT = null; const coEspera = [];
+const coLim = fn => new Promise(res => { const run = () => { coCola++; fn().then(res, () => res('')).finally(() => { coCola--; if (coEspera.length) coEspera.shift()(); }); }; coCola < 6 ? run() : coEspera.push(run); });
+function coRegla() { return ['co-pel', 'co-sag', 'co-dir', 'co-rep', 'co-emp', 'co-empc', 'co-pal'].some(i => lin(i).length); }
+function coIniciar() { const f = $('co-fr'); if (f.getAttribute('src')) return; f.src = '/'; coUlt = Date.now(); $('co-est').hidden = false; }
+function coVivo() { try { const w = $('co-fr').contentWindow; return w && w.bbCol ? w.bbCol : null; } catch (e) { return null; } }
+const coNum = a => (a || []).map(x => /^\d+$/.test(x) ? Number(x) : x);
+function coRes(extra) {                                       // la colección del formulario, resuelta igual que en el inicio (con o sin exclusiones)
+  const v = coVivo(); if (!v) return null;
+  const c = { ...coLeer(), ...extra, id: '__adm' + (++coN) };
+  ['tmdbEmpresas', 'tmdbPalabras', 'tmdbSagas', 'tmdbDirectores', 'tmdbReparto'].forEach(k => { c[k] = coNum(c[k]); });
+  c.subcategorias = (c.subcategorias || []).map(sb => { const o = { ...sb }; ['tmdbEmpresas', 'tmdbSagas', 'tmdbDirectores', 'tmdbReparto'].forEach(k => { if (o[k]) o[k] = coNum(o[k]); }); return o; });
+  try { return v.resolver(c); } catch (e) { return null; }
+}
+const coRetardo = () => { clearTimeout(coT); coT = setTimeout(coTiles, 500); };
+setInterval(() => {                                           // cuando llegan datos nuevos de TMDB en el inicio, se actualizan los cuadros
+  const f = $('co-fr'), est = $('co-est'); if (!f.getAttribute('src')) return;
+  const v = coVivo();
+  if (!v) { if (Date.now() - coUlt > 20000) { est.textContent = 'No pude cargar los datos del inicio; solo se ven las que agregaste una por una.'; } return; }
+  let n; try { n = v.ver(); } catch (e) { return; }
+  if (n !== coVerVista) { coVerVista = n; coUlt = Date.now(); est.textContent = 'Leyendo los datos de TMDB… las que entran por reglas se irán sumando solas.'; est.hidden = false; coTiles(); }
+  else if (Date.now() - coUlt > 6000) est.hidden = true;
+}, 2500);
+const itm = (p, o) => ({ titulo: p.titulo, tmdb: Number(p.tmdb) || 0, tipo: p.tipo === 'serie' ? 'serie' : 'pelicula', ...o });
+function coItems() {
+  const pel = lin('co-pel'), exc = lin('co-exc'), r = coRes(), rAll = r && coRes({ excluir: [] });
+  let dentro;
+  if (r) { dentro = r.lista.map(p => itm(p)); pel.forEach(t => { if (!dentro.some(x => nTit(x.titulo) === nTit(t))) dentro.push(itm({ titulo: t })); }); }   // las escritas a mano también salen, aunque no estén en el catálogo
+  else dentro = pel.map(t => itm(catPorTitulo(t) || { titulo: t }));
+  const fuera = exc.map(t => itm((rAll && rAll.lista.find(p => nTit(p.titulo) === nTit(t))) || catPorTitulo(t) || { titulo: t }, { ex: true }));
+  return { dentro: [...dentro, ...coProx.map(x => ({ ...x, prox: true }))], fuera };
+}
+function coTile(x) {
+  const d = document.createElement('div'); d.className = 'tl' + (x.prox ? ' px' : '') + (x.ex ? ' ex' : '');
+  const f = document.createElement('div'); f.className = 'tf';
+  const im = document.createElement('img'); im.alt = ''; im.loading = 'lazy'; f.appendChild(im);
+  if (x.tmdb) coPoster(x).then(p => { if (p) im.src = IMG + 'w185' + p; else im.remove(); }); else im.remove();
+  if (!x.ex) {
+    const q = document.createElement('button'); q.type = 'button'; q.className = 'tq'; q.textContent = '✕'; q.setAttribute('aria-label', 'Quitar ' + x.titulo);
+    q.onclick = () => {
+      if (x.prox) coProx = coProx.filter(y => Number(y.tmdb) !== Number(x.tmdb));
+      else {
+        $('co-pel').value = lin('co-pel').filter(t => nTit(t) !== nTit(x.titulo)).join('\n');
+        const r2 = coRes();                                   // si sigue entrando por alguna regla, se agrega a Excluidas
+        if (r2 && r2.lista.some(p => nTit(p.titulo) === nTit(x.titulo))) $('co-exc').value = lin('co-exc').concat(x.titulo).join('\n');
+      }
+      coTiles(); coPrev();
+    };
+    f.appendChild(q);
+  }
+  if (x.prox) { const b = document.createElement('span'); b.className = 'tb'; b.textContent = 'Próximamente'; f.appendChild(b); }
+  const n = document.createElement('div'); n.className = 'tn'; n.textContent = x.titulo; d.append(f, n);
+  if (x.prox) { const e = document.createElement('button'); e.type = 'button'; e.className = 'g te'; e.textContent = 'Poner enlace'; e.onclick = () => coEnlace(x); d.appendChild(e); }
+  if (x.ex) { const e = document.createElement('button'); e.type = 'button'; e.className = 'g te'; e.textContent = '↺ Devolver'; e.onclick = () => { $('co-exc').value = lin('co-exc').filter(t => nTit(t) !== nTit(x.titulo)).join('\n'); coTiles(); coPrev(); }; d.appendChild(e); }
+  return d;
+}
+function coTiles() {
+  const { dentro, fuera } = coItems();
+  $('co-tiles').replaceChildren(...dentro.map(x => coTile(x))); $('co-extiles').replaceChildren(...fuera.map(x => coTile(x))); $('co-exh').hidden = !fuera.length;
+  if (coEditando || coRegla()) coIniciar();
+}
+['co-pel', 'co-sag', 'co-dir', 'co-rep', 'co-emp', 'co-empc', 'co-pal', 'co-exc', 'co-auto'].forEach(i => $(i).addEventListener('input', coRetardo));
+$('co-subs').addEventListener('input', coRetardo); $('co-subs').addEventListener('click', () => setTimeout(coRetardo, 0));
+$('co-bq').addEventListener('focus', () => { coCargarPubs(); coIniciar(); });
+buscadorTmdb('co-bq', 'co-bres', 'co-bm', r => {
+  coIniciar();
+  const tipo = r.media_type === 'tv' ? 'serie' : 'pelicula', hit = enCatalogo(r.id), titulo = (hit && hit.titulo) || r.title || r.name || '';
+  coPos.set(r.id + ':' + tipo, r.poster_path || '');
+  const mismo = t => nTit(t) === nTit(titulo), esta = l => l.some(p => mismo(p.titulo));
+  const rs = coRes(), enPel = lin('co-pel').some(mismo), enExc = lin('co-exc').some(mismo);
+  if (enExc) {                                                // estaba excluida: se devuelve
+    $('co-exc').value = lin('co-exc').filter(t => !mismo(t)).join('\n');
+    const r2 = coRes(); if (hit && !enPel && !(r2 && esta(r2.lista))) $('co-pel').value = lin('co-pel').concat(titulo).join('\n');
+    msg('co-bm', 'Devuelta a la colección: ' + titulo + '.', true);
+  } else if (enPel || (rs && esta(rs.lista))) { msg('co-bm', '"' + titulo + '" ya está en la colección.', false); return; }
+  else if (hit) { $('co-pel').value = lin('co-pel').concat(titulo).join('\n'); msg('co-bm', 'Agregada: ' + titulo + '.', true); }
+  else {
+    if (coProx.some(y => Number(y.tmdb) === r.id)) { msg('co-bm', '"' + titulo + '" ya está como Próximamente.', false); return; }
+    if (!confirm('"' + titulo + '" todavía no está en tu catálogo. ¿Agregarla como Próximamente? Después podrás ponerle el enlace.')) return;
+    coProx.push({ tmdb: r.id, titulo, tipo, anio: (r.release_date || r.first_air_date || '').slice(0, 4), poster: r.poster_path || '' });
+    msg('co-bm', 'Agregada como Próximamente: ' + titulo + '.', true);
+  }
+  coTiles(); coPrev();
+});
+let coLk = null;
+function coEnlace(x) { coLk = x; $('co-lk-t').textContent = 'Enlace para "' + x.titulo + '"' + (x.tipo === 'serie' ? ' (con {t} y {e})' : ''); $('co-lk-u').value = ''; $('co-lk').hidden = false; $('co-lk-u').focus(); $('co-lk').scrollIntoView({ block: 'center', behavior: 'smooth' }); }
+$('co-lk-x').onclick = () => { coLk = null; $('co-lk').hidden = true; };
+$('co-lk-go').onclick = () => con($('co-lk-go'), 'co-bm', async () => {
+  const x = coLk, link = $('co-lk-u').value.trim(); if (!x) return;
+  if (!/^https?:\/\/\S{4,2000}$/.test(link)) throw new Error('El enlace debe empezar con http:// o https://');
+  await admin({ op: 'publicar', titulo: x.titulo, tmdb: x.tmdb, tipo: x.tipo, link });      // la publica en la biblioteca con su enlace
+  coPubs.set(Number(x.tmdb), { titulo: x.titulo, tmdb: x.tmdb, tipo: x.tipo, link });
+  coProx = coProx.filter(y => Number(y.tmdb) !== Number(x.tmdb)); $('co-pel').value = lin('co-pel').concat(x.titulo).join('\n');
+  coLk = null; $('co-lk').hidden = true; coTiles(); coPrev();
+  $('co-go').click();                                                                      // guarda la colección con el cambio
+});
+coTiles();
+
 function sElegir(r) {
   sElegido = r;
   const serie = r.media_type === 'tv';
