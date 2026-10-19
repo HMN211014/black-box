@@ -53,6 +53,17 @@ td.k{font-family:ui-monospace,Menlo,Consolas,monospace;white-space:nowrap}
 .ep .er{display:flex;gap:8px;margin-top:6px}
 .ep .er input{margin:0;height:42px;font-size:15px;flex:1;min-width:0}
 .ep .er button{height:42px;width:46px;padding:0;font-size:22px;flex:none}
+.cp{display:grid;place-items:center;aspect-ratio:16/10;max-width:300px;margin:0 auto 16px;border-radius:22px;overflow:hidden;box-shadow:inset 0 0 0 1px rgba(255,255,255,.16),0 14px 34px rgba(0,0,0,.55)}
+.cp span{font-size:28px;line-height:1.05;text-align:center;padding:0 12px;filter:drop-shadow(0 2px 10px rgba(0,0,0,.4))}
+input[type=color]{padding:4px;cursor:pointer}
+label.ck{display:flex;gap:10px;align-items:center;font-weight:500;margin-bottom:12px}
+label.ck input{width:22px;height:22px;margin:0;padding:0;flex:none}
+textarea.ta{min-height:72px;margin-top:6px;font-family:inherit;font-size:15px;line-height:1.5}
+.sb{margin-top:12px;padding:14px;border-radius:16px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1)}
+.sb button{height:38px;font-size:14px;margin-top:2px}
+details.dt{margin-top:14px;border-top:1px solid rgba(255,255,255,.1);padding-top:14px}
+details.dt summary{cursor:pointer;font-weight:600;font-size:15px;margin-bottom:12px}
+label small.h{display:block;color:#a1a1a6;font-weight:400;font-size:12px;margin-top:2px}
 .tag.p{background:rgba(255,214,10,.18);color:#ffd60a}.tag.r{background:rgba(255,69,58,.18);color:#ff9f9a}
 </style>
 </head>
@@ -161,6 +172,69 @@ td.k{font-family:ui-monospace,Menlo,Consolas,monospace;white-space:nowrap}
     <div id="x-lista"></div>
   </div>
 
+  <div class="c" id="col-card">
+    <h2>Colecciones</h2>
+    <p class="s">Crea y edita cuadros como Marvel o Nolan. Toca <b>Ver colecciones</b> para ver también las de <b>colecciones.js</b> y editarlas: el panel guarda una versión que las reemplaza y el archivo no se toca (puedes <b>restaurar la original</b> cuando quieras).</p>
+    <div class="cp" id="co-prev" style="margin-top:14px"><span id="co-pn">Nombre</span></div>
+
+    <label>Nombre<input id="co-nombre" maxlength="60" autocomplete="off" placeholder="Por ejemplo: Harry Potter"></label>
+    <label>Enlace corto<small class="h">Se llena solo. Solo letras sin acento, números y guiones. La colección abre en #/c/enlace-corto</small><input id="co-id" maxlength="40" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="harry-potter"></label>
+    <div class="f">
+      <label>Color 1<input type="color" id="co-a" value="#0b3d91"></label>
+      <label>Color 2<input type="color" id="co-b" value="#020b1f"></label>
+      <label>Color del nombre<input type="color" id="co-tx" value="#ffffff"></label>
+    </div>
+    <div class="f">
+      <label>Dibujo del cuadro<select id="co-tema"><option value="liso">Liso</option><option value="puntos">Puntos (cómic)</option><option value="rayos">Rayos</option><option value="estrellas">Estrellas</option></select></label>
+      <label>Letra<select id="co-fuente"><option value="helvetica">Moderna</option><option value="impact">Gruesa (Impact)</option><option value="avenir">Redonda</option><option value="georgia">Clásica (serif)</option><option value="courier">Máquina de escribir</option></select></label>
+      <label>Grosor<select id="co-peso"><option value="400">Fino</option><option value="700" selected>Normal</option><option value="900">Grueso</option></select></label>
+    </div>
+    <div class="f">
+      <label>Espaciado de letras<select id="co-esp"><option value="normal">Normal</option><option value=".03em">Poco</option><option value=".08em" selected>Medio</option><option value=".16em">Mucho</option></select></label>
+      <label>Fondo de la página<select id="co-patron"><option value="">Ninguno</option><option value="aranas">Arañas</option><option value="murcielagos">Murciélagos</option></select></label>
+      <label>Color de ese fondo<input type="color" id="co-pc" value="#ffffff"></label>
+    </div>
+    <label class="ck"><input type="checkbox" id="co-mayus" checked> Nombre en MAYÚSCULAS</label>
+    <label>Imagen de fondo del cuadro (opcional)<small class="h">Dirección de una imagen. Sustituye al dibujo.</small><input id="co-fondo" type="url" autocapitalize="off" spellcheck="false" placeholder="https://…"></label>
+    <label class="ck"><input type="checkbox" id="co-sin"> La imagen ya trae el nombre escrito (no repetirlo encima)</label>
+    <label>Logo (opcional)<small class="h">Imagen del logo en lugar del nombre escrito.</small><input id="co-logo" type="url" autocapitalize="off" spellcheck="false" placeholder="https://…"></label>
+
+    <details class="dt">
+      <summary>Qué películas entran</summary>
+      <p class="s" style="margin-bottom:12px">Escribe uno por línea. Entran solas las películas de tu biblioteca que cumplan cualquiera de estas reglas; las de TMDB se llenan con los datos de cada película.</p>
+      <label>Títulos exactos<small class="h">Escritos igual que en tu catálogo.</small><textarea class="ta" id="co-pel" spellcheck="false" placeholder="Batman Inicia"></textarea></label>
+      <label>Saga de TMDB<small class="h">Nombre o número de la saga.</small><textarea class="ta" id="co-sag" spellcheck="false" placeholder="Harry Potter Collection&#10;1241"></textarea></label>
+      <label>Director<textarea class="ta" id="co-dir" spellcheck="false" placeholder="Christopher Nolan"></textarea></label>
+      <label>Actores principales<textarea class="ta" id="co-rep" spellcheck="false" placeholder="Daniel Radcliffe"></textarea></label>
+      <label>Productora (nombre exacto o número)<textarea class="ta" id="co-emp" spellcheck="false" placeholder="Marvel Studios"></textarea></label>
+      <label>Productora que contenga la palabra<textarea class="ta" id="co-empc" spellcheck="false" placeholder="warner"></textarea></label>
+      <label>Palabras clave de TMDB (en inglés)<textarea class="ta" id="co-pal" spellcheck="false" placeholder="marvel cinematic universe"></textarea></label>
+      <label class="ck"><input type="checkbox" id="co-auto" checked> Sumar solas las películas parecidas</label>
+      <label>No incluir estas películas<small class="h">Títulos exactos, uno por línea.</small><textarea class="ta" id="co-exc" spellcheck="false" placeholder="The Batman"></textarea></label>
+    </details>
+
+    <details class="dt">
+      <summary>Subcategorías (opcional)</summary>
+      <p class="s" style="margin-bottom:4px">Divide la colección en grupos, por ejemplo <b>Trilogía original</b>, <b>Precuelas</b> o <b>Secuelas</b> dentro de Star Wars. Cada una sale como su propia fila, en orden cronológico, debajo de "Orden cronológico". Lo que pongas aquí también entra en la colección.</p>
+      <div id="co-subs"></div>
+      <button class="g" id="co-sub-add" type="button" style="margin-top:12px;height:40px;font-size:14px">+ Agregar subcategoría</button>
+    </details>
+
+    <details class="dt">
+      <summary>Anuncio en el banner grande (opcional)</summary>
+      <p class="s" style="margin-bottom:12px">Aparece como una diapositiva más del banner, junto a las películas de la colección, con su título, texto, imagen y botón. Déjalo vacío si no quieres anuncio.</p>
+      <label>Título<input id="co-at" maxlength="100" placeholder="Estreno esta semana"></label>
+      <label>Texto<input id="co-ax" maxlength="300" placeholder="Ya disponible en Black BOX"></label>
+      <label>Imagen de fondo<input id="co-ai" type="url" autocapitalize="off" spellcheck="false" placeholder="https://…"></label>
+      <label>Enlace del botón<input id="co-ae" type="url" autocapitalize="off" spellcheck="false" placeholder="https://…"></label>
+      <label>Texto del botón<input id="co-ab" maxlength="40" autocomplete="off" placeholder="Ver más"></label>
+    </details>
+
+    <div class="row" style="margin-top:16px"><button id="co-go" type="button">Guardar colección</button><button class="g" id="co-nuevo" type="button">Nueva</button><button class="g" id="co-ver" type="button">Ver colecciones</button></div>
+    <p class="m" id="co-m" hidden></p>
+    <div id="co-lista"></div>
+  </div>
+
   <div class="c">
     <h2>Todos los códigos</h2>
     <button class="g" id="l-go" type="button">Actualizar lista</button>
@@ -169,6 +243,7 @@ td.k{font-family:ui-monospace,Menlo,Consolas,monospace;white-space:nowrap}
   </div>
 </main>
 <script src="/api/catalogo"></script>
+<script src="colecciones.js"></script>
 <script>
 const $ = id => document.getElementById(id);
 async function admin(cuerpo) {
@@ -346,6 +421,127 @@ $('x-go').onclick = () => con($('x-go'), 'x-m', async () => {
     d.append(tx, q); box.appendChild(d);
   });
 });
+
+/* ---- colecciones del inicio ---- */
+const COL_FUENTES = { impact: "Impact,'Arial Narrow Bold','Helvetica Neue',sans-serif", avenir: "'Avenir Next','Helvetica Neue',Arial,sans-serif", helvetica: "'Helvetica Neue',Arial,sans-serif", georgia: "Georgia,'Times New Roman',serif", courier: "'Courier New',Courier,monospace" };
+const slug = t => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
+const lin = id => $(id).value.split('\n').map(x => x.trim()).filter(Boolean);
+const delArchivo = (typeof COLECCIONES !== 'undefined' && Array.isArray(COLECCIONES)) ? COLECCIONES : [];     // las de colecciones.js (solo lectura)
+const fuenteKey = f => COL_FUENTES[f] ? f : (Object.keys(COL_FUENTES).find(k => COL_FUENTES[k] === f) || 'helvetica');
+const aFormaPanel = c => ({ ...c, fuente: fuenteKey(c.fuente), peso: String(c.peso || '700'), esp: c.esp || 'normal', mayus: !!c.mayus, patronColor: c.patronColor || '#ffffff' });
+const REGLAS = ['peliculas', 'tmdbSagas', 'tmdbDirectores', 'tmdbReparto', 'tmdbEmpresas', 'tmdbEmpresasContiene', 'tmdbPalabras'];
+const SUB_REGLAS = ['peliculas', 'tmdbSagas', 'tmdbDirectores', 'tmdbReparto', 'tmdbEmpresas'];
+const nReglas = c => REGLAS.filter(k => (c[k] || []).length).length + (c.subcategorias || []).filter(s => SUB_REGLAS.some(k => (s[k] || []).length)).length;
+let coManual = false, coEditando = null, coPanel = new Map();   // coPanel: las que están guardadas en la base (por id)
+
+/* subcategorías: tarjetas dentro del formulario; se guardan al tocar "Guardar colección" */
+const SUB_CAMPOS = [['peliculas', 'Títulos exactos', 'Escritos igual que en tu catálogo'], ['tmdbSagas', 'Saga de TMDB (nombre o número)', 'Star Wars Collection'], ['tmdbDirectores', 'Director', 'George Lucas'], ['tmdbReparto', 'Actores principales', 'Mark Hamill'], ['tmdbEmpresas', 'Productora (nombre exacto o número)', 'Lucasfilm']];
+function coSubAgregar(s) {
+  s = s || {};
+  const d = document.createElement('div'); d.className = 'sb';
+  const l0 = document.createElement('label'); l0.textContent = 'Nombre de la subcategoría';
+  const n = document.createElement('input'); n.className = 'sb-n'; n.maxLength = 60; n.autocomplete = 'off'; n.placeholder = 'Por ejemplo: Trilogía original'; n.value = s.nombre || '';
+  l0.appendChild(n); d.appendChild(l0);
+  SUB_CAMPOS.forEach(([k, et, ph]) => {
+    const l = document.createElement('label'); l.textContent = et;
+    const t = document.createElement('textarea'); t.className = 'ta'; t.dataset.k = k; t.spellcheck = false; t.placeholder = ph; t.value = (s[k] || []).join('\n');
+    l.appendChild(t); d.appendChild(l);
+  });
+  const q = document.createElement('button'); q.type = 'button'; q.className = 'g'; q.textContent = 'Quitar esta subcategoría';
+  q.onclick = () => d.remove();                                    // solo la saca del formulario; se aplica al guardar
+  d.appendChild(q); $('co-subs').appendChild(d); return n;
+}
+const coSubsLeer = () => [...document.querySelectorAll('#co-subs .sb')].map(d => {
+  const o = { nombre: d.querySelector('.sb-n').value.trim() };
+  d.querySelectorAll('textarea').forEach(t => { o[t.dataset.k] = t.value.split('\n').map(x => x.trim()).filter(Boolean); });
+  return o;
+}).filter(s => s.nombre);
+$('co-sub-add').onclick = () => coSubAgregar().focus();
+
+function coLeer() {
+  return {
+    id: $('co-id').value.trim(), nombre: $('co-nombre').value.trim(), a: $('co-a').value, b: $('co-b').value, tx: $('co-tx').value,
+    tema: $('co-tema').value, fondo: $('co-fondo').value.trim(), logo: $('co-logo').value.trim(), sinNombre: $('co-sin').checked,
+    fuente: $('co-fuente').value, peso: $('co-peso').value, esp: $('co-esp').value, mayus: $('co-mayus').checked,
+    patron: $('co-patron').value, patronColor: $('co-pc').value,
+    anuncio: { titulo: $('co-at').value.trim(), texto: $('co-ax').value.trim(), imagen: $('co-ai').value.trim(), enlace: $('co-ae').value.trim(), boton: $('co-ab').value.trim() },
+    tmdbEmpresas: lin('co-emp'), tmdbEmpresasContiene: lin('co-empc'), tmdbPalabras: lin('co-pal'), tmdbSagas: lin('co-sag'), tmdbDirectores: lin('co-dir'), tmdbReparto: lin('co-rep'),
+    auto: $('co-auto').checked, excluir: lin('co-exc'), peliculas: lin('co-pel'), subcategorias: coSubsLeer()
+  };
+}
+function coPrev() {
+  const c = coLeer(), p = $('co-prev'), n = $('co-pn');
+  const f = c.fondo && /^https?:\/\/[^\s"'()\\]+$/.test(c.fondo) ? c.fondo : '';
+  p.style.background = (f ? 'url("' + f + '") center/cover,' : '') + 'linear-gradient(135deg,' + c.a + ',' + c.b + ')';
+  p.style.color = c.tx;
+  n.textContent = c.nombre || 'Nombre'; n.hidden = !!(c.sinNombre && f);
+  n.style.fontFamily = COL_FUENTES[c.fuente]; n.style.fontWeight = c.peso; n.style.letterSpacing = c.esp === 'normal' ? 'normal' : c.esp; n.style.textTransform = c.mayus ? 'uppercase' : 'none';
+}
+function coPoner(c) {                                  // c = null → formulario en blanco
+  c = c || {}; const an = c.anuncio || {}, v = (id, x, d) => { $(id).value = x == null || x === '' ? d : x; }, L = (id, a) => { $(id).value = (a || []).join('\n'); };
+  coEditando = c.id || null; coManual = !!c.id;
+  const esp = c.esp || '.08em';                        // si trae un espaciado que no está en la lista (p. ej. .06em), se agrega
+  if (![...$('co-esp').options].some(o => o.value === esp)) { const o = document.createElement('option'); o.value = o.textContent = esp; $('co-esp').appendChild(o); }
+  v('co-nombre', c.nombre, ''); v('co-id', c.id, ''); $('co-id').readOnly = !!c.id;
+  v('co-a', c.a, '#0b3d91'); v('co-b', c.b, '#020b1f'); v('co-tx', c.tx, '#ffffff'); v('co-tema', c.tema, 'liso');
+  v('co-fuente', c.fuente, 'helvetica'); v('co-peso', c.peso, '700'); v('co-esp', esp, '.08em'); v('co-patron', c.patron, ''); v('co-pc', c.patronColor, '#ffffff');
+  $('co-mayus').checked = c.id ? !!c.mayus : true; v('co-fondo', c.fondo, ''); v('co-logo', c.logo, ''); $('co-sin').checked = !!c.sinNombre;
+  L('co-pel', c.peliculas); L('co-sag', c.tmdbSagas); L('co-dir', c.tmdbDirectores); L('co-rep', c.tmdbReparto); L('co-emp', c.tmdbEmpresas);
+  L('co-empc', c.tmdbEmpresasContiene); L('co-pal', c.tmdbPalabras); L('co-exc', c.excluir); $('co-auto').checked = c.auto !== false;
+  v('co-at', an.titulo, ''); v('co-ax', an.texto, ''); v('co-ai', an.imagen, ''); v('co-ae', an.enlace, ''); v('co-ab', an.boton, '');
+  $('co-subs').replaceChildren(); (c.subcategorias || []).forEach(coSubAgregar);
+  coPrev();
+}
+document.querySelectorAll('#col-card input, #col-card select, #col-card textarea').forEach(e => e.addEventListener('input', coPrev));
+$('co-nombre').addEventListener('input', () => { if (!coManual) $('co-id').value = slug($('co-nombre').value); });
+$('co-id').addEventListener('input', () => { coManual = true; });
+$('co-nuevo').onclick = () => { coPoner(null); msg('co-m', '', true); $('col-card').scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+function coEditar(c, aviso) { coPoner(c); msg('co-m', aviso, true); $('col-card').scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+async function coLista() {
+  const j = await admin({ op: 'colecciones' }), box = $('co-lista'); box.replaceChildren();
+  coPanel = new Map(j.items.map(c => [c.id, c]));
+  const idsArchivo = new Set(delArchivo.map(c => c.id)), soloPanel = j.items.filter(c => !idsArchivo.has(c.id));
+  const filas = [
+    ...delArchivo.map(f => ({ id: f.id, ef: coPanel.get(f.id) || aFormaPanel(f), origen: coPanel.has(f.id) ? 'mod' : 'arch' })),
+    ...soloPanel.map(c => ({ id: c.id, ef: c, origen: 'panel' }))
+  ];
+  msg('co-m', filas.length ? filas.length + ' colección(es): ' + delArchivo.length + ' de colecciones.js y ' + soloPanel.length + ' creada(s) desde aquí.' : 'Todavía no hay colecciones.', true);
+  filas.forEach(f => {
+    const c = f.ef, d = document.createElement('div'); d.className = 'it';
+    const tx = document.createElement('div'); tx.className = 'tx';
+    const b = document.createElement('b'); b.textContent = c.nombre;
+    const sm = document.createElement('small');
+    const nSub = (c.subcategorias || []).length;
+    sm.textContent = '#/c/' + c.id + ' · ' + (f.origen === 'arch' ? 'de colecciones.js' : f.origen === 'mod' ? 'de colecciones.js, modificada desde el panel' : 'creada desde el panel') + (nSub ? ' · ' + nSub + ' subcategoría(s)' : '') + (nReglas(c) ? '' : ' · sin reglas: saldrá vacía');
+    tx.append(b, sm);
+    const r = document.createElement('div'); r.className = 'row';
+    const e = document.createElement('button'); e.className = 'g'; e.type = 'button'; e.textContent = 'Editar';
+    e.onclick = () => coEditar(c, f.origen === 'arch'
+      ? 'Editando "' + c.nombre + '", que viene de colecciones.js. Al guardar, el panel crea una versión que la reemplaza; el archivo no se toca.'
+      : 'Editando "' + c.nombre + '". Cambia lo que quieras y toca Guardar.');
+    r.appendChild(e);
+    if (f.origen !== 'arch') {                         // quitar la versión del panel (nunca borra películas ni toca colecciones.js)
+      const q = document.createElement('button'); q.className = 'g'; q.type = 'button'; q.textContent = f.origen === 'mod' ? 'Restaurar original' : 'Quitar';
+      q.onclick = () => {
+        if (!confirm(f.origen === 'mod' ? '¿Restaurar "' + c.nombre + '" a como está en colecciones.js? Se descartan los cambios hechos desde el panel.' : '¿Quitar la colección "' + c.nombre + '"? Dejará de verse en el inicio. Las películas no se borran.')) return;
+        con(q, 'co-m', async () => { await admin({ op: 'borrar_col', id: c.id }); if (coEditando === c.id) coPoner(null); await coLista(); msg('co-m', f.origen === 'mod' ? 'Colección restaurada a la de colecciones.js.' : 'Colección quitada.', true); });
+      };
+      r.appendChild(q);
+    }
+    d.append(tx, r); box.appendChild(d);
+  });
+}
+$('co-ver').onclick = () => con($('co-ver'), 'co-m', coLista);
+$('co-go').onclick = () => con($('co-go'), 'co-m', async () => {
+  const c = coLeer(); if (!c.nombre) throw new Error('Escribe el nombre de la colección.');
+  if (!c.id) { c.id = slug(c.nombre); $('co-id').value = c.id; }
+  const j = await admin({ op: 'guardar_col', col: c });
+  coEditando = j.id; $('co-id').readOnly = true;
+  await coLista();
+  const deArchivo = delArchivo.some(x => x.id === j.id);
+  msg('co-m', (j.nueva ? (deArchivo ? 'Guardada tu versión de la colección de colecciones.js. ' : 'Colección creada. ') : 'Colección actualizada. ') + 'Aparece en el inicio en menos de un minuto.' + (nReglas(c) ? '' : ' Ojo: no tiene reglas, así que saldrá vacía.'), true);
+});
+coPoner(null);
 
 /* ---- subir película o serie con datos de TMDB ---- */
 const TMDB_KEY = '28e735f7aea07e37f38a95d346bcdd7f', TMDB = 'https://api.themoviedb.org/3', IMG = 'https://image.tmdb.org/t/p/';
