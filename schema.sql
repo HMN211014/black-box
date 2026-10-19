@@ -90,3 +90,11 @@ CREATE TABLE IF NOT EXISTS colecciones (
   datos  TEXT NOT NULL,
   creado INTEGER NOT NULL
 );
+
+-- Secciones temáticas del inicio o de una colección (como "Huluween"): franja con carrusel + página propia.
+-- "datos" es el JSON de la sección tal como la arma el panel (también se crea sola la primera vez).
+CREATE TABLE IF NOT EXISTS secciones (
+  id     TEXT PRIMARY KEY,
+  datos  TEXT NOT NULL,
+  creado INTEGER NOT NULL
+);

@@ -803,6 +803,47 @@ body.con-q #vista-ped,body.con-q #vista-rec{display:none!important}
   ::view-transition-group(cuenta){animation:none}
   ::view-transition-old(cuenta){display:none}
 }
+
+/* ---------- Secciones temáticas (creadas desde el panel de admin) ---------- */
+.secw{margin:34px 0 6px}
+.sf{position:relative;display:grid;grid-template-columns:minmax(240px,30%) minmax(0,1fr);align-items:center;min-height:clamp(380px,44vw,540px);
+  margin:0 clamp(12px,2vw,28px);padding:24px 0 24px clamp(18px,4vw,64px);border-radius:26px;overflow:hidden;color:var(--tx,#fff);
+  background:radial-gradient(120% 90% at 18% 0%,var(--a),transparent 62%),linear-gradient(135deg,var(--b),#000)}
+.sf::before{content:"";position:absolute;inset:-20px;background:var(--img,none) center/cover;opacity:.2;filter:blur(20px) saturate(1.2)}
+.sf>*{position:relative}
+.sf-info{display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px;padding:0 12px}
+.sf-logo{max-width:min(100%,300px);max-height:130px;object-fit:contain;filter:drop-shadow(0 6px 22px rgba(0,0,0,.5))}
+.sf-nom{font-size:clamp(28px,3.4vw,46px);letter-spacing:-.02em}
+.sf-et{font-size:13px;font-weight:700;letter-spacing:.4em;text-indent:.4em;text-transform:uppercase}
+.sf-tx{font-size:15px;line-height:1.35;opacity:.92;max-width:270px}
+.sf-btn{margin-top:6px;display:inline-flex;align-items:center;height:44px;padding:0 26px;border-radius:999px;background:rgba(255,255,255,.14);
+  border:1px solid rgba(255,255,255,.22);color:#fff;text-decoration:none;font-size:14px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);-webkit-tap-highlight-color:transparent}
+.sf-btn:hover,.sf-btn:focus-visible{background:rgba(255,255,255,.26)}
+.sf-row{min-width:0}
+.sf-row .track{padding:14px 28px 14px 8px;gap:18px}
+.sf .card{flex-basis:clamp(150px,15vw,230px);margin-bottom:0}
+.sf .card .t{display:none}
+@media(max-width:820px){.sf{grid-template-columns:1fr;padding:22px 0;min-height:0}.sf-row .track{padding:10px 20px}.sf .card{flex-basis:44vw}}
+#vista-sec{padding-bottom:50px}
+.sec-hero{position:relative;height:clamp(360px,62vh,640px);overflow:hidden;border-radius:0 0 30px 30px;display:flex;align-items:center;justify-content:center;text-align:center;
+  background:radial-gradient(120% 90% at 50% 0%,var(--a,#0b3d91),transparent 70%),linear-gradient(135deg,var(--b,#020b1f),#000);box-shadow:0 30px 80px rgba(0,0,0,.6)}
+.sec-slides,.sec-slide{position:absolute;inset:0}
+.sec-slide{background:center/cover no-repeat;opacity:0;transition:opacity 1.2s ease}
+.sec-slide.on{opacity:1}
+.sec-hero::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.3),rgba(0,0,0,.05) 38%,rgba(0,0,0,.78))}
+.sec-logo{position:relative;z-index:2;max-width:min(72vw,580px);max-height:38%;object-fit:contain;margin-top:14vh;filter:drop-shadow(0 8px 30px rgba(0,0,0,.55))}
+.sec-nom{position:relative;z-index:2;margin-top:14vh;font-size:clamp(40px,8vw,96px);font-weight:800;letter-spacing:-.03em;color:var(--tx,#fff);text-shadow:0 6px 30px rgba(0,0,0,.6)}
+.sec-dots{position:absolute;left:50%;transform:translateX(-50%);bottom:18px;display:flex;gap:10px;z-index:3}
+.sec-dots button{position:relative;width:8px;height:8px;border-radius:8px;border:0;padding:0;background:rgba(255,255,255,.4);cursor:pointer;transition:width .25s,background .25s}
+.sec-dots button::after{content:"";position:absolute;inset:-10px}
+.sec-dots button.on{width:26px;background:#fff}
+.card.hz{flex-basis:clamp(260px,27vw,420px);aspect-ratio:16/9;border-radius:16px;margin-bottom:56px}
+.card.hz::before{border-radius:inherit;-webkit-mask-image:none;mask-image:none}
+.card.hz img,.card.hz .shine{-webkit-mask-image:none;mask-image:none}
+.card.hz .t{font-size:clamp(15px,1.3vw,18px)}
+.card .nov{position:absolute;top:10px;left:10px;z-index:3;padding:4px 9px;border-radius:6px;background:#fff;color:#000;font-size:12px;font-weight:700;letter-spacing:.01em}
+@media(max-width:620px){.card.hz{flex-basis:72vw;max-width:340px;border-radius:14px}}
 </style>
 <link rel="manifest" href="/manifest.webmanifest">
 <meta name="theme-color" content="#000000">
@@ -929,6 +970,17 @@ body.con-q #vista-ped,body.con-q #vista-rec{display:none!important}
   <h3 class="rt" id="c-rt">Todas las películas</h3>
   <div class="grid" id="c-grid"></div>
   <p class="cvacio" id="c-vacio" hidden>Aún no hay películas en esta colección.</p>
+</section>
+
+<section id="vista-sec" hidden aria-label="Sección temática">
+  <div class="cbar"><a class="cback" id="s-back" href="#" aria-label="Volver">‹ Volver</a><h2 id="s-titulo"></h2></div>
+  <section class="sec-hero" id="s-hero" aria-label="Banner de la sección">
+    <div class="sec-slides" id="s-slides"></div>
+    <img class="sec-logo" id="s-logo" alt="" hidden>
+    <h2 class="sec-nom" id="s-nombre" hidden></h2>
+    <div class="sec-dots" id="s-dots"></div>
+  </section>
+  <div id="s-filas"></div>
 </section>
 
 <div class="sheet" id="sheet" hidden><div class="sp" id="sp"></div></div>
@@ -2360,7 +2412,7 @@ const RECIENTES_EN_BARRA = true;                      // pon false para quitar "
 H('dk-rec').hidden = !RECIENTES_EN_BARRA;
 const PEDIDOS_EN_BARRA = true;                       // pon false para quitar "Pedidos" de la barra
 H('dk-ped').hidden = !PEDIDOS_EN_BARRA;
-const vistas = { inicio: H('vista-inicio'), ped: H('vista-ped'), rec: H('vista-rec'), col: H('vista-col'), det: H('vista-det') };
+const vistas = { inicio: H('vista-inicio'), ped: H('vista-ped'), rec: H('vista-rec'), col: H('vista-col'), det: H('vista-det'), sec: H('vista-sec') };
 let detActual = null, detHist = false, volverY = null;
 const slugDe = p => norm(p.titulo).replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 function marcarDock(v) {
@@ -2374,6 +2426,7 @@ function ponerModo(m) {                              // el inicio sirve para Pel
   const s = m === 'series';
   H('cols').hidden = H('cols-w').hidden = s || typeof COLECCIONES === 'undefined' || !COLECCIONES.length;
   H('gen-w').hidden = s || !H('gens').children.length;
+  document.querySelectorAll('.secw[data-u="inicio"]').forEach(n => { n.hidden = s; });
   H('plat').hidden = s || typeof PLATAFORMAS === 'undefined';
   rt.textContent = s ? 'Todas las series · ' + series.length : 'Todas las películas';
   H('pop').hidden = s && !(series.some(p => p.popular) || series.length > 10);   // con pocas series, "Populares" solo repetiría la lista
@@ -2385,7 +2438,7 @@ function irA(v, desdeRuta) {                         // v: inicio | series | ped
   const hacer = () => {
     clearInterval(cTimer);
     document.body.classList.remove('colmode', 'detmode');
-    vistas.col.hidden = vistas.det.hidden = true; detActual = null;
+    vistas.col.hidden = vistas.det.hidden = vistas.sec.hidden = true; clearInterval(secTimer); detActual = null;
     vistas.ped.hidden = v !== 'pedidos'; vistas.rec.hidden = v !== 'recientes';
     vistas.inicio.hidden = v === 'pedidos' || v === 'recientes';
     if (!vistas.inicio.hidden) { ponerModo(v === 'series' ? 'series' : 'peliculas'); auto(); }
@@ -2430,7 +2483,7 @@ function abrirDetalle(slug) {
   if (!p) { history.replaceState(null, '', location.pathname + location.search); ruta(false); return; }
   detActual = p; clearInterval(timer); clearInterval(cTimer);
   document.body.classList.remove('colmode'); document.body.classList.add('detmode');
-  vistas.inicio.hidden = vistas.ped.hidden = vistas.rec.hidden = vistas.col.hidden = true; vistas.det.hidden = false;
+  vistas.inicio.hidden = vistas.ped.hidden = vistas.rec.hidden = vistas.col.hidden = vistas.sec.hidden = true; vistas.det.hidden = false;
   pintarDetalle(p); scrollTo(0, 0);
 }
 /* ---------- Series: temporadas y capítulos ---------- */
@@ -3276,8 +3329,8 @@ function abrirCol(id, viaEnlace, silencio) {
   cMostrar(0); cAuto();
   H('c-track').replaceChildren(...pop.map(tCol)); H('c-ctrack').replaceChildren(...cro.map(tCol)); H('c-grid').replaceChildren(...cro.map(tCol)); const prox = proxDe(c); H('c-grid').append(...prox.map(tProx));
   H('c-pt').textContent = 'Populares de ' + c.nombre; H('c-rt').textContent = 'Todas las películas de ' + c.nombre;
-  H('c-pop').hidden = !lista.length; H('c-rt').hidden = H('c-grid').hidden = !(lista.length || prox.length); H('c-cro').hidden = cro.length < 2; H('c-vacio').hidden = !!(lista.length || prox.length); pintarSubs(c);
-  vistas.inicio.hidden = vistas.ped.hidden = vistas.rec.hidden = vistas.det.hidden = true; vistas.col.hidden = false; detActual = null;
+  H('c-pop').hidden = !lista.length; H('c-rt').hidden = H('c-grid').hidden = !(lista.length || prox.length); H('c-cro').hidden = cro.length < 2; H('c-vacio').hidden = !!(lista.length || prox.length); pintarSubs(c); pintarSeccionesCol(c.id);
+  vistas.inicio.hidden = vistas.ped.hidden = vistas.rec.hidden = vistas.det.hidden = vistas.sec.hidden = true; vistas.col.hidden = false; detActual = null;
   document.body.classList.remove('detmode'); marcarDock('inicio');
   if (!silencio) { scrollTo(0, volverY || 0); volverY = null; }
 }
@@ -3290,7 +3343,7 @@ function actualizarColAbierta() {                    // si llegan datos de TMDB 
 function cerrarCol() {
   clearInterval(cTimer);
   document.body.classList.remove('colmode');
-  vistas.col.hidden = true;
+  vistas.col.hidden = vistas.sec.hidden = true; clearInterval(secTimer);
 }
 const svgUrl = s => 'url("data:image/svg+xml,' + encodeURIComponent(s) + '")';
 const PATRONES = {           // fondos de las páginas de colección (patron: "aranas" | "murcielagos" en colecciones.js)
@@ -3303,6 +3356,7 @@ function ruta(viaEnlace) {
   const opc = entrandoFicha ? { tipo: 'poster', desde: fuenteVT } : saliendoFicha ? { tipo: 'poster', hacia: () => fuenteVT } : { tipo: 'tab' };
   conTransicion(() => {
     if ((m = h.match(/^#\/c\/([\w-]+)$/))) { abrirCol(m[1], viaEnlace); return; }
+    if ((m = h.match(/^#\/s\/([\w-]+)$/))) { abrirSec(m[1], viaEnlace); return; }
     if ((m = h.match(/^#\/p\/(.+)$/))) { abrirDetalle(decodeURIComponent(m[1])); return; }
     cerrarCol();
     irA(h === '#/series' ? 'series' : h === '#/pedidos' ? 'pedidos' : h === '#/recientes' ? 'recientes' : 'inicio', true);
@@ -3314,6 +3368,7 @@ const volverDe = e => {
   if (colHist) history.back(); else { history.replaceState(null, '', location.pathname + location.search); ruta(false); }
 };
 H('c-back').addEventListener('click', volverDe);
+H('s-back').addEventListener('click', volverDe);
 { const cp = H('c-pop'), pasoK = () => H('c-track').clientWidth * .8;
   cp.querySelector('.prev').onclick = () => H('c-track').scrollBy({ left: -pasoK(), behavior: 'smooth' });
   cp.querySelector('.next').onclick = () => H('c-track').scrollBy({ left: pasoK(), behavior: 'smooth' }); }
@@ -3350,6 +3405,7 @@ function pintarGenerosInicio() {
 }
 function pintarTiles() {
   pintarGenerosInicio();
+  try { pintarSecciones(); } catch (e) { console.error('[secciones]', e); }
   const cols = H('cols'); cols.replaceChildren();
   if (typeof COLECCIONES === 'undefined' || !COLECCIONES.length) { cols.hidden = H('cols-w').hidden = true; return; }
   COLECCIONES.forEach(c => {
@@ -3362,6 +3418,114 @@ function pintarTiles() {
     cols.appendChild(a);
   });
 }
+/* ---------- Secciones temáticas: franja con carrusel (inicio o dentro de una colección) + página propia #/s/<id> ----------
+   Se crean en el panel de admin (Secciones temáticas) y llegan en window.SECCIONES_EXTRA. */
+var secTimer = null, secActual = null;
+const SEC_IMG = 'https://image.tmdb.org/t/p/';
+const secLista = () => (window.SECCIONES_EXTRA || []).filter(s => s && s.id && s.nombre);
+const tmdbDe = p => Number(p.tmdbId || p.tmdb) || 0;
+function secResolver(f) {                      // fila → [{ p: película de tu biblioteca o null, it: dato guardado }]
+  const out = [], vistos = new Set(), biblio = typeof todas === 'function' ? todas() : peliculas;
+  (f.items || []).forEach(it => {
+    if (!it || vistos.has(Number(it.tmdb))) return; vistos.add(Number(it.tmdb));
+    out.push({ p: biblio.find(x => tmdbDe(x) === Number(it.tmdb)) || null, it });
+  });
+  const col = f.coleccion && typeof COLECCIONES !== 'undefined' && COLECCIONES.find(c => c.id === f.coleccion);
+  if (col) pelisDe(col).forEach(p => { const t = tmdbDe(p); if (t && vistos.has(t)) return; if (t) vistos.add(t); out.push({ p, it: { tmdb: t, titulo: p.titulo } }); });
+  return out;
+}
+function secTarjeta(x, horizontal, nov) {
+  let b;
+  if (x.p) {
+    b = crearTarjeta(x.p);
+    if (horizontal) {                          // tarjeta horizontal: se usa la foto ancha (fondo) de la película
+      const bg = x.p.fondo || (x.it.fondo ? SEC_IMG + 'w780' + x.it.fondo : '') || x.p.poster;
+      let im = b.querySelector('img');
+      if (bg) { if (!im) { im = new Image(); im.alt = ''; b.prepend(im); } im.src = bg; }
+    }
+  } else b = tProx({ titulo: x.it.titulo, poster: horizontal ? (x.it.fondo || x.it.poster) : x.it.poster });   // todavía no está en la biblioteca
+  if (horizontal) b.classList.add('hz');
+  if (nov) b.appendChild(el('span', 'nov', 'Novedad'));
+  return b;
+}
+function secNav(tr) {
+  const mk = (cls, txt, lab, dir) => { const b = el('button', 'nav ' + cls, txt); b.type = 'button'; b.setAttribute('aria-label', lab); b.onclick = () => tr.scrollBy({ left: dir * tr.clientWidth * .8, behavior: 'smooth' }); return b; };
+  return [mk('prev', '‹', 'Anterior', -1), mk('next', '›', 'Siguiente', 1)];
+}
+function secFranja(s, u) {                      // la franja: logo + frase + botón a la izquierda y carrusel de pósters a la derecha
+  const w = el('section', 'secw'); w.dataset.sec = s.id; w.dataset.u = u; w.setAttribute('aria-label', s.nombre);
+  const f = el('div', 'sf'); f.style.setProperty('--a', s.a || '#0b3d91'); f.style.setProperty('--b', s.b || '#020b1f'); f.style.setProperty('--tx', s.tx || '#ffffff');
+  if ((s.banners || [])[0]) f.style.setProperty('--img', urlCss(s.banners[0]));
+  const info = el('div', 'sf-info');
+  if (s.logo) { const i = new Image(); i.className = 'sf-logo'; i.alt = s.nombre; i.src = s.logo; i.onerror = () => i.replaceWith(el('h3', 'sf-nom', s.nombre)); info.appendChild(i); }
+  else info.appendChild(el('h3', 'sf-nom', s.nombre));
+  if (s.etiqueta) info.appendChild(el('p', 'sf-et', s.etiqueta));
+  if (s.texto) info.appendChild(el('p', 'sf-tx', s.texto));
+  const a = el('a', 'sf-btn', s.boton || 'Detalles'); a.href = '#/s/' + s.id; info.appendChild(a);
+  const row = el('div', 'row sf-row'), tr = el('div', 'track sf-track'), vistos = new Set(), items = [];
+  (s.filas || []).forEach(fl => secResolver(fl).forEach(x => { const k = x.p ? 'p' + x.p.titulo : 't' + x.it.tmdb; if (!vistos.has(k)) { vistos.add(k); items.push(x); } }));
+  items.slice(0, 16).forEach(x => tr.appendChild(secTarjeta(x, false, false)));
+  row.append(secNav(tr)[0], tr, secNav(tr)[1]); f.append(info, row); w.appendChild(f);
+  if (!reduce && items.length > 3) w._t = setInterval(() => {      // el carrusel avanza solo (se detiene si lo tocas o no lo estás viendo)
+    if (document.hidden || !w.isConnected || w.offsetParent === null || w.matches(':hover') || w.contains(document.activeElement)) return;
+    if (tr.scrollLeft >= tr.scrollWidth - tr.clientWidth - 4) tr.scrollTo({ left: 0, behavior: 'smooth' }); else tr.scrollBy({ left: tr.clientWidth * .6, behavior: 'smooth' });
+  }, 4500);
+  return w;
+}
+const SEC_ANCLAS_INICIO = { top: ['herowrap', 'antes'], hero: ['herowrap', 'despues'], cols: ['cols-w', 'despues'], gens: ['gen-w', 'despues'], cont: ['cont', 'despues'], pop: ['pop', 'despues'], grid: ['grid', 'despues'], plat: ['plat', 'despues'] };
+const SEC_ANCLAS_COL = { top: ['chero', 'antes'], hero: ['chero', 'despues'], pop: ['c-pop', 'despues'], cro: ['c-cro', 'despues'], subs: ['c-subs', 'despues'], grid: ['c-grid', 'despues'] };
+const secQuitar = sel => document.querySelectorAll(sel).forEach(n => { if (n._t) clearInterval(n._t); n.remove(); });
+function secColocar(lista, mapa, u) {
+  const ult = {};
+  lista.slice().sort((a, b) => (a.orden || 0) - (b.orden || 0)).forEach(s => {
+    const k = mapa[s.despues] ? s.despues : 'hero', ref = H(mapa[k][0]); if (!ref) return;
+    const w = secFranja(s, u);
+    if (ult[k]) ult[k].insertAdjacentElement('afterend', w); else ref.insertAdjacentElement(mapa[k][1] === 'antes' ? 'beforebegin' : 'afterend', w);
+    ult[k] = w;
+  });
+}
+function pintarSecciones() {
+  secQuitar('.secw[data-u="inicio"]');
+  secColocar(secLista().filter(s => (s.ubicacion || 'inicio') === 'inicio' && s.franja !== false), SEC_ANCLAS_INICIO, 'inicio');
+  document.querySelectorAll('.secw[data-u="inicio"]').forEach(n => { n.hidden = modo === 'series'; });
+  if (colActual && !vistas.col.hidden) pintarSeccionesCol(colActual.id);
+  if (secActual && !vistas.sec.hidden) abrirSec(secActual.id, colHist, true);      // llegaron datos nuevos con la sección abierta
+}
+function pintarSeccionesCol(id) {               // franjas que el admin puso dentro de esta colección
+  secQuitar('.secw[data-u="col"]');
+  secColocar(secLista().filter(s => s.ubicacion === 'col:' + id && s.franja !== false), SEC_ANCLAS_COL, 'col');
+}
+function abrirSec(id, viaEnlace, silencio) {
+  const s = secLista().find(x => x.id === id);
+  if (!s) { history.replaceState(null, '', location.pathname + location.search); cerrarCol(); irA('inicio', true); return; }
+  secActual = s; colHist = !!viaEnlace;
+  const v = vistas.sec; v.style.setProperty('--a', s.a || '#0b3d91'); v.style.setProperty('--b', s.b || '#020b1f'); v.style.setProperty('--tx', s.tx || '#ffffff');
+  H('s-titulo').textContent = s.nombre;
+  const sl = H('s-slides'), dots = H('s-dots'), banners = s.banners || [], n = banners.length; let k = 0;
+  sl.replaceChildren(); dots.replaceChildren(); clearInterval(secTimer);
+  banners.forEach((u, i) => { const d = el('div', 'sec-slide' + (i ? '' : ' on')); d.style.backgroundImage = urlCss(u); sl.appendChild(d); });
+  const ir = i => { k = i; [...sl.children].forEach((d, j) => d.classList.toggle('on', j === i)); [...dots.children].forEach((d, j) => d.classList.toggle('on', j === i)); };
+  const arrancar = () => { clearInterval(secTimer); if (!reduce && n > 1) secTimer = setInterval(() => { if (!document.hidden) ir((k + 1) % n); }, 6000); };
+  if (n > 1) { for (let i = 0; i < n; i++) { const d = el('button'); d.type = 'button'; d.setAttribute('aria-label', 'Imagen ' + (i + 1)); d.onclick = () => { ir(i); arrancar(); }; dots.appendChild(d); } ir(0); arrancar(); }
+  const lg = H('s-logo'), nm = H('s-nombre'); nm.textContent = s.nombre;
+  lg.onerror = () => { lg.hidden = true; nm.hidden = false; };
+  if (s.logo) { lg.src = s.logo; lg.alt = s.nombre; lg.hidden = false; nm.hidden = true; } else { lg.hidden = true; nm.hidden = false; }
+  const box = H('s-filas'); box.replaceChildren();
+  (s.filas || []).forEach(fl => {
+    const L = secResolver(fl); if (!L.length) return;
+    const hz = fl.estilo !== 'vertical', sec = el('div'), row = el('section', 'row'), tr = el('div', 'track');
+    const nov = new Set((fl.items || []).filter(i => i.novedad).map(i => Number(i.tmdb)));
+    row.setAttribute('aria-label', fl.titulo || s.nombre);
+    tr.replaceChildren(...L.map(x => secTarjeta(x, hz, nov.has(Number(x.it.tmdb)))));
+    row.append(secNav(tr)[0], tr, secNav(tr)[1]);
+    if (fl.titulo) sec.appendChild(el('h3', 'rt', fl.titulo));
+    sec.appendChild(row); box.appendChild(sec);
+  });
+  vistas.inicio.hidden = vistas.ped.hidden = vistas.rec.hidden = vistas.det.hidden = vistas.col.hidden = true; v.hidden = false; detActual = null;
+  document.body.classList.remove('detmode'); document.body.classList.add('colmode'); marcarDock('inicio');
+  if (!silencio) scrollTo(0, 0);
+}
+
 pintarTiles();
 ruta(false);
 setTimeout(() => { vtOK = true; }, 600);              // las transiciones empiezan después de la carga inicial

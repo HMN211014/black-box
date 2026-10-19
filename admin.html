@@ -72,6 +72,25 @@ details.dt{margin-top:14px;border-top:1px solid rgba(255,255,255,.1);padding-top
 details.dt summary{cursor:pointer;font-weight:600;font-size:15px;margin-bottom:12px}
 label small.h{display:block;color:#a1a1a6;font-weight:400;font-size:12px;margin-top:2px}
 .tag.p{background:rgba(255,214,10,.18);color:#ffd60a}.tag.r{background:rgba(255,69,58,.18);color:#ff9f9a}
+
+/* ---- secciones temáticas ---- */
+.sep{display:grid;grid-template-columns:minmax(120px,38%) 1fr;gap:12px;align-items:center;margin-top:14px;padding:14px;border-radius:14px;overflow:hidden;min-height:130px}
+.sep-i{display:flex;flex-direction:column;align-items:center;text-align:center;gap:5px}
+.sep-i img{max-width:100%;max-height:54px;object-fit:contain}
+.sep-i b{font-size:18px}.sep-i small{font-size:10px;letter-spacing:.3em;text-transform:uppercase;font-weight:700}.sep-i span{font-size:12px;opacity:.9}
+.sep-i u{text-decoration:none;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:6px 14px;border-radius:99px;background:rgba(255,255,255,.16);margin-top:4px}
+.sep-r{display:flex;gap:6px;overflow:hidden}.sep-r img{height:104px;aspect-ratio:2/3;object-fit:cover;border-radius:8px;flex:none}
+.sfc{margin-top:12px;padding:14px;border:1px solid rgba(255,255,255,.14);border-radius:14px;background:rgba(255,255,255,.04)}
+.sfc-h{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.sfc-h .row{display:flex;gap:6px}.sfc-h .g{height:36px;min-width:0;padding:0 12px;font-size:13px}
+.sfc .ct .t .n{bottom:32px}
+.sfc .ct .t .nv{position:absolute;left:4px;right:4px;bottom:4px;height:24px;min-width:0;padding:0;font-size:11px;border-radius:8px;background:rgba(0,0,0,.72);color:#fff}
+#se-mapa{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+#se-mapa .mp{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 12px;border-radius:10px;font-size:14px}
+#se-mapa .mp.fijo{background:rgba(255,255,255,.06);color:#98989d;border:1px dashed rgba(255,255,255,.16)}
+#se-mapa .mp.otra{background:rgba(255,255,255,.12)}
+#se-mapa .mp.yo{background:rgba(10,132,255,.28);border:1px solid rgba(10,132,255,.8);font-weight:700}
+#se-mapa .mp .row{display:flex;gap:6px}#se-mapa .mp .g{height:34px;min-width:44px;padding:0 10px}
 </style>
 </head>
 <body>
@@ -252,6 +271,45 @@ label small.h{display:block;color:#a1a1a6;font-weight:400;font-size:12px;margin-
     <p class="m" id="co-m" hidden></p>
     <div id="co-lista"></div>
   </div>
+
+  <div class="c" id="sec-card">
+    <h2>Secciones temáticas</h2>
+    <p class="s">Crea páginas como <b>Huluween</b>: una <b>franja</b> con tu logo, una frase, el botón <b>Detalles</b> y un carrusel de pósters (en el inicio o dentro de una colección). Al tocar el botón se abre la <b>página de la sección</b>, con un banner de fotos y las filas de películas que armes. Toca <b>Ver secciones</b> para editar las que ya creaste.</p>
+    <div class="sep" id="se-prev"><div class="sep-i"><img id="se-pl" alt="" hidden><b id="se-pn">Nombre de la sección</b><small id="se-pe"></small><span id="se-pt"></span><u id="se-pb">Detalles</u></div><div class="sep-r" id="se-pp"></div></div>
+
+    <label>Nombre<input id="se-nombre" maxlength="60" autocomplete="off" placeholder="Por ejemplo: Huluween"></label>
+    <label>Enlace corto<small class="h">Se llena solo. La página de la sección abre en #/s/enlace-corto</small><input id="se-id" maxlength="40" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="huluween"></label>
+    <label>Etiqueta de la franja<input id="se-et" maxlength="40" autocomplete="off" placeholder="Colección"></label>
+    <label>Frase de la franja<input id="se-tx" maxlength="200" autocomplete="off" placeholder="Originales de Hulu y más ya disponibles"></label>
+    <label>Texto del botón<input id="se-bt" maxlength="30" autocomplete="off" placeholder="Detalles"></label>
+    <div class="f">
+      <label>Color 1<input type="color" id="se-a" value="#0b3d91"></label>
+      <label>Color 2<input type="color" id="se-b" value="#020b1f"></label>
+      <label>Color de los textos<input type="color" id="se-tc" value="#ffffff"></label>
+    </div>
+    <label>Logo (opcional)<small class="h">Dirección de una imagen (mejor si es PNG sin fondo). Sale en la franja y en grande en el banner de la página.</small><input id="se-logo" type="url" autocapitalize="off" spellcheck="false" placeholder="https://…"></label>
+    <label>Fotos del banner de la página<small class="h">Una dirección por línea, hasta 8. Si pones varias, el banner pasa de una a otra como carrusel.</small><textarea class="ta" id="se-ban" spellcheck="false" placeholder="https://…"></textarea></label>
+
+    <label>Dónde se muestra la franja<select id="se-ub"><option value="inicio">En el inicio (página principal)</option></select></label>
+    <label class="ck"><input type="checkbox" id="se-fr" checked> Mostrar la franja (si la apagas, la sección solo se abre con su enlace)</label>
+    <div style="margin-top:6px">
+      <b>Posición en la página</b>
+      <p class="s" style="margin:4px 0 0">Los bloques grises son los que ya tiene la página. Tu sección es la azul: usa <b>▲</b> y <b>▼</b> para subirla o bajarla.</p>
+      <div id="se-mapa"></div>
+    </div>
+
+    <div style="margin-top:14px;border-top:1px solid rgba(255,255,255,.1);padding-top:14px">
+      <b>Filas de la página</b>
+      <p class="s" style="margin:4px 0 0">Cada fila tiene un título y sus películas (por ejemplo "Destacados de Huluween"). Con ☆ marcas una película como <b>Novedad</b>. Si una película todavía no está en tu biblioteca, sale como <b>Próximamente</b> y entra sola cuando la publiques. El carrusel de la franja usa las películas de estas filas.</p>
+      <div id="se-filas"></div>
+      <button class="g" id="se-fila-add" type="button" style="margin-top:12px;height:40px;font-size:14px">+ Agregar fila</button>
+    </div>
+
+    <div class="row" style="margin-top:16px"><button id="se-go" type="button">Guardar sección</button><button class="g" id="se-nuevo" type="button">Nueva</button><button class="g" id="se-ver" type="button">Ver secciones</button></div>
+    <p class="m" id="se-m" hidden></p>
+    <div id="se-lista"></div>
+  </div>
+
 
   <div class="c">
     <h2>Todos los códigos</h2>
@@ -632,6 +690,163 @@ $('co-go').onclick = () => con($('co-go'), 'co-m', async () => {
   msg('co-m', (j.nueva ? (deArchivo ? 'Guardada tu versión de la colección de colecciones.js. ' : 'Colección creada. ') : 'Colección actualizada. ') + 'Aparece en el inicio en menos de un minuto.' + (nReglas(c) ? '' : ' Ojo: no tiene reglas, así que saldrá vacía.'), true);
 });
 coPoner(null);
+
+/* ---- secciones temáticas (franja + página propia, como "Huluween") ---- */
+const SE_FIJOS = {
+  inicio: [['hero', 'Banner principal'], ['cols', 'Colecciones'], ['gens', 'Géneros'], ['cont', 'Continuar viendo'], ['pop', 'Populares'], ['grid', 'Todas las películas'], ['plat', 'Plataformas']],
+  col: [['hero', 'Banner de la colección'], ['pop', 'Populares de la colección'], ['cro', 'Orden cronológico'], ['subs', 'Subcategorías'], ['grid', 'Todas las películas']]
+};
+let seTodas = [], seCols = delArchivo.map(c => ({ id: c.id, nombre: c.nombre })), seFilas = [], seDespues = 'hero', seOrden = 999, seEditando = null, seManual = false, seCargada = false;
+const seEl = (t, c, x) => { const n = document.createElement(t); if (c) n.className = c; if (x !== undefined) n.textContent = x; return n; };
+const seId = () => $('se-id').value.trim();
+const seUb = () => $('se-ub').value;
+function seLeer() {
+  return { id: seId(), nombre: $('se-nombre').value.trim(), etiqueta: $('se-et').value.trim(), texto: $('se-tx').value.trim(), boton: $('se-bt').value.trim(),
+    a: $('se-a').value, b: $('se-b').value, tx: $('se-tc').value, logo: $('se-logo').value.trim(), banners: lin('se-ban'),
+    ubicacion: seUb(), despues: seDespues, orden: seOrden, franja: $('se-fr').checked,
+    filas: seFilas.map(f => ({ titulo: f.titulo, estilo: f.estilo, coleccion: f.coleccion, items: f.items.map(x => ({ ...x })) })) };
+}
+function sePrev() {
+  const c = seLeer(), p = $('se-prev'), lg = $('se-pl');
+  p.style.background = 'radial-gradient(120% 90% at 18% 0%,' + c.a + ',transparent 62%),linear-gradient(135deg,' + c.b + ',#000)'; p.style.color = c.tx;
+  $('se-pn').textContent = c.nombre || 'Nombre de la sección'; $('se-pe').textContent = c.etiqueta; $('se-pt').textContent = c.texto; $('se-pb').textContent = c.boton || 'Detalles';
+  if (/^https?:\/\/[^\s"'()\\]+$/.test(c.logo)) { lg.src = c.logo; lg.hidden = false; $('se-pn').hidden = true; } else { lg.hidden = true; $('se-pn').hidden = false; }
+  const pp = $('se-pp'); pp.replaceChildren();
+  c.filas.flatMap(f => f.items).filter(x => x.poster).slice(0, 8).forEach(x => { const i = new Image(); i.alt = ''; i.src = COIMG + 'w92' + x.poster; pp.appendChild(i); });
+}
+/* ---- mapa de posición: bloques de la página (grises) + las secciones que ya hay, y la tuya (azul) ---- */
+function seFlat() {
+  const ub = seUb(), fijos = SE_FIJOS[ub === 'inicio' ? 'inicio' : 'col'], validas = new Set(['top', ...fijos.map(f => f[0])]);
+  const todas = [...seTodas.filter(s => (s.ubicacion || 'inicio') === ub && s.id !== seId()).map(s => ({ t: 's', id: s.id, n: s.nombre, despues: s.despues, orden: s.orden || 0 })),
+    { t: 's', id: seId() || '(nueva)', n: $('se-nombre').value.trim() || 'Esta sección', yo: true, despues: seDespues, orden: seOrden }];
+  todas.forEach(x => { if (!validas.has(x.despues)) x.despues = 'hero'; });
+  const por = k => todas.filter(x => x.despues === k).sort((a, b) => (a.orden - b.orden) || ((a.yo ? 1 : 0) - (b.yo ? 1 : 0)));
+  const flat = []; por('top').forEach(x => flat.push(x));
+  fijos.forEach(([k, n]) => { flat.push({ t: 'f', k, n }); por(k).forEach(x => flat.push(x)); });
+  return flat;
+}
+function seAsentar(flat) {                       // después de mover algo: cada sección queda "después de" el bloque gris que tiene encima
+  let ult = 'top', n = 0;
+  flat.forEach(x => {
+    if (x.t === 'f') { ult = x.k; n = 0; return; }
+    x.despues = ult; x.orden = n++;
+    if (x.yo) { seDespues = x.despues; seOrden = x.orden; } else { const o = seTodas.find(s => s.id === x.id); if (o) { o.despues = x.despues; o.orden = x.orden; } }
+  });
+}
+function seMover(dir) {
+  const flat = seFlat(), i = flat.findIndex(x => x.yo), j = i + dir;
+  if (j < 0 || j >= flat.length) return;
+  [flat[i], flat[j]] = [flat[j], flat[i]]; seAsentar(flat); sePintarMapa();
+}
+function sePintarMapa() {
+  const box = $('se-mapa'), flat = seFlat(); seAsentar(flat); box.replaceChildren();
+  flat.forEach(x => {
+    const d = seEl('div', 'mp ' + (x.t === 'f' ? 'fijo' : x.yo ? 'yo' : 'otra')); d.appendChild(seEl('span', '', x.t === 'f' ? x.n : '★ ' + x.n + (x.yo ? ' (esta sección)' : '')));
+    if (x.yo) {
+      const r = seEl('div', 'row');
+      [['▲', 'Subir', -1], ['▼', 'Bajar', 1]].forEach(([t, tit, dir]) => { const b = seEl('button', 'g', t); b.type = 'button'; b.title = tit; b.setAttribute('aria-label', tit + ' la sección'); b.onclick = () => seMover(dir); r.appendChild(b); });
+      d.appendChild(r);
+    }
+    box.appendChild(d);
+  });
+}
+function seOpcionesCols() {                       // llena "Dónde se muestra" con el inicio y cada colección
+  const sel = $('se-ub'), v = sel.value; sel.replaceChildren();
+  const o = (val, t) => { const e = seEl('option', '', t); e.value = val; sel.appendChild(e); };
+  o('inicio', 'En el inicio (página principal)'); seCols.forEach(c => o('col:' + c.id, 'Dentro de la colección: ' + c.nombre));
+  if (v && v !== 'inicio' && !seCols.some(c => 'col:' + c.id === v)) o(v, 'Dentro de la colección: ' + v.slice(4));
+  sel.value = v || 'inicio';
+}
+/* ---- filas ---- */
+function seFilasPintar() {
+  const box = $('se-filas'); box.replaceChildren();
+  seFilas.forEach((f, i) => {
+    const c = seEl('div', 'sfc'), cab = seEl('div', 'sfc-h'), acc = seEl('div', 'row');
+    const btn = (t, tit, fn) => { const b = seEl('button', 'g', t); b.type = 'button'; b.title = tit; b.onclick = fn; return b; };
+    const mover = d => () => { const j = i + d; if (j < 0 || j >= seFilas.length) return; [seFilas[i], seFilas[j]] = [seFilas[j], seFilas[i]]; seFilasPintar(); };
+    acc.append(btn('▲', 'Subir esta fila', mover(-1)), btn('▼', 'Bajar esta fila', mover(1)), btn('Quitar fila', 'Quitar esta fila', () => { if (confirm('¿Quitar esta fila?')) { seFilas.splice(i, 1); seFilasPintar(); sePrev(); } }));
+    cab.append(seEl('b', '', 'Fila ' + (i + 1)), acc);
+    const lt = seEl('label', '', 'Título de la fila'), it = seEl('input'); it.maxLength = 100; it.placeholder = 'Destacados de Huluween'; it.value = f.titulo; it.oninput = () => { f.titulo = it.value; }; lt.appendChild(it);
+    const g = seEl('div', 'f'), le = seEl('label', '', 'Estilo de las tarjetas'), es = seEl('select');
+    [['horizontal', 'Tarjetas horizontales (foto ancha)'], ['vertical', 'Pósters verticales']].forEach(([v, t]) => { const o = seEl('option', '', t); o.value = v; es.appendChild(o); });
+    es.value = f.estilo; es.onchange = () => { f.estilo = es.value; }; le.appendChild(es);
+    const lc = seEl('label', '', 'Sumar una colección'), cs = seEl('select');
+    [{ id: '', nombre: '— Ninguna —' }, ...seCols].forEach(x => { const o = seEl('option', '', x.nombre); o.value = x.id; cs.appendChild(o); });
+    if (f.coleccion && !seCols.some(x => x.id === f.coleccion)) { const o = seEl('option', '', f.coleccion); o.value = f.coleccion; cs.appendChild(o); }
+    cs.value = f.coleccion || ''; cs.onchange = () => { f.coleccion = cs.value; }; lc.appendChild(cs);
+    g.append(le, lc);
+    const lq = seEl('label', '', 'Agregar película o serie'), q = seEl('input'); q.id = 'se-q-' + i; q.type = 'search'; q.autocomplete = 'off'; q.placeholder = 'Busca en TMDB…'; lq.appendChild(q);
+    const res = seEl('div', 'sr'); res.id = 'se-r-' + i; const m = seEl('p', 'm'); m.id = 'se-m-' + i; m.hidden = true;
+    const tiles = seEl('div', 'ct');
+    f.items.forEach(x => {
+      const d = seEl('div', 't');
+      if (x.poster) { const im = new Image(); im.alt = ''; im.loading = 'lazy'; im.src = COIMG + 'w185' + x.poster; im.onerror = () => im.remove(); d.appendChild(im); }
+      d.appendChild(seEl('span', 'n', x.titulo)); if (x.novedad) d.appendChild(seEl('em', '', 'Novedad'));
+      const xx = seEl('button', 'x', '✕'); xx.type = 'button'; xx.title = 'Quitar'; xx.setAttribute('aria-label', 'Quitar ' + x.titulo); xx.onclick = () => { f.items = f.items.filter(y => y !== x); seFilasPintar(); sePrev(); };
+      const nv = seEl('button', 'nv', x.novedad ? '★ Novedad' : '☆ Novedad'); nv.type = 'button'; nv.title = 'Poner o quitar la etiqueta Novedad'; nv.onclick = () => { x.novedad = !x.novedad; seFilasPintar(); };
+      d.append(xx, nv); tiles.appendChild(d);
+    });
+    c.append(cab, lt, g, lq, res, m, tiles); box.appendChild(c);
+    buscadorTmdb(q.id, res.id, m.id, r => {
+      if (!f.items.some(x => x.tmdb === r.id)) f.items.push({ tmdb: r.id, titulo: r.title || r.name || '', tipo: r.media_type === 'tv' ? 'serie' : 'pelicula', poster: r.poster_path || '', fondo: r.backdrop_path || '', novedad: false });
+      seFilasPintar(); sePrev();
+    });
+  });
+}
+const seFilaNueva = () => ({ titulo: '', estilo: 'horizontal', coleccion: '', items: [] });
+$('se-fila-add').onclick = () => { seFilas.push(seFilaNueva()); seFilasPintar(); };
+function sePoner(s) {                             // s = null → formulario en blanco
+  s = s || {}; const v = (id, x, d) => { $(id).value = x == null || x === '' ? d : x; };
+  seEditando = s.id || null; seManual = !!s.id;
+  v('se-nombre', s.nombre, ''); v('se-id', s.id, ''); $('se-id').readOnly = !!s.id;
+  v('se-et', s.etiqueta, s.id ? '' : 'Colección'); v('se-tx', s.texto, ''); v('se-bt', s.boton, s.id ? '' : 'Detalles');
+  v('se-a', s.a, '#0b3d91'); v('se-b', s.b, '#020b1f'); v('se-tc', s.tx, '#ffffff'); v('se-logo', s.logo, '');
+  $('se-ban').value = (s.banners || []).join('\n'); $('se-fr').checked = s.franja !== false;
+  seOpcionesCols(); $('se-ub').value = s.ubicacion || 'inicio'; if ($('se-ub').value !== (s.ubicacion || 'inicio')) seOpcionesCols();
+  seDespues = s.despues || 'hero'; seOrden = s.id ? (s.orden || 0) : 999;
+  seFilas = (s.filas || []).map(f => ({ titulo: f.titulo || '', estilo: f.estilo === 'vertical' ? 'vertical' : 'horizontal', coleccion: f.coleccion || '', items: (f.items || []).map(x => ({ ...x })) }));
+  if (!seFilas.length && !s.id) seFilas.push(seFilaNueva());
+  sePrev(); sePintarMapa(); seFilasPintar();
+}
+async function seLista() {
+  const [a, b] = await Promise.all([admin({ op: 'secciones' }), admin({ op: 'colecciones' })]);
+  seTodas = a.items; seCargada = true;
+  const ids = new Set(delArchivo.map(c => c.id));
+  seCols = [...delArchivo.map(c => ({ id: c.id, nombre: (b.items.find(x => x.id === c.id) || c).nombre })), ...b.items.filter(c => !ids.has(c.id)).map(c => ({ id: c.id, nombre: c.nombre }))];
+  seOpcionesCols(); $('se-ub').value = seLeer().ubicacion; sePintarMapa(); seFilasPintar();
+  const box = $('se-lista'); box.replaceChildren();
+  msg('se-m', seTodas.length ? seTodas.length + ' sección(es) creada(s).' : 'Todavía no hay secciones.', true);
+  seTodas.forEach(s => {
+    const d = seEl('div', 'it'), tx = seEl('div', 'tx'), r = seEl('div', 'row');
+    tx.append(seEl('b', '', s.nombre), seEl('small', '', '#/s/' + s.id + ' · ' + (!s.ubicacion || s.ubicacion === 'inicio' ? 'en el inicio' : 'en la colección ' + s.ubicacion.slice(4)) + (s.franja === false ? ' · sin franja' : '') + ' · ' + (s.filas || []).length + ' fila(s)'));
+    const e = seEl('button', 'g', 'Editar'); e.type = 'button';
+    e.onclick = () => { sePoner(s); msg('se-m', 'Editando "' + s.nombre + '". Cambia lo que quieras y toca Guardar.', true); $('sec-card').scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+    const q = seEl('button', 'g', 'Quitar'); q.type = 'button';
+    q.onclick = () => {
+      if (!confirm('¿Quitar la sección "' + s.nombre + '"? Dejará de verse en el sitio. Las películas no se borran.')) return;
+      con(q, 'se-m', async () => { await admin({ op: 'borrar_sec', id: s.id }); if (seEditando === s.id) sePoner(null); await seLista(); msg('se-m', 'Sección quitada.', true); });
+    };
+    r.append(e, q); d.append(tx, r); box.appendChild(d);
+  });
+}
+$('sec-card').addEventListener('input', e => { const id = e.target.id || ''; if (id.startsWith('se-q-')) return; sePrev(); if (id === 'se-nombre' || id === 'se-id') sePintarMapa(); });
+$('se-ub').addEventListener('change', () => { seDespues = 'hero'; seOrden = 999; sePintarMapa(); });
+$('se-nombre').addEventListener('input', () => { if (!seManual) $('se-id').value = slug($('se-nombre').value); });
+$('se-id').addEventListener('input', () => { seManual = true; });
+$('sec-card').addEventListener('focusin', () => { if (!seCargada) { seCargada = true; seLista().catch(() => { seCargada = false; }); } });   // carga las demás secciones para armar el mapa
+$('se-nuevo').onclick = () => { sePoner(null); msg('se-m', '', true); $('sec-card').scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+$('se-ver').onclick = () => con($('se-ver'), 'se-m', seLista);
+$('se-go').onclick = () => con($('se-go'), 'se-m', async () => {
+  const c = seLeer(); if (!c.nombre) throw new Error('Escribe el nombre de la sección.');
+  if (!c.id) { c.id = slug(c.nombre); $('se-id').value = c.id; }
+  const j = await admin({ op: 'guardar_sec', sec: c });
+  seEditando = j.id; $('se-id').readOnly = true;
+  const otras = seTodas.filter(s => (s.ubicacion || 'inicio') === c.ubicacion && s.id !== j.id).map(s => ({ id: s.id, despues: s.despues, orden: s.orden || 0 }));
+  if (otras.length) await admin({ op: 'ordenar_sec', orden: otras });      // guarda también el lugar de las demás secciones que moviste
+  await seLista();
+  msg('se-m', (j.nueva ? 'Sección creada. ' : 'Sección actualizada. ') + 'Aparece en el sitio en menos de un minuto; su página es #/s/' + j.id + '.' + (c.filas.some(f => f.items.length || f.coleccion) ? '' : ' Ojo: no tiene películas, así que saldrá vacía.'), true);
+});
+sePoner(null);
 
 /* ---- subir película o serie con datos de TMDB ---- */
 const TMDB_KEY = '28e735f7aea07e37f38a95d346bcdd7f', TMDB = 'https://api.themoviedb.org/3', IMG = 'https://image.tmdb.org/t/p/';
