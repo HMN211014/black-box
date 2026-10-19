@@ -82,3 +82,11 @@ CREATE TABLE IF NOT EXISTS meta (
   clave TEXT PRIMARY KEY,
   valor TEXT
 ) WITHOUT ROWID;
+
+-- Colecciones del inicio creadas desde el panel de admin (también se crea sola la primera vez).
+-- "datos" es el JSON de la colección tal como la arma el panel.
+CREATE TABLE IF NOT EXISTS colecciones (
+  id     TEXT PRIMARY KEY,
+  datos  TEXT NOT NULL,
+  creado INTEGER NOT NULL
+);
