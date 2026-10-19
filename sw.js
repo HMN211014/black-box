@@ -1,4 +1,4 @@
-const CACHE = "blackbox-v3";   // al subir de versión se borran las cachés anteriores (incluida la de /api/usuario/yo)
+const CACHE = "blackbox-v4";   // al subir de versión se borran las cachés anteriores (incluida la de /api/usuario/yo)
 
 // Estas dos rutas /api/ son datos públicos de películas: se siguen guardando para verlas sin conexión.
 // Cualquier otra ruta /api/ (sesión, datos de la cuenta, pedidos) NUNCA se guarda en caché.
