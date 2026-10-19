@@ -39,6 +39,9 @@ header p{color:var(--muted);font-size:17px}
   background:var(--g);box-shadow:0 10px 30px rgba(0,0,0,.6);transition:transform .25s ease,box-shadow .25s ease;transform-style:preserve-3d;will-change:transform}
 .card:hover,.card:focus-visible{box-shadow:0 26px 60px rgba(0,0,0,.85),0 0 0 3px rgba(255,255,255,.9);z-index:2}
 .card:focus-visible{outline:none}
+.card.prox{cursor:default;background:linear-gradient(135deg,#2a2a31,#121216)}.card.prox:hover{box-shadow:none}
+.card.prox img{filter:grayscale(.6) brightness(.65)}
+.card .pxb{position:absolute;top:12px;left:12px;padding:4px 10px;border-radius:999px;background:rgba(0,0,0,.65);font-size:12px;font-weight:700;letter-spacing:.02em}
 .card img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .card .t{position:absolute;left:16px;right:16px;bottom:16px;font-size:clamp(18px,2vw,24px);font-weight:700;letter-spacing:-.02em;line-height:1.1;text-shadow:0 2px 12px rgba(0,0,0,.5)}
 .card .shine{position:absolute;inset:0;background:radial-gradient(circle at var(--mx,50%) var(--my,0%),rgba(255,255,255,.28),transparent 55%);opacity:0;transition:opacity .25s}
@@ -230,6 +233,11 @@ svg.st text{fill:currentColor;stroke:none}
 #cols{display:grid;grid-auto-flow:column;grid-auto-columns:clamp(150px,22vw,250px);gap:16px;padding:12px 5vw 8px;overflow-x:auto;scroll-snap-type:x proximity;scroll-padding-inline:5vw;scrollbar-width:none}
 #cols::-webkit-scrollbar{display:none}
 #cols[hidden]{display:none}
+#gen-w{margin-top:28px}#gen-w[hidden]{display:none}
+#gens{display:grid;grid-auto-flow:column;grid-auto-columns:clamp(130px,16vw,200px);gap:14px;padding:12px 5vw 8px;overflow-x:auto;scroll-snap-type:x proximity;scroll-padding-inline:5vw;scrollbar-width:none}
+#gens::-webkit-scrollbar{display:none}
+.ctile .gc{font-size:12px;color:rgba(255,255,255,.82);text-shadow:0 1px 8px rgba(0,0,0,.5)}
+@media(max-width:620px){#gens{grid-auto-columns:38vw;gap:12px;padding:10px 20px 4px;scroll-padding-inline:20px}}
 .ctile{position:relative;overflow:hidden;isolation:isolate;display:grid;place-items:center;align-content:center;gap:8px;aspect-ratio:16/10;padding:10px;border-radius:22px;text-decoration:none;color:var(--tx);scroll-snap-align:start;
   background:var(--fondo,none) center/cover,linear-gradient(135deg,var(--a),var(--b));box-shadow:inset 0 0 0 1px rgba(255,255,255,.16),inset 0 1px 0 rgba(255,255,255,.3),0 14px 34px rgba(0,0,0,.55);
   transition:transform .25s ease,box-shadow .25s ease;-webkit-tap-highlight-color:transparent}
@@ -618,6 +626,24 @@ body.con-q #vista-ped,body.con-q #vista-rec{display:none!important}
 .epm .epv{color:#34c759;font-weight:600}
 .epd{font-size:14px;line-height:1.45;color:#c7c7cc;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .epvacio{padding:14px 0;color:#a1a1a6;font-size:16px}
+/* Pantalla horizontal (PC o teléfono acostado): los episodios pasan a carrusel como en Netflix. En vertical se queda la lista de siempre. */
+.eprow .nav{display:none}
+@media (orientation:landscape){
+ .eplist{position:relative;flex-direction:row;gap:16px;max-width:none;overflow-x:auto;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;scroll-snap-type:x mandatory;scroll-padding:0 clamp(24px,4.5vw,72px);scrollbar-width:none;padding:14px clamp(24px,4.5vw,72px) 26px;cursor:grab;user-select:none;-webkit-user-select:none}
+ .eplist::-webkit-scrollbar{display:none}
+ .eplist.arr{cursor:grabbing;scroll-snap-type:none}
+ .eplist.arr .ep{pointer-events:none}
+ .eplist .ep{flex:0 0 clamp(220px,24vw,320px);width:auto;flex-direction:column;align-items:stretch;gap:10px;padding:0;background:none;border-radius:12px;scroll-snap-align:start}
+ .eplist .ep:hover,.eplist .ep:focus-visible{background:none}
+ .eplist .epth{width:100%;transition:transform .2s,box-shadow .2s}
+ .eplist .ep:hover .epth,.eplist .ep:focus-visible .epth{transform:scale(1.04);box-shadow:0 0 0 2px rgba(255,255,255,.9)}
+ .eplist .epc{padding:0 2px}
+ .eplist .epd{-webkit-line-clamp:3}
+ .eplist .epvacio{flex:1 0 100%}
+}
+@media (orientation:landscape) and (hover:hover){
+ .eprow .nav{display:block;top:calc(14px + clamp(220px,24vw,320px) * .28125);transform:translateY(-50%)}
+}
 #player:not(.serie) #ppv,#player:not(.serie) #pnx{display:none}
 #ppv[hidden],#pnx[hidden]{display:none}
 #pnxt{position:absolute;right:calc(var(--sr) + 20px);bottom:calc(var(--sb) + 120px);z-index:12;display:flex;flex-direction:column;gap:10px;min-width:260px;max-width:min(360px,calc(100vw - 40px));padding:16px;border-radius:20px;background:rgba(28,28,32,.9);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.14);color:#fff}
@@ -647,7 +673,7 @@ body.con-q #vista-ped,body.con-q #vista-rec{display:none!important}
 .card .t{
   left:2px;right:2px;top:calc(100% + 6px);bottom:auto;z-index:2;pointer-events:none;
   font-size:clamp(17px,1.55vw,21px);font-weight:600;letter-spacing:-.005em;line-height:1.25;
-  text-align:justify;hyphens:auto;-webkit-hyphens:auto;
+  text-align:center;
   color:#fff;
   text-shadow:0 1px 3px rgba(0,0,0,1),0 3px 12px rgba(0,0,0,.95),0 6px 26px rgba(0,0,0,.85);
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
@@ -655,7 +681,7 @@ body.con-q #vista-ped,body.con-q #vista-rec{display:none!important}
 .card:hover .t,.card:focus-visible .t{transform:translateY(2px)}
 /* Continuar viendo */
 .card.cc .t{-webkit-line-clamp:1}
-.card.cc .q{left:2px;right:2px;top:calc(100% + 30px);bottom:auto;font-size:13px;color:rgba(255,255,255,.62);text-shadow:0 1px 10px rgba(0,0,0,1)}
+.card.cc .q{text-align:center;left:2px;right:2px;top:calc(100% + 30px);bottom:auto;font-size:13px;color:rgba(255,255,255,.62);text-shadow:0 1px 10px rgba(0,0,0,1)}
 .card.cc .prog{border-radius:0 0 var(--r) var(--r);overflow:hidden}
 @media(max-width:620px){
   .card{margin-bottom:66px}
@@ -837,6 +863,7 @@ body.con-q #vista-ped,body.con-q #vista-rec{display:none!important}
 </div>
 <div id="vacio" hidden><b>Pronto habrá series aquí</b>Todavía no se agrega ninguna.</div>
 <div id="cols-w"><div class="cols-sep" aria-hidden="true"></div><h3 class="cols-t">Colecciones</h3><div id="cols" aria-label="Colecciones"></div></div>
+<div id="gen-w" hidden><div class="cols-sep" aria-hidden="true"></div><h3 class="cols-t">Géneros</h3><div id="gens" aria-label="Géneros"></div></div>
 <div id="cont" hidden>
   <h3 class="rt">Continuar viendo</h3>
   <section class="row" aria-label="Continuar viendo">
@@ -938,7 +965,7 @@ body.con-q #vista-ped,body.con-q #vista-rec{display:none!important}
   </div>
   <div id="deps" hidden>
     <div class="deps-h"><h3 class="rt">Episodios</h3><div class="tmps" id="tmps" aria-label="Temporadas"></div></div>
-    <div class="eplist" id="eplist"></div>
+    <div class="row eprow"><button class="nav prev" id="ep-prev" type="button" aria-label="Episodios anteriores">‹</button><div class="eplist" id="eplist"></div><button class="nav next" id="ep-next" type="button" aria-label="Episodios siguientes">›</button></div>
   </div>
   <div id="dcast-w"><h3 class="rt">Reparto</h3><div class="dcast" id="dcast"></div></div>
   <div id="dsug-w" hidden><h3 class="rt" id="dsug-t">Parecidas</h3><div class="track" id="dsug"></div></div>
@@ -1461,13 +1488,7 @@ const poster = (p, el) => {
   if (p.poster) { const i = new Image(); i.alt = ''; i.src = p.poster; i.onerror = () => i.remove(); el.prepend(i); }
 };
 
-function insigniaSerie(b, p) {                       // "2 temporadas" en la esquina de las tarjetas de series
-  if (p.tipo !== 'serie') return;
-  const n = temporadasDe(p).length; let x = b.querySelector('.ins');
-  if (!n) { if (x) x.remove(); return; }
-  if (!x) { x = document.createElement('span'); x.className = 'ins'; b.appendChild(x); }
-  x.textContent = n + (n === 1 ? ' temporada' : ' temporadas');
-}
+function insigniaSerie() {}                           // ya no se muestra el recuadro de "N temporadas" sobre los pósters (se deja vacía porque otras partes la llaman)
 const crearTarjeta = p => {
   const b = document.createElement('button');
   b.className = 'card'; b.setAttribute('aria-label', p.titulo);
@@ -2352,6 +2373,7 @@ function ponerModo(m) {                              // el inicio sirve para Pel
   const cambio = m !== modo; modo = m;
   const s = m === 'series';
   H('cols').hidden = H('cols-w').hidden = s || typeof COLECCIONES === 'undefined' || !COLECCIONES.length;
+  H('gen-w').hidden = s || !H('gens').children.length;
   H('plat').hidden = s || typeof PLATAFORMAS === 'undefined';
   rt.textContent = s ? 'Todas las series · ' + series.length : 'Todas las películas';
   H('pop').hidden = s && !(series.some(p => p.popular) || series.length > 10);   // con pocas series, "Populares" solo repetiría la lista
@@ -2549,7 +2571,7 @@ async function pintarEps(p, t) {
   const lista = H('eplist'), n = (temporadasDe(p).find(x => x.n === t) || {}).eps || 0;
   const pintar = eps => {
     if (detActual !== p || tempSel.get(p) !== t) return;
-    lista.replaceChildren(...eps.map(d => filaEp(p, t, d)));
+    lista.replaceChildren(...eps.map(d => filaEp(p, t, d))); if (window.epAct) window.epAct();
     if (!eps.length) lista.appendChild(mk('p', 'epvacio', 'Esta temporada todavía no tiene episodios.'));
   };
   const mem = epMem.get(idDe(p) + ':' + t);
@@ -2560,13 +2582,61 @@ function pintarSerie(p) {
   const w = H('deps'), esSerie = conEpisodios(p);
   w.hidden = !esSerie; if (!esSerie) return;
   const ts = temporadasDe(p), chips = H('tmps'), lista = H('eplist');
-  chips.replaceChildren(); lista.replaceChildren();
+  chips.replaceChildren(); lista.replaceChildren(); lista.scrollLeft = 0;
   if (!ts.length) { lista.appendChild(mk('p', 'epvacio', 'Aún no hay datos de temporadas.')); return; }
   let t = tempSel.get(p); if (!ts.some(x => x.n === t)) t = puntoSerie(p).t; if (!ts.some(x => x.n === t)) t = ts[0].n;
   tempSel.set(p, t);
   ts.forEach(x => { const b = mk('button', 'tmp' + (x.n === t ? ' on' : ''), 'Temporada ' + x.n); b.type = 'button'; b.onclick = () => { tempSel.set(p, x.n); pintarSerie(p); }; chips.appendChild(b); });
   pintarEps(p, t);
 }
+
+/* ---- Carrusel de episodios (pantalla horizontal): flechas en PC, deslizar con el dedo, arrastrar con el mouse y flechas del teclado ---- */
+(() => {
+  const L = H('eplist'), prev = H('ep-prev'), next = H('ep-next');
+  const horiz = () => matchMedia('(orientation:landscape)').matches;
+  const eps = () => [...L.children].filter(c => c.classList.contains('ep'));
+  const izq = () => parseFloat(getComputedStyle(L).paddingLeft) || 0;
+  const alineada = x => { let mejor = 0, d = Infinity; eps().forEach(k => { const v = k.offsetLeft - izq(), dd = Math.abs(v - x); if (dd < d) { d = dd; mejor = v; } }); return mejor; };
+  const act = () => {                                                // las flechas solo salen si hay más episodios hacia ese lado
+    const max = L.scrollWidth - L.clientWidth - 4;
+    prev.style.display = L.scrollLeft > 4 ? '' : 'none'; next.style.display = L.scrollLeft < max ? '' : 'none';
+  };
+  window.epAct = act;
+  const paso = () => L.clientWidth * .8;
+  prev.onclick = () => L.scrollBy({ left: -paso(), behavior: 'smooth' });
+  next.onclick = () => L.scrollBy({ left: paso(), behavior: 'smooth' });
+  L.addEventListener('scroll', act, { passive: true });
+  addEventListener('resize', act); addEventListener('orientationchange', () => setTimeout(act, 250));
+  let abajo = false, movio = false, x0 = 0, s0 = 0, lx = 0, lt = 0, vel = 0, quitaT = 0, noClic = false;
+  L.addEventListener('pointerdown', e => {                           // el dedo ya desliza solo; esto es para el mouse
+    if (e.pointerType !== 'mouse' || e.button !== 0 || !horiz()) return;
+    abajo = true; movio = false; noClic = false; x0 = lx = e.clientX; s0 = L.scrollLeft; lt = performance.now(); vel = 0; clearTimeout(quitaT);
+  });
+  addEventListener('pointermove', e => {
+    if (!abajo) return;
+    const dx = e.clientX - x0;
+    if (!movio) { if (Math.abs(dx) < 6) return; movio = true; L.classList.add('arr'); }
+    L.scrollLeft = s0 - dx;
+    const t = performance.now(); vel = (lx - e.clientX) / Math.max(1, t - lt); lx = e.clientX; lt = t;
+  });
+  const soltar = () => {
+    if (!abajo) return; abajo = false;
+    if (!movio) return;
+    noClic = true;                                                   // lo que se arrastró no cuenta como clic en el episodio
+    const destino = alineada(L.scrollLeft + Math.max(-1200, Math.min(1200, vel * 260)));
+    L.scrollTo({ left: destino, behavior: 'smooth' });
+    quitaT = setTimeout(() => L.classList.remove('arr'), 420);
+  };
+  addEventListener('pointerup', soltar); addEventListener('pointercancel', soltar);
+  L.addEventListener('click', e => { if (noClic) { e.preventDefault(); e.stopPropagation(); noClic = false; } }, true);
+  L.addEventListener('keydown', e => {                               // ← → pasan de episodio
+    if (!horiz() || (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft')) return;
+    const l = eps(), i = l.indexOf(document.activeElement); if (i < 0) return;
+    const j = i + (e.key === 'ArrowRight' ? 1 : -1); if (j < 0 || j >= l.length) return;
+    e.preventDefault(); l[j].focus();
+  });
+  act();
+})();
 
 function pintarDetalle(p) {
   const serie = p.tipo === 'serie';
@@ -2943,11 +3013,20 @@ async function pintarPedidos() {
       if (ps.length) { const g = el('div', 'grid'); g.append(...ps.map(tCol)); out.push(g); }
       else out.push(el('p', 'pd-msg', 'Todavía no tienes películas en tu lista. Pide una arriba y la agregamos.'));
     }
-    out.push(el('h3', '', 'Tus pedidos'));
+    /* Los pedidos ya listos (y que están en la biblioteca) salen como pósters: al tocarlos se abre la película. El resto sigue como lista con su estado. */
+    const arriba = new Set(soloLista() ? (U.lista || []).map(x => todas().find(p => p.titulo === x.t || (x.id && p.tmdb && Number(p.tmdb) === Number(x.id)))).filter(Boolean) : []);
+    const listos = [], resto = [];
+    mios.pedidos.forEach(x => {
+      const p = x.estado === 'listo' ? enBiblioteca(x.tmdb, x.tipo) : null;
+      if (!p) resto.push(x); else if (!arriba.has(p) && !listos.includes(p)) listos.push(p);
+    });
+    if (listos.length) { out.push(el('h3', '', 'Pedidos listos')); const g = el('div', 'grid'); g.append(...listos.map(tCol)); out.push(g); }
+    if (!mios.pedidos.length || resto.length) {
+    out.push(el('h3', '', listos.length ? 'Otros pedidos' : 'Tus pedidos'));
     if (!mios.pedidos.length) out.push(el('p', 'pd-msg', 'Aún no has hecho pedidos.'));
     else {
       const L = el('div', 'pd-lista');
-      mios.pedidos.forEach(x => {
+      resto.forEach(x => {
         const r = el('div', 'pd-row');
         if (x.poster) { const im = el('img'); im.src = IMG + 'w92' + x.poster; im.alt = ''; im.loading = 'lazy'; r.appendChild(im); } else r.appendChild(el('div', 'ni'));
         const tx = el('div', 'tx'); tx.append(el('b', '', x.titulo), el('small', '', [x.anio, x.tipo === 'tv' ? 'Serie' : 'Película'].filter(Boolean).join(' · ')));
@@ -2955,6 +3034,7 @@ async function pintarPedidos() {
         r.append(tx, chip); L.appendChild(r);
       });
       out.push(L);
+    }
     }
     mio.replaceChildren(...out);
   }
@@ -3088,8 +3168,10 @@ const semillaDe = c => {
   const t = new Set((c.peliculas || []).map(norm));
   const emp = (c.tmdbEmpresas || []).map(e => typeof e === 'number' ? e : norm(e));      // productoras de TMDB: nombre exacto o número
   const sub = (c.tmdbEmpresasContiene || []).map(norm);                                   // o cualquier productora cuyo nombre contenga estas palabras
+  const gn = new Set((c.generos || []).map(norm));                                // colecciones por género (c.generos): entra toda película con ese género de TMDB
+  const idPr = new Set((c.proximamente || []).map(x => Number(x.tmdb)));        // "próximamente" del panel: si ya se publicó en la biblioteca, entra sola
   const sg = listaCrit(c.tmdbSagas), pa = listaCrit(c.tmdbPalabras), di = listaCrit(c.tmdbDirectores), re = listaCrit(c.tmdbReparto);
-  return peliculas.filter(p => t.has(norm(p.titulo)) || String(p.coleccion || '').split(',').map(s => s.trim().toLowerCase()).includes(c.id)
+  return peliculas.filter(p => t.has(norm(p.titulo)) || (idPr.size && idPr.has(Number(p.tmdbId || p.tmdb) || -1)) || (gn.size && String(p.genero || '').split(',').some(x => gn.has(norm(x.trim())))) || String(p.coleccion || '').split(',').map(s => s.trim().toLowerCase()).includes(c.id)
     || (p.empresas || []).some(x => emp.includes(x.id) || emp.includes(norm(x.nombre)) || sub.some(s => norm(x.nombre).includes(s)))
     || (p.saga && coincide(sg, p.saga)) || (p.palabras || []).some(k => coincide(pa, k))
     || (p.director || []).some(d => coincide(di, d)) || (p.reparto || []).some(a => coincide(re, a)));
@@ -3115,6 +3197,12 @@ window.colExplica = id => {                            // consola:  colExplica("
   const c = typeof COLECCIONES !== 'undefined' && COLECCIONES.find(x => x.id === id); if (!c) return console.warn('No existe esa colección');
   const r = resolverCol(c);
   console.table(r.lista.map(p => ({ pelicula: p.titulo, origen: r.semilla.has(p) ? 'semilla' : 'agrupada', puntos: r.why.has(p) ? +r.why.get(p).total.toFixed(2) : '', motivo: r.why.has(p) ? r.why.get(p).det.join(' | ') : '' })));
+};
+/* Puente para el panel de admin (admin.html lo lee desde un iframe oculto): la biblioteca real y quién entra de verdad en una colección. */
+window.bbPuente = {
+  ver: () => datosVer, norm,
+  biblioteca: () => peliculas.map(p => ({ titulo: p.titulo, tmdb: Number(p.tmdbId || p.tmdb) || 0, tipo: p.tipo === 'serie' ? 'serie' : 'pelicula', poster: p.poster || '', anio: p.anio || '' })),
+  miembros: c => { const k = c.id || '_borrador'; colCache.delete(k); try { return resolverCol({ ...c, id: k }).lista.map(p => ({ titulo: p.titulo, tmdb: Number(p.tmdbId || p.tmdb) || 0, poster: p.poster || '', anio: p.anio || '' })); } finally { colCache.delete(k); } }
 };
 /* Orden cronológico: de la más antigua a la más reciente (sin año, al final) */
 const fechaClave = p => p.fecha || (p.anio ? p.anio + '-99' : '9999');
@@ -3168,8 +3256,10 @@ function pintarSubs(c) {                              // una fila por subcategor
     sec.append(el('h3', 'rt', s.nombre), row); box.appendChild(sec);
   });
 }
+const proxDe = c => (c.proximamente || []).filter(x => x && x.tmdb && !peliculas.some(p => Number(p.tmdbId || p.tmdb) === Number(x.tmdb)));
+const tProx = x => { const b = document.createElement('div'); b.className = 'card prox'; b.setAttribute('aria-label', x.titulo + ' (próximamente)'); b.innerHTML = '<span class="t"></span><span class="pxb">Próximamente</span>'; b.querySelector('.t').textContent = x.titulo; b.style.setProperty('--g', grad(x.titulo)); if (x.poster) { const i = new Image(); i.alt = ''; i.loading = 'lazy'; i.src = IMG + 'w342' + x.poster; i.onerror = () => i.remove(); b.prepend(i); } return b; };
 function abrirCol(id, viaEnlace, silencio) {
-  const c = typeof COLECCIONES !== 'undefined' && COLECCIONES.find(x => x.id === id);
+  const c = (typeof COLECCIONES !== 'undefined' && COLECCIONES.find(x => x.id === id)) || generoCol(id);
   if (!c) { history.replaceState(null, '', location.pathname + location.search); cerrarCol(); return; }
   colActual = c; colHist = !!viaEnlace; tarjetasCol.clear();
   const lista = pelisDe(c), cro = cronologico(lista); colFirma = firmaCol(c);
@@ -3184,9 +3274,9 @@ function abrirCol(id, viaEnlace, silencio) {
   if (an.titulo || an.texto || an.imagen) cLista.unshift({ _anuncio: true, titulo: an.titulo || c.nombre, descripcion: an.texto || '', fondo: an.imagen || '', enlace: an.enlace || '', boton: an.boton || '' });
   H('c-dots').replaceChildren(...cLista.map((p, i) => { const d = el('button'); d.type = 'button'; d.setAttribute('aria-label', p.titulo); d.onclick = () => { cMostrar(i); cAuto(); }; return d; }));
   cMostrar(0); cAuto();
-  H('c-track').replaceChildren(...pop.map(tCol)); H('c-ctrack').replaceChildren(...cro.map(tCol)); H('c-grid').replaceChildren(...cro.map(tCol));
+  H('c-track').replaceChildren(...pop.map(tCol)); H('c-ctrack').replaceChildren(...cro.map(tCol)); H('c-grid').replaceChildren(...cro.map(tCol)); const prox = proxDe(c); H('c-grid').append(...prox.map(tProx));
   H('c-pt').textContent = 'Populares de ' + c.nombre; H('c-rt').textContent = 'Todas las películas de ' + c.nombre;
-  H('c-pop').hidden = H('c-rt').hidden = H('c-grid').hidden = !lista.length; H('c-cro').hidden = cro.length < 2; H('c-vacio').hidden = !!lista.length; pintarSubs(c);
+  H('c-pop').hidden = !lista.length; H('c-rt').hidden = H('c-grid').hidden = !(lista.length || prox.length); H('c-cro').hidden = cro.length < 2; H('c-vacio').hidden = !!(lista.length || prox.length); pintarSubs(c);
   vistas.inicio.hidden = vistas.ped.hidden = vistas.rec.hidden = vistas.det.hidden = true; vistas.col.hidden = false; detActual = null;
   document.body.classList.remove('detmode'); marcarDock('inicio');
   if (!silencio) { scrollTo(0, volverY || 0); volverY = null; }
@@ -3232,7 +3322,34 @@ H('c-back').addEventListener('click', volverDe);
   cc.querySelector('.next').onclick = () => H('c-ctrack').scrollBy({ left: pasoC(), behavior: 'smooth' }); }
 
 /* cuadros del inicio (se repintan cuando llegan datos de TMDB, para actualizar el conteo) */
+/* ---- Géneros: una colección automática por cada género que traiga TMDB (#/c/g-accion). Abre la misma página que las colecciones. ---- */
+const slugG = g => norm(g).replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+function generosLista() {
+  const por = new Map();
+  peliculas.forEach(p => String(p.genero || '').split(',').map(g => g.trim()).filter(Boolean).forEach(g => {
+    const k = slugG(g); if (!k) return;
+    if (!por.has(k)) por.set(k, { k, nombre: g, n: 0 }); por.get(k).n++;
+  }));
+  return [...por.values()].sort((a, b) => b.n - a.n || a.nombre.localeCompare(b.nombre, 'es'));
+}
+const colDeGenero = g => {
+  let h = 0; for (const ch of g.k) h = (h * 31 + ch.charCodeAt(0)) % 360;
+  return { id: 'g-' + g.k, nombre: g.nombre, generos: [g.nombre], a: 'hsl(' + h + ',62%,40%)', b: 'hsl(' + h + ',62%,9%)', tx: '#ffffff', tema: 'liso', patron: '',
+    anuncio: { titulo: '', texto: '', imagen: '', enlace: '' }, auto: false, peliculas: [] };
+};
+const generoCol = id => { if (String(id).slice(0, 2) !== 'g-') return null; const g = generosLista().find(x => x.k === String(id).slice(2)); return g ? colDeGenero(g) : null; };
+function pintarGenerosInicio() {
+  const box = H('gens'), w = H('gen-w'), L = generosLista(); box.replaceChildren();
+  L.forEach(g => {
+    const c = colDeGenero(g), a = document.createElement('a'), n = g.n + (g.n === 1 ? ' película' : ' películas');
+    a.className = 'ctile t-liso'; a.href = '#/c/' + c.id; a.setAttribute('aria-label', g.nombre + ', ' + n);
+    a.style.setProperty('--a', c.a); a.style.setProperty('--b', c.b); a.style.setProperty('--tx', '#ffffff');
+    a.append(el('span', 'wm', g.nombre), el('span', 'gc', n)); box.appendChild(a);
+  });
+  w.hidden = modo === 'series' || !L.length;
+}
 function pintarTiles() {
+  pintarGenerosInicio();
   const cols = H('cols'); cols.replaceChildren();
   if (typeof COLECCIONES === 'undefined' || !COLECCIONES.length) { cols.hidden = H('cols-w').hidden = true; return; }
   COLECCIONES.forEach(c => {
