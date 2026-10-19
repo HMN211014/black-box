@@ -228,6 +228,15 @@ function limpiarCol(c) {
   const cont = textosCol(c.tmdbEmpresasContiene).slice(0, 80); if (cont.length) o.tmdbEmpresasContiene = cont;       // solo texto: se busca dentro del nombre
   if (c.auto === false) o.auto = false;
   const exc = textosCol(c.excluir); if (exc.length) o.excluir = exc;
+  /* Próximamente: películas de TMDB que todavía no están en la biblioteca. Se muestran en la colección como tarjeta sin enlace y, cuando se publican, entran solas. */
+  const prox = (Array.isArray(c.proximamente) ? c.proximamente : []).slice(0, 100).map(x => {
+    x = x && typeof x === 'object' ? x : {};
+    const tmdb = Math.floor(Number(x.tmdb)), titulo = String(x.titulo || '').trim().slice(0, 200);
+    if (!(tmdb > 0) || !titulo) return null;
+    return { tmdb, titulo, tipo: x.tipo === 'serie' ? 'serie' : 'pelicula', anio: /^\d{4}$/.test(String(x.anio || '')) ? String(x.anio) : '',
+      poster: /^\/[\w-]{1,60}\.(jpg|jpeg|png|webp)$/i.test(String(x.poster || '')) ? String(x.poster) : '' };      // solo la ruta de TMDB (/abc.jpg), nunca una dirección libre
+  }).filter((x, i, a) => x && a.findIndex(y => y && y.tmdb === x.tmdb) === i);
+  if (prox.length) o.proximamente = prox;
   const pel = textosCol(c.peliculas); if (pel.length) o.peliculas = pel;
   /* Subcategorías (por ejemplo "Trilogía original" dentro de Star Wars): cada una con sus propias reglas. Lo que entra en una también pertenece a la colección. */
   const subs = (Array.isArray(c.subcategorias) ? c.subcategorias : []).slice(0, 30).map(s => {
