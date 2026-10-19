@@ -174,7 +174,8 @@ function prepararCatalogo(db, kv) {
   if (!catListo) catListo = (async () => {
     await db.batch([
       db.prepare("CREATE TABLE IF NOT EXISTS publicados (tmdb INTEGER PRIMARY KEY, titulo TEXT NOT NULL, tipo TEXT NOT NULL DEFAULT 'pelicula', link TEXT NOT NULL DEFAULT '', episodios TEXT NOT NULL DEFAULT '{}', creado INTEGER NOT NULL)"),
-      db.prepare('CREATE TABLE IF NOT EXISTS meta (clave TEXT PRIMARY KEY, valor TEXT) WITHOUT ROWID')
+      db.prepare('CREATE TABLE IF NOT EXISTS meta (clave TEXT PRIMARY KEY, valor TEXT) WITHOUT ROWID'),
+      db.prepare('CREATE TABLE IF NOT EXISTS colecciones (id TEXT PRIMARY KEY, datos TEXT NOT NULL, creado INTEGER NOT NULL)')
     ]);
     const hecho = await db.prepare("SELECT valor FROM meta WHERE clave = 'catalogo_desde_kv'").first();
     if (hecho) return;
@@ -193,6 +194,55 @@ function prepararCatalogo(db, kv) {
   })().catch(e => { catListo = null; throw e; });
   return catListo;
 }
+
+/* ---- Colecciones creadas desde el panel (cuadros del inicio, como las de colecciones.js). Se guardan en D1 tal como las escribe el panel
+   y se expanden al formato de colecciones.js al entregarlas. Todo lo que llega se valida: el panel nunca inserta texto sin revisar en la página. ---- */
+const FUENTES_COL = { impact: "Impact,'Arial Narrow Bold','Helvetica Neue',sans-serif", avenir: "'Avenir Next','Helvetica Neue',Arial,sans-serif", helvetica: "'Helvetica Neue',Arial,sans-serif", georgia: "Georgia,'Times New Roman',serif", courier: "'Courier New',Courier,monospace" };
+const TEMAS_COL = ['puntos', 'rayos', 'estrellas', 'liso'], PATRONES_COL = ['', 'aranas', 'murcielagos'], ESP_COL = ['normal', '.03em', '.08em', '.16em'];
+const hexCol = (v, d) => /^#[0-9a-fA-F]{6}$/.test(String(v || '')) ? String(v).toLowerCase() : d;
+const urlCol = v => { v = String(v == null ? '' : v).trim(); return v === '' ? '' : (v.length <= 2000 && /^(https?:\/\/|\/)\S+$/.test(v)) ? v : null; };      // null = no válida
+const textosCol = v => (Array.isArray(v) ? v : []).map(x => String(x == null ? '' : x).trim().slice(0, 200)).filter(Boolean).slice(0, 200);
+const criteriosCol = v => textosCol(v).slice(0, 80).map(x => /^\d{1,9}$/.test(x) ? Number(x) : x);                  // "125574" → número de TMDB; lo demás, nombre
+function limpiarCol(c) {
+  c = c && typeof c === 'object' ? c : {};
+  const id = String(c.id || '').trim().toLowerCase(), nombre = String(c.nombre || '').trim().slice(0, 60);
+  if (!/^[a-z0-9][a-z0-9-]{0,39}$/.test(id)) return { error: 'El id solo puede llevar letras sin acento, números y guiones (máximo 40).' };
+  if (!nombre) return { error: 'Escribe el nombre de la colección.' };
+  const an = c.anuncio && typeof c.anuncio === 'object' ? c.anuncio : {};
+  const fondo = urlCol(c.fondo), logo = urlCol(c.logo), aImg = urlCol(an.imagen), aEnl = urlCol(an.enlace);
+  if (fondo === null || logo === null || aImg === null) return { error: 'Las direcciones de imagen deben empezar con http:// o https://' };
+  if (aEnl === null) return { error: 'El enlace del anuncio debe empezar con http:// o https://' };
+  const o = {
+    id, nombre, a: hexCol(c.a, '#0b3d91'), b: hexCol(c.b, '#020b1f'), tx: hexCol(c.tx, '#ffffff'),
+    tema: TEMAS_COL.includes(c.tema) ? c.tema : 'liso',
+    fuente: FUENTES_COL[c.fuente] ? c.fuente : 'helvetica',
+    peso: ['400', '700', '900'].includes(String(c.peso)) ? String(c.peso) : '700',
+    esp: (c.esp === 'normal' || /^\d{0,2}\.?\d{1,3}em$/.test(String(c.esp))) ? String(c.esp) : 'normal',
+    mayus: !!c.mayus,
+    patron: PATRONES_COL.includes(c.patron) ? c.patron : '', patronColor: hexCol(c.patronColor, '#ffffff'),
+    anuncio: { titulo: String(an.titulo || '').trim().slice(0, 100), texto: String(an.texto || '').trim().slice(0, 300), imagen: aImg, enlace: aEnl, boton: String(an.boton || '').trim().slice(0, 40) }
+  };
+  if (fondo) { o.fondo = fondo; if (c.sinNombre) o.sinNombre = true; }
+  if (logo) o.logo = logo;
+  for (const k of ['tmdbEmpresas', 'tmdbPalabras', 'tmdbSagas', 'tmdbDirectores', 'tmdbReparto']) { const l = criteriosCol(c[k]); if (l.length) o[k] = l; }
+  const cont = textosCol(c.tmdbEmpresasContiene).slice(0, 80); if (cont.length) o.tmdbEmpresasContiene = cont;       // solo texto: se busca dentro del nombre
+  if (c.auto === false) o.auto = false;
+  const exc = textosCol(c.excluir); if (exc.length) o.excluir = exc;
+  const pel = textosCol(c.peliculas); if (pel.length) o.peliculas = pel;
+  /* Subcategorías (por ejemplo "Trilogía original" dentro de Star Wars): cada una con sus propias reglas. Lo que entra en una también pertenece a la colección. */
+  const subs = (Array.isArray(c.subcategorias) ? c.subcategorias : []).slice(0, 30).map(s => {
+    s = s && typeof s === 'object' ? s : {};
+    const nom = String(s.nombre || '').trim().slice(0, 60); if (!nom) return null;
+    const r = { nombre: nom };
+    const sp = textosCol(s.peliculas).slice(0, 80); if (sp.length) r.peliculas = sp;
+    for (const k of ['tmdbSagas', 'tmdbDirectores', 'tmdbReparto', 'tmdbEmpresas']) { const l = criteriosCol(s[k]).slice(0, 40); if (l.length) r[k] = l; }
+    return r;
+  }).filter(Boolean);
+  if (subs.length) o.subcategorias = subs;
+  return { col: o };
+}
+const datosCol = t => { try { const o = JSON.parse(t); return o && typeof o === 'object' && o.id ? o : null; } catch (e) { return null; } };
+const colParaPagina = d => ({ ...d, fuente: FUENTES_COL[d.fuente] || FUENTES_COL.helvetica, peliculas: d.peliculas || [] });
 
 async function manejar({ request, env, params }) {
   const db = env.DB;
@@ -378,7 +428,9 @@ async function manejar({ request, env, params }) {
         items = r.results.map(i => { const eps = epsDe(i.episodios); return { titulo: i.titulo, tmdb: i.tmdb, link: i.link, ...(i.tipo === 'serie' ? { tipo: 'serie' } : {}), ...(Object.keys(eps).length ? { episodios: eps } : {}) }; });
       }
     } catch (e) { console.error('[extras]', e && e.message); }
-    const js = 'window.PELICULAS_EXTRA=' + JSON.stringify(items).replace(/</g, '\\u003c') + ';';
+    let cols = [];
+    try { if (db) { const r = await db.prepare('SELECT datos FROM colecciones ORDER BY creado, id').all(); cols = r.results.map(x => datosCol(x.datos)).filter(Boolean).map(colParaPagina); } } catch (e) { console.error('[extras colecciones]', e && e.message); }
+    const js = 'window.PELICULAS_EXTRA=' + JSON.stringify(items).replace(/</g, '\\u003c') + ';window.COLECCIONES_EXTRA=' + JSON.stringify(cols).replace(/</g, '\\u003c') + ';';
     return new Response(js, { headers: { 'Content-Type': 'application/javascript; charset=utf-8', 'Cache-Control': 'public, max-age=30' } });
   }
 
@@ -517,6 +569,30 @@ async function manejar({ request, env, params }) {
       const tmdb = Math.floor(Number(cuerpo.tmdb)) || 0;
       await db.prepare('DELETE FROM publicados WHERE tmdb = ?1').bind(tmdb).run();
       return json({ publicadas: await totalPublicados(db) });
+    }
+
+    /* Colecciones del inicio creadas desde el panel */
+    if (cuerpo.op === 'colecciones') {
+      await prepararCatalogo(db, kv);
+      const r = await db.prepare('SELECT datos FROM colecciones ORDER BY creado, id').all();
+      return json({ items: r.results.map(x => datosCol(x.datos)).filter(Boolean) });
+    }
+
+    if (cuerpo.op === 'guardar_col') {
+      const v = limpiarCol(cuerpo.col);
+      if (v.error) return json({ error: v.error }, 400);
+      await prepararCatalogo(db, kv);
+      const ya = await db.prepare('SELECT 1 AS x FROM colecciones WHERE id = ?1').bind(v.col.id).first();
+      if (!ya && (await db.prepare('SELECT COUNT(*) AS n FROM colecciones').first()).n >= 100) return json({ error: 'Ya hay demasiadas colecciones creadas desde el panel.' }, 400);
+      await db.prepare('INSERT INTO colecciones (id, datos, creado) VALUES (?1, ?2, ?3) ON CONFLICT(id) DO UPDATE SET datos = ?2')
+        .bind(v.col.id, JSON.stringify(v.col), Date.now()).run();      // si ya existía, se actualiza y conserva su lugar
+      return json({ ok: true, id: v.col.id, nueva: !ya });
+    }
+
+    if (cuerpo.op === 'borrar_col') {
+      await prepararCatalogo(db, kv);
+      await db.prepare('DELETE FROM colecciones WHERE id = ?1').bind(String(cuerpo.id || '').slice(0, 60)).run();
+      return json({ ok: true });
     }
 
     if (cuerpo.op === 'quitar') {
