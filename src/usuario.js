@@ -175,7 +175,8 @@ function prepararCatalogo(db, kv) {
     await db.batch([
       db.prepare("CREATE TABLE IF NOT EXISTS publicados (tmdb INTEGER PRIMARY KEY, titulo TEXT NOT NULL, tipo TEXT NOT NULL DEFAULT 'pelicula', link TEXT NOT NULL DEFAULT '', episodios TEXT NOT NULL DEFAULT '{}', creado INTEGER NOT NULL)"),
       db.prepare('CREATE TABLE IF NOT EXISTS meta (clave TEXT PRIMARY KEY, valor TEXT) WITHOUT ROWID'),
-      db.prepare('CREATE TABLE IF NOT EXISTS colecciones (id TEXT PRIMARY KEY, datos TEXT NOT NULL, creado INTEGER NOT NULL)')
+      db.prepare('CREATE TABLE IF NOT EXISTS colecciones (id TEXT PRIMARY KEY, datos TEXT NOT NULL, creado INTEGER NOT NULL)'),
+      db.prepare('CREATE TABLE IF NOT EXISTS secciones (id TEXT PRIMARY KEY, datos TEXT NOT NULL, creado INTEGER NOT NULL)')
     ]);
     const hecho = await db.prepare("SELECT valor FROM meta WHERE clave = 'catalogo_desde_kv'").first();
     if (hecho) return;
@@ -252,6 +253,43 @@ function limpiarCol(c) {
 }
 const datosCol = t => { try { const o = JSON.parse(t); return o && typeof o === 'object' && o.id ? o : null; } catch (e) { return null; } };
 const colParaPagina = d => ({ ...d, fuente: FUENTES_COL[d.fuente] || FUENTES_COL.helvetica, peliculas: d.peliculas || [] });
+
+/* ---- Secciones temáticas (como "Huluween"): una franja con carrusel de pósters (en el inicio o dentro de una colección)
+   y una página propia (#/s/<id>) con banner de fotos y filas de películas. Se guardan en D1 y se validan igual que las colecciones. ---- */
+const ANCLAS_INICIO = ['top', 'hero', 'cols', 'gens', 'cont', 'pop', 'grid', 'plat'];
+const ANCLAS_COL = ['top', 'hero', 'pop', 'cro', 'subs', 'grid'];
+const ANCLAS_SEC = new Set([...ANCLAS_INICIO, ...ANCLAS_COL]);
+const rutaTmdb = v => /^\/[\w-]{1,60}\.(jpg|jpeg|png|webp)$/i.test(String(v || '')) ? String(v) : '';
+function limpiarSec(s) {
+  s = s && typeof s === 'object' ? s : {};
+  const id = String(s.id || '').trim().toLowerCase(), nombre = String(s.nombre || '').trim().slice(0, 60);
+  if (!/^[a-z0-9][a-z0-9-]{0,39}$/.test(id)) return { error: 'El enlace corto solo puede llevar letras sin acento, números y guiones (máximo 40).' };
+  if (!nombre) return { error: 'Escribe el nombre de la sección.' };
+  const logo = urlCol(s.logo);
+  const banners = (Array.isArray(s.banners) ? s.banners : []).slice(0, 8).map(urlCol);
+  if (logo === null || banners.includes(null)) return { error: 'Las direcciones de imagen deben empezar con http:// o https://' };
+  const ubicacion = /^col:[a-z0-9][a-z0-9-]{0,39}$/.test(String(s.ubicacion || '')) ? String(s.ubicacion) : 'inicio';
+  const anclas = ubicacion === 'inicio' ? ANCLAS_INICIO : ANCLAS_COL;
+  const filas = (Array.isArray(s.filas) ? s.filas : []).slice(0, 12).map(f => {
+    f = f && typeof f === 'object' ? f : {};
+    const items = (Array.isArray(f.items) ? f.items : []).slice(0, 60).map(x => {
+      x = x && typeof x === 'object' ? x : {};
+      const tmdb = Math.floor(Number(x.tmdb)), titulo = String(x.titulo || '').trim().slice(0, 200);
+      if (!(tmdb > 0) || !titulo) return null;
+      return { tmdb, titulo, tipo: x.tipo === 'serie' ? 'serie' : 'pelicula', poster: rutaTmdb(x.poster), fondo: rutaTmdb(x.fondo), ...(x.novedad ? { novedad: true } : {}) };
+    }).filter((x, i, a) => x && a.findIndex(y => y && y.tmdb === x.tmdb) === i);
+    const col = String(f.coleccion || '').trim().toLowerCase();
+    return { titulo: String(f.titulo || '').trim().slice(0, 100), estilo: f.estilo === 'vertical' ? 'vertical' : 'horizontal', coleccion: /^[a-z0-9][a-z0-9-]{0,39}$/.test(col) ? col : '', items };
+  });
+  return { sec: {
+    id, nombre, logo, banners: banners.filter(Boolean),
+    etiqueta: String(s.etiqueta || '').trim().slice(0, 40), texto: String(s.texto || '').trim().slice(0, 200), boton: String(s.boton || '').trim().slice(0, 30),
+    a: hexCol(s.a, '#0b3d91'), b: hexCol(s.b, '#020b1f'), tx: hexCol(s.tx, '#ffffff'),
+    ubicacion, despues: anclas.includes(s.despues) ? s.despues : 'hero', orden: Math.max(0, Math.min(999, Math.floor(Number(s.orden)) || 0)),
+    franja: s.franja !== false, filas
+  } };
+}
+const datosSec = t => { try { const o = JSON.parse(t); return o && typeof o === 'object' && o.id ? o : null; } catch (e) { return null; } };
 
 async function manejar({ request, env, params }) {
   const db = env.DB;
@@ -439,7 +477,9 @@ async function manejar({ request, env, params }) {
     } catch (e) { console.error('[extras]', e && e.message); }
     let cols = [];
     try { if (db) { const r = await db.prepare('SELECT datos FROM colecciones ORDER BY creado, id').all(); cols = r.results.map(x => datosCol(x.datos)).filter(Boolean).map(colParaPagina); } } catch (e) { console.error('[extras colecciones]', e && e.message); }
-    const js = 'window.PELICULAS_EXTRA=' + JSON.stringify(items).replace(/</g, '\\u003c') + ';window.COLECCIONES_EXTRA=' + JSON.stringify(cols).replace(/</g, '\\u003c') + ';';
+    let secs = [];
+    try { if (db) { const r = await db.prepare('SELECT datos FROM secciones ORDER BY creado, id').all(); secs = r.results.map(x => datosSec(x.datos)).filter(Boolean); } } catch (e) { console.error('[extras secciones]', e && e.message); }
+    const js = 'window.PELICULAS_EXTRA=' + JSON.stringify(items).replace(/</g, '\\u003c') + ';window.COLECCIONES_EXTRA=' + JSON.stringify(cols).replace(/</g, '\\u003c') + ';window.SECCIONES_EXTRA=' + JSON.stringify(secs).replace(/</g, '\\u003c') + ';';
     return new Response(js, { headers: { 'Content-Type': 'application/javascript; charset=utf-8', 'Cache-Control': 'public, max-age=30' } });
   }
 
@@ -601,6 +641,39 @@ async function manejar({ request, env, params }) {
     if (cuerpo.op === 'borrar_col') {
       await prepararCatalogo(db, kv);
       await db.prepare('DELETE FROM colecciones WHERE id = ?1').bind(String(cuerpo.id || '').slice(0, 60)).run();
+      return json({ ok: true });
+    }
+
+    /* Secciones temáticas */
+    if (cuerpo.op === 'secciones') {
+      await prepararCatalogo(db, kv);
+      const r = await db.prepare('SELECT datos FROM secciones ORDER BY creado, id').all();
+      return json({ items: r.results.map(x => datosSec(x.datos)).filter(Boolean) });
+    }
+
+    if (cuerpo.op === 'guardar_sec') {
+      const v = limpiarSec(cuerpo.sec);
+      if (v.error) return json({ error: v.error }, 400);
+      await prepararCatalogo(db, kv);
+      const ya = await db.prepare('SELECT 1 AS x FROM secciones WHERE id = ?1').bind(v.sec.id).first();
+      if (!ya && (await db.prepare('SELECT COUNT(*) AS n FROM secciones').first()).n >= 60) return json({ error: 'Ya hay demasiadas secciones creadas desde el panel.' }, 400);
+      await db.prepare('INSERT INTO secciones (id, datos, creado) VALUES (?1, ?2, ?3) ON CONFLICT(id) DO UPDATE SET datos = ?2')
+        .bind(v.sec.id, JSON.stringify(v.sec), Date.now()).run();      // si ya existía, se actualiza y conserva su lugar en la lista
+      return json({ ok: true, id: v.sec.id, nueva: !ya });
+    }
+
+    if (cuerpo.op === 'ordenar_sec') {      // guarda en qué lugar de la página va cada sección: [{ id, despues, orden }]
+      await prepararCatalogo(db, kv);
+      const L = (Array.isArray(cuerpo.orden) ? cuerpo.orden : []).slice(0, 100)
+        .filter(x => x && /^[a-z0-9][a-z0-9-]{0,39}$/.test(String(x.id || '')) && ANCLAS_SEC.has(x.despues));
+      if (L.length) await db.batch(L.map(x => db.prepare("UPDATE secciones SET datos = json_set(datos, '$.despues', ?2, '$.orden', ?3) WHERE id = ?1")
+        .bind(String(x.id), x.despues, Math.max(0, Math.min(999, Math.floor(Number(x.orden)) || 0)))));
+      return json({ ok: true });
+    }
+
+    if (cuerpo.op === 'borrar_sec') {
+      await prepararCatalogo(db, kv);
+      await db.prepare('DELETE FROM secciones WHERE id = ?1').bind(String(cuerpo.id || '').slice(0, 60)).run();
       return json({ ok: true });
     }
 
