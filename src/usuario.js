@@ -217,10 +217,10 @@ function limpiarCol(c) {
     tema: TEMAS_COL.includes(c.tema) ? c.tema : 'liso',
     fuente: FUENTES_COL[c.fuente] ? c.fuente : 'helvetica',
     peso: ['400', '700', '900'].includes(String(c.peso)) ? String(c.peso) : '700',
-    esp: ESP_COL.includes(c.esp) ? c.esp : 'normal',
+    esp: (c.esp === 'normal' || /^\d{0,2}\.?\d{1,3}em$/.test(String(c.esp))) ? String(c.esp) : 'normal',
     mayus: !!c.mayus,
     patron: PATRONES_COL.includes(c.patron) ? c.patron : '', patronColor: hexCol(c.patronColor, '#ffffff'),
-    anuncio: { titulo: String(an.titulo || '').trim().slice(0, 100), texto: String(an.texto || '').trim().slice(0, 300), imagen: aImg, enlace: aEnl }
+    anuncio: { titulo: String(an.titulo || '').trim().slice(0, 100), texto: String(an.texto || '').trim().slice(0, 300), imagen: aImg, enlace: aEnl, boton: String(an.boton || '').trim().slice(0, 40) }
   };
   if (fondo) { o.fondo = fondo; if (c.sinNombre) o.sinNombre = true; }
   if (logo) o.logo = logo;
@@ -229,6 +229,16 @@ function limpiarCol(c) {
   if (c.auto === false) o.auto = false;
   const exc = textosCol(c.excluir); if (exc.length) o.excluir = exc;
   const pel = textosCol(c.peliculas); if (pel.length) o.peliculas = pel;
+  /* Subcategorías (por ejemplo "Trilogía original" dentro de Star Wars): cada una con sus propias reglas. Lo que entra en una también pertenece a la colección. */
+  const subs = (Array.isArray(c.subcategorias) ? c.subcategorias : []).slice(0, 30).map(s => {
+    s = s && typeof s === 'object' ? s : {};
+    const nom = String(s.nombre || '').trim().slice(0, 60); if (!nom) return null;
+    const r = { nombre: nom };
+    const sp = textosCol(s.peliculas).slice(0, 80); if (sp.length) r.peliculas = sp;
+    for (const k of ['tmdbSagas', 'tmdbDirectores', 'tmdbReparto', 'tmdbEmpresas']) { const l = criteriosCol(s[k]).slice(0, 40); if (l.length) r[k] = l; }
+    return r;
+  }).filter(Boolean);
+  if (subs.length) o.subcategorias = subs;
   return { col: o };
 }
 const datosCol = t => { try { const o = JSON.parse(t); return o && typeof o === 'object' && o.id ? o : null; } catch (e) { return null; } };
