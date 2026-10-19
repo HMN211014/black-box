@@ -1,6 +1,6 @@
 /* Cuentas de usuario (correo + contraseña), tiempo de acceso y códigos canjeables para Black BOX.
    Los datos viven en D1 (binding DB). El progreso va a R2 (binding DATOS) y, si no está conectado, a D1.
-   Solo las películas publicadas desde el panel (x:catalogo) siguen en KV (binding USUARIOS), sin tocarlas.
+   Las películas publicadas desde el panel viven en D1 (tablas publicados y meta). El KV (binding USUARIOS) solo se lee una vez para copiarlas.
    Ruta:  /api/usuario/registro | entrar | salir | yo | datos | canjear | pedir | pedidos | extras | admin */
 
 const enc = new TextEncoder();
@@ -164,12 +164,39 @@ async function guardarDatos(env, correo, texto) {
   await env.DB.prepare('INSERT INTO datos (correo, json) VALUES (?1, ?2) ON CONFLICT(correo) DO UPDATE SET json = ?2').bind(correo, texto).run();
 }
 
-/* Serie o película de un título guardado en KV. Los publicados antes de este cambio no traían "tipo": se deduce por la plantilla {t}/{e} del enlace. */
-const tipoDe = i => i.tipo === 'serie' || i.episodios || /\{(t|e|tt|ee)\}/.test(String(i.link || '')) ? 'serie' : 'pelicula';
+/* ---- Catálogo publicado desde el panel: vive en D1 (tablas "publicados" y "meta").
+   Antes estaba en KV (x:catalogo) y se agotaban las escrituras diarias: lo que haya en KV se copia solo, una vez, y después ya no se toca. ---- */
+const tipoDe = i => i.tipo === 'serie' || i.episodios || /\{(t|e|tt|ee)\}/.test(String(i.link || '')) ? 'serie' : 'pelicula';   // solo para lo que venía de KV sin "tipo"
+const epsDe = t => { try { const o = JSON.parse(t || '{}'); return o && typeof o === 'object' ? o : {}; } catch (e) { return {}; } };
+const totalPublicados = async db => (await db.prepare('SELECT COUNT(*) AS n FROM publicados').first()).n;
+let catListo = null;      // promesa: tablas creadas y copia desde KV hecha (una vez por instancia del Worker)
+function prepararCatalogo(db, kv) {
+  if (!catListo) catListo = (async () => {
+    await db.batch([
+      db.prepare("CREATE TABLE IF NOT EXISTS publicados (tmdb INTEGER PRIMARY KEY, titulo TEXT NOT NULL, tipo TEXT NOT NULL DEFAULT 'pelicula', link TEXT NOT NULL DEFAULT '', episodios TEXT NOT NULL DEFAULT '{}', creado INTEGER NOT NULL)"),
+      db.prepare('CREATE TABLE IF NOT EXISTS meta (clave TEXT PRIMARY KEY, valor TEXT) WITHOUT ROWID')
+    ]);
+    const hecho = await db.prepare("SELECT valor FROM meta WHERE clave = 'catalogo_desde_kv'").first();
+    if (hecho) return;
+    let items = [], leido = true;
+    if (kv) { try { const x = await kv.get('x:catalogo', 'json'); if (x && Array.isArray(x.items)) items = x.items; } catch (e) { leido = false; console.error('[catalogo] no se pudo leer KV:', e && e.message); } }
+    if (!leido) { catListo = null; return; }                  // se vuelve a intentar en la próxima petición, sin marcar como hecho
+    const filas = items.filter(i => i && i.titulo && Math.floor(Number(i.tmdb)) > 0).map(i => ({
+      tmdb: Math.floor(Number(i.tmdb)), titulo: String(i.titulo).slice(0, 200), tipo: tipoDe(i), link: String(i.link || ''),
+      episodios: JSON.stringify(i.episodios && typeof i.episodios === 'object' ? i.episodios : {}), creado: Number(i.creado) || Date.now()
+    }));
+    for (let n = 0; n < filas.length; n += 50)
+      await db.prepare(`INSERT OR IGNORE INTO publicados (tmdb, titulo, tipo, link, episodios, creado)
+        SELECT json_extract(value, '$.tmdb'), json_extract(value, '$.titulo'), json_extract(value, '$.tipo'), json_extract(value, '$.link'), json_extract(value, '$.episodios'), json_extract(value, '$.creado')
+        FROM json_each(?1)`).bind(JSON.stringify(filas.slice(n, n + 50))).run();
+    await db.prepare("INSERT OR IGNORE INTO meta (clave, valor) VALUES ('catalogo_desde_kv', ?1)").bind(String(filas.length)).run();
+  })().catch(e => { catListo = null; throw e; });
+  return catListo;
+}
 
 async function manejar({ request, env, params }) {
   const db = env.DB;
-  const kv = env.USUARIOS;          // solo para las películas publicadas desde el panel
+  const kv = env.USUARIOS;          // KV viejo: solo se LEE una vez para copiar a D1 las películas que ya estaban publicadas
 
   const accion = params.accion;
   const esPost = request.method === 'POST';
@@ -341,10 +368,16 @@ async function manejar({ request, env, params }) {
     return json({ pedido: ped, ...(porVales ? { vales } : {}) });
   }
 
-  /* ---- Películas publicadas desde el panel (siguen en KV) ---- */
+  /* ---- Películas publicadas desde el panel (D1) ---- */
   if (accion === 'extras' && request.method === 'GET') {
     let items = [];
-    try { const x = kv && await kv.get('x:catalogo', 'json'); if (x && x.items) items = x.items.map(i => { const tipo = tipoDe(i), eps = i.episodios && Object.keys(i.episodios).length ? i.episodios : null; return { titulo: i.titulo, tmdb: i.tmdb, link: i.link, ...(tipo === 'serie' ? { tipo } : {}), ...(eps ? { episodios: eps } : {}) }; }); } catch (e) {}
+    try {
+      if (db) {
+        await prepararCatalogo(db, kv);
+        const r = await db.prepare('SELECT titulo, tmdb, link, tipo, episodios FROM publicados ORDER BY creado, tmdb').all();
+        items = r.results.map(i => { const eps = epsDe(i.episodios); return { titulo: i.titulo, tmdb: i.tmdb, link: i.link, ...(i.tipo === 'serie' ? { tipo: 'serie' } : {}), ...(Object.keys(eps).length ? { episodios: eps } : {}) }; });
+      }
+    } catch (e) { console.error('[extras]', e && e.message); }
     const js = 'window.PELICULAS_EXTRA=' + JSON.stringify(items).replace(/</g, '\\u003c') + ';';
     return new Response(js, { headers: { 'Content-Type': 'application/javascript; charset=utf-8', 'Cache-Control': 'public, max-age=30' } });
   }
@@ -362,7 +395,6 @@ async function manejar({ request, env, params }) {
     const plan = PLANES_OK.includes(cuerpo.plan) ? cuerpo.plan : 'basico';
     const dias = Math.floor(Number(cuerpo.dias));
     const peliculas = Math.floor(Number(cuerpo.peliculas));
-    const sinKV = () => json({ error: 'Las películas publicadas desde el panel necesitan el KV USUARIOS conectado.' }, 503);
 
     if (cuerpo.op === 'generar') {
       const cantidad = Math.floor(Number(cuerpo.cantidad));
@@ -422,44 +454,41 @@ async function manejar({ request, env, params }) {
     }
 
     if (cuerpo.op === 'publicar') {
-      if (!kv) return sinKV();
       const titulo = String(cuerpo.titulo || '').trim().slice(0, 200);
       const tmdb = Math.floor(Number(cuerpo.tmdb)) || 0;
       const link = String(cuerpo.link || '').trim();
       if (!titulo || !tmdb) return json({ error: 'Faltan el título o el código de TMDB.' }, 400);
       if (!/^https?:\/\/\S{4,2000}$/.test(link)) return json({ error: 'El enlace debe empezar con http:// o https://' }, 400);
-      const x = (await kv.get('x:catalogo', 'json')) || { items: [] };
+      await prepararCatalogo(db, kv);
       const tipo = cuerpo.tipo === 'serie' ? 'serie' : 'pelicula';
-      const ya = x.items.find(i => i.tmdb === tmdb);
-      if (ya) { ya.titulo = titulo; ya.link = link; ya.tipo = tipo; } else x.items.push({ titulo, tmdb, link, tipo, creado: Date.now() });
-      if (x.items.length > 1500) return json({ error: 'Ya hay demasiadas películas publicadas desde el panel.' }, 400);
-      await kv.put('x:catalogo', JSON.stringify(x));
+      const ya = await db.prepare('SELECT 1 AS x FROM publicados WHERE tmdb = ?1').bind(tmdb).first();
+      if (!ya && (await totalPublicados(db)) >= 1500) return json({ error: 'Ya hay demasiadas películas publicadas desde el panel.' }, 400);
+      await db.prepare("INSERT INTO publicados (tmdb, titulo, tipo, link, episodios, creado) VALUES (?1, ?2, ?3, ?4, '{}', ?5) ON CONFLICT(tmdb) DO UPDATE SET titulo = ?2, tipo = ?3, link = ?4")
+        .bind(tmdb, titulo, tipo, link, Date.now()).run();       // si ya existía, se conservan sus capítulos sueltos
       let lista = null;
       if (cuerpo.correo) {
         const r = await asignarLista(db, limpiarCorreo(cuerpo.correo), titulo, tmdb, cuerpo.pedido);
         if (r.error) return json({ error: 'Se publicó, pero: ' + r.error }, r.status);
         lista = r.lista;
       }
-      return json({ publicadas: x.items.length, lista });
+      return json({ publicadas: await totalPublicados(db), lista });
     }
 
     if (cuerpo.op === 'publicadas') {
-      if (!kv) return sinKV();
-      const x = (await kv.get('x:catalogo', 'json')) || { items: [] };
-      return json({ items: x.items.slice().sort((a, b) => (b.creado || 0) - (a.creado || 0)).map(i => ({ titulo: i.titulo, tmdb: i.tmdb, link: i.link, tipo: tipoDe(i), eps: i.episodios ? Object.keys(i.episodios).length : 0 })) });
+      await prepararCatalogo(db, kv);
+      const r = await db.prepare('SELECT titulo, tmdb, link, tipo, episodios FROM publicados ORDER BY creado DESC').all();
+      return json({ items: r.results.map(i => ({ titulo: i.titulo, tmdb: i.tmdb, link: i.link, tipo: i.tipo, eps: Object.keys(epsDe(i.episodios)).length })) });
     }
 
     /* Capítulos sueltos de una serie: ver los guardados y guardar/actualizar uno ("1x3" = temporada 1, capítulo 3). */
     if (cuerpo.op === 'episodios') {
-      if (!kv) return sinKV();
+      await prepararCatalogo(db, kv);
       const tmdb = Math.floor(Number(cuerpo.tmdb)) || 0;
-      const x = (await kv.get('x:catalogo', 'json')) || { items: [] };
-      const it = x.items.find(i => i.tmdb === tmdb);
-      return json({ episodios: (it && it.episodios) || {}, plantilla: (it && it.link) || '' });
+      const it = await db.prepare('SELECT link, episodios FROM publicados WHERE tmdb = ?1').bind(tmdb).first();
+      return json({ episodios: it ? epsDe(it.episodios) : {}, plantilla: (it && it.link) || '' });
     }
 
     if (cuerpo.op === 'publicar_ep') {
-      if (!kv) return sinKV();
       const titulo = String(cuerpo.titulo || '').trim().slice(0, 200);
       const tmdb = Math.floor(Number(cuerpo.tmdb)) || 0;
       const t = Math.floor(Number(cuerpo.t)), e = Math.floor(Number(cuerpo.e));
@@ -467,28 +496,27 @@ async function manejar({ request, env, params }) {
       if (!titulo || !tmdb) return json({ error: 'Faltan el título o el código de TMDB.' }, 400);
       if (!(t >= 1 && t <= 100 && e >= 1 && e <= 1000)) return json({ error: 'Temporada o capítulo no válidos.' }, 400);
       if (!/^https?:\/\/\S{4,2000}$/.test(link)) return json({ error: 'El enlace debe empezar con http:// o https://' }, 400);
-      const x = (await kv.get('x:catalogo', 'json')) || { items: [] };
-      let it = x.items.find(i => i.tmdb === tmdb);
-      if (!it) {
-        if (x.items.length >= 1500) return json({ error: 'Ya hay demasiadas películas publicadas desde el panel.' }, 400);
-        it = { titulo, tmdb, link: '', tipo: 'serie', creado: Date.now() };
-        x.items.push(it);
+      await prepararCatalogo(db, kv);
+      const k = t + 'x' + e;
+      const ya = await db.prepare('SELECT episodios FROM publicados WHERE tmdb = ?1').bind(tmdb).first();
+      if (!ya) {
+        if ((await totalPublicados(db)) >= 1500) return json({ error: 'Ya hay demasiadas películas publicadas desde el panel.' }, 400);
+        await db.prepare("INSERT OR IGNORE INTO publicados (tmdb, titulo, tipo, link, episodios, creado) VALUES (?1, ?2, 'serie', '', '{}', ?3)").bind(tmdb, titulo, Date.now()).run();
+      } else {
+        const eps = epsDe(ya.episodios);
+        if (!eps[k] && Object.keys(eps).length >= 3000) return json({ error: 'Esta serie ya tiene demasiados capítulos.' }, 400);
       }
-      it.tipo = 'serie'; it.titulo = titulo;
-      it.episodios = it.episodios || {};
-      if (!it.episodios[t + 'x' + e] && Object.keys(it.episodios).length >= 3000) return json({ error: 'Esta serie ya tiene demasiados capítulos.' }, 400);
-      it.episodios[t + 'x' + e] = link;
-      await kv.put('x:catalogo', JSON.stringify(x));
-      return json({ episodios: it.episodios });
+      await db.prepare("UPDATE publicados SET titulo = ?2, tipo = 'serie', episodios = json_set(episodios, ?3, ?4) WHERE tmdb = ?1")
+        .bind(tmdb, titulo, '$."' + k + '"', link).run();       // cambia solo ese capítulo, de un solo golpe
+      const r = await db.prepare('SELECT episodios FROM publicados WHERE tmdb = ?1').bind(tmdb).first();
+      return json({ episodios: epsDe(r && r.episodios) });
     }
 
     if (cuerpo.op === 'despublicar') {
-      if (!kv) return sinKV();
+      await prepararCatalogo(db, kv);
       const tmdb = Math.floor(Number(cuerpo.tmdb)) || 0;
-      const x = (await kv.get('x:catalogo', 'json')) || { items: [] };
-      x.items = x.items.filter(i => i.tmdb !== tmdb);
-      await kv.put('x:catalogo', JSON.stringify(x));
-      return json({ publicadas: x.items.length });
+      await db.prepare('DELETE FROM publicados WHERE tmdb = ?1').bind(tmdb).run();
+      return json({ publicadas: await totalPublicados(db) });
     }
 
     if (cuerpo.op === 'quitar') {
