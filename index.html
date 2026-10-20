@@ -316,6 +316,18 @@ body.colmode #chero:not(.top){margin-top:0}
 .grid .card{width:100%;max-width:none;flex:none}
 @media(max-width:620px){.grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:14px;padding:18px 20px 32px}}
 
+/* ---------- Filas por género y "Todas las películas" compacta (al final de la página) ---------- */
+.gt{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.gt a{flex:none;font-size:14px;font-weight:600;color:#a1a1a6;text-decoration:none;white-space:nowrap}
+.gt a:hover,.gt a:focus-visible{color:#fff;outline:none}
+.grid .card.xt{display:none}
+.grid.compacta{-webkit-mask-image:linear-gradient(#000 78%,transparent);mask-image:linear-gradient(#000 78%,transparent)}
+.vt{display:flex;justify-content:center;padding:0 5vw 56px}
+.vt[hidden]{display:none}
+.vtb{border:0;border-radius:999px;padding:13px 30px;background:rgba(255,255,255,.14);color:#fff;font:inherit;font-size:15px;font-weight:600;letter-spacing:-.01em;cursor:pointer;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);box-shadow:inset 0 0 0 1px rgba(255,255,255,.14);transition:background .2s,transform .2s}
+.vtb:hover,.vtb:focus-visible{background:rgba(255,255,255,.24);outline:none;transform:scale(1.03)}
+@media(max-width:620px){.gt a{font-size:13px}.vt{padding:0 20px 48px}}
+
 /* ---------- Plataformas de streaming ---------- */
 .plat{-webkit-tap-highlight-color:transparent;flex:0 0 clamp(150px,17vw,230px);aspect-ratio:16/10;border-radius:var(--r);scroll-snap-align:start;display:grid;place-items:center;padding:12px;text-decoration:none;color:var(--tx);
   background:linear-gradient(135deg,var(--a),var(--b));box-shadow:0 10px 30px rgba(0,0,0,.6),inset 0 0 0 1px rgba(255,255,255,.1);transition:transform .25s ease,box-shadow .25s ease}
@@ -924,8 +936,6 @@ body.con-q #vista-ped,body.con-q #vista-rec{display:none!important}
   </section>
 </div>
 <div id="gen"></div>
-<h3 class="rt" id="rt">Todas las películas</h3>
-<div class="grid" id="grid"></div>
 <div id="plat">
   <h3 class="rt">Plataformas</h3>
   <section class="row" id="rowplat" aria-label="Plataformas">
@@ -933,6 +943,11 @@ body.con-q #vista-ped,body.con-q #vista-rec{display:none!important}
     <div class="track" id="ptrack"></div>
     <button class="nav next" aria-label="Siguiente">›</button>
   </section>
+</div>
+<div id="todas-w">
+  <h3 class="rt" id="rt">Todas las películas</h3>
+  <div class="grid" id="grid"></div>
+  <div class="vt" id="vt-w" hidden><button class="vtb" id="vt" type="button" aria-expanded="false">Ver todas</button></div>
 </div>
 </div><!-- /vista-inicio -->
 
@@ -1567,6 +1582,7 @@ const crearTarjeta = p => {
    La cuadrícula "Todas las películas" muestra todas, en dos columnas. */
 const POPULARES = 7;
 const tarjetasC = new Map();
+const tarjetasG = new Map();                  // tarjetas de las filas por género (para ponerles el póster y el candado cuando llegan los datos)
 
 /* ---------- Orden de las películas ----------
    Primero las del año en curso; después las demás, en el orden en que las subiste.
@@ -1588,21 +1604,41 @@ function pintarPopulares() {
 function ordenar() {
   [peliculas, series].forEach(l => l.sort((a, b) => (esActual(b) - esActual(a)) || (a._i - b._i))); datosVer++;
   document.getElementById('grid').replaceChildren(...L().map(p => tarjetas.get(p)).filter(Boolean));
-  pintarPopulares(); pintarGeneros();
+  pintarPopulares(); pintarGeneros(); compactarGrid();
 }
-function pintarGeneros() {                           // en Series: una fila por género (Drama, Comedia...) armada con los datos de TMDB
-  const cont = document.getElementById('gen'); cont.replaceChildren();
-  if (modo !== 'series' || series.length < 5) return;
+const slugGen = g => String(g).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+function pintarGeneros() {                           // una fila (carrusel) por género: Acción, Comedia, Terror... armada con los datos de TMDB
+  const cont = document.getElementById('gen'); cont.replaceChildren(); tarjetasG.clear();
+  const s = modo === 'series', lista = L();
+  if (lista.length < 5) return;
+  const E = (t, c, x) => { const n = document.createElement(t); if (c) n.className = c; if (x !== undefined) n.textContent = x; return n; };   // (mk aún no existe cuando se pinta por primera vez)
   const por = new Map();
-  series.forEach(p => (p.genero || '').split(',').map(g => g.trim()).filter(Boolean).slice(0, 2).forEach(g => { if (!por.has(g)) por.set(g, []); por.get(g).push(p); }));
-  [...por.entries()].filter(([, l]) => l.length >= 2).sort((a, b) => b[1].length - a[1].length).slice(0, 6).forEach(([g, l]) => {
-    const sec = mk('section', 'row'), tr = mk('div', 'track'), pv = mk('button', 'nav prev', '‹'), nx = mk('button', 'nav next', '›');
-    pv.setAttribute('aria-label', 'Anterior'); nx.setAttribute('aria-label', 'Siguiente');
-    l.forEach(p => tr.appendChild(crearTarjeta(p)));
+  lista.forEach(p => (p.genero || '').split(',').map(g => g.trim()).filter(Boolean).slice(0, s ? 2 : 3).forEach(g => { if (!por.has(g)) por.set(g, []); por.get(g).push(p); }));
+  [...por.entries()].filter(([, l]) => l.length >= (s ? 2 : 3)).sort((a, b) => b[1].length - a[1].length).slice(0, s ? 6 : 12).forEach(([g, l]) => {
+    const sec = E('section', 'row'), tr = E('div', 'track'), pv = E('button', 'nav prev', '‹'), nx = E('button', 'nav next', '›'), h = E('h3', 'rt gt');
+    pv.type = nx.type = 'button'; pv.setAttribute('aria-label', 'Anterior'); nx.setAttribute('aria-label', 'Siguiente');
+    l.slice(0, 24).forEach(p => { const b = crearTarjeta(p); tr.appendChild(b); if (!tarjetasG.has(p)) tarjetasG.set(p, []); tarjetasG.get(p).push(b); });
     pv.onclick = () => tr.scrollBy({ left: -tr.clientWidth * .8, behavior: 'smooth' }); nx.onclick = () => tr.scrollBy({ left: tr.clientWidth * .8, behavior: 'smooth' });
-    sec.append(pv, tr, nx); cont.append(mk('h3', 'rt', g), sec);
+    h.append(E('span', '', g));
+    if (!s) { const a = E('a', '', 'Ver todo ›'); a.href = '#/c/g-' + slugGen(g); a.setAttribute('aria-label', 'Ver todas las de ' + g); h.append(a); }      // abre la página del género
+    sec.append(pv, tr, nx); cont.append(h, sec);
   });
 }
+/* "Todas las películas": compacta (2 filas en pantallas anchas, 3 en teléfono) con botón "Ver todas"; se recalcula si cambia el ancho (columnas) */
+let gridAbierta = false, gridAncho = -1;
+function compactarGrid() {
+  const g = document.getElementById('grid'), wb = document.getElementById('vt-w'), b = document.getElementById('vt');
+  if (!g || !wb || !b || !g.offsetParent) return;           // oculta (otra vista): se vuelve a calcular cuando se muestre
+  const cards = [...g.children], cols = Math.max(1, getComputedStyle(g).gridTemplateColumns.split(' ').filter(x => x && x !== 'none').length), lim = cols * (cols >= 4 ? 2 : 3), hay = cards.length > lim;
+  cards.forEach((c, i) => c.classList.toggle('xt', hay && !gridAbierta && i >= lim));
+  g.classList.toggle('compacta', hay && !gridAbierta);
+  wb.hidden = !hay; b.textContent = gridAbierta ? 'Mostrar menos' : 'Ver todas (' + cards.length + ')'; b.setAttribute('aria-expanded', String(gridAbierta));
+}
+document.getElementById('vt').onclick = () => {
+  gridAbierta = !gridAbierta; compactarGrid();
+  if (!gridAbierta) document.getElementById('rt').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion:reduce)').matches ? 'auto' : 'smooth', block: 'start' });
+};
+if (window.ResizeObserver) new ResizeObserver(() => { const w = document.getElementById('grid').clientWidth; if (w !== gridAncho) { gridAncho = w; compactarGrid(); } }).observe(document.getElementById('grid'));
 todas().forEach(p => tarjetas.set(p, crearTarjeta(p)));
 ordenar();
 
@@ -2216,6 +2252,7 @@ function refrescar(p) {
   if (c && !c.querySelector('img')) poster(p, c);
   if (c) insigniaSerie(c, p);
   (tarjetasCol.get(p) || []).forEach(x => { if (!x.querySelector('img')) poster(p, x); });
+  (tarjetasG.get(p) || []).forEach(x => { if (!x.querySelector('img')) poster(p, x); insigniaSerie(x, p); });
   if (orden[idx] === p) mostrar(idx);
   if (detActual === p && !vistas.det.hidden) pintarDetalle(p);
   actualizarCont();
@@ -2856,6 +2893,7 @@ window.bbCand = p => soloLista() && !enLista(p);                              //
 function marcarCandados() {
   [tarjetas, tarjetasC].forEach(m => m.forEach((b, p) => b.classList.toggle('lk', !!window.bbCand(p))));
   tarjetasCol.forEach((bs, p) => bs.forEach(b => b.classList.toggle('lk', !!window.bbCand(p))));
+  tarjetasG.forEach((bs, p) => bs.forEach(b => b.classList.toggle('lk', !!window.bbCand(p))));
 }
 function uPlan() { marcarCandados(); if (!vistas.ped.hidden) pintarPedidos(); }     // se llama cada vez que cambia el plan o la lista de la cuenta
 const uDias = () => Math.max(0, Math.ceil((U.acceso.vence - Date.now()) / 86400000));
@@ -3485,7 +3523,7 @@ function secFranja(s, u) {                      // la franja: logo + frase + bot
   }, 4500);
   return w;
 }
-const SEC_ANCLAS_INICIO = { top: ['herowrap', 'antes'], hero: ['herowrap', 'despues'], cols: ['cols-w', 'despues'], gens: ['gen-w', 'despues'], cont: ['cont', 'despues'], pop: ['pop', 'despues'], grid: ['grid', 'despues'], plat: ['plat', 'despues'] };
+const SEC_ANCLAS_INICIO = { top: ['herowrap', 'antes'], hero: ['herowrap', 'despues'], cols: ['cols-w', 'despues'], gens: ['gen-w', 'despues'], cont: ['cont', 'despues'], pop: ['pop', 'despues'], gfil: ['gen', 'despues'], plat: ['plat', 'despues'], grid: ['todas-w', 'despues'] };
 const SEC_ANCLAS_COL = { top: ['chero', 'antes'], hero: ['chero', 'despues'], pop: ['c-pop', 'despues'], cro: ['c-cro', 'despues'], subs: ['c-subs', 'despues'], grid: ['c-grid', 'despues'] };
 const secQuitar = sel => document.querySelectorAll(sel).forEach(n => { if (n._t) clearInterval(n._t); n.remove(); });
 function secColocar(lista, mapa, u) {

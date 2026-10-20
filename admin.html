@@ -107,18 +107,56 @@ label small.h{display:block;color:#a1a1a6;font-weight:400;font-size:12px;margin-
 .sfe{flex-basis:100%;width:100%;margin-top:12px;padding:12px;border-radius:12px;border:1px solid rgba(10,132,255,.6);background:rgba(10,132,255,.08)}
 .sfe .row{display:flex;gap:8px;margin-top:8px}.sfe .s{margin:6px 0 0}
 .it{flex-wrap:wrap}
+/* ---- Vista horizontal: menú a la izquierda y una sección a la vez (en vertical todo sigue apilado como antes) ---- */
+.side{display:grid;gap:18px;align-content:start}
+.side .c label{margin-bottom:0}
+label[hidden]{display:none}
+.pan{display:grid;gap:18px}
+.nav{display:none}
+.nav button{display:flex;align-items:center;justify-content:flex-start;gap:10px;width:100%;height:44px;padding:0 14px;border-radius:12px;background:transparent;color:#c7c7cc;font-size:15px;font-weight:600;text-align:left}
+.nav button:hover{background:rgba(255,255,255,.07)}
+.nav button.on{background:rgba(255,255,255,.15);color:#fff}
+body.h{padding:18px 22px 40px}
+body.h main{max-width:1320px;grid-template-columns:260px minmax(0,1fr);gap:22px;align-items:start}
+body.h .side{position:sticky;top:18px;max-height:calc(100vh - 36px);overflow-y:auto;gap:14px;scrollbar-width:thin}
+body.h .nav{display:grid;gap:4px}
+body.h .pan{grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}
+body.h .pan>.c{display:none}
+body.h .pan>.c.on{display:block}
+body.h .pan>.c.on.w{grid-column:1/-1}
+@media(max-height:520px){
+  body.h{padding:10px 14px 24px}
+  body.h main{grid-template-columns:210px minmax(0,1fr);gap:14px}
+  body.h .side{top:10px;max-height:calc(100vh - 20px);gap:10px}
+  body.h h1{font-size:20px}
+  body.h .side>p.s{display:none}
+  body.h .side .c{padding:12px;border-radius:16px}
+  body.h .side .c label{margin-bottom:0}
+  body.h .nav button{height:38px;font-size:14px}
+  body.h .pan>.c{padding:16px}
+}
+@media(max-width:900px){body.h .pan{grid-template-columns:minmax(0,1fr)}}
 </style>
 </head>
 <body>
 <main>
+<aside class="side">
   <h1>Administración</h1>
   <p class="s">Aquí generas códigos de acceso y das días a una cuenta. Todo se protege con tu clave de administrador.</p>
-
   <div class="c">
     <label>Clave de administrador<input id="clave" type="password" autocomplete="off" placeholder="La que pusiste en ADMIN_CLAVE"></label>
   </div>
+  <nav class="nav" id="nav" aria-label="Secciones">
+    <button type="button" data-g="cuentas">Cuentas y códigos</button>
+    <button type="button" data-g="biblioteca">Biblioteca</button>
+    <button type="button" data-g="pedidos">Pedidos</button>
+    <button type="button" data-g="colecciones">Colecciones</button>
+    <button type="button" data-g="secciones">Secciones temáticas</button>
+  </nav>
+</aside>
+<div class="pan">
 
-  <div class="c">
+  <div class="c" data-g="cuentas">
     <h2>Generar códigos</h2>
     <div class="f">
       <label>Plan<select id="g-plan"><option value="basico">Básico</option><option value="plus">Plus</option><option value="pedidos">Películas por pedido</option></select></label>
@@ -132,7 +170,7 @@ label small.h{display:block;color:#a1a1a6;font-weight:400;font-size:12px;margin-
     <div class="row" id="g-acc" style="margin-top:10px" hidden><button class="g" id="g-cp" type="button">Copiar todos</button></div>
   </div>
 
-  <div class="c">
+  <div class="c" data-g="cuentas">
     <h2>Dar días a una cuenta</h2>
     <div class="f">
       <label>Correo<input id="c-correo" type="email" autocapitalize="off" placeholder="cliente@correo.com"></label>
@@ -144,7 +182,7 @@ label small.h{display:block;color:#a1a1a6;font-weight:400;font-size:12px;margin-
     <p class="m" id="c-m" hidden></p>
   </div>
 
-  <div class="c">
+  <div class="c" data-g="biblioteca">
     <h2>Subir película o serie</h2>
     <p class="s">Busca el título (los datos, el póster y la sinopsis salen solos de TMDB), pega el enlace y publica. En una serie eliges la temporada y pegas el enlace de cada capítulo. Aparece en la biblioteca de todos en menos de un minuto, sin tocar <b>index.html</b>.</p>
     <label style="margin-top:12px">Buscar en TMDB<input id="s-q" type="search" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Nombre de la película o serie"></label>
@@ -154,6 +192,7 @@ label small.h{display:block;color:#a1a1a6;font-weight:400;font-size:12px;margin-
         <label style="margin:0">Título como se verá<input id="s-tit" autocomplete="off"></label>
         <small id="s-info" style="color:#a1a1a6;font-size:13px"></small>
       </div></div>
+      <div class="sdup" id="s-dup" hidden></div>
       <div id="s-eps" hidden style="margin-top:14px">
         <label>Temporada<select id="s-temp"></select></label>
         <p class="s" id="s-prog"></p>
@@ -174,7 +213,7 @@ label small.h{display:block;color:#a1a1a6;font-weight:400;font-size:12px;margin-
     <p class="m" id="s-m" hidden></p>
   </div>
 
-  <div class="c">
+  <div class="c w" data-g="pedidos">
     <h2>Pedidos de clientes</h2>
     <p class="s">Aquí llegan las películas que piden (las de plan por pedido ya gastaron un vale; si rechazas una, el vale vuelve a su cuenta). Elige el título tal como está en tu catálogo y agrégalo a su cuenta.</p>
     <div class="row" style="margin-top:12px"><button class="g" id="p-go" type="button">Actualizar pedidos</button><button class="g" id="p-cp" type="button" hidden>Copiar líneas de todos los pendientes</button></div>
@@ -183,7 +222,7 @@ label small.h{display:block;color:#a1a1a6;font-weight:400;font-size:12px;margin-
     <div id="p-lista"></div>
   </div>
 
-  <div class="c">
+  <div class="c" data-g="cuentas">
     <h2>Lista de una cuenta</h2>
     <p class="s">Consulta qué puede reproducir una cuenta con plan por pedido, agrega una película o serie buscándola en TMDB (con su póster) o quítala.</p>
     <label style="margin-top:12px">Correo<input id="a-correo" type="email" autocapitalize="off" placeholder="cliente@correo.com"></label>
@@ -207,14 +246,17 @@ label small.h{display:block;color:#a1a1a6;font-weight:400;font-size:12px;margin-
   </div>
   <datalist id="titulos"></datalist>
 
-  <div class="c">
+  <div class="c" data-g="biblioteca">
     <h2>Películas y series publicadas desde aquí</h2>
-    <button class="g" id="x-go" type="button">Ver publicadas</button>
+    <div class="row"><button class="g" id="x-go" type="button">Ver publicadas</button><button class="g" id="d-go" type="button">Buscar repetidas</button></div>
+    <p class="s" style="margin-top:10px">"Buscar repetidas" compara lo publicado desde aquí con la lista de <b>index.html</b> y te deja elegir cuál conservar y cuál quitar.</p>
+    <p class="m" id="d-m" hidden></p>
+    <div id="d-lista"></div>
     <p class="m" id="x-m" hidden></p>
     <div id="x-lista"></div>
   </div>
 
-  <div class="c" id="col-card">
+  <div class="c w" data-g="colecciones" id="col-card">
     <h2>Colecciones</h2>
     <p class="s">Crea y edita cuadros como Marvel o Nolan. Toca <b>Ver colecciones</b> para ver también las de <b>colecciones.js</b> y editarlas: el panel guarda una versión que las reemplaza y el archivo no se toca (puedes <b>restaurar la original</b> cuando quieras).</p>
     <div class="cp" id="co-prev" style="margin-top:14px"><span id="co-pn">Nombre</span></div>
@@ -288,7 +330,7 @@ label small.h{display:block;color:#a1a1a6;font-weight:400;font-size:12px;margin-
     <div id="co-lista"></div>
   </div>
 
-  <div class="c" id="sec-card">
+  <div class="c w" data-g="secciones" id="sec-card">
     <h2>Secciones temáticas</h2>
     <p class="s">Crea páginas como <b>Huluween</b>: una <b>franja</b> con tu logo, una frase, el botón <b>Detalles</b> y un carrusel de pósters (en el inicio o dentro de una colección). Al tocar el botón se abre la <b>página de la sección</b>, con un banner de fotos y las filas de películas que armes. Toca <b>Ver secciones</b> para editar las que ya creaste.</p>
     <div class="sep" id="se-prev"><div class="sep-i"><img id="se-pl" alt="" hidden><b id="se-pn">Nombre de la sección</b><small id="se-pe"></small><span id="se-pt"></span><u id="se-pb">Detalles</u></div><div class="sep-r" id="se-pp"></div></div>
@@ -329,17 +371,30 @@ label small.h{display:block;color:#a1a1a6;font-weight:400;font-size:12px;margin-
   </div>
 
 
-  <div class="c">
+  <div class="c w" data-g="cuentas">
     <h2>Todos los códigos</h2>
     <button class="g" id="l-go" type="button">Actualizar lista</button>
     <p class="m" id="l-m" hidden></p>
     <div class="tw"><table id="l-t" hidden><thead><tr><th>Código</th><th>Plan</th><th>Días / películas</th><th>Estado</th></tr></thead><tbody></tbody></table></div>
   </div>
+</div>
 </main>
 <script src="/api/catalogo"></script>
 <script src="colecciones.js"></script>
 <script>
 const $ = id => document.getElementById(id);
+
+/* ---- menú de la vista horizontal ---- */
+(function () {
+  const mq = window.matchMedia('(orientation: landscape) and (min-width: 700px)'), botones = [...document.querySelectorAll('#nav button')], tarjetas = [...document.querySelectorAll('.pan > .c')];
+  let activo = 'cuentas';
+  try { const g = localStorage.getItem('bbAdminTab'); if (botones.some(b => b.dataset.g === g)) activo = g; } catch (e) {}
+  function pintar() { botones.forEach(b => b.classList.toggle('on', b.dataset.g === activo)); tarjetas.forEach(c => c.classList.toggle('on', c.dataset.g === activo)); }
+  function modo() { document.body.classList.toggle('h', mq.matches); }
+  botones.forEach(b => b.addEventListener('click', () => { activo = b.dataset.g; try { localStorage.setItem('bbAdminTab', activo); } catch (e) {} pintar(); window.scrollTo(0, 0); }));
+  if (mq.addEventListener) mq.addEventListener('change', modo); else if (mq.addListener) mq.addListener(modo);
+  pintar(); modo();
+})();
 async function admin(cuerpo) {
   const r = await fetch('/api/usuario/admin', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clave: $('clave').value, ...cuerpo }) });
   let j = null; try { j = await r.json(); } catch (e) {}
@@ -719,7 +774,7 @@ coPoner(null);
 
 /* ---- secciones temáticas (franja + página propia, como "Huluween") ---- */
 const SE_FIJOS = {
-  inicio: [['hero', 'Banner principal'], ['cols', 'Colecciones'], ['gens', 'Géneros'], ['cont', 'Continuar viendo'], ['pop', 'Populares'], ['grid', 'Todas las películas'], ['plat', 'Plataformas']],
+  inicio: [['hero', 'Banner principal'], ['cols', 'Colecciones'], ['gens', 'Géneros'], ['cont', 'Continuar viendo'], ['pop', 'Populares'], ['gfil', 'Filas por género'], ['plat', 'Plataformas'], ['grid', 'Todas las películas']],
   col: [['hero', 'Banner de la colección'], ['pop', 'Populares de la colección'], ['cro', 'Orden cronológico'], ['subs', 'Subcategorías'], ['grid', 'Todas las películas']]
 };
 let seTodas = [], seCols = delArchivo.map(c => ({ id: c.id, nombre: c.nombre })), seFilas = [], seDespues = 'hero', seOrden = 999, seEditando = null, seManual = false, seCargada = false;
@@ -998,9 +1053,9 @@ sePoner(null);
 
 /* ---- subir película o serie con datos de TMDB ---- */
 const TMDB_KEY = '28e735f7aea07e37f38a95d346bcdd7f', TMDB = 'https://api.themoviedb.org/3', IMG = 'https://image.tmdb.org/t/p/';
-let sElegido = null, sTemps = [], sEps = {}, sCache = {};   // sEps: capítulos ya publicados de la serie elegida ("1x3" → enlace)
+let sElegido = null, sTemps = [], sEps = {}, sCache = {}, sDupOk = true, sDupTxt = '';   // sEps: capítulos ya publicados de la serie elegida ("1x3" → enlace)
 const sTipo = () => sElegido && sElegido.media_type === 'tv' ? 'serie' : 'pelicula';
-function sLimpiar() { sElegido = null; sTemps = []; sEps = {}; sCache = {}; $('s-sel').hidden = true; }
+function sLimpiar() { sElegido = null; sTemps = []; sEps = {}; sCache = {}; sDupOk = true; $('s-dup').hidden = true; $('s-sel').hidden = true; }
 /* Buscador de TMDB reutilizable: escribe en inpId, pinta los resultados en resId y llama a alElegir(resultado) */
 function buscadorTmdb(inpId, resId, msgId, alElegir, marca) {
   let timer = null, n = 0;
@@ -1031,7 +1086,7 @@ function buscadorTmdb(inpId, resId, msgId, alElegir, marca) {
     timer = setTimeout(() => buscar(q), 400);
   });
 }
-buscadorTmdb('s-q', 's-res', 's-m', r => sElegir(r));
+buscadorTmdb('s-q', 's-res', 's-m', r => sElegir(r), dMarca);
 function sElegir(r) {
   sElegido = r;
   const serie = r.media_type === 'tv';
@@ -1045,6 +1100,7 @@ function sElegir(r) {
   sTemps = []; sEps = {}; sCache = {}; $('s-temp').replaceChildren(); $('s-lista').replaceChildren(); $('s-prog').textContent = '';
   $('s-sel').hidden = false; msg('s-m', '', true);
   if (serie) sCargarSerie(r); else $('s-link').focus();
+  dAvisar(r);
 }
 
 /* ---- series: temporada → lista de capítulos → pegar el enlace de cada uno ---- */
@@ -1107,6 +1163,7 @@ function sFila(t, x) {
   const marca = () => { tg.hidden = !sEps[k]; if (sEps[k]) inp.value = sEps[k]; };
   marca();
   const guardar = () => con(ad, 's-m', async () => {
+    if (!sDupOk) throw new Error(sDupTxt);
     const link = inp.value.trim(), titulo = $('s-tit').value.trim();
     if (!titulo) throw new Error('Escribe el título.');
     if (!link) throw new Error('Pega el enlace del capítulo ' + x.e + '.');
@@ -1143,6 +1200,7 @@ marcasEn('a-ph', 'a-link');
 $('s-no').onclick = () => { sLimpiar(); msg('s-m', '', true); };
 $('s-go').onclick = () => con($('s-go'), 's-m', async () => {
   if (!sElegido) throw new Error('Primero busca y elige el título.');
+  if (!sDupOk) throw new Error(sDupTxt);
   const titulo = $('s-tit').value.trim(), link = $('s-link').value.trim();
   if (!titulo) throw new Error('Escribe el título.');
   if (!link) throw new Error('Pega el enlace.');
@@ -1152,6 +1210,174 @@ $('s-go').onclick = () => con($('s-go'), 's-m', async () => {
   msg('s-m', (j.actualizada ? 'Actualizada: ' : 'Publicada: ') + titulo + '. En menos de un minuto aparece en la biblioteca.', true);
   sLimpiar();
 });
+
+/* ======================================================================
+   REPETIDAS: compara contra index.html (la biblioteca fija) y lo publicado desde el panel.
+   - "Buscar repetidas": revisa todo y deja elegir qué conservar y qué quitar.
+   - Al elegir un título para publicar: avisa si ya existe o se parece a otro.
+   ====================================================================== */
+const dEl = (t, c, x) => { const n = document.createElement(t); if (c) n.className = c; if (x !== undefined) n.textContent = x; return n; };
+/*DUP-PURE-INI*/
+const dNorm = t => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').replace(/\b(el|la|los|las|the)\b/g, ' ').replace(/\s+/g, ' ').trim();
+function dLev(a, b) {
+  let p = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 1; i <= a.length; i++) {
+    const c = [i];
+    for (let j = 1; j <= b.length; j++) c[j] = Math.min(p[j] + 1, c[j - 1] + 1, p[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    p = c;
+  }
+  return p[b.length];
+}
+function dPrep(t) { const n = dNorm(t); return { n, s: n.replace(/ /g, ''), d: (n.match(/\d+/g) || []).join(',') }; }
+/* 1 = mismo título (sin acentos, mayúsculas ni signos); entre 0 y 1 = parecido; 0 = distinto.
+   Si los números no coinciden (John Wick 2 / John Wick 3) son distintas: son secuelas, no repetidas. */
+function dSim(p, q) {
+  if (!p.s || !q.s) return 0;
+  if (p.s === q.s) return 1;
+  if (p.d !== q.d) return 0;
+  const m = Math.max(p.s.length, q.s.length);
+  if (m < 6 || Math.abs(p.s.length - q.s.length) > 3) return 0;
+  const r = 1 - dLev(p.s, q.s) / m;
+  return r >= 0.85 ? r : 0;
+}
+function dSimLista(A, B) { let m = 0; for (const a of A) for (const b of B) { const r = dSim(a, b); if (r > m) m = r; } return m; }
+function dEntrada(o, x) {
+  const e = { o, titulo: String(x.titulo || ''), buscar: x.buscar || '', tmdb: Number(x.tmdbId || x.tmdb) || 0, tipo: x.tipo === 'serie' ? 'serie' : 'pelicula', link: x.link || x.enlace || '', eps: x.eps || 0, anio: x.anio || '' };
+  e.p = [dPrep(e.titulo)]; if (e.buscar) e.p.push(dPrep(e.buscar));
+  return e;
+}
+function dGrupos(L) {
+  const P = L.map((_, i) => i), f = i => P[i] === i ? i : (P[i] = f(P[i])), ligas = [];
+  for (let i = 0; i < L.length; i++) for (let j = i + 1; j < L.length; j++) {
+    const a = L[i], b = L[j]; if (a.tipo !== b.tipo) continue;
+    const r = a.tmdb && a.tmdb === b.tmdb ? 1 : dSimLista(a.p, b.p);
+    if (r) { P[f(i)] = f(j); ligas.push([i, r]); }
+  }
+  const mp = new Map();
+  L.forEach((e, i) => { const k = f(i); if (!mp.has(k)) mp.set(k, { items: [], exacta: false }); mp.get(k).items.push(e); });
+  ligas.forEach(([i, r]) => { if (r === 1) mp.get(f(i)).exacta = true; });
+  return [...mp.values()].filter(g => g.items.length > 1).map(g => { g.firma = g.items.map(e => e.tipo + ':' + (e.tmdb || e.p[0].s)).sort().join('|'); return g; });
+}
+function dSugerida(g) {      // la que conviene conservar: la que tiene enlace y, si empatan, la de index.html (que es la que manda)
+  const pt = e => (e.link || e.eps ? 2 : 0) + (e.o === 'index' ? 1 : 0);
+  return g.items.reduce((a, e) => pt(e) > pt(a) ? e : a, g.items[0]);
+}
+/*DUP-PURE-FIN*/
+
+let dIdx = null, dPan = [], dPanOk = false;
+async function dIndice() {          // lee la biblioteca fija directo de index.html (sin tocarlo)
+  if (dIdx) return dIdx;
+  const h = await fetch('/index.html', { cache: 'no-store' }).then(r => { if (!r.ok) throw new Error('index.html'); return r.text(); });
+  const leer = (ini, fin, extra) => {
+    const a = h.indexOf(ini); if (a < 0) return [];
+    const i = h.indexOf('[', a), b = h.indexOf(fin, i); if (i < 0 || b < 0) return [];
+    try { const v = new Function('return ' + h.slice(i, b + extra).trim().replace(/;\s*$/, ''))(); return Array.isArray(v) ? v : []; } catch (e) { return []; }
+  };
+  const A = leer('window.PELICULAS_DB : [', '/* Películas publicadas desde el panel', 0), S = leer('const series = [', '\n];', 2);
+  if (!A.length && !S.length) throw new Error('No pude leer la lista de index.html.');
+  dIdx = [...A, ...S].filter(x => x && x.titulo).map(x => dEntrada('index', x));
+  return dIdx;
+}
+async function dPanel() {           // lo publicado desde el panel (necesita la clave de administrador)
+  try {
+    const j = await admin({ op: 'publicadas' });
+    dPan = j.items.map(x => dEntrada('panel', { titulo: x.titulo, tmdb: x.tmdb, tipo: x.tipo, link: x.link, eps: x.eps })); dPanOk = true;
+  } catch (e) { dPanOk = false; throw e; }
+}
+const dTodos = () => [...(dIdx || []), ...dPan];
+const dIgn = () => { try { return new Set(JSON.parse(localStorage.getItem('bbDupOk') || '[]')); } catch (e) { return new Set(); } };
+const dIgnGuardar = s => { try { localStorage.setItem('bbDupOk', JSON.stringify([...s])); } catch (e) {} };
+const dEtiqueta = e => [e.o === 'panel' ? 'Publicada desde el panel' : 'En index.html', e.tipo === 'serie' ? 'Serie' : 'Película', e.tmdb ? 'TMDB ' + e.tmdb : 'sin TMDB', e.anio, e.link ? 'con enlace' : (e.eps ? e.eps + ' capítulo(s) sueltos' : 'sin enlace')].filter(Boolean).join(' · ');
+function dRefrescarX() { if ($('x-lista').children.length) $('x-go').click(); }
+
+/* ---- 1) Buscar repetidas en todo el catálogo ---- */
+function dPintar() {
+  const box = $('d-lista'); box.replaceChildren();
+  const ign = dIgn(), todos = dGrupos(dTodos()), G = todos.filter(g => !ign.has(g.firma)), ocultas = todos.length - G.length;
+  const nE = G.filter(g => g.exacta).length;
+  msg('d-m', G.length ? G.length + ' grupo(s) con posibles repetidas (' + nE + ' exactas, ' + (G.length - nE) + ' parecidas).' : '✓ No encontré repetidas' + (ocultas ? ' (hay ' + ocultas + ' grupo(s) que decidiste conservar).' : '.'), true);
+  G.forEach(g => box.appendChild(dGrupoUI(g)));
+  if (ocultas) { const b = dEl('button', 'g', 'Volver a mostrar las que conservé (' + ocultas + ')'); b.type = 'button'; b.style.marginTop = '12px'; b.onclick = () => { dIgnGuardar(new Set()); dPintar(); }; box.appendChild(b); }
+}
+function dGrupoUI(g) {
+  const w = dEl('div', 'sdup'), sug = dSugerida(g);
+  const h = dEl('div', 'sdup-h'); h.appendChild(dEl('b', '', (g.exacta ? '⚠ Repetida: ' : '≈ Parecidas: ') + g.items[0].titulo)); w.appendChild(h);
+  g.items.forEach(e => {
+    const d = dEl('div', 'sdup-g'), t = dEl('div'), o = dEl('div', 'sdup-o');
+    t.style.cssText = 'min-width:0;flex:1';
+    const b = dEl('b', '', e.titulo + (e.buscar && dNorm(e.buscar) !== dNorm(e.titulo) ? ' (' + e.buscar + ')' : '')); b.style.cssText = 'display:block;font-size:15px;word-break:break-word';
+    const sm = dEl('small', '', dEtiqueta(e)); sm.style.cssText = 'display:block;color:#a1a1a6;font-size:12px';
+    t.append(b, sm);
+    if (e === sug) o.appendChild(dEl('span', 'ok', '✓ Sugerida para conservar'));
+    if (e.o === 'panel') {
+      const q = dEl('button', 'g', 'Quitar de la biblioteca'); q.type = 'button';
+      q.onclick = () => dQuitar([e], q);
+      o.appendChild(q);
+    } else {
+      o.appendChild(dEl('span', '', 'Está en index.html: para quitarla, bórrala de ahí'));
+      const c = dEl('button', 'g', 'Copiar título'); c.type = 'button'; c.onclick = () => copiar(e.titulo, c, 'Copiar título'); o.appendChild(c);
+    }
+    t.appendChild(o); d.appendChild(t); w.appendChild(d);
+  });
+  const acc = dEl('div', 'sdup-o'), sobran = g.items.filter(e => e !== sug && e.o === 'panel');
+  if (sobran.length) { const b = dEl('button', 'g', 'Dejar solo la sugerida (quitar ' + sobran.length + ')'); b.type = 'button'; b.onclick = () => dQuitar(sobran, b); acc.appendChild(b); }
+  const k = dEl('button', 'g', 'Conservar todas'); k.type = 'button';
+  k.onclick = () => { const s = dIgn(); s.add(g.firma); dIgnGuardar(s); dPintar(); };
+  acc.appendChild(k); w.appendChild(acc);
+  return w;
+}
+async function dQuitar(lista, btn) {
+  if (!confirm('¿Quitar de la biblioteca ' + (lista.length === 1 ? '"' + lista[0].titulo + '"' : lista.length + ' títulos (' + lista.map(e => '"' + e.titulo + '"').join(', ') + ')') + '? Los clientes dejarán de verla.')) return;
+  await con(btn, 'd-m', async () => {
+    for (const e of lista) { await admin({ op: 'despublicar', tmdb: e.tmdb, tipo: e.tipo }); dPan = dPan.filter(x => x !== e); }
+    dPintar(); dRefrescarX();
+  });
+}
+$('d-go').onclick = () => con($('d-go'), 'd-m', async () => {
+  msg('d-m', 'Revisando el catálogo…', true);
+  dIdx = null;
+  await Promise.all([dIndice().catch(() => { throw new Error('No pude leer index.html para comparar.'); }), dPanel()]);
+  dPintar();
+});
+
+/* ---- 2) Aviso al elegir un título para publicar ---- */
+function dMarca(r) {                 // etiqueta junto a cada resultado de TMDB
+  if (!dIdx) return null;
+  const tipo = r.media_type === 'tv' ? 'serie' : 'pelicula', L = dTodos();
+  const igual = L.find(e => e.tipo === tipo && e.tmdb === r.id);
+  if (igual) return ['Ya está en la biblioteca (' + (igual.o === 'panel' ? 'publicada desde el panel' : 'index.html') + ')', 'w'];
+  const ps = [dPrep(r.title || r.name), dPrep(r.original_title || r.original_name)];
+  const par = L.find(e => e.tipo === tipo && dSimLista(e.p, ps));
+  return par ? ['Parece repetida de «' + par.titulo + '»', 'w'] : null;
+}
+$('s-q').addEventListener('focus', () => { dIndice().catch(() => {}); if (!dPanOk) dPanel().catch(() => {}); });
+async function dAvisar(r) {
+  const box = $('s-dup'); box.replaceChildren(); box.hidden = true;
+  sDupOk = false; sDupTxt = 'Estoy revisando si ya está repetida. Espera un momento.';
+  await Promise.all([dIndice().catch(() => {}), dPanel().catch(() => {})]);
+  if (sElegido !== r) return;
+  const tipo = r.media_type === 'tv' ? 'serie' : 'pelicula', ps = [dPrep(r.title || r.name), dPrep(r.original_title || r.original_name)], L = dTodos();
+  const enPanel = L.filter(e => e.o === 'panel' && e.tipo === tipo && e.tmdb === r.id);
+  const enIndex = L.filter(e => e.o === 'index' && e.tipo === tipo && e.tmdb === r.id);
+  const par = L.filter(e => e.tipo === tipo && e.tmdb !== r.id && dSimLista(e.p, ps)).slice(0, 5);
+  const linea = (e, txt) => { const p = dEl('p', 's', txt); p.style.margin = '6px 0 0'; return p; };
+  const pintar = [];
+  enPanel.forEach(e => pintar.push(linea(e, 'ℹ Ya está publicada desde el panel (' + (e.link ? 'con enlace' : e.eps + ' capítulo(s) sueltos') + '). Si pegas otro enlace se actualiza esa misma: no queda repetida.')));
+  enIndex.forEach(e => pintar.push(linea(e, '⚠ Ya está en index.html como «' + e.titulo + '». Si la publicas aquí quedará repetida (se mostrará la de index.html).')));
+  par.forEach(e => pintar.push(linea(e, '⚠ Se parece a «' + e.titulo + '» (' + dEtiqueta(e) + ').')));
+  if (!dPanOk) pintar.push(linea(null, 'No pude revisar lo publicado desde el panel. Escribe la clave de administrador arriba y vuelve a elegir el título.'));
+  sDupOk = !(enIndex.length || par.length); sDupTxt = 'Hay una posible repetida: elige "Es distinta, continuar" o cancela.';
+  if (!pintar.length) return;
+  box.append(...pintar);
+  if (!sDupOk) {
+    const acc = dEl('div', 'sdup-o'), ok = dEl('button', 'g', 'Es distinta, continuar'), no = dEl('button', 'g', 'Cancelar');
+    ok.type = no.type = 'button';
+    ok.onclick = () => { sDupOk = true; box.replaceChildren(dEl('p', 's', '✓ Continuarás aunque se parezca a otra.')); };
+    no.onclick = () => { sLimpiar(); };
+    acc.append(ok, no); box.appendChild(acc);
+  }
+  box.hidden = false;
+}
 </script>
 </body>
 </html>
