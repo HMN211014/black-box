@@ -1,7 +1,9 @@
 /* Cuentas de usuario (correo + contraseña), tiempo de acceso y códigos canjeables para Black BOX.
    Los datos viven en D1 (binding DB). El progreso va a R2 (binding DATOS) y, si no está conectado, a D1.
    Las películas publicadas desde el panel viven en D1 (tablas publicados y meta). El KV (binding USUARIOS) solo se lee una vez para copiarlas.
-   Ruta:  /api/usuario/registro | entrar | salir | yo | datos | canjear | pedir | pedidos | extras | admin */
+   Ruta:  /api/usuario/registro | entrar | salir | yo | datos | canjear | pedir | pedidos | extras | push | pushquitar | admin */
+
+import { avisarUsuario, asegurarPush } from './push.js';
 
 const enc = new TextEncoder();
 const SESION_DIAS = 30;
@@ -120,7 +122,7 @@ async function listaDe(db, correo) {
 async function estadoDe(db, correo) {
   return { acceso: await accesoDe(db, correo), lista: await listaDe(db, correo) };
 }
-async function asignarLista(db, correo, titulo, tmdb, pedidoId) {
+async function asignarLista(db, correo, titulo, tmdb, pedidoId, avisar) {
   if (!titulo) return { error: 'Escribe el título tal como está en el catálogo.', status: 400 };
   if (!correo || !(await db.prepare('SELECT 1 AS x FROM usuarios WHERE correo = ?1').bind(correo).first())) return { error: 'Ese correo no tiene cuenta.', status: 404 };
   const ya = await db.prepare('SELECT 1 AS x FROM lista WHERE correo = ?1 AND titulo = ?2').bind(correo, titulo).first();
@@ -130,7 +132,9 @@ async function asignarLista(db, correo, titulo, tmdb, pedidoId) {
     await db.prepare('INSERT OR IGNORE INTO lista (correo, titulo, tmdb, fecha) VALUES (?1, ?2, ?3, ?4)').bind(correo, titulo, tmdb || null, Date.now()).run();
   }
   if (pedidoId) {
+    const antes = await db.prepare('SELECT estado, titulo FROM pedidos WHERE id = ?1 AND correo = ?2').bind(String(pedidoId), correo).first();
     await db.prepare("UPDATE pedidos SET estado = 'listo', listo = ?1 WHERE id = ?2 AND correo = ?3").bind(Date.now(), String(pedidoId), correo).run();
+    if (avisar && antes && antes.estado !== 'listo') avisar(correo, antes.titulo || titulo);      // push: "tu pedido está listo" (solo la primera vez)
   }
   return { ok: true, lista: await listaDe(db, correo) };
 }
@@ -291,8 +295,12 @@ function limpiarSec(s) {
 }
 const datosSec = t => { try { const o = JSON.parse(t); return o && typeof o === 'object' && o.id ? o : null; } catch (e) { return null; } };
 
-async function manejar({ request, env, params }) {
+async function manejar({ request, env, params, waitUntil }) {
   const db = env.DB;
+  const avisarListo = (correo, titulo) => {
+    const p = avisarUsuario(env, correo, { titulo: '¡Tu pedido está listo!', texto: '«' + titulo + '» ya está disponible en tu cuenta. Toca para verla.', datos: { tipo: 'pedido_listo', titulo } });
+    if (waitUntil) waitUntil(p);
+  };
   const kv = env.USUARIOS;          // KV viejo: solo se LEE una vez para copiar a D1 las películas que ya estaban publicadas
 
   const accion = params.accion;
@@ -350,6 +358,24 @@ async function manejar({ request, env, params }) {
     if (fallos) await borrarIntentos(db, kFallos);
     const token = await crearSesion(db, correo);
     return json({ correo, ...(await estadoDe(db, correo)) }, 200, { 'Set-Cookie': cookieSesion(token, SESION_DIAS) });
+  }
+
+  /* ---- Notificaciones push: guardar / quitar el teléfono de esta cuenta ---- */
+  if (accion === 'push' && esPost) {
+    const correo = await correoDeSesion(request, db);
+    if (!correo) return json({ error: 'Inicia sesión primero.' }, 401);
+    const token = String(cuerpo.token || '').trim();
+    if (token.length < 20 || token.length > 4096) return json({ error: 'Token no válido.' }, 400);
+    await asegurarPush(db);
+    await db.prepare('INSERT INTO dispositivos (token, correo, plataforma, creado) VALUES (?1, ?2, ?3, ?4) ON CONFLICT(token) DO UPDATE SET correo = ?2, plataforma = ?3, creado = ?4')
+      .bind(token, correo, String(cuerpo.plataforma || '').slice(0, 20), Date.now()).run();
+    await db.prepare('DELETE FROM dispositivos WHERE correo = ?1 AND token NOT IN (SELECT token FROM dispositivos WHERE correo = ?1 ORDER BY creado DESC LIMIT 10)').bind(correo).run();   // máximo 10 teléfonos por cuenta
+    return json({ ok: true });
+  }
+  if (accion === 'pushquitar' && esPost) {
+    await asegurarPush(db);
+    await db.prepare('DELETE FROM dispositivos WHERE token = ?1').bind(String(cuerpo.token || '')).run();
+    return json({ ok: true });
   }
 
   /* ---- Cerrar sesión ---- */
@@ -549,7 +575,7 @@ async function manejar({ request, env, params }) {
 
     if (cuerpo.op === 'asignar') {
       const correo = limpiarCorreo(cuerpo.correo);
-      const r = await asignarLista(db, correo, String(cuerpo.titulo || '').trim().slice(0, 200), Math.floor(Number(cuerpo.tmdb)) || null, cuerpo.pedido);
+      const r = await asignarLista(db, correo, String(cuerpo.titulo || '').trim().slice(0, 200), Math.floor(Number(cuerpo.tmdb)) || null, cuerpo.pedido, avisarListo);
       if (r.error) return json({ error: r.error }, r.status);
       return json({ correo, lista: r.lista });
     }
@@ -568,7 +594,7 @@ async function manejar({ request, env, params }) {
         .bind(tmdb, titulo, tipo, link, Date.now()).run();       // si ya existía, se conservan sus capítulos sueltos
       let lista = null;
       if (cuerpo.correo) {
-        const r = await asignarLista(db, limpiarCorreo(cuerpo.correo), titulo, tmdb, cuerpo.pedido);
+        const r = await asignarLista(db, limpiarCorreo(cuerpo.correo), titulo, tmdb, cuerpo.pedido, avisarListo);
         if (r.error) return json({ error: 'Se publicó, pero: ' + r.error }, r.status);
         lista = r.lista;
       }

@@ -7,10 +7,10 @@ export default {
 
       if (url.pathname.startsWith('/api/usuario/')) {
         const accion = url.pathname.split('/')[3]; 
-        return await onRequest({ request, env, params: { accion } });
+        return await onRequest({ request, env, params: { accion }, waitUntil: p => ctx.waitUntil(p) });
       }
       if (url.pathname.startsWith('/api/admin')) {
-        return await onRequest({ request, env, params: { accion: 'admin' } });
+        return await onRequest({ request, env, params: { accion: 'admin' }, waitUntil: p => ctx.waitUntil(p) });
       }
 
       if (url.pathname === '/api/catalogo') {
