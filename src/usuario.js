@@ -256,7 +256,7 @@ const colParaPagina = d => ({ ...d, fuente: FUENTES_COL[d.fuente] || FUENTES_COL
 
 /* ---- Secciones temáticas (como "Huluween"): una franja con carrusel de pósters (en el inicio o dentro de una colección)
    y una página propia (#/s/<id>) con banner de fotos y filas de películas. Se guardan en D1 y se validan igual que las colecciones. ---- */
-const ANCLAS_INICIO = ['top', 'hero', 'cols', 'gens', 'cont', 'pop', 'grid', 'plat'];
+const ANCLAS_INICIO = ['top', 'hero', 'cols', 'gens', 'cont', 'pop', 'gfil', 'grid', 'plat'];
 const ANCLAS_COL = ['top', 'hero', 'pop', 'cro', 'subs', 'grid'];
 const ANCLAS_SEC = new Set([...ANCLAS_INICIO, ...ANCLAS_COL]);
 const rutaTmdb = v => /^\/[\w-]{1,60}\.(jpg|jpeg|png|webp)$/i.test(String(v || '')) ? String(v) : '';
