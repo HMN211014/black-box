@@ -36,7 +36,7 @@ header p{color:var(--muted);font-size:17px}
 .track{overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;display:flex;gap:22px;overflow-x:auto;scroll-snap-type:x mandatory;padding:26px 5vw 40px;scroll-padding:0 5vw;scrollbar-width:none}
 .track::-webkit-scrollbar{display:none}
 .card{-webkit-tap-highlight-color:transparent;flex:0 0 clamp(170px,19vw,260px);aspect-ratio:2/3;border:0;border-radius:var(--r);position:relative;overflow:hidden;cursor:pointer;scroll-snap-align:start;color:#fff;text-align:left;
-  background:var(--g);box-shadow:0 10px 30px rgba(0,0,0,.6);transition:transform .25s ease,box-shadow .25s ease;transform-style:preserve-3d;will-change:transform}
+  background:var(--g);box-shadow:0 10px 30px rgba(0,0,0,.6);transition:transform .25s ease,box-shadow .25s ease}
 .card:hover,.card:focus-visible{box-shadow:0 26px 60px rgba(0,0,0,.85),0 0 0 3px rgba(255,255,255,.9);z-index:2}
 .card:focus-visible{outline:none}
 .card.prox{cursor:default;background:linear-gradient(135deg,#2a2a31,#121216)}.card.prox:hover{box-shadow:none}
@@ -46,6 +46,19 @@ header p{color:var(--muted);font-size:17px}
 .card .t{position:absolute;left:16px;right:16px;bottom:16px;font-size:clamp(18px,2vw,24px);font-weight:700;letter-spacing:-.02em;line-height:1.1;text-shadow:0 2px 12px rgba(0,0,0,.5)}
 .card .shine{position:absolute;inset:0;background:radial-gradient(circle at var(--mx,50%) var(--my,0%),rgba(255,255,255,.28),transparent 55%);opacity:0;transition:opacity .25s}
 .card:hover .shine{opacity:1}
+/* Táctil: el carrusel se desliza libre (sin frenar en cada tarjeta) y con sombras más ligeras */
+@media (hover:none){.track{scroll-snap-type:x proximity}.card{box-shadow:0 6px 16px rgba(0,0,0,.5)}}
+/* Sin menú de "abrir enlace / guardar imagen" al mantener presionado */
+img,a{-webkit-touch-callout:none;-webkit-user-drag:none;user-drag:none}
+button img,a img{pointer-events:none}
+/* Respuesta al toque: se hunde al presionar (rápido) y regresa con un pequeño rebote */
+@media (hover:none){
+ .card,.ctile,.plat{transition-duration:.4s,.3s;transition-timing-function:cubic-bezier(.34,1.56,.64,1)}
+ .card:active,.ctile:active,.plat:active{transform:scale(.95);transition-duration:.1s,.1s;transition-timing-function:ease-out}
+ .btn,.ib{transition:transform .38s cubic-bezier(.34,1.56,.64,1)}
+ .dk{transition:transform .38s cubic-bezier(.34,1.56,.64,1),background .25s,color .25s}
+ .btn:active,.ib:active,.dk:active{transform:scale(.92);transition-duration:.1s;transition-timing-function:ease-out}
+}
 .nav{position:absolute;top:50%;transform:translateY(-60%);width:48px;height:48px;border-radius:50%;border:0;background:var(--glass);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);color:#fff;font-size:22px;cursor:pointer;z-index:3;opacity:0;transition:opacity .2s}
 .row:hover .nav,.nav:focus-visible{opacity:1}
 .nav.prev{left:1.5vw}.nav.next{right:1.5vw}
@@ -132,7 +145,10 @@ svg.st text{fill:currentColor;stroke:none}
 .seek::-moz-range-track{height:4px;border-radius:4px;background:linear-gradient(90deg,#fff 0 var(--p),rgba(255,255,255,.5) var(--p) var(--b),rgba(255,255,255,.22) var(--b) 100%)}
 .seek::-moz-range-thumb{width:16px;height:16px;border-radius:50%;border:0;background:#fff;box-shadow:0 1px 6px rgba(0,0,0,.6)}
 .spin{position:absolute;left:50%;top:50%;width:54px;height:54px;margin:-27px 0 0 -27px;border:4px solid rgba(255,255,255,.25);border-top-color:#fff;border-radius:50%;animation:giro .9s linear infinite;opacity:0;pointer-events:none;transition:opacity .2s}
-#player.wait .spin{opacity:1}
+#player.wait .spin,#player.ini .spin{opacity:1}
+/* Mientras arranca: video oculto (así no se ve el gris de Android) y solo el círculo de carga + el botón de atrás */
+#player.ini #pv{opacity:0}
+#player.ini .pmid,#player.ini .pbot{visibility:hidden}
 @keyframes giro{to{transform:rotate(360deg)}}
 .perr{position:absolute;inset:0;display:grid;place-content:center;text-align:center;padding:24px;color:#d1d1d6;font-size:16px;line-height:1.5;pointer-events:none}
 .perr[hidden]{display:none}
@@ -294,14 +310,21 @@ body.colmode #c-anun.top{min-height:240px;margin-bottom:18px;padding:calc(env(sa
 body.colmode #chero:not(.top){margin-top:0}
 
 /* ---------- Hoja inferior (cuenta de usuario) ---------- */
-.sheet{position:fixed;inset:0;z-index:60;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.45);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.sheet{position:fixed;inset:0;z-index:60;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.55)}
 .sheet[hidden]{display:none}
 .sp{width:min(100%,480px);margin:0 10px calc(10px + env(safe-area-inset-bottom,0px));padding:26px 22px 22px;border-radius:32px;
   background:linear-gradient(180deg,rgba(60,60,66,.82),rgba(28,28,32,.88));border:1px solid rgba(255,255,255,.18);backdrop-filter:blur(40px) saturate(1.8);-webkit-backdrop-filter:blur(40px) saturate(1.8);
   box-shadow:inset 0 1px 0 rgba(255,255,255,.4),0 40px 100px rgba(0,0,0,.7);animation:sube .35s cubic-bezier(.2,.9,.3,1)}
 @keyframes sube{from{transform:translateY(40px);opacity:0}}
 @media(min-width:700px){.sheet{align-items:center}.sp{margin:0}}
-.sp{max-height:86vh;overflow:auto;overscroll-behavior:contain}
+.sp{max-height:min(86vh,calc(100dvh - 20px));overflow:auto;overscroll-behavior:contain}
+/* Mientras escribes se apaga el cristal desenfocado (era lo que hacía trabarse al teclado) */
+.sp:focus-within{backdrop-filter:none;-webkit-backdrop-filter:none;background:linear-gradient(180deg,#3b3b41,#1d1d21)}
+.pw{position:relative;display:block;margin-top:7px}
+.pw input{margin-top:0;padding-right:54px}
+.ojo{position:absolute;right:5px;top:4px;width:44px;height:44px;border:0;border-radius:50%;background:none;color:#c7c7cc;display:grid;place-items:center;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.ojo svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.ojo[aria-pressed="true"]{color:#fff}
 .sp h2{font-size:24px;letter-spacing:-.025em}
 .sp .sbtn+.sbtn{margin-top:10px}
 .dato{display:flex;align-items:center;gap:10px;padding:13px 0;border-top:1px solid rgba(255,255,255,.12);font-size:16px}
@@ -863,6 +886,9 @@ body.con-q #vista-ped,body.con-q #vista-rec{display:none!important}
 <meta name="theme-color" content="#000000">
 <link rel="preconnect" href="https://api.themoviedb.org">
 <link rel="preconnect" href="https://image.tmdb.org">
+<link rel="preconnect" href="https://image.tmdb.org" crossorigin>
+<link rel="dns-prefetch" href="https://api.themoviedb.org">
+<script src="/nativo.js" defer></script>
 <link rel="apple-touch-icon" href="/icon-192.png">
 <script>
   if ("serviceWorker" in navigator) {
@@ -1043,7 +1069,7 @@ body.con-q #vista-ped,body.con-q #vista-rec{display:none!important}
 <footer class="end"><b>Black BOX</b><span>Tu colección de películas</span><small>Datos e imágenes de TMDB. Este producto usa la API de TMDB pero no está avalado ni certificado por TMDB.</small><button class="hapt-sw" id="hapt-sw" type="button" role="switch" aria-checked="true" hidden>Vibración al tocar: activada</button></footer>
 
 <div id="player" hidden>
-  <video id="pv" playsinline preload="metadata"></video>
+  <video id="pv" playsinline preload="metadata" poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"></video>
   <div id="pdrive"></div>
   <div class="spin"></div>
   <div class="perr" id="per" hidden></div>
@@ -1433,6 +1459,29 @@ function aplicar(p, d) {
 function deCache(p) {
   for (const k of [clave(p), clave4(p), clave5(p)]) { try { const d = JSON.parse(localStorage.getItem(k)); if (d) aplicar(p, d); } catch (e) {} }
 }
+const idRapido = new Map();                                           // id encontrado en la consulta ligera (para no buscarlo dos veces)
+function ponerPosters(p) {                                             // solo pinta el póster en las tarjetas que ya existen
+  const b = tarjetas.get(p); if (b && !b.querySelector('img')) poster(p, b);
+  const c = tarjetasC.get(p); if (c && !c.querySelector('img')) poster(p, c);
+  (tarjetasCol.get(p) || []).forEach(x => { if (!x.querySelector('img')) poster(p, x); });
+  (tarjetasG.get(p) || []).forEach(x => { if (!x.querySelector('img')) poster(p, x); });
+}
+function rapidoAplicar(p, x) {
+  const f = x.release_date || x.first_air_date || '';
+  const d = { poster: x.poster_path ? IMG + 'w500' + x.poster_path : '', fondo: x.backdrop_path ? IMG + 'w1280' + x.backdrop_path : '', anio: f.slice(0, 4), fecha: f };
+  if (aplicar(p, d)) { try { ponerPosters(p); } catch (e) {} }
+}
+async function rapido(p) {                                             // consulta ligera (unos 3 KB): trae póster y fecha en cuanto se puede
+  if (p.sinTmdb || p.poster || !TMDB_KEY || TMDB_KEY.startsWith('TU_')) return;
+  const serie = p.tipo === 'serie', tipo = serie ? 'tv' : 'movie';
+  const j = u => fetch(u, { signal: AbortSignal.timeout(8000) }).then(r => r.json());
+  try {
+    if (p.tmdb) { rapidoAplicar(p, await j(`${TMDB}/${tipo}/${p.tmdb}?api_key=${TMDB_KEY}&language=es-MX`)); return; }
+    const y = p.anio ? (serie ? '&first_air_date_year=' : '&year=') + p.anio : '';
+    const s = await j(`${TMDB}/search/${tipo}?api_key=${TMDB_KEY}&language=es-MX&query=${encodeURIComponent(p.buscar || p.titulo)}${y}`);
+    if (s.results && s.results[0]) { idRapido.set(p, s.results[0].id); rapidoAplicar(p, s.results[0]); }
+  } catch (e) {}
+}
 async function completar(p) {
   if (p.sinTmdb) return false;
   if (!TMDB_KEY || TMDB_KEY.startsWith("TU_")) return false;
@@ -1443,7 +1492,7 @@ async function completar(p) {
   const serie = p.tipo === 'serie', tipo = serie ? 'tv' : 'movie';
   try {
     const j = u => fetch(u, { signal: AbortSignal.timeout(8000) }).then(r => r.json());
-    let id = p.tmdb;
+    let id = p.tmdb || idRapido.get(p);
     if (!id) {
       const y = p.anio ? (serie ? "&first_air_date_year=" : "&year=") + p.anio : "";
       const s = await j(`${TMDB}/search/${tipo}?api_key=${TMDB_KEY}&language=es-MX&query=${encodeURIComponent(p.buscar || p.titulo)}${y}`);
@@ -1510,7 +1559,7 @@ const grad = t => { let h = 0; for (const c of t) h = (h*31 + c.charCodeAt(0)) %
   return `linear-gradient(155deg,hsl(${h} 55% 38%),hsl(${(h+50)%360} 60% 14%))`; };
 const poster = (p, el) => {
   el.style.setProperty('--g', grad(p.titulo));
-  if (p.poster) { const i = new Image(); i.alt = ''; i.src = p.poster; i.onerror = () => i.remove(); el.prepend(i); }
+  if (p.poster) { const i = new Image(); i.alt = ''; i.decoding = 'async'; i.onload = () => { if (i.animate && !matchMedia('(prefers-reduced-motion:reduce)').matches) i.animate([{ opacity: 0, transform: 'scale(1.04)' }, { opacity: 1, transform: 'none' }], { duration: 420, easing: 'cubic-bezier(.2,.8,.2,1)' }); }; i.src = p.poster; i.onerror = () => i.remove(); el.prepend(i); }
 };
 
 function insigniaSerie() {}                           // ya no se muestra el recuadro de "N temporadas" sobre los pósters (se deja vacía porque otras partes la llaman)
@@ -1651,6 +1700,7 @@ const HAPT = (() => {
   const PAT = { suave: 14, medio: 26, marcado: [40, 55, 40] };
   const reducido = () => matchMedia('(prefers-reduced-motion:reduce)').matches;
   let on = true; try { on = localStorage.getItem('bb_hapt') !== '0'; } catch (e) {}
+  const nativo = () => { const c = window.Capacitor; return c && c.isNativePlatform && c.isNativePlatform() && c.Plugins && c.Plugins.Haptics; };   // dentro de la app: motor háptico real
   let lbl = null;
   function tickIOS() {
     if (!lbl) {
@@ -1665,9 +1715,15 @@ const HAPT = (() => {
     disponible: tactil && !reducido(),
     activo: () => on,
     poner(v) { on = !!v; try { localStorage.setItem('bb_hapt', on ? '1' : '0'); } catch (e) {} },
+    tick() {                                                                  // clic corto al pasar de una tarjeta a otra
+      if (!on || !tactil || reducido()) return;
+      try { const h = nativo(); if (h) h.impact({ style: 'LIGHT' }); else if (hayVibrar) navigator.vibrate(8); } catch (e) {}
+    },
     tocar(n) {
       if (!on || !tactil || reducido()) return;
       try {
+        const h = nativo();
+        if (h) { if (n === 'marcado') h.notification({ type: 'SUCCESS' }); else h.impact({ style: n === 'medio' ? 'MEDIUM' : 'LIGHT' }); return; }
         if (hayVibrar) navigator.vibrate(PAT[n] || PAT.suave);
         else if (n !== 'suave') { tickIOS(); if (n === 'marcado') setTimeout(tickIOS, 70); }   // en iPhone "suave" no vibra y "marcado" son dos toques
       } catch (e) {}
@@ -1676,13 +1732,31 @@ const HAPT = (() => {
 })();
 const HAPT_NIVEL = [
   ['medio', '#hl, #hi, #dplay, #dk-buscar, #ptv, #cplock, #bmic, #cpp, #pp, #hback, .cback, .sbtn, .btn.primary, #ppv, #pnx'],
-  ['suave', '#ajustes, #dock .dk, .dots button, .card, .ctile, .plat, .nav, .tvopt, .dmas, .irow, #bx, .ib, .ci, .ep, .tmp']
+  ['suave', '#ajustes, .ojo, #dock .dk, .dots button, .card, .ctile, .plat, .nav, .tvopt, .dmas, .irow, #bx, .ib, .ci, .ep, .tmp']
 ];
 document.addEventListener('click', e => {
   const t = e.target.closest && e.target.closest('button, a, [role="button"]');
   if (!t || t.disabled) return;
   for (const [nivel, sel] of HAPT_NIVEL) if (t.matches(sel)) { HAPT.tocar(nivel); return; }
 }, true);
+document.addEventListener('contextmenu', e => { if (!(e.target.closest && e.target.closest('input, textarea, [contenteditable]'))) e.preventDefault(); });
+document.addEventListener('dragstart', e => e.preventDefault());
+/* Carruseles: un clic suave cada vez que pasa una tarjeta (como los selectores de iPhone) y al soltar la barra de avance */
+(() => {
+  const ult = new WeakMap(), paso = new WeakMap(); let t0 = 0;
+  document.addEventListener('scroll', e => {
+    const t = e.target;
+    if (!t || !t.matches || !t.matches('.track, .eplist, #cols, #gens')) return;
+    let w = paso.get(t);
+    if (!w) { const c = t.firstElementChild; if (!c) return; w = (c.getBoundingClientRect().width || 0) + (parseFloat(getComputedStyle(t).columnGap) || 0); if (w < 40) return; paso.set(t, w); }
+    const i = Math.round(t.scrollLeft / w), antes = ult.get(t);
+    ult.set(t, i);
+    if (antes === undefined || antes === i) return;
+    const ahora = performance.now();
+    if (ahora - t0 > 60) { t0 = ahora; HAPT.tick(); }
+  }, { capture: true, passive: true });
+  document.addEventListener('change', e => { if (e.target && e.target.id === 'ps') HAPT.tocar('suave'); }, true);
+})();
 /* ---------- Transiciones entre pantallas (estilo Apple TV) ----------
    Usan la API de transiciones de vista; si el navegador no la tiene (o se pidió "reducir movimiento") el cambio es directo. */
 let vtOK = false, vtDentro = false, fuenteVT = null;
@@ -1823,7 +1897,7 @@ function sync() {
 }
 function fallo() {
   H('per').textContent = 'No se pudo reproducir este video. Revisa que el enlace sea directo y que el archivo sea .mp4 (H.264/AAC) o .m3u8.';
-  H('per').hidden = false; pl.classList.remove('wait'); showC();
+  H('per').hidden = false; pl.classList.remove('wait', 'ini'); showC();
 }
 function saltar(d) { V.currentTime = Math.min(Math.max(0, V.currentTime + d), duracion() || Infinity); sync(); }
 function alternar() { if (V.paused) V.play().catch(() => {}); else V.pause(); }
@@ -1847,6 +1921,7 @@ function cargar(url) {
 }
 async function horizontal() {
   if (!coarse) return;
+  if (window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform()) return;   // en la app lo gira el sistema (nativo.js)
   let fs = false;
   try { if (pl.requestFullscreen) { await pl.requestFullscreen(); fs = true; fsAuto = true; } } catch (e) {}
   try { await screen.orientation.lock('landscape'); }
@@ -1862,7 +1937,7 @@ function iniciar(p, url, sinHist) {
   reanudar = g ? g.t : 0;
   H('pt').textContent = p.tituloVista || p.titulo; H('per').hidden = true;
   actualEp = p.serie ? p : null; pl.classList.toggle('serie', !!actualEp); ocultarNxt(); actualizarNavEp();
-  pl.classList.remove('wait'); pl.classList.toggle('drive', !!id);
+  pl.classList.remove('wait'); pl.classList.toggle('drive', !!id); pl.classList.toggle('ini', !id);
   H('pdrive').innerHTML = '';
   vi = 0; V.playbackRate = 1; V.muted = false;
   H('px').textContent = '1x'; H('pm').innerHTML = ICON.vol; H('pp').innerHTML = ICON.play;
@@ -1895,7 +1970,7 @@ function cerrarPlayer(desdePop) {
   actualEp = null; pl.classList.remove('serie'); ocultarNxt();
   tvCerrar();
   if (detActual && !vistas.det.hidden) pintarDetalle(detActual);                 // la ficha de la serie actualiza "Continuar T1 E2" y los capítulos vistos
-  pl.hidden = true; clearTimeout(hideT); pl.classList.remove('c', 'wait');
+  pl.hidden = true; clearTimeout(hideT); pl.classList.remove('c', 'wait', 'ini');
   V.pause(); if (hls) { hls.destroy(); hls = null; }
   V.removeAttribute('src'); V.load(); H('pdrive').innerHTML = '';
   document.body.style.overflow = '';
@@ -1917,6 +1992,7 @@ V.addEventListener('loadedmetadata', () => {      // retoma donde se quedó (uno
 V.addEventListener('ended', () => { if (actualP) terminado(actualP); if (actualEp) mostrarSiguiente(); });
 addEventListener('pagehide', () => guardar(true));
 document.addEventListener('visibilitychange', () => { if (document.hidden) guardar(true); });
+['loadeddata', 'playing', 'error'].forEach(n => V.addEventListener(n, () => pl.classList.remove('ini')));
 V.addEventListener('waiting', () => pl.classList.add('wait'));
 V.addEventListener('playing', () => pl.classList.remove('wait'));
 V.addEventListener('canplay', () => pl.classList.remove('wait'));
@@ -2211,23 +2287,39 @@ function refrescar(p) {
   (tarjetasG.get(p) || []).forEach(x => { if (!x.querySelector('img')) poster(p, x); insigniaSerie(x, p); });
   if (orden[idx] === p) mostrar(idx);
   if (detActual === p && !vistas.det.hidden) pintarDetalle(p);
-  actualizarCont();
-  pintarTiles(); actualizarColAbierta();
-  programarOrden();                                              // llegó el año: se reacomodan las películas
+  refrescarGlobal();
+}
+let refG = 0;                                                    // lo global se junta en una sola pasada (antes se repetía por cada película que llegaba)
+function refrescarGlobal() {
+  if (refG) return;
+  refG = setTimeout(function paso() {
+    const ae = document.activeElement;
+    if (ae && ae.matches && ae.matches('input, textarea') && ae.closest('#sheet')) { refG = setTimeout(paso, 700); return; }   // no estorba mientras escribes
+    refG = 0;
+    actualizarCont();
+    pintarTiles(); actualizarColAbierta();
+    programarOrden();                                            // llegó el año: se reacomodan las películas
+  }, 350);
 }
 const faltaAnio = todas().some(p => !p.anio && !p.sinTmdb);    // ¿hay años que todavía no llegan de TMDB?
 let tmdbListo = false;
-const cargaTmdb = Promise.all(todas().map(p => completar(p).then(c => { if (c) refrescar(p); }).catch(() => {})))
+/* Cola con prioridad: primero los pósters (consulta ligera, 8 a la vez, populares primero) y después los datos completos (5 a la vez). */
+const pool = async (lista, n, fn) => { let i = 0; await Promise.all(Array.from({ length: Math.min(n, lista.length) }, async () => { while (i < lista.length) { const p = lista[i++]; try { await fn(p); } catch (e) {} } })); };
+const prio = todas().slice().sort((a, b) => (b.popular ? 1 : 0) - (a.popular ? 1 : 0));
+let rapidoListo = false;
+const cargaRapida = pool(prio, 8, rapido).then(() => { rapidoListo = true; });
+const cargaTmdb = cargaRapida
+  .then(() => pool(prio, 5, p => completar(p).then(c => { if (c) refrescar(p); })))
   .then(() => { tmdbListo = true; });
 
 /* Banner: si ya se conocen los años (caché) sale al instante; si no, espera hasta 2 s a TMDB para elegir bien. */
 if (!faltaAnio) armarBanner();
 else {
   hero.classList.add('out');
-  Promise.race([cargaTmdb, new Promise(r => setTimeout(r, 2000))]).then(() => {
-    const temprano = !tmdbListo;
+  Promise.race([cargaRapida, new Promise(r => setTimeout(r, 2000))]).then(() => {
+    const temprano = !rapidoListo;
     armarBanner();
-    if (temprano) cargaTmdb.then(armarBanner);                   // conexión lenta: se corrige al terminar
+    if (temprano) cargaRapida.then(armarBanner);                   // conexión lenta: se corrige al terminar
   });
 }
 
@@ -2320,7 +2412,16 @@ bq.addEventListener('keydown', e => {
 });
 H('bx').onclick = () => { if (bq.value) { bq.value = ''; filtrar(); bq.focus(); } else cerrarBusqueda(); };
 if (window.visualViewport) {                                      // en iPhone la píldora sube sobre el teclado
-  const vv = visualViewport, kb = () => { const h = Math.max(0, innerHeight - vv.height - vv.offsetTop); document.documentElement.style.setProperty('--kb', h > 80 ? h + 'px' : '0px'); };
+  const vv = visualViewport; let kbUlt = '0px', kbRaf = 0;
+  const kb = () => {
+    if (kbRaf) return;
+    kbRaf = requestAnimationFrame(() => {
+      kbRaf = 0;
+      let v = '0px';
+      if (document.body.classList.contains('buscando')) { const h = Math.max(0, innerHeight - vv.height - vv.offsetTop); if (h > 80) v = h + 'px'; }   // solo importa con la búsqueda abierta
+      if (v !== kbUlt) { kbUlt = v; document.documentElement.style.setProperty('--kb', v); }
+    });
+  };
   vv.addEventListener('resize', kb); vv.addEventListener('scroll', kb);
 }
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition, mic = H('bmic');
@@ -2851,6 +2952,7 @@ function marcarCandados() {
   tarjetasCol.forEach((bs, p) => bs.forEach(b => b.classList.toggle('lk', !!window.bbCand(p))));
   tarjetasG.forEach((bs, p) => bs.forEach(b => b.classList.toggle('lk', !!window.bbCand(p))));
 }
+window.bbPedidoListo = () => { uBajar().catch(() => {}); try { if (!vistas.ped.hidden) pintarPedidos(); } catch (e) {} };   // llega un push con la app abierta: se actualiza la lista
 function uPlan() { marcarCandados(); if (!vistas.ped.hidden) pintarPedidos(); }     // se llama cada vez que cambia el plan o la lista de la cuenta
 const uDias = () => Math.max(0, Math.ceil((U.acceso.vence - Date.now()) / 86400000));
 const uPlanNombre = id => (PLANES.find(x => x.id === id) || {}).nombre || 'Básico';
@@ -2921,7 +3023,9 @@ document.addEventListener('visibilitychange', () => {   // al salir de la págin
     try { fetch('/api/usuario/datos', { method: 'POST', keepalive: true, credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ datos: uLocal() }) }); } catch (e) {}
   }
 });
-const uBtn = () => { const b = H('ajustes'), n = !!U.correo; b.classList.toggle('ses', n); b.setAttribute('aria-label', n ? 'Mi cuenta' : 'Iniciar sesión'); H('aj-t').textContent = n ? 'Mi cuenta' : 'Iniciar sesión'; };
+const uBtn = () => { const b = H('ajustes'), n = !!U.correo; b.classList.toggle('ses', n); b.setAttribute('aria-label', n ? 'Mi cuenta' : 'Iniciar sesión'); H('aj-t').textContent = n ? 'Mi cuenta' : 'Iniciar sesión';
+  window.bbCorreo = U.correo; document.dispatchEvent(new CustomEvent('bb-sesion', { detail: { correo: U.correo } }));   // la app (nativo.js) registra/quita las notificaciones push
+};
 const uError = x => {
   const m = x && x.message;
   if (m === 'timeout') return 'El servidor tardó demasiado en responder. Revisa tu conexión e inténtalo de nuevo.';
@@ -2929,15 +3033,28 @@ const uError = x => {
   return 'No se pudo conectar con el servidor. Revisa tu conexión e inténtalo de nuevo.';
 };
 
+const OJO_ON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+const OJO_OFF = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18"/><path d="M10.6 5.1A10.6 10.6 0 0 1 12 5c6.4 0 10 7 10 7a17 17 0 0 1-3.2 4.1M6.5 6.6A17 17 0 0 0 2 12s3.6 7 10 7a10 10 0 0 0 4.2-.9"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>';
 function uVistaAcceso() {
   const w = el('div', 'ua');
   w.innerHTML = '<h2>Tu cuenta</h2><p class="ssub">Inicia sesión para guardar tu progreso y lo que has visto, y retomarlo en cualquier dispositivo.</p>' +
     '<div class="ua-tabs" role="tablist"><button type="button" data-m="entrar">Iniciar sesión</button><button type="button" data-m="registro">Crear cuenta</button></div>' +
-    '<form id="ua-f" novalidate><label>Correo<input name="correo" type="email" inputmode="email" autocomplete="email" autocapitalize="off" autocorrect="off" spellcheck="false" required></label>' +
-    '<label>Contraseña<input name="clave" type="password" autocomplete="current-password" minlength="8" required></label>' +
+    '<form id="ua-f" novalidate><label>Correo<input name="correo" type="email" inputmode="email" autocomplete="email" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="next" required></label>' +
+    '<label>Contraseña<span class="pw"><input name="clave" type="password" autocomplete="current-password" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="go" minlength="8" required>' +
+    '<button type="button" class="ojo" aria-label="Mostrar contraseña" aria-pressed="false">' + OJO_ON + '</button></span></label>' +
     '<p class="serr" id="ua-err" role="alert" hidden></p><button class="sbtn" id="ua-go" type="submit"></button></form>' +
     '<button class="sbtn sec" id="ua-planes" type="button">Ver planes</button>';
   const f = w.querySelector('#ua-f'), err = w.querySelector('#ua-err'), go = w.querySelector('#ua-go');
+  const ojo = w.querySelector('.ojo');
+  ojo.addEventListener('mousedown', e => e.preventDefault());            // el teclado no se cierra al tocar el ojo
+  ojo.addEventListener('touchstart', e => e.preventDefault(), { passive: false });
+  ojo.onclick = () => {
+    const ver = f.clave.type === 'password', a = f.clave.selectionStart, b = f.clave.selectionEnd;
+    f.clave.type = ver ? 'text' : 'password';
+    ojo.setAttribute('aria-pressed', String(ver)); ojo.setAttribute('aria-label', ver ? 'Ocultar contraseña' : 'Mostrar contraseña');
+    ojo.innerHTML = ver ? OJO_OFF : OJO_ON;
+    try { f.clave.setSelectionRange(a, b); } catch (e) {}
+  };
   const modo = (m, conservar) => {
     uModo = m; if (!conservar) err.hidden = true;
     w.querySelectorAll('.ua-tabs button').forEach(b => b.classList.toggle('on', b.dataset.m === m));

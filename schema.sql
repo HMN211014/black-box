@@ -98,3 +98,13 @@ CREATE TABLE IF NOT EXISTS secciones (
   datos  TEXT NOT NULL,
   creado INTEGER NOT NULL
 );
+
+-- Teléfonos que reciben notificaciones push (aviso de "tu pedido está listo").
+-- El Worker también la crea solo la primera vez, así que ejecutar esto es opcional.
+CREATE TABLE IF NOT EXISTS dispositivos (
+  token      TEXT PRIMARY KEY,
+  correo     TEXT NOT NULL,
+  plataforma TEXT,
+  creado     INTEGER NOT NULL
+) WITHOUT ROWID;
+CREATE INDEX IF NOT EXISTS dispositivos_correo ON dispositivos (correo);
