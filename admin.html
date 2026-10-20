@@ -84,6 +84,7 @@ label small.h{display:block;color:#a1a1a6;font-weight:400;font-size:12px;margin-
 .sfc-h{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
 .sfc-h .row{display:flex;gap:6px}.sfc-h .g{height:36px;min-width:0;padding:0 12px;font-size:13px}
 .sfc .ct .t .n{bottom:32px}
+.sfc .ct .t em{top:34px}
 .sfc .ct .t .nv{position:absolute;left:4px;right:4px;bottom:4px;height:24px;min-width:0;padding:0;font-size:11px;border-radius:8px;background:rgba(0,0,0,.72);color:#fff}
 #se-mapa{display:flex;flex-direction:column;gap:6px;margin-top:8px}
 #se-mapa .mp{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 12px;border-radius:10px;font-size:14px}
@@ -91,6 +92,21 @@ label small.h{display:block;color:#a1a1a6;font-weight:400;font-size:12px;margin-
 #se-mapa .mp.otra{background:rgba(255,255,255,.12)}
 #se-mapa .mp.yo{background:rgba(10,132,255,.28);border:1px solid rgba(10,132,255,.8);font-weight:700}
 #se-mapa .mp .row{display:flex;gap:6px}#se-mapa .mp .g{height:34px;min-width:44px;padding:0 10px}
+.sr .mk{display:inline-block;margin-top:4px;font-style:normal;font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px;background:rgba(48,209,88,.18);color:#30d158}
+.sr .mk.w{background:rgba(255,159,10,.2);color:#ff9f0a}
+.ct .t.dup{outline:2px solid #ff453a;outline-offset:-2px}.ct .t.dup em{background:#ff453a}
+.sdup{margin-top:12px;padding:12px;border-radius:14px;border:1px solid rgba(255,159,10,.5);background:rgba(255,159,10,.08)}
+.sdup-h{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+.sdup-g{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-top:1px solid rgba(255,255,255,.08)}
+.sdup-g img,.sdup-g .ni{width:34px;height:50px;border-radius:6px;object-fit:cover;background:#26262c;flex:none}
+.sdup-o{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;align-items:center}
+.sdup-o .ok{font-size:12px;color:#30d158;font-weight:700}.sdup-o .g{height:32px;min-width:0;padding:0 10px;font-size:12px}
+.sfc .ct .t .nv{right:38px}
+.sfc .ct .t .en{position:absolute;right:4px;bottom:4px;width:30px;min-width:0;height:24px;padding:0;border-radius:8px;background:rgba(0,0,0,.72);color:#fff;font-size:14px;line-height:1}
+.sfc .ct .t .en.add{background:#0a84ff}
+.sfe{flex-basis:100%;width:100%;margin-top:12px;padding:12px;border-radius:12px;border:1px solid rgba(10,132,255,.6);background:rgba(10,132,255,.08)}
+.sfe .row{display:flex;gap:8px;margin-top:8px}.sfe .s{margin:6px 0 0}
+.it{flex-wrap:wrap}
 </style>
 </head>
 <body>
@@ -288,6 +304,7 @@ label small.h{display:block;color:#a1a1a6;font-weight:400;font-size:12px;margin-
       <label>Color de los textos<input type="color" id="se-tc" value="#ffffff"></label>
     </div>
     <label>Logo (opcional)<small class="h">Dirección de una imagen (mejor si es PNG sin fondo). Sale en la franja y en grande en el banner de la página.</small><input id="se-logo" type="url" autocapitalize="off" spellcheck="false" placeholder="https://…"></label>
+    <label>Imagen de fondo de la franja (opcional)<small class="h">Una imagen ancha para el fondo de la franja del inicio. Si la dejas vacía, usa la primera foto del banner, difuminada.</small><input id="se-fondo" type="url" autocapitalize="off" spellcheck="false" placeholder="https://…"></label>
     <label>Fotos del banner de la página<small class="h">Una dirección por línea, hasta 8. Si pones varias, el banner pasa de una a otra como carrusel.</small><textarea class="ta" id="se-ban" spellcheck="false" placeholder="https://…"></textarea></label>
 
     <label>Dónde se muestra la franja<select id="se-ub"><option value="inicio">En el inicio (página principal)</option></select></label>
@@ -301,6 +318,7 @@ label small.h{display:block;color:#a1a1a6;font-weight:400;font-size:12px;margin-
     <div style="margin-top:14px;border-top:1px solid rgba(255,255,255,.1);padding-top:14px">
       <b>Filas de la página</b>
       <p class="s" style="margin:4px 0 0">Cada fila tiene un título y sus películas (por ejemplo "Destacados de Huluween"). Con ☆ marcas una película como <b>Novedad</b>. Si una película todavía no está en tu biblioteca, sale como <b>Próximamente</b> y entra sola cuando la publiques. El carrusel de la franja usa las películas de estas filas.</p>
+      <div id="se-rep"></div>
       <div id="se-filas"></div>
       <button class="g" id="se-fila-add" type="button" style="margin-top:12px;height:40px;font-size:14px">+ Agregar fila</button>
     </div>
@@ -494,7 +512,15 @@ $('x-go').onclick = () => con($('x-go'), 'x-m', async () => {
     tx.append(b, sm);
     const q = document.createElement('button'); q.className = 'g'; q.type = 'button'; q.textContent = 'Quitar de la biblioteca';
     q.onclick = () => { if (!confirm('¿Quitar "' + x.titulo + '" de la biblioteca? Los clientes dejarán de verla.')) return; con(q, 'x-m', async () => { await admin({ op: 'despublicar', tmdb: x.tmdb, tipo: x.tipo }); d.remove(); }); };
-    d.append(tx, q); box.appendChild(d);
+    const ed = document.createElement('button'); ed.className = 'g'; ed.type = 'button'; ed.textContent = 'Editar enlace'; let form = null;
+    const cerrar = () => { if (form) { form.remove(); form = null; } };
+    ed.onclick = () => {
+      if (form) return cerrar();
+      form = enlaceForm({ x: { titulo: x.titulo, tmdb: x.tmdb, tipo: x.tipo }, actual: x.link, existe: true, alCancelar: cerrar,
+        alGuardar: link => { x.link = link; if (sePub.has(x.tmdb)) sePub.get(x.tmdb).link = link; cerrar(); msg('x-m', 'Enlace de "' + x.titulo + '" actualizado.', true); } });
+      d.appendChild(form);
+    };
+    d.append(tx, ed, q); box.appendChild(d);
   });
 });
 
@@ -702,13 +728,14 @@ const seId = () => $('se-id').value.trim();
 const seUb = () => $('se-ub').value;
 function seLeer() {
   return { id: seId(), nombre: $('se-nombre').value.trim(), etiqueta: $('se-et').value.trim(), texto: $('se-tx').value.trim(), boton: $('se-bt').value.trim(),
-    a: $('se-a').value, b: $('se-b').value, tx: $('se-tc').value, logo: $('se-logo').value.trim(), banners: lin('se-ban'),
+    a: $('se-a').value, b: $('se-b').value, tx: $('se-tc').value, logo: $('se-logo').value.trim(), fondo: $('se-fondo').value.trim(), banners: lin('se-ban'),
     ubicacion: seUb(), despues: seDespues, orden: seOrden, franja: $('se-fr').checked,
     filas: seFilas.map(f => ({ titulo: f.titulo, estilo: f.estilo, coleccion: f.coleccion, items: f.items.map(x => ({ ...x })) })) };
 }
 function sePrev() {
   const c = seLeer(), p = $('se-prev'), lg = $('se-pl');
-  p.style.background = 'radial-gradient(120% 90% at 18% 0%,' + c.a + ',transparent 62%),linear-gradient(135deg,' + c.b + ',#000)'; p.style.color = c.tx;
+  const bg = 'radial-gradient(120% 90% at 18% 0%,' + c.a + ',transparent 62%),linear-gradient(135deg,' + c.b + ',#000)';
+  p.style.background = /^https?:\/\/[^\s"'()\\]+$/.test(c.fondo) ? 'linear-gradient(90deg,rgba(0,0,0,.55),rgba(0,0,0,.08)),url("' + c.fondo + '") center/cover,' + bg : bg; p.style.color = c.tx;
   $('se-pn').textContent = c.nombre || 'Nombre de la sección'; $('se-pe').textContent = c.etiqueta; $('se-pt').textContent = c.texto; $('se-pb').textContent = c.boton || 'Detalles';
   if (/^https?:\/\/[^\s"'()\\]+$/.test(c.logo)) { lg.src = c.logo; lg.hidden = false; $('se-pn').hidden = true; } else { lg.hidden = true; $('se-pn').hidden = false; }
   const pp = $('se-pp'); pp.replaceChildren();
@@ -758,8 +785,115 @@ function seOpcionesCols() {                       // llena "Dónde se muestra" c
   sel.value = v || 'inicio';
 }
 /* ---- filas ---- */
+/* ---- biblioteca + repetidas: se compara igual que en las colecciones (por TMDB, o por título si a la biblioteca aún no le llega su id) ---- */
+let sePub = new Map(), seEnl = null, enlaceN = 0;      // sePub: lo publicado desde este panel (tmdb → { titulo, link, tipo }); seEnl: la película cuyo enlace se está editando
+const seHit = (bib, it, nx) => bib.find(b => b.tmdb && b.tmdb === it.tmdb && (b.tipo === 'serie') === (it.tipo === 'serie'))
+  || bib.find(b => !b.tmdb && nx(b.titulo) === nx(it.titulo) && (!b.anio || !it.anio || String(b.anio) === String(it.anio)))
+  || (sePub.has(it.tmdb) ? { titulo: it.titulo, tmdb: it.tmdb, tipo: it.tipo } : undefined);      // recién publicada desde aquí: ya cuenta como biblioteca aunque la copia de index.html aún no la vea
+/* Formulario para poner o cambiar el enlace de una película (publicar = crearla en la biblioteca o actualizar su enlace; los capítulos sueltos de una serie no se tocan) */
+function enlaceForm(cfg) {
+  const x = cfg.x, serie = x.tipo === 'serie', mid = 'enl-m-' + (++enlaceN), w = seEl('div', 'sfe');
+  w.appendChild(seEl('b', '', (cfg.existe ? 'Enlace de «' : 'Agregar enlace a «') + x.titulo + '»'));
+  const l = seEl('label', '', serie ? 'Enlace de la serie (con plantilla)' : 'Enlace del video'), inp = seEl('input');
+  inp.type = 'url'; inp.autocapitalize = 'off'; inp.spellcheck = false; inp.placeholder = 'https://…'; inp.value = cfg.actual || ''; l.appendChild(inp); w.appendChild(l);
+  w.appendChild(seEl('p', 's', (cfg.existe ? 'Cambia el enlace en tu biblioteca; los clientes lo verán en menos de un minuto.' : 'Al guardar se publica en tu biblioteca y deja de salir como Próximamente.') + (serie ? ' En una serie usa {t} para la temporada y {e} para el capítulo, o publica los capítulos en "Subir película o serie".' : '')));
+  const m = seEl('p', 'm'); m.id = mid; m.hidden = true;
+  const r = seEl('div', 'row'), ok = seEl('button', '', 'Guardar enlace'), no = seEl('button', 'g', 'Cancelar'); ok.type = no.type = 'button';
+  no.onclick = cfg.alCancelar;
+  const guardar = () => con(ok, mid, async () => {
+    const link = inp.value.trim(); if (!/^https?:\/\/\S{4,2000}$/.test(link)) throw new Error('El enlace debe empezar con http:// o https://');
+    await admin({ op: 'publicar', titulo: cfg.titulo || x.titulo, tmdb: x.tmdb, tipo: serie ? 'serie' : 'pelicula', link });
+    cfg.alGuardar(link);
+  });
+  ok.onclick = guardar; inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); guardar(); } });
+  r.append(ok, no); w.append(m, r);
+  setTimeout(() => { if (w.isConnected) inp.focus({ preventScroll: true }); }, 0);      // el cursor queda en el campo (así tampoco se repinta la fila mientras escribes)
+  return w;
+}
+const seClave = (it, hit, nx) => hit ? 'b:' + nx(hit.titulo) : 't:' + (it.tmdb || nx(it.titulo));     // la misma película = la misma clave, venga de donde venga
+function seIndice(P) {                         // clave de cada película de la sección → primera fila donde ya está
+  const bib = P.biblioteca(), nx = t => P.norm(t), m = new Map();
+  seFilas.forEach((f, i) => {
+    f.items.forEach(x => { const k = seClave(x, seHit(bib, x, nx), nx); if (!m.has(k)) m.set(k, { fila: i, col: '' }); });
+    if (f.coleccion) P.miembrosDe(f.coleccion).forEach(y => { const k = 'b:' + nx(y.titulo); if (!m.has(k)) m.set(k, { fila: i, col: f.coleccion }); });
+  });
+  return m;
+}
+let seIdxC = null, seIdxT = 0;
+function seMarca(r) {                          // etiqueta junto a cada resultado de TMDB
+  if (!coPb) return null;
+  if (!seIdxC || Date.now() - seIdxT > 500) { seIdxC = seIndice(coPb); seIdxT = Date.now(); }
+  const nx = t => coPb.norm(t), it = { tmdb: r.id, titulo: r.title || r.name || '', tipo: r.media_type === 'tv' ? 'serie' : 'pelicula', anio: (r.release_date || r.first_air_date || '').slice(0, 4) };
+  const k = seClave(it, seHit(coPb.biblioteca(), it, nx), nx), ya = seIdxC.get(k);
+  return ya ? ['Ya está en la fila ' + (ya.fila + 1), 'w'] : k.startsWith('b:') ? ['✓ En tu biblioteca', ''] : ['Próximamente (no está en tu biblioteca)', 'w'];
+}
+function seAnalizar() {                        // qué películas están en la biblioteca y cuáles están repetidas en la sección
+  const P = coPb, r = { P, hit: new Map(), sobran: new Set(), rep: [] };
+  if (!P) return r;
+  const bib = P.biblioteca(), nx = t => P.norm(t), grupos = new Map();
+  const reg = (k, o) => { if (!grupos.has(k)) grupos.set(k, []); grupos.get(k).push(o); };
+  seFilas.forEach((f, i) => {
+    f.items.forEach(x => { const h = seHit(bib, x, nx); r.hit.set(x, h); reg(seClave(x, h, nx), { fila: i, x, titulo: x.titulo, poster: x.poster }); });
+    if (f.coleccion) P.miembrosDe(f.coleccion).forEach(y => {
+      const k = 'b:' + nx(y.titulo), g = grupos.get(k);
+      if (g && g.some(o => o.fila === i)) return;                // ya está suelta en esta misma fila: la página las junta sola
+      reg(k, { fila: i, col: f.coleccion, titulo: y.titulo });
+    });
+  });
+  grupos.forEach(g => { if (g.length > 1) { r.rep.push(g); g.slice(1).forEach(o => { if (o.x) r.sobran.add(o.x); }); } });
+  return r;
+}
+function seQuitarItem(x) { seFilas.forEach(f => { f.items = f.items.filter(y => y !== x); }); }
+function sePintarRep(an) {
+  const box = $('se-rep'); box.replaceChildren();
+  if (!an.P) {
+    const b = seEl('button', 'g', 'Revisar repetidas y comparar con mi biblioteca'); b.type = 'button'; b.style.marginTop = '10px';
+    b.onclick = async () => { b.disabled = true; b.textContent = 'Cargando tu biblioteca…'; await coPuente(); seFilasPintar(); };
+    box.appendChild(b); return;
+  }
+  if (!an.rep.length) { box.appendChild(seEl('p', 's', '✓ No hay películas repetidas en esta sección.')); return; }
+  const w = seEl('div', 'sdup'), h = seEl('div', 'sdup-h');
+  h.appendChild(seEl('b', '', '⚠ ' + an.rep.length + (an.rep.length === 1 ? ' película repetida' : ' películas repetidas')));
+  if (an.sobran.size) {
+    const b = seEl('button', 'g', 'Quitar las repetidas (dejar la primera)'); b.type = 'button';
+    b.onclick = () => { const n = an.sobran.size; an.sobran.forEach(seQuitarItem); seFilasPintar(); sePrev(); msg('se-m', n + ' repetida(s) quitada(s). Recuerda guardar la sección.', true); };
+    h.appendChild(b);
+  }
+  w.appendChild(h);
+  an.rep.forEach(g => {
+    const d = seEl('div', 'sdup-g'), t = seEl('div'), o = seEl('div', 'sdup-o');
+    const p = g.find(x => x.poster);
+    if (p) { const im = new Image(); im.alt = ''; im.src = COIMG + 'w92' + p.poster; d.appendChild(im); } else d.appendChild(seEl('div', 'ni'));
+    t.appendChild(seEl('b', '', g[0].titulo));
+    g.forEach((x, k) => {
+      const et = 'Fila ' + (x.fila + 1) + (x.col ? ' · colección' : ' · suelta');
+      if (k === 0) { o.appendChild(seEl('span', 'ok', '✓ Se queda: ' + et)); return; }
+      const b = seEl('button', 'g', x.x ? 'Quitar de ' + et.split(' · ')[0].toLowerCase() : 'Dejar de sumar la colección (' + et.split(' · ')[0].toLowerCase() + ')'); b.type = 'button';
+      b.onclick = () => {
+        if (x.x) seQuitarItem(x.x);
+        else { if (!confirm('Esto quita la colección completa de la fila ' + (x.fila + 1) + '. ¿Seguir?')) return; seFilas[x.fila].coleccion = ''; }
+        seFilasPintar(); sePrev();
+      };
+      o.appendChild(b);
+    });
+    t.appendChild(o); d.appendChild(t); w.appendChild(d);
+  });
+  box.appendChild(w);
+}
+async function seAgregar(fi, r) {              // agrega desde TMDB, pero primero revisa tu biblioteca y que no esté ya en la sección
+  const f = seFilas[fi], mid = 'se-m-' + fi, P = await coPuente();
+  if (!P) { msg(mid, 'No pude leer tu biblioteca para saber si ya está. Inténtalo de nuevo en un momento.', false); return; }
+  const nx = t => P.norm(t), it = { tmdb: r.id, titulo: r.title || r.name || '', tipo: r.media_type === 'tv' ? 'serie' : 'pelicula', anio: (r.release_date || r.first_air_date || '').slice(0, 4), poster: r.poster_path || '', fondo: r.backdrop_path || '', novedad: false };
+  const hit = seHit(P.biblioteca(), it, nx), k = seClave(it, hit, nx), ya = seIndice(P).get(k);
+  if (ya && (ya.fila !== fi || !ya.col)) {      // repetida (en la misma fila suelta o en otra fila): no se agrega
+    seFilasPintar(); msg(mid, '"' + it.titulo + '" ya está en la fila ' + (ya.fila + 1) + (ya.col ? ' (viene en la colección que sumaste)' : '') + ': no se agregó otra vez.', false); return;
+  }
+  if (!ya) f.items.push(it);
+  seFilasPintar(); sePrev();
+  msg(mid, ya ? '"' + it.titulo + '" ya viene en la colección que sumaste a esta fila: no hace falta agregarla.' : hit ? '"' + it.titulo + '" está en tu biblioteca: agregada.' : '"' + it.titulo + '" no está en tu biblioteca: saldrá como Próximamente hasta que la publiques.', true);
+}
 function seFilasPintar() {
-  const box = $('se-filas'); box.replaceChildren();
+  const box = $('se-filas'), an = seAnalizar(); box.replaceChildren(); sePintarRep(an);
   seFilas.forEach((f, i) => {
     const c = seEl('div', 'sfc'), cab = seEl('div', 'sfc-h'), acc = seEl('div', 'row');
     const btn = (t, tit, fn) => { const b = seEl('button', 'g', t); b.type = 'button'; b.title = tit; b.onclick = fn; return b; };
@@ -779,18 +913,30 @@ function seFilasPintar() {
     const res = seEl('div', 'sr'); res.id = 'se-r-' + i; const m = seEl('p', 'm'); m.id = 'se-m-' + i; m.hidden = true;
     const tiles = seEl('div', 'ct');
     f.items.forEach(x => {
-      const d = seEl('div', 't');
+      const px = an.P && !an.hit.get(x), dup = an.sobran.has(x), d = seEl('div', 't' + (px ? ' px' : '') + (dup ? ' dup' : ''));
       if (x.poster) { const im = new Image(); im.alt = ''; im.loading = 'lazy'; im.src = COIMG + 'w185' + x.poster; im.onerror = () => im.remove(); d.appendChild(im); }
-      d.appendChild(seEl('span', 'n', x.titulo)); if (x.novedad) d.appendChild(seEl('em', '', 'Novedad'));
+      d.appendChild(seEl('span', 'n', x.titulo)); if (dup) d.appendChild(seEl('em', '', 'Repetida')); else if (px) d.appendChild(seEl('em', '', 'Próximamente'));
       const xx = seEl('button', 'x', '✕'); xx.type = 'button'; xx.title = 'Quitar'; xx.setAttribute('aria-label', 'Quitar ' + x.titulo); xx.onclick = () => { f.items = f.items.filter(y => y !== x); seFilasPintar(); sePrev(); };
       const nv = seEl('button', 'nv', x.novedad ? '★ Novedad' : '☆ Novedad'); nv.type = 'button'; nv.title = 'Poner o quitar la etiqueta Novedad'; nv.onclick = () => { x.novedad = !x.novedad; seFilasPintar(); };
-      d.append(xx, nv); tiles.appendChild(d);
+      const pub = sePub.get(x.tmdb);
+      d.append(xx, nv);
+      if (pub || px) {                          // publicada desde el panel → editar su enlace; no está en la biblioteca → agregarle el enlace y publicarla
+        const en = seEl('button', 'en ' + (pub ? 'ed' : 'add'), pub ? '✎' : '＋'); en.type = 'button';
+        en.title = pub ? 'Editar el enlace de esta película' : 'Agregar el enlace y publicarla en la biblioteca'; en.setAttribute('aria-label', en.title + ': ' + x.titulo);
+        en.onclick = () => { seEnl = seEnl && seEnl.x === x ? null : { x }; seFilasPintar(); };
+        d.appendChild(en);
+      }
+      tiles.appendChild(d);
     });
-    c.append(cab, lt, g, lq, res, m, tiles); box.appendChild(c);
-    buscadorTmdb(q.id, res.id, m.id, r => {
-      if (!f.items.some(x => x.tmdb === r.id)) f.items.push({ tmdb: r.id, titulo: r.title || r.name || '', tipo: r.media_type === 'tv' ? 'serie' : 'pelicula', poster: r.poster_path || '', fondo: r.backdrop_path || '', novedad: false });
-      seFilasPintar(); sePrev();
-    });
+    c.append(cab, lt, g, lq, res, m, tiles);
+    if (seEnl && f.items.includes(seEnl.x)) {
+      const x = seEnl.x, pub = sePub.get(x.tmdb);
+      c.appendChild(enlaceForm({ x, titulo: pub ? pub.titulo : x.titulo, actual: pub ? pub.link : '', existe: !!pub, alCancelar: () => { seEnl = null; seFilasPintar(); },
+        alGuardar: link => { sePub.set(x.tmdb, { titulo: pub ? pub.titulo : x.titulo, tmdb: x.tmdb, tipo: x.tipo, link, eps: pub ? pub.eps : 0 }); seEnl = null; seFilasPintar();
+          msg('se-m-' + i, pub ? 'Enlace de "' + x.titulo + '" actualizado.' : '"' + x.titulo + '" publicada en tu biblioteca con su enlace: ya no sale como Próximamente.', true); } }));
+    }
+    box.appendChild(c);
+    buscadorTmdb(q.id, res.id, m.id, r => seAgregar(i, r), seMarca);
   });
 }
 const seFilaNueva = () => ({ titulo: '', estilo: 'horizontal', coleccion: '', items: [] });
@@ -800,7 +946,7 @@ function sePoner(s) {                             // s = null → formulario en 
   seEditando = s.id || null; seManual = !!s.id;
   v('se-nombre', s.nombre, ''); v('se-id', s.id, ''); $('se-id').readOnly = !!s.id;
   v('se-et', s.etiqueta, s.id ? '' : 'Colección'); v('se-tx', s.texto, ''); v('se-bt', s.boton, s.id ? '' : 'Detalles');
-  v('se-a', s.a, '#0b3d91'); v('se-b', s.b, '#020b1f'); v('se-tc', s.tx, '#ffffff'); v('se-logo', s.logo, '');
+  v('se-a', s.a, '#0b3d91'); v('se-b', s.b, '#020b1f'); v('se-tc', s.tx, '#ffffff'); v('se-logo', s.logo, ''); v('se-fondo', s.fondo, '');
   $('se-ban').value = (s.banners || []).join('\n'); $('se-fr').checked = s.franja !== false;
   seOpcionesCols(); $('se-ub').value = s.ubicacion || 'inicio'; if ($('se-ub').value !== (s.ubicacion || 'inicio')) seOpcionesCols();
   seDespues = s.despues || 'hero'; seOrden = s.id ? (s.orden || 0) : 999;
@@ -809,8 +955,8 @@ function sePoner(s) {                             // s = null → formulario en 
   sePrev(); sePintarMapa(); seFilasPintar();
 }
 async function seLista() {
-  const [a, b] = await Promise.all([admin({ op: 'secciones' }), admin({ op: 'colecciones' })]);
-  seTodas = a.items; seCargada = true;
+  const [a, b, pb] = await Promise.all([admin({ op: 'secciones' }), admin({ op: 'colecciones' }), admin({ op: 'publicadas' })]);
+  seTodas = a.items; seCargada = true; sePub = new Map(pb.items.map(x => [x.tmdb, x]));
   const ids = new Set(delArchivo.map(c => c.id));
   seCols = [...delArchivo.map(c => ({ id: c.id, nombre: (b.items.find(x => x.id === c.id) || c).nombre })), ...b.items.filter(c => !ids.has(c.id)).map(c => ({ id: c.id, nombre: c.nombre }))];
   seOpcionesCols(); $('se-ub').value = seLeer().ubicacion; sePintarMapa(); seFilasPintar();
@@ -833,7 +979,7 @@ $('sec-card').addEventListener('input', e => { const id = e.target.id || ''; if 
 $('se-ub').addEventListener('change', () => { seDespues = 'hero'; seOrden = 999; sePintarMapa(); });
 $('se-nombre').addEventListener('input', () => { if (!seManual) $('se-id').value = slug($('se-nombre').value); });
 $('se-id').addEventListener('input', () => { seManual = true; });
-$('sec-card').addEventListener('focusin', () => { if (!seCargada) { seCargada = true; seLista().catch(() => { seCargada = false; }); } });   // carga las demás secciones para armar el mapa
+$('sec-card').addEventListener('focusin', () => { if (!coPuenteP) coPuente().then(P => { if (P) seFilasPintar(); }); if (!seCargada) { seCargada = true; seLista().catch(() => { seCargada = false; }); } });   // carga las demás secciones para armar el mapa
 $('se-nuevo').onclick = () => { sePoner(null); msg('se-m', '', true); $('sec-card').scrollIntoView({ behavior: 'smooth', block: 'start' }); };
 $('se-ver').onclick = () => con($('se-ver'), 'se-m', seLista);
 $('se-go').onclick = () => con($('se-go'), 'se-m', async () => {
@@ -846,6 +992,8 @@ $('se-go').onclick = () => con($('se-go'), 'se-m', async () => {
   await seLista();
   msg('se-m', (j.nueva ? 'Sección creada. ' : 'Sección actualizada. ') + 'Aparece en el sitio en menos de un minuto; su página es #/s/' + j.id + '.' + (c.filas.some(f => f.items.length || f.coleccion) ? '' : ' Ojo: no tiene películas, así que saldrá vacía.'), true);
 });
+let seVer = -1;
+setInterval(() => { if (!coPb) return; const v = coPb.ver(); if (v === seVer) return; seVer = v; const a = document.activeElement; if (a && $('se-filas').contains(a)) return; seFilasPintar(); }, 4000);   // cuando a la biblioteca le llegan datos de TMDB, se vuelve a comparar
 sePoner(null);
 
 /* ---- subir película o serie con datos de TMDB ---- */
@@ -854,7 +1002,7 @@ let sElegido = null, sTemps = [], sEps = {}, sCache = {};   // sEps: capítulos 
 const sTipo = () => sElegido && sElegido.media_type === 'tv' ? 'serie' : 'pelicula';
 function sLimpiar() { sElegido = null; sTemps = []; sEps = {}; sCache = {}; $('s-sel').hidden = true; }
 /* Buscador de TMDB reutilizable: escribe en inpId, pinta los resultados en resId y llama a alElegir(resultado) */
-function buscadorTmdb(inpId, resId, msgId, alElegir) {
+function buscadorTmdb(inpId, resId, msgId, alElegir, marca) {
   let timer = null, n = 0;
   async function buscar(q) {
     const mi = ++n;
@@ -871,6 +1019,7 @@ function buscadorTmdb(inpId, resId, msgId, alElegir) {
         const t = document.createElement('div'), nm = document.createElement('b'), sm = document.createElement('small');
         nm.textContent = r.title || r.name; sm.textContent = [(r.release_date || r.first_air_date || '').slice(0, 4), r.media_type === 'tv' ? 'Serie' : 'Película'].filter(Boolean).join(' · ');
         t.append(nm, sm); b.append(im, t);
+        const mk = marca && marca(r); if (mk) { const e = document.createElement('em'); e.className = 'mk' + (mk[1] ? ' ' + mk[1] : ''); e.textContent = mk[0]; t.appendChild(e); }
         b.onclick = () => { n++; box.replaceChildren(); $(inpId).value = ''; alElegir(r); };
         box.appendChild(b);
       });

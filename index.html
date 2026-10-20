@@ -811,6 +811,7 @@ body.con-q #vista-ped,body.con-q #vista-rec{display:none!important}
   background:radial-gradient(120% 90% at 18% 0%,var(--a),transparent 62%),linear-gradient(135deg,var(--b),#000)}
 .sf::before{content:"";position:absolute;inset:-20px;background:var(--img,none) center/cover;opacity:.2;filter:blur(20px) saturate(1.2)}
 .sf>*{position:relative}
+.sf.tf::before{inset:0;opacity:1;filter:none;background:linear-gradient(90deg,rgba(0,0,0,.6),rgba(0,0,0,.08) 80%),var(--img) center/cover}
 .sf-info{display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px;padding:0 12px}
 .sf-logo{max-width:min(100%,300px);max-height:130px;object-fit:contain;filter:drop-shadow(0 6px 22px rgba(0,0,0,.5))}
 .sf-nom{font-size:clamp(28px,3.4vw,46px);letter-spacing:-.02em}
@@ -826,15 +827,16 @@ body.con-q #vista-ped,body.con-q #vista-rec{display:none!important}
 .sf .card .t{display:none}
 @media(max-width:820px){.sf{grid-template-columns:1fr;padding:22px 0;min-height:0}.sf-row .track{padding:10px 20px}.sf .card{flex-basis:44vw}}
 #vista-sec{padding-bottom:50px}
-.sec-hero{position:relative;height:clamp(360px,62vh,640px);overflow:hidden;border-radius:0 0 30px 30px;display:flex;align-items:center;justify-content:center;text-align:center;
-  background:radial-gradient(120% 90% at 50% 0%,var(--a,#0b3d91),transparent 70%),linear-gradient(135deg,var(--b,#020b1f),#000);box-shadow:0 30px 80px rgba(0,0,0,.6)}
-.sec-slides,.sec-slide{position:absolute;inset:0}
-.sec-slide{background:center/cover no-repeat;opacity:0;transition:opacity 1.2s ease}
+.sec-hero{position:relative;height:clamp(380px,66vh,680px);display:flex;align-items:center;justify-content:center;text-align:center}
+.sec-slides{position:absolute;inset:0;overflow:hidden;background:radial-gradient(120% 90% at 50% 0%,var(--a,#0b3d91),transparent 70%),linear-gradient(135deg,var(--b,#020b1f),transparent);
+  -webkit-mask-image:linear-gradient(180deg,#000 0,#000 52%,rgba(0,0,0,.55) 74%,transparent 100%);mask-image:linear-gradient(180deg,#000 0,#000 52%,rgba(0,0,0,.55) 74%,transparent 100%)}
+.sec-slide{position:absolute;inset:0;background:center/cover no-repeat;opacity:0;transition:opacity 1.2s ease}
 .sec-slide.on{opacity:1}
-.sec-hero::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.3),rgba(0,0,0,.05) 38%,rgba(0,0,0,.78))}
-.sec-logo{position:relative;z-index:2;max-width:min(72vw,580px);max-height:38%;object-fit:contain;margin-top:14vh;filter:drop-shadow(0 8px 30px rgba(0,0,0,.55))}
-.sec-nom{position:relative;z-index:2;margin-top:14vh;font-size:clamp(40px,8vw,96px);font-weight:800;letter-spacing:-.03em;color:var(--tx,#fff);text-shadow:0 6px 30px rgba(0,0,0,.6)}
-.sec-dots{position:absolute;left:50%;transform:translateX(-50%);bottom:18px;display:flex;gap:10px;z-index:3}
+.sec-hero::after{content:"";position:absolute;inset:0 0 40%;pointer-events:none;background:linear-gradient(180deg,rgba(0,0,0,.4),transparent)}
+.sec-logo{position:relative;z-index:2;max-width:min(72vw,580px);max-height:38%;object-fit:contain;margin-top:8vh;filter:drop-shadow(0 8px 30px rgba(0,0,0,.55))}
+.sec-nom{position:relative;z-index:2;margin-top:8vh;font-size:clamp(40px,8vw,96px);font-weight:800;letter-spacing:-.03em;color:var(--tx,#fff);text-shadow:0 6px 30px rgba(0,0,0,.6)}
+.sec-dots{position:absolute;left:50%;transform:translateX(-50%);bottom:clamp(70px,10vw,120px);display:flex;gap:10px;z-index:3}
+#s-filas{position:relative;z-index:2;margin-top:clamp(-120px,-8vw,-50px)}
 .sec-dots button{position:relative;width:8px;height:8px;border-radius:8px;border:0;padding:0;background:rgba(255,255,255,.4);cursor:pointer;transition:width .25s,background .25s}
 .sec-dots button::after{content:"";position:absolute;inset:-10px}
 .sec-dots button.on{width:26px;background:#fff}
@@ -3255,6 +3257,7 @@ window.colExplica = id => {                            // consola:  colExplica("
 window.bbPuente = {
   ver: () => datosVer, norm,
   biblioteca: () => peliculas.map(p => ({ titulo: p.titulo, tmdb: Number(p.tmdbId || p.tmdb) || 0, tipo: p.tipo === 'serie' ? 'serie' : 'pelicula', poster: p.poster || '', anio: p.anio || '' })),
+  miembrosDe: id => { const c = typeof COLECCIONES !== 'undefined' && COLECCIONES.find(x => x.id === id); return c ? pelisDe(c).map(p => ({ titulo: p.titulo, tmdb: Number(p.tmdbId || p.tmdb) || 0, tipo: p.tipo === 'serie' ? 'serie' : 'pelicula', anio: p.anio || '' })) : []; },
   miembros: c => { const k = c.id || '_borrador'; colCache.delete(k); try { return resolverCol({ ...c, id: k }).lista.map(p => ({ titulo: p.titulo, tmdb: Number(p.tmdbId || p.tmdb) || 0, poster: p.poster || '', anio: p.anio || '' })); } finally { colCache.delete(k); } }
 };
 /* Orden cronológico: de la más antigua a la más reciente (sin año, al final) */
@@ -3424,14 +3427,23 @@ var secTimer = null, secActual = null;
 const SEC_IMG = 'https://image.tmdb.org/t/p/';
 const secLista = () => (window.SECCIONES_EXTRA || []).filter(s => s && s.id && s.nombre);
 const tmdbDe = p => Number(p.tmdbId || p.tmdb) || 0;
-function secResolver(f) {                      // fila → [{ p: película de tu biblioteca o null, it: dato guardado }]
-  const out = [], vistos = new Set(), biblio = typeof todas === 'function' ? todas() : peliculas;
-  (f.items || []).forEach(it => {
-    if (!it || vistos.has(Number(it.tmdb))) return; vistos.add(Number(it.tmdb));
-    out.push({ p: biblio.find(x => tmdbDe(x) === Number(it.tmdb)) || null, it });
-  });
+/* Misma regla que el panel y las colecciones: una película guardada en la sección es la de tu biblioteca si coincide su id de TMDB,
+   o (mientras a la biblioteca todavía no le llega su id) si coincide el título —y el año, cuando se conoce—. */
+function secHit(it, biblio) {
+  const t = Number(it.tmdb) || 0, serie = it.tipo === 'serie';
+  return biblio.find(x => t && tmdbDe(x) === t && (x.tipo === 'serie') === serie)
+    || biblio.find(x => !tmdbDe(x) && norm(x.titulo) === norm(it.titulo) && (!x.anio || !it.anio || String(x.anio) === String(it.anio))) || null;
+}
+function secResolver(f) {                      // fila → [{ p: película de tu biblioteca o null, it: dato guardado }], sin repetidas
+  const out = [], vp = new Set(), vt = new Set(), biblio = typeof todas === 'function' ? todas() : peliculas;
+  const meter = (p, it) => {
+    if (p) { if (vp.has(p)) return; vp.add(p); }
+    else { const k = Number(it.tmdb) || 0, n = 't' + norm(it.titulo); if ((k && vt.has(k)) || vt.has(n)) return; if (k) vt.add(k); vt.add(n); }
+    out.push({ p: p || null, it });
+  };
+  (f.items || []).forEach(it => { if (it) meter(secHit(it, biblio), it); });
   const col = f.coleccion && typeof COLECCIONES !== 'undefined' && COLECCIONES.find(c => c.id === f.coleccion);
-  if (col) pelisDe(col).forEach(p => { const t = tmdbDe(p); if (t && vistos.has(t)) return; if (t) vistos.add(t); out.push({ p, it: { tmdb: t, titulo: p.titulo } }); });
+  if (col) pelisDe(col).forEach(p => meter(p, { tmdb: tmdbDe(p), titulo: p.titulo }));
   return out;
 }
 function secTarjeta(x, horizontal, nov) {
@@ -3455,7 +3467,8 @@ function secNav(tr) {
 function secFranja(s, u) {                      // la franja: logo + frase + botón a la izquierda y carrusel de pósters a la derecha
   const w = el('section', 'secw'); w.dataset.sec = s.id; w.dataset.u = u; w.setAttribute('aria-label', s.nombre);
   const f = el('div', 'sf'); f.style.setProperty('--a', s.a || '#0b3d91'); f.style.setProperty('--b', s.b || '#020b1f'); f.style.setProperty('--tx', s.tx || '#ffffff');
-  if ((s.banners || [])[0]) f.style.setProperty('--img', urlCss(s.banners[0]));
+  const imgF = s.fondo || (s.banners || [])[0]; if (imgF) f.style.setProperty('--img', urlCss(imgF));
+  if (s.fondo) f.classList.add('tf');                 // fondo propio: se ve nítido; si no, se usa la 1ª foto del banner difuminada
   const info = el('div', 'sf-info');
   if (s.logo) { const i = new Image(); i.className = 'sf-logo'; i.alt = s.nombre; i.src = s.logo; i.onerror = () => i.replaceWith(el('h3', 'sf-nom', s.nombre)); info.appendChild(i); }
   else info.appendChild(el('h3', 'sf-nom', s.nombre));
@@ -3463,7 +3476,7 @@ function secFranja(s, u) {                      // la franja: logo + frase + bot
   if (s.texto) info.appendChild(el('p', 'sf-tx', s.texto));
   const a = el('a', 'sf-btn', s.boton || 'Detalles'); a.href = '#/s/' + s.id; info.appendChild(a);
   const row = el('div', 'row sf-row'), tr = el('div', 'track sf-track'), vistos = new Set(), items = [];
-  (s.filas || []).forEach(fl => secResolver(fl).forEach(x => { const k = x.p ? 'p' + x.p.titulo : 't' + x.it.tmdb; if (!vistos.has(k)) { vistos.add(k); items.push(x); } }));
+  (s.filas || []).forEach(fl => secResolver(fl).forEach(x => { const k = x.p ? 'p' + norm(x.p.titulo) : 't' + (x.it.tmdb || norm(x.it.titulo)); if (!vistos.has(k)) { vistos.add(k); items.push(x); } }));
   items.slice(0, 16).forEach(x => tr.appendChild(secTarjeta(x, false, false)));
   row.append(secNav(tr)[0], tr, secNav(tr)[1]); f.append(info, row); w.appendChild(f);
   if (!reduce && items.length > 3) w._t = setInterval(() => {      // el carrusel avanza solo (se detiene si lo tocas o no lo estás viendo)
