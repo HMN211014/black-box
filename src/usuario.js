@@ -265,9 +265,9 @@ function limpiarSec(s) {
   const id = String(s.id || '').trim().toLowerCase(), nombre = String(s.nombre || '').trim().slice(0, 60);
   if (!/^[a-z0-9][a-z0-9-]{0,39}$/.test(id)) return { error: 'El enlace corto solo puede llevar letras sin acento, números y guiones (máximo 40).' };
   if (!nombre) return { error: 'Escribe el nombre de la sección.' };
-  const logo = urlCol(s.logo);
+  const logo = urlCol(s.logo), fondo = urlCol(s.fondo);
   const banners = (Array.isArray(s.banners) ? s.banners : []).slice(0, 8).map(urlCol);
-  if (logo === null || banners.includes(null)) return { error: 'Las direcciones de imagen deben empezar con http:// o https://' };
+  if (logo === null || fondo === null || banners.includes(null)) return { error: 'Las direcciones de imagen deben empezar con http:// o https://' };
   const ubicacion = /^col:[a-z0-9][a-z0-9-]{0,39}$/.test(String(s.ubicacion || '')) ? String(s.ubicacion) : 'inicio';
   const anclas = ubicacion === 'inicio' ? ANCLAS_INICIO : ANCLAS_COL;
   const filas = (Array.isArray(s.filas) ? s.filas : []).slice(0, 12).map(f => {
@@ -276,13 +276,13 @@ function limpiarSec(s) {
       x = x && typeof x === 'object' ? x : {};
       const tmdb = Math.floor(Number(x.tmdb)), titulo = String(x.titulo || '').trim().slice(0, 200);
       if (!(tmdb > 0) || !titulo) return null;
-      return { tmdb, titulo, tipo: x.tipo === 'serie' ? 'serie' : 'pelicula', poster: rutaTmdb(x.poster), fondo: rutaTmdb(x.fondo), ...(x.novedad ? { novedad: true } : {}) };
+      return { tmdb, titulo, tipo: x.tipo === 'serie' ? 'serie' : 'pelicula', anio: /^\d{4}$/.test(String(x.anio || '')) ? String(x.anio) : '', poster: rutaTmdb(x.poster), fondo: rutaTmdb(x.fondo), ...(x.novedad ? { novedad: true } : {}) };
     }).filter((x, i, a) => x && a.findIndex(y => y && y.tmdb === x.tmdb) === i);
     const col = String(f.coleccion || '').trim().toLowerCase();
     return { titulo: String(f.titulo || '').trim().slice(0, 100), estilo: f.estilo === 'vertical' ? 'vertical' : 'horizontal', coleccion: /^[a-z0-9][a-z0-9-]{0,39}$/.test(col) ? col : '', items };
   });
   return { sec: {
-    id, nombre, logo, banners: banners.filter(Boolean),
+    id, nombre, logo, fondo, banners: banners.filter(Boolean),
     etiqueta: String(s.etiqueta || '').trim().slice(0, 40), texto: String(s.texto || '').trim().slice(0, 200), boton: String(s.boton || '').trim().slice(0, 30),
     a: hexCol(s.a, '#0b3d91'), b: hexCol(s.b, '#020b1f'), tx: hexCol(s.tx, '#ffffff'),
     ubicacion, despues: anclas.includes(s.despues) ? s.despues : 'hero', orden: Math.max(0, Math.min(999, Math.floor(Number(s.orden)) || 0)),
