@@ -13,22 +13,42 @@
     if (inmersivo) sinError(() => activo ? inmersivo.activar() : inmersivo.desactivar());
     else if (P.StatusBar) sinError(() => activo ? P.StatusBar.hide() : P.StatusBar.show());   // respaldo: solo oculta la barra de arriba
   }
+  // Brillo real de la pantalla para el deslizador del reproductor (si la app es antigua y no lo tiene, el sitio usa un oscurecido del video)
+  window.bbBrillo = (v) => inmersivo ? inmersivo.brillo({ valor: v }) : Promise.reject();
+  window.bbBrilloActual = () => inmersivo ? inmersivo.brilloActual().then((r) => r.valor) : Promise.reject();
+
+  // Imagen en imagen (PiP): botón del reproductor + paso automático al salir de la app con el video en marcha
+  window.bbPip = () => inmersivo ? inmersivo.entrarPip() : Promise.reject();
+  const pipPermitido = () => { try { return (JSON.parse(localStorage.getItem('bbopc')) || {}).pip !== false; } catch (e) { return true; } };
+  const pipAuto = (activo, v) => { if (!inmersivo || !inmersivo.pipAuto) return; if (activo && !pipPermitido()) activo = false; sinError(() => inmersivo.pipAuto({ activo, ancho: (v && v.videoWidth) || 16, alto: (v && v.videoHeight) || 9 })); };
+  if (inmersivo && inmersivo.addListener) {
+    sinError(() => inmersivo.addListener('pip', (e) => {
+      document.documentElement.classList.toggle('en-pip', !!e.activo);
+      const v = document.getElementById('pv');
+      if (e.cerrado && v) { try { v.pause(); } catch (x) {} }           // cerraron la ventanita: se pausa
+    }));
+    document.documentElement.classList.add('pip-ok');
+  }
   function vigilarPlayer() {
     const pl = document.getElementById('player');
     if (!pl) return;
     let abierto = null;
-    const revisar = () => { const ab = !pl.hidden; if (ab !== abierto) { abierto = ab; modoPlayer(ab); } };
+    const revisar = () => { const ab = !pl.hidden; if (ab !== abierto) { abierto = ab; modoPlayer(ab); if (!ab) pipAuto(false); } };
     new MutationObserver(revisar).observe(pl, { attributes: true, attributeFilter: ['hidden'] });
     revisar();
+    // al empezar a reproducir (el video no propaga el evento, por eso en captura) se vuelven a ocultar las barras
+    document.addEventListener('playing', (e) => { if (e.target && e.target.id === 'pv' && abierto) modoPlayer(true); }, true);
+    document.addEventListener('playing', (e) => { if (e.target && e.target.id === 'pv' && abierto) pipAuto(true, e.target); }, true);
+    document.addEventListener('pause', (e) => { if (e.target && e.target.id === 'pv') pipAuto(false); }, true);
+    document.addEventListener('ended', (e) => { if (e.target && e.target.id === 'pv') pipAuto(false); }, true);
     // al volver de otra app, las barras pueden reaparecer: se vuelven a ocultar
     document.addEventListener('visibilitychange', () => { if (!document.hidden && abierto) modoPlayer(true); });
+    let rt; const reocultar = () => { clearTimeout(rt); rt = setTimeout(() => { if (abierto) modoPlayer(true); }, 350); };
+    window.addEventListener('resize', reocultar); window.addEventListener('focus', reocultar);
+    document.addEventListener('pointerup', (e) => { if (abierto && e.target && e.target.closest && e.target.closest('#player')) reocultar(); }, true);
   }
+  document.addEventListener('bb-opciones', () => { const v = document.getElementById('pv'), pl = document.getElementById('player'); if (v && pl && !pl.hidden) pipAuto(!v.paused, v); });
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', vigilarPlayer); else vigilarPlayer();
-
-  // ---- Vibración suave en botones con clase .haptic ----
-  document.addEventListener('click', (e) => {
-    if (e.target.closest && e.target.closest('.haptic') && P.Haptics) sinError(() => P.Haptics.impact({ style: 'LIGHT' }));
-  });
 
   // ---- Compartir:  window.blackboxCompartir("Título", "https://...") ----
   window.blackboxCompartir = (titulo, url) =>
@@ -38,7 +58,10 @@
   if (P.Network) P.Network.addListener('networkStatusChange', (s) => document.documentElement.classList.toggle('sin-conexion', !s.connected));
 
   // ---- Botón "atrás" de Android: cierra el reproductor/ficha con el historial, o sale de la app ----
-  if (P.App) P.App.addListener('backButton', ({ canGoBack }) => (canGoBack ? history.back() : P.App.exitApp()));
+  if (P.App) P.App.addListener('backButton', ({ canGoBack }) => {
+    if (!document.dispatchEvent(new CustomEvent('bb-atras', { cancelable: true }))) return;   // la página de Configuración (u otra) se queda con el botón atrás
+    canGoBack ? history.back() : P.App.exitApp();
+  });
 
   // ---- Notificaciones push: aviso cuando tu pedido está listo (requiere Firebase, ver LEEME-PUSH.md) ----
   const PN = P.PushNotifications;
@@ -68,7 +91,6 @@
     PN.addListener('registrationError', (e) => console.warn('push error', JSON.stringify(e)));
     PN.addListener('pushNotificationReceived', (n) => {              // con la app abierta Android no muestra nada solo: lo mostramos aquí
       aviso(n.title, n.body);
-      if (P.Haptics) sinError(() => P.Haptics.notification({ type: 'SUCCESS' }));
       if (window.bbPedidoListo) window.bbPedidoListo();
     });
     PN.addListener('pushNotificationActionPerformed', (a) => {       // tocaron la notificación

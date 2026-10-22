@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
 <title>Black BOX</title>
+<script>try{if(window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform()){document.documentElement.classList.add('acceso-app','en-app');setTimeout(function(){if(!window.__accesoListo)document.documentElement.classList.remove('acceso-app')},9000)}}catch(e){}</script>
 <style>
 :root{--bg:#000;--fg:#f5f5f7;--muted:#98989d;--glass:rgba(40,40,44,.72);--r:22px}
 *{box-sizing:border-box;margin:0}
@@ -147,7 +148,6 @@ svg.st text{fill:currentColor;stroke:none}
 .spin{position:absolute;left:50%;top:50%;width:54px;height:54px;margin:-27px 0 0 -27px;border:4px solid rgba(255,255,255,.25);border-top-color:#fff;border-radius:50%;animation:giro .9s linear infinite;opacity:0;pointer-events:none;transition:opacity .2s}
 #player.wait .spin,#player.ini .spin{opacity:1}
 /* Mientras arranca: video oculto (así no se ve el gris de Android) y solo el círculo de carga + el botón de atrás */
-#player.ini #pv{opacity:0}
 #player.ini .pmid,#player.ini .pbot{visibility:hidden}
 @keyframes giro{to{transform:rotate(360deg)}}
 .perr{position:absolute;inset:0;display:grid;place-content:center;text-align:center;padding:24px;color:#d1d1d6;font-size:16px;line-height:1.5;pointer-events:none}
@@ -467,6 +467,78 @@ body.colmode #top{padding-left:calc(max(14px,3vw) + 62px)}
 .dsep{display:block;flex:none;width:1px;height:26px;background:rgba(255,255,255,.22);margin:0 1px}
 body.buscando #dock{transform:translate(-50%,170%);opacity:0;pointer-events:none}
 
+/* ---- Barra inferior (teléfono): cristal deslizante estilo iOS entre Películas, Series, Pedidos y Recientes ---- */
+#dkglass,.dkfondo{display:none}
+@media(max-width:820px){
+  #dock{touch-action:none;box-shadow:inset 0 1px 0 rgba(255,255,255,.28),inset 0 0 22px rgba(255,255,255,.04),0 12px 40px rgba(0,0,0,.55)}
+  #dock .dk{position:relative;z-index:1}
+  #dock .dk.on{background:none}
+  #dock .dk.previa{color:#fff}
+  #dock.arr .dk{transform:none}
+  #dkglass{display:block;position:absolute;z-index:0;left:0;top:7px;height:calc(100% - 14px);width:var(--gw,0px);translate:var(--gx,0px) 0;scale:var(--gsx,1) var(--gsy,1);
+    border-radius:999px;pointer-events:none;opacity:0;
+    background:linear-gradient(180deg,rgba(255,255,255,calc(.36*var(--vg-int,1))),rgba(255,255,255,calc(.13*var(--vg-int,1))) 55%,rgba(255,255,255,calc(.22*var(--vg-int,1))));border:1px solid rgba(255,255,255,calc(.42*var(--vg-int,1)));
+    box-shadow:inset 0 1.5px 0 rgba(255,255,255,.8),inset 0 -1px 0 rgba(255,255,255,.18),0 8px 22px rgba(0,0,0,.38);
+    backdrop-filter:blur(var(--vg-blur,3px)) saturate(1.9) brightness(1.2);-webkit-backdrop-filter:blur(var(--vg-blur,3px)) saturate(1.9) brightness(1.2);
+    transition:opacity .25s,translate var(--vg-dur,.55s) cubic-bezier(.3,var(--vg-ov,1.35),.5,1),width var(--vg-dur,.55s) cubic-bezier(.3,var(--vg-ov,1.35),.5,1),scale calc(var(--vg-dur,.55s)*.8) cubic-bezier(.3,calc(var(--vg-ov,1.35) + .15),.5,1)}
+  #dkglass::after{content:"";position:absolute;inset:0;border-radius:inherit;background:radial-gradient(90% 75% at 28% 0,rgba(255,255,255,.55),transparent 62%);opacity:.7}
+  #dkglass.on{opacity:1}
+  #dkglass.sin{transition:none}
+  #dkglass.drag{transition:opacity .25s,translate 0s,width .3s cubic-bezier(.3,var(--vg-ov,1.35),.5,1),scale .2s cubic-bezier(.3,calc(var(--vg-ov,1.35) + .15),.5,1);box-shadow:inset 0 1.5px 0 #fff,inset 0 -1px 0 rgba(255,255,255,.25),0 14px 34px rgba(0,0,0,.5),0 0 22px rgba(120,170,255,.35)}
+}
+
+
+/* ---- Cristal líquido refinado (referencia iOS 26): refracción en los bordes, borde luminoso direccional, más transparencia ---- */
+.vg-rim::before,#dock::before,#dkglass::before,#acceso .ac-card::before,#acceso .ac-exp::before{content:"";position:absolute;inset:0;border-radius:inherit;padding:1.5px;pointer-events:none;z-index:2;
+  background:conic-gradient(from 215deg,rgba(255,255,255,.95),rgba(255,255,255,.08) 22%,rgba(255,255,255,.12) 45%,rgba(255,255,255,.8) 62%,rgba(255,255,255,.12) 80%,rgba(255,255,255,.95));
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0);mask-composite:exclude}
+#acceso .ac-card{background:linear-gradient(155deg,rgba(255,255,255,.16),rgba(255,255,255,.05) 45%,rgba(255,255,255,.1));box-shadow:inset 0 1px 0 rgba(255,255,255,.5),inset 0 -12px 28px rgba(255,255,255,.05),0 24px 60px rgba(0,0,0,.45)}
+@media(max-width:820px){
+  html #dock{background:none;backdrop-filter:none;-webkit-backdrop-filter:none;border-color:rgba(255,255,255,.08);
+    --fondo:rgba(30,40,40,.22);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.35),inset 0 -10px 24px rgba(255,255,255,.04),0 14px 44px rgba(0,0,0,.5)}
+  #dock>.dkfondo{display:block;position:absolute;inset:0;z-index:-1;border-radius:inherit;pointer-events:none;background:var(--fondo);backdrop-filter:blur(1.5px) saturate(1.8) brightness(1.05);-webkit-backdrop-filter:blur(1.5px) saturate(1.8) brightness(1.05)}
+  #dkglass{background:linear-gradient(160deg,rgba(255,255,255,calc(.22*var(--vg-int,1))),rgba(255,255,255,calc(.04*var(--vg-int,1))) 50%,rgba(255,255,255,calc(.14*var(--vg-int,1))));border:0;
+    box-shadow:inset 0 2px 3px rgba(255,255,255,.55),inset 0 -2px 6px rgba(255,255,255,.22),inset 0 0 18px rgba(255,255,255,.1),0 10px 26px rgba(0,0,0,.35);
+    backdrop-filter:blur(var(--vg-blur,3px)) saturate(2.1) brightness(1.25);-webkit-backdrop-filter:blur(var(--vg-blur,3px)) saturate(2.1) brightness(1.25)}
+  @supports (backdrop-filter:url(#a)){#dkglass{backdrop-filter:url(#bbLente) blur(var(--vg-blur,3px)) saturate(2.1) brightness(1.25)}}
+  #dkglass::after{background:radial-gradient(70% 60% at 25% 0,rgba(255,255,255,.5),transparent 65%),radial-gradient(60% 50% at 80% 100%,rgba(255,255,255,.25),transparent 70%),repeating-linear-gradient(115deg,transparent 0 9px,rgba(255,255,255,.1) 11px,transparent 14px 22px),radial-gradient(40% 70% at 50% 50%,rgba(150,210,255,.14),transparent 70%);background-size:100% 100%,100% 100%,200% 100%,100% 100%;opacity:.85;animation:bbAgua 5s ease-in-out infinite alternate}
+  @keyframes bbAgua{from{background-position:0 0,0 0,0 0,0 0}to{background-position:0 0,0 0,60px 0,0 0}}
+  #dkglass.drag{box-shadow:inset 0 2px 4px rgba(255,255,255,.8),inset 0 -2px 8px rgba(255,255,255,.35),inset 0 0 24px rgba(255,255,255,.16),0 16px 36px rgba(0,0,0,.45)}
+}
+
+
+/* ---- Reproductor estilo Apple TV: botones de cristal, título abajo, barra fina que crece al tocarla ---- */
+#player .ctl{transition:opacity .3s ease,transform .35s cubic-bezier(.2,.8,.2,1)}
+#player .ptop{transform:translateY(-10px)}#player .pbot{transform:translateY(12px)}
+#player.c .ptop,#player.c .pbot,#player.drive .ptop{transform:none}
+#player .ptop{padding:calc(var(--st) + 14px) calc(var(--sr) + 22px) 60px calc(var(--sl) + 22px);background:linear-gradient(180deg,rgba(0,0,0,.5),rgba(0,0,0,.18) 60%,transparent)}
+#player .gl,#player .gcap{background:rgba(255,255,255,.15);-webkit-backdrop-filter:blur(20px) saturate(1.8);backdrop-filter:blur(20px) saturate(1.8);border:1px solid rgba(255,255,255,.2);box-shadow:inset 0 1px 0 rgba(255,255,255,.4),0 6px 22px rgba(0,0,0,.28)}
+#player .gl{width:46px;height:46px}
+#player .gcap{display:flex;align-items:center;gap:2px;padding:0 4px;border-radius:999px}
+#player .gcap .ib{width:44px;height:46px;border-radius:999px}
+#player .ib:active{transform:scale(.9)}#player .ib{transition:transform .18s cubic-bezier(.3,1.4,.5,1),background .2s}
+#player .pmid{gap:clamp(34px,15vw,120px)}
+#player .pmid .ib{background:none}
+#player .pmid .ib.big svg{width:46px;height:46px}
+#player .pmid .ib.huge{width:96px;height:96px}#player .pmid .ib.huge svg{width:76px;height:76px}
+#player .pmid .ib:active{transform:scale(.86);opacity:.8}
+#player .pbot{display:grid;grid-template-columns:1fr auto;grid-template-areas:"t a" "r r";align-items:end;column-gap:14px;row-gap:2px;padding:80px calc(var(--sr) + 24px) calc(var(--sb) + 14px) calc(var(--sl) + 24px);background:linear-gradient(0deg,rgba(0,0,0,.72),rgba(0,0,0,.3) 55%,transparent)}
+#player .ptitle{grid-area:t;font-size:clamp(20px,3.2vw,28px);font-weight:700;letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+#player .pact{grid-area:a;margin:0;gap:0;padding:0 4px;border-radius:999px;background:rgba(255,255,255,.15);-webkit-backdrop-filter:blur(20px) saturate(1.8);backdrop-filter:blur(20px) saturate(1.8);border:1px solid rgba(255,255,255,.2);box-shadow:inset 0 1px 0 rgba(255,255,255,.4),0 6px 22px rgba(0,0,0,.28)}
+#player .pact .grow{display:none}
+#player .pact .ib{height:44px;border-radius:999px}
+#player .prow{grid-area:r;display:grid;grid-template-columns:auto 1fr;grid-template-areas:"s s" "c d";column-gap:0;row-gap:0;font-size:12px;font-weight:600;color:rgba(255,255,255,.75)}
+#player .prow>.seek{grid-area:s;width:100%}
+#player .prow>#pc{grid-area:c}#player .prow>#pd{grid-area:d;justify-self:end}
+#player .seek{height:34px}
+#player .seek::-webkit-slider-runnable-track{height:6px;transition:height .18s}
+#player .seek::-webkit-slider-thumb{width:14px;height:14px;margin-top:-4px;transform:scale(0);transition:transform .18s cubic-bezier(.3,1.4,.5,1),margin .18s;box-shadow:0 2px 8px rgba(0,0,0,.5)}
+#player .seek:active::-webkit-slider-runnable-track{height:12px}
+#player .seek:active::-webkit-slider-thumb{transform:scale(1.5);margin-top:-1px}
+#player .seek::-moz-range-track{height:6px}
+#player .seek::-moz-range-thumb{transform:scale(0)}#player .seek:active::-moz-range-thumb{transform:scale(1.5)}
+
 /* ---- Búsqueda: píldora flotante (como One UI) ---- */
 .sb{position:fixed;z-index:62;display:flex;align-items:center;gap:6px;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 14px + var(--kb,0px));transform:translate(-50%,190%);width:min(88vw,460px);height:58px;padding:0 8px 0 18px;border-radius:999px;opacity:0;pointer-events:none;
   background:rgba(30,30,34,.84);backdrop-filter:blur(26px) saturate(1.7);-webkit-backdrop-filter:blur(26px) saturate(1.7);border:1px solid rgba(255,255,255,.16);box-shadow:0 12px 40px rgba(0,0,0,.6);transition:transform .2s cubic-bezier(.4,0,1,1),opacity .15s}
@@ -726,6 +798,41 @@ body.con-q #vista-ped,body.con-q #vista-rec{display:none!important}
 }
 .track{padding-bottom:14px}
 
+/* ---------- Pantalla de acceso a pantalla completa (solo en la app) ---------- */
+#acceso{position:fixed;inset:0;z-index:90000;display:none;flex-direction:column;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;color:#fff;
+  --gl:.6;background:radial-gradient(60% 38% at 12% 8%,rgba(31,79,255,.55),transparent 70%),radial-gradient(55% 35% at 92% 42%,rgba(28,207,211,.28),transparent 70%),radial-gradient(70% 40% at 30% 100%,rgba(120,80,255,.4),transparent 70%),linear-gradient(180deg,#071236 0,#03071a 55%,#000 100%);
+  padding:calc(env(safe-area-inset-top,0px) + 24px) 22px calc(env(safe-area-inset-bottom,0px) + 14px);transition:opacity .4s ease}
+html.acceso-app #acceso,#acceso.on{display:flex}
+#acceso.fuera{opacity:0;pointer-events:none}
+#acceso .ac-top{flex:1;display:flex;align-items:center;justify-content:center;min-height:0}
+#acceso .ac-w{width:min(100%,420px);padding:8px 0 4px;animation:sube .5s cubic-bezier(.2,.9,.3,1)}
+#acceso .ac-lw{position:relative;width:88px;height:88px;margin:0 auto 16px}
+#acceso .ac-lw::before{content:"";position:absolute;left:50%;top:50%;width:300px;height:300px;margin:-150px 0 0 -150px;border-radius:50%;pointer-events:none;
+  background:radial-gradient(closest-side,rgba(96,156,255,.95),rgba(70,120,255,.45) 45%,transparent 72%);opacity:calc(var(--gl,.6)*.95);transform:scale(calc(.55 + var(--gl,.6)*.6));animation:acLat 4.5s ease-in-out infinite}
+@keyframes acLat{50%{opacity:calc(var(--gl,.6)*.6);transform:scale(calc(.5 + var(--gl,.6)*.5))}}
+#acceso .ac-logo{position:relative;display:block;width:88px;height:88px;object-fit:contain;border-radius:22px;box-shadow:0 0 0 1px rgba(255,255,255,.18),inset 0 1px 0 rgba(255,255,255,.35);filter:drop-shadow(0 0 calc(var(--gl,.6)*30px) rgba(110,165,255,calc(var(--gl,.6)*.9)))}
+#acceso .ac-t{text-align:center;font-size:clamp(30px,8vw,40px);font-weight:700;letter-spacing:-.03em}
+#acceso .ac-s{text-align:center;color:#c7c7cc;font-size:16px;line-height:1.45;margin:8px 0 20px}
+#acceso .ua-tabs{margin:4px 0 18px}
+/* Cristal líquido: panel translúcido con borde de luz y brillo especular */
+#acceso .ac-card{position:relative;padding:18px;border-radius:32px;background:linear-gradient(155deg,rgba(255,255,255,.17),rgba(255,255,255,.05) 42%,rgba(255,255,255,.1));border:1px solid rgba(255,255,255,.24);
+  backdrop-filter:blur(var(--ac-blur,28px)) saturate(1.9);-webkit-backdrop-filter:blur(var(--ac-blur,28px)) saturate(1.9);
+  box-shadow:inset 0 1.5px 0 rgba(255,255,255,.6),inset 0 -1px 0 rgba(255,255,255,.1),inset 0 0 26px rgba(255,255,255,.06),0 26px 70px rgba(0,0,0,.5)}
+#acceso .ac-card::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:radial-gradient(110% 55% at 18% 0,rgba(255,255,255,.26),transparent 60%)}
+#acceso .ac-card>*{position:relative}
+#acceso .ac-card:focus-within{backdrop-filter:none;-webkit-backdrop-filter:none;background:linear-gradient(155deg,rgba(62,74,112,.92),rgba(24,28,48,.94))}   /* al escribir se apaga el desenfoque: el teclado va fluido */
+#acceso:focus-within .ac-lw::before{animation:none}
+#acceso .ua-tabs{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.16);box-shadow:inset 0 1px 0 rgba(255,255,255,.22)}
+#acceso .ua-tabs button.on{background:linear-gradient(180deg,rgba(255,255,255,.34),rgba(255,255,255,.18));box-shadow:inset 0 1px 0 rgba(255,255,255,.55),0 2px 10px rgba(0,0,0,.25)}
+#acceso .ua input{background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.22);box-shadow:inset 0 1px 0 rgba(255,255,255,.16),inset 0 8px 18px rgba(0,0,0,.12)}
+#acceso .ua input:focus{background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.65)}
+#acceso .sbtn{background:linear-gradient(180deg,rgba(255,255,255,.97),rgba(226,234,255,.86));box-shadow:inset 0 1px 0 #fff,0 8px 26px rgba(80,130,255,.35)}
+#acceso .ac-c{margin-top:14px;padding:12px 14px;border-radius:18px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);box-shadow:inset 0 1px 0 rgba(255,255,255,.14);color:#d1d1d6;font-size:14px;line-height:1.45;text-align:center}
+#acceso .ac-bot{flex:none;text-align:center;padding-top:10px}
+#acceso .ac-exp{display:inline-flex;align-items:center;gap:6px;height:50px;padding:0 26px;border:1px solid rgba(255,255,255,.26);border-radius:999px;background:linear-gradient(180deg,rgba(255,255,255,.2),rgba(255,255,255,.08));box-shadow:inset 0 1px 0 rgba(255,255,255,.5),0 10px 30px rgba(0,0,0,.35);backdrop-filter:blur(18px) saturate(1.6);-webkit-backdrop-filter:blur(18px) saturate(1.6);color:#fff;font:inherit;font-size:17px;font-weight:600;letter-spacing:-.01em;cursor:pointer;-webkit-tap-highlight-color:transparent}
+#acceso .ac-exp svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+#acceso.esperando .ac-top>*,#acceso.esperando .ac-bot{visibility:hidden}
+#acceso.esperando .ac-top::after{content:"";width:84px;height:84px;border-radius:22px;background:url(/icon-512.png) center/cover;filter:drop-shadow(0 0 28px rgba(70,130,255,.5))}
 /* ---------- Botón de configuración y formulario de cuenta ---------- */
 /* Botón de cuenta dentro de la barra flotante (a la derecha de Buscar) */
 #ajustes{position:relative}
@@ -881,6 +988,175 @@ body.con-q #vista-ped,body.con-q #vista-rec{display:none!important}
 .card.hz .t{font-size:clamp(15px,1.3vw,18px)}
 .card .nov{position:absolute;top:10px;left:10px;z-index:3;padding:4px 9px;border-radius:6px;background:#fff;color:#000;font-size:12px;font-weight:700;letter-spacing:.01em}
 @media(max-width:620px){.card.hz{flex-basis:72vw;max-width:340px;border-radius:14px}}
+
+/* ---- Reproductor estilo Netflix / Apple TV: SOLO en la app (html.en-app). En la web queda el reproductor de siempre. ---- */
+#pt2,#pep,#pnxb,.vside,#peps{display:none}
+#player .i-x{display:none}
+html.en-app #player .i-x{display:block}html.en-app #player .i-back{display:none}
+html.en-app #player .ptop{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;column-gap:12px;background:linear-gradient(180deg,rgba(0,0,0,.55),rgba(0,0,0,.2) 55%,transparent)}
+html.en-app #player .ptop .grow{display:none}
+html.en-app #player .ptop #pb{grid-area:1/1;justify-self:start}
+html.en-app #player .ptop #pt2{display:block;grid-area:1/2;max-width:56vw;text-align:center;font-size:clamp(15px,2.6vw,19px);font-weight:600;letter-spacing:-.01em;text-shadow:0 1px 10px rgba(0,0,0,.65);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+html.en-app #player .pbot #pt{display:none}
+html.en-app #player .ptop .gcap{grid-area:1/3;justify-self:end;min-height:46px}
+html.en-app #player .ptop .gcap:not(:has(.ib:not([hidden]):not([data-ocultar]))){display:none}
+html.en-app #player [data-ocultar]{display:none!important}
+html.en-app #player .gl,html.en-app #player .gcap{background:linear-gradient(160deg,rgba(255,255,255,.22),rgba(255,255,255,.07) 55%,rgba(255,255,255,.14));-webkit-backdrop-filter:blur(18px) saturate(2) brightness(1.1);backdrop-filter:blur(18px) saturate(2) brightness(1.1);border:1px solid rgba(255,255,255,.2);box-shadow:inset 0 1.5px 0 rgba(255,255,255,.55),inset 0 -1px 0 rgba(255,255,255,.12),0 8px 26px rgba(0,0,0,.35)}
+html.en-app #player .pmid .ib{filter:drop-shadow(0 4px 18px rgba(0,0,0,.45))}
+html.en-app #player.c .pmid .ib.huge{animation:bbPlayIn .35s cubic-bezier(.3,1.5,.5,1)}
+@keyframes bbPlayIn{from{transform:scale(.82);opacity:.4}to{transform:none;opacity:1}}
+html.en-app #player .pbot{grid-template-columns:1fr;grid-template-areas:"r" "a";row-gap:6px;padding:70px calc(var(--sr) + 28px) calc(var(--sb) + 16px) calc(var(--sl) + 28px)}
+html.en-app #player .prow{font-size:13px;font-weight:600;font-variant-numeric:tabular-nums;color:rgba(255,255,255,.8)}
+html.en-app #player .seek::-webkit-slider-runnable-track{height:5px;border-radius:999px}
+html.en-app #player .seek:active::-webkit-slider-runnable-track{height:10px}
+html.en-app #player .pact{width:100%;justify-self:stretch;background:none;border:0;box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none;padding:0;gap:10px;flex-wrap:nowrap}
+html.en-app #player .pact .grow{display:block;flex:1}
+html.en-app #player .pact .ib{width:auto;min-width:46px;height:46px;padding:0 16px;gap:8px;display:inline-flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;background:linear-gradient(160deg,rgba(255,255,255,.22),rgba(255,255,255,.07) 55%,rgba(255,255,255,.14));-webkit-backdrop-filter:blur(18px) saturate(2) brightness(1.1);backdrop-filter:blur(18px) saturate(2) brightness(1.1);border:1px solid rgba(255,255,255,.2);box-shadow:inset 0 1.5px 0 rgba(255,255,255,.5),0 6px 20px rgba(0,0,0,.3)}
+html.en-app #player .pact .ib svg{width:22px;height:22px}
+html.en-app #player .pact #pfs{padding:0;width:46px}
+html.en-app #player .pact .ib[hidden],html.en-app #player:not(.serie) #pep,html.en-app #player:not(.serie) #pnxb{display:none!important}
+/* deslizadores de brillo (izquierda) y volumen (derecha): solo aparecen al deslizar el dedo por esa zona */
+html.en-app .vside{display:block;position:absolute;top:50%;width:54px;transform:translateY(-50%);z-index:3;opacity:0;pointer-events:none;transition:opacity .22s}
+html.en-app .vside.vl{left:calc(var(--sl) + 26px)}html.en-app .vside.vr{right:calc(var(--sr) + 26px)}
+html.en-app .vside.show{opacity:1}
+html.en-app #player .vtrk{position:relative;width:54px;height:min(200px,44vh);border-radius:999px;overflow:hidden;touch-action:none;pointer-events:none;background:linear-gradient(160deg,rgba(255,255,255,.22),rgba(255,255,255,.07) 55%,rgba(255,255,255,.14));-webkit-backdrop-filter:blur(18px) saturate(2) brightness(1.1);backdrop-filter:blur(18px) saturate(2) brightness(1.1);border:1px solid rgba(255,255,255,.2);box-shadow:inset 0 1.5px 0 rgba(255,255,255,.5),0 8px 26px rgba(0,0,0,.35);transition:transform .2s cubic-bezier(.3,1.5,.5,1)}
+html.en-app .vside.show .vtrk{pointer-events:auto}
+html.en-app #player .vtrk.act{transform:scale(1.06)}
+html.en-app #player .vtrk>i{position:absolute;left:0;right:0;bottom:0;height:50%;background:rgba(255,255,255,.92);pointer-events:none}
+html.en-app #player .vic{position:absolute;left:0;right:0;bottom:0;height:54px;display:grid;place-items:center;border:0;background:none;color:#000;pointer-events:none}
+html.en-app #player .vic svg{width:24px;height:24px;stroke:currentColor;fill:none}
+html.en-app #player .vic svg path[style]{fill:currentColor}
+html.en-app #player #pvl-b{pointer-events:auto}
+/* episodios: un sombreado sobre el video (en pausa), tarjetas al centro y una cruz debajo para salir */
+html.en-app #peps{display:flex;position:absolute;inset:0;z-index:5;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:calc(var(--st) + 10px) 0 calc(var(--sb) + 10px);
+  background:radial-gradient(120% 90% at 50% 50%,rgba(0,0,0,.62),rgba(0,0,0,.86));opacity:0;pointer-events:none;transition:opacity .3s ease}
+html.en-app #player.eps #peps{opacity:1;pointer-events:auto}
+html.en-app #player.eps .ptop,html.en-app #player.eps .pbot,html.en-app #player.eps .pmid,html.en-app #player.eps .vside{opacity:0!important;pointer-events:none!important}
+.pe-h{display:flex;align-items:center;justify-content:center;gap:12px;max-width:100%;padding:0 20px}
+.pe-h b{font-size:20px;font-weight:800;letter-spacing:-.02em}
+.pe-t{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;touch-action:pan-x}
+.pe-c{flex:none;height:32px;padding:0 14px;border-radius:999px;border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.1);color:#fff;font:inherit;font-size:13px;font-weight:700;cursor:pointer}
+.pe-c.on{background:#fff;color:#000}
+.pe-l{width:100%;display:flex;justify-content:safe center;gap:14px;overflow-x:auto;padding:6px calc(var(--sr) + 24px) 8px calc(var(--sl) + 24px);scroll-snap-type:x proximity;scroll-padding:0 calc(var(--sr) + 24px) 0 calc(var(--sl) + 24px);touch-action:pan-x;-webkit-overflow-scrolling:touch;scrollbar-width:none;overscroll-behavior-x:contain}
+.pe-l::-webkit-scrollbar,.pe-t::-webkit-scrollbar{display:none}
+.pe-ep{flex:none;width:clamp(170px,26vw,240px);text-align:left;border:0;background:none;color:#fff;font:inherit;padding:0;cursor:pointer;scroll-snap-align:start;display:flex;flex-direction:column;gap:6px;-webkit-tap-highlight-color:transparent}
+.pe-ep:disabled{opacity:.35}
+.pe-th{position:relative;display:grid;place-items:center;aspect-ratio:16/9;border-radius:12px;background:#26262c center/cover no-repeat;font-size:26px;font-weight:800;overflow:hidden;font-style:normal}
+.pe-ep.now .pe-th{outline:2.5px solid #fff;outline-offset:2px}
+.pe-ep b{font-size:13.5px;font-weight:700;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.pe-ep small{font-size:12px;color:rgba(255,255,255,.65);font-weight:600}
+.pe-bar{position:absolute;left:0;right:0;bottom:0;height:4px;background:rgba(255,255,255,.3)}.pe-bar i{display:block;height:100%;background:#e50914}
+html.en-app #pe-x{width:52px;height:52px;border-radius:50%;flex:none;background:linear-gradient(160deg,rgba(255,255,255,.22),rgba(255,255,255,.07) 55%,rgba(255,255,255,.14));-webkit-backdrop-filter:blur(18px) saturate(2) brightness(1.1);backdrop-filter:blur(18px) saturate(2) brightness(1.1);border:1px solid rgba(255,255,255,.22);box-shadow:inset 0 1.5px 0 rgba(255,255,255,.5),0 6px 20px rgba(0,0,0,.35)}
+
+/* ---- Perfiles ---- */
+.pav{display:inline-grid;place-items:center;flex:none;width:var(--t,34px);height:var(--t,34px);border-radius:50%;font-size:calc(var(--t,34px)*.56);line-height:1;box-shadow:inset 0 1px 0 rgba(255,255,255,.5),0 2px 8px rgba(0,0,0,.35)}
+#ajustes.ses .uic.pf::after{display:none}
+body>#ajustes .uic>.pav{display:inline-grid}
+.pmenu-ov{position:fixed;inset:0;z-index:95}
+.pmenu{position:fixed;min-width:250px;max-width:88vw;padding:8px;border-radius:28px;background:linear-gradient(160deg,rgba(255,255,255,.2),rgba(255,255,255,.06) 55%,rgba(255,255,255,.12)),rgba(38,38,44,.42);-webkit-backdrop-filter:blur(28px) saturate(2.1) brightness(1.1);backdrop-filter:blur(28px) saturate(2.1) brightness(1.1);box-shadow:inset 0 1.5px 0 rgba(255,255,255,.45),0 22px 56px rgba(0,0,0,.5);transform:scale(.55);opacity:0;transform-origin:var(--o,top right);transition:transform .4s cubic-bezier(.3,1.5,.5,1),opacity .2s}
+.pmenu-ov.on .pmenu{transform:none;opacity:1}
+.pm-fila,.pf-fila{display:flex;align-items:center;gap:12px;width:100%;height:54px;padding:0 12px;border:0;background:none;color:#fff;font:inherit;font-size:16px;font-weight:600;border-radius:20px;text-align:left;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.pm-fila:active,.pf-fila:active{background:rgba(255,255,255,.14)}
+.pm-n{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pm-on{flex:none;width:22px;height:22px;border-radius:50%;background:#a6f1a0;box-shadow:0 0 14px rgba(120,255,140,.55)}
+.pm-sep{height:1px;margin:4px 14px;background:rgba(255,255,255,.2)}
+.pm-ic{flex:none;width:36px;height:36px;display:grid;place-items:center}
+.pm-ic svg{width:30px;height:30px;fill:none;stroke:#fff;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.pf-cab{display:flex;flex-direction:column;align-items:center;gap:12px;margin:6px 0 14px}
+.pf-nom{width:100%;max-width:280px;height:46px;border-radius:14px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.08);color:#fff;font:inherit;font-size:18px;font-weight:700;text-align:center;outline:none}
+.pf-nom:focus{border-color:rgba(255,255,255,.5)}
+.pf-t{margin:14px 0 8px;font-size:13px;font-weight:700;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.06em}
+.pf-avs{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
+.pf-av{aspect-ratio:1;border-radius:14px;border:2px solid transparent;background:rgba(255,255,255,.08);font-size:24px;cursor:pointer}
+.pf-av.on{border-color:#fff;background:rgba(255,255,255,.2)}
+.pf-cols{display:flex;gap:10px;flex-wrap:wrap}
+.pf-col{width:34px;height:34px;border-radius:50%;border:2px solid transparent;cursor:pointer;box-shadow:inset 0 1px 0 rgba(255,255,255,.4)}
+.pf-col.on{border-color:#fff}
+.pf-lista{display:flex;flex-direction:column;gap:2px;margin-bottom:12px}
+.pf-fila{height:50px;background:rgba(255,255,255,.05)}
+.pf-fila.on{background:rgba(255,255,255,.12)}
+.pf-del{color:#ff6b6b}
+.pf-cuenta{margin-top:18px;padding-top:6px;border-top:1px solid rgba(255,255,255,.12)}
+
+/* ---- ¿Quién está viendo? ---- */
+.qv{position:fixed;inset:0;z-index:9990;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:30px;padding:calc(env(safe-area-inset-top,0px) + 20px) 20px calc(env(safe-area-inset-bottom,0px) + 20px);
+  background:radial-gradient(90% 60% at 20% 15%,rgba(94,92,230,.35),transparent 60%),radial-gradient(80% 60% at 85% 90%,rgba(255,90,95,.28),transparent 60%),#08080c;opacity:0;transition:opacity .4s ease}
+.qv.on{opacity:1}.qv.sale{opacity:0}
+.qv h1{margin:0;font-size:clamp(26px,6vw,36px);font-weight:800;letter-spacing:-.03em;text-align:center}
+.qv-g{display:flex;flex-wrap:wrap;justify-content:center;gap:26px 22px;max-width:560px}
+.qv-p{display:flex;flex-direction:column;align-items:center;gap:10px;width:112px;border:0;background:none;color:#fff;font:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent;opacity:0;transform:translateY(18px) scale(.9);animation:qvIn .55s cubic-bezier(.3,1.5,.5,1) forwards;animation-delay:calc(var(--i)*70ms + 120ms);transition:transform .3s cubic-bezier(.3,1.4,.5,1),opacity .3s}
+@keyframes qvIn{to{opacity:1;transform:none}}
+.qv-av{position:relative;display:grid;place-items:center;padding:4px;border-radius:50%;border:2px solid rgba(255,255,255,.14);transition:border-color .2s,transform .2s}
+.qv-p.ult .qv-av{border-color:rgba(255,255,255,.7)}
+.qv-p:active .qv-av{transform:scale(.94)}
+.qv-n{font-size:15px;font-weight:700;max-width:112px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:rgba(255,255,255,.9)}
+.qv-mas .qv-plus{background:rgba(255,255,255,.1)!important;font-size:52px;font-weight:300;color:rgba(255,255,255,.8);box-shadow:inset 0 1.5px 0 rgba(255,255,255,.3)}
+.qv-ed{position:absolute;inset:4px;display:grid;place-items:center;border-radius:50%;background:rgba(0,0,0,.55)}
+.qv-ed svg{width:34px;height:34px;fill:none;stroke:#fff;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.qv.eligiendo .qv-p:not(.elegido){opacity:0!important;transform:scale(.85)}
+.qv.eligiendo .qv-p.elegido{transform:scale(1.18)}
+.qv-adm{height:46px;padding:0 24px;border-radius:999px;border:1px solid rgba(255,255,255,.22);background:linear-gradient(160deg,rgba(255,255,255,.22),rgba(255,255,255,.07) 55%,rgba(255,255,255,.14));-webkit-backdrop-filter:blur(18px) saturate(2);backdrop-filter:blur(18px) saturate(2);box-shadow:inset 0 1.5px 0 rgba(255,255,255,.5);color:#fff;font:inherit;font-size:15px;font-weight:700;cursor:pointer}
+
+/* ---- Imagen en imagen (solo app Android con el plugin nuevo) ---- */
+html.pip-ok #player #ppip{display:inline-flex!important}
+html.pip-ok #player #ppip[hidden]{display:inline-flex}
+#ppip{display:none}
+html.pip-ok #player.drive #ppip{display:none!important}
+html.en-pip #player .ctl,html.en-pip #player .vside,html.en-pip #player #peps,html.en-pip #player #pnxt,html.en-pip #player .spin{display:none!important}
+html.en-pip #player #pv{object-fit:contain}
+
+/* ---- Opciones (ajustes del perfil) ---- */
+.pf-opc{margin-top:18px;padding-top:6px;border-top:1px solid rgba(255,255,255,.12)}
+.opc-g{display:flex;flex-direction:column;gap:8px}
+.opc-fila{display:flex;align-items:center;gap:12px;width:100%;padding:12px 14px;border:0;border-radius:18px;background:rgba(255,255,255,.07);color:#fff;font:inherit;text-align:left;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.opc-fila:active{background:rgba(255,255,255,.13)}
+.opc-ic{flex:none;width:36px;height:36px;border-radius:11px;display:grid;place-items:center;background:rgba(255,255,255,.1)}
+.opc-ic svg{width:22px;height:22px;fill:none;stroke:#fff;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.opc-tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.opc-tx b{font-size:15.5px;font-weight:700}
+.opc-tx small{font-size:12.5px;line-height:1.35;color:rgba(255,255,255,.62)}
+.sw{position:relative;flex:none;width:51px;height:31px;border-radius:999px;background:rgba(255,255,255,.22);transition:background .25s}
+.sw::after{content:"";position:absolute;top:2px;left:2px;width:27px;height:27px;border-radius:50%;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.35);transition:transform .3s cubic-bezier(.3,1.5,.5,1)}
+.opc-fila.on .sw{background:#30d158}.opc-fila.on .sw::after{transform:translateX(20px)}
+
+/* ---- Página de Configuración (app) ---- */
+.cfg{position:fixed;inset:0;z-index:120;background:#000;color:#fff;overflow:hidden;transform:translateY(24px);opacity:0;transition:transform .35s cubic-bezier(.2,.9,.3,1),opacity .25s}
+.cfg.on{transform:none;opacity:1}
+.cfg-pag{position:absolute;inset:0;overflow-y:auto;-webkit-overflow-scrolling:touch;background:#000;padding:0 max(18px,env(safe-area-inset-right,0px)) calc(env(safe-area-inset-bottom,0px) + 40px) max(18px,env(safe-area-inset-left,0px));transition:transform .38s cubic-bezier(.2,.9,.3,1),opacity .3s}
+.cfg-pag.entra{transform:translateX(100%);animation:cfgIn .38s cubic-bezier(.2,.9,.3,1) forwards}
+@keyframes cfgIn{to{transform:none}}
+.cfg-pag.cede{transform:translateX(-22%);opacity:.5;transition:transform .38s cubic-bezier(.2,.9,.3,1),opacity .38s}
+.cfg-pag.vuelve{animation:cfgVuelve .38s cubic-bezier(.2,.9,.3,1)}
+@keyframes cfgVuelve{from{transform:translateX(-22%);opacity:.5}to{transform:none;opacity:1}}
+.cfg-pag.sale{z-index:2;transform:translateX(100%);transition:transform .38s cubic-bezier(.2,.9,.3,1)}
+.cfg-pag.quieta{animation:none}
+.cfg-cab{position:sticky;top:0;z-index:3;display:grid;grid-template-columns:48px 1fr 48px;align-items:center;gap:8px;padding:calc(env(safe-area-inset-top,0px) + 12px) 0 14px;background:linear-gradient(#000 80%,transparent)}
+.cfg-cab h1{margin:0;text-align:center;font-size:19px;font-weight:700;letter-spacing:-.01em}
+.cfg-back{width:46px;height:46px;border-radius:50%;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.1);-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);display:grid;place-items:center;color:#fff;cursor:pointer;box-shadow:inset 0 1.5px 0 rgba(255,255,255,.35)}
+.cfg-back svg{width:24px;height:24px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.cfg-cuerpo{display:flex;flex-direction:column;gap:6px;max-width:640px;margin:0 auto}
+.cfg-g{display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
+.cfg-gt{margin:10px 6px 0;font-size:14px;font-weight:600;letter-spacing:.04em;color:rgba(255,255,255,.55)}
+.cfg-card{display:flex;flex-direction:column;border-radius:22px;background:#1c1c1e;overflow:hidden}
+.cfg-fila{position:relative;display:flex;align-items:center;gap:14px;width:100%;min-height:58px;padding:10px 18px;border:0;background:none;color:#fff;font:inherit;text-align:left;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.cfg-fila+.cfg-fila::before{content:"";position:absolute;top:0;left:18px;right:0;height:1px;background:rgba(255,255,255,.1)}
+.cfg-fila:active{background:rgba(255,255,255,.07)}
+.cfg-tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.cfg-tx b{font-size:18px;font-weight:500;line-height:1.25}
+.cfg-tx small{font-size:14.5px;color:rgba(255,255,255,.55);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cfg-fila.azul .cfg-tx b{color:#4c8dff}
+.cfg-fila.rojo .cfg-tx b{color:#ff6b6b}
+.cfg-val{flex:none;color:rgba(255,255,255,.55);font-size:17px}
+.cfg-chev{flex:none;display:grid;place-items:center}
+.cfg-chev svg{width:18px;height:18px;fill:none;stroke:rgba(255,255,255,.4);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.cfg-pie{margin:0 6px;font-size:14px;line-height:1.5;color:rgba(255,255,255,.55)}
+.cfg-sw{position:relative;flex:none;width:62px;height:38px;border-radius:999px;background:rgba(255,255,255,.2);transition:background .25s}
+.cfg-sw::after{content:"";position:absolute;top:3px;left:3px;width:32px;height:32px;border-radius:50%;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.35);transition:transform .3s cubic-bezier(.3,1.5,.5,1)}
+.cfg-fila.on .cfg-sw{background:#3478f6}.cfg-fila.on .cfg-sw::after{transform:translateX(24px)}
+.cfg-perfil .pf-cab{margin-top:0}
+.cfg-perfil .cfg-gt{margin-top:14px;margin-bottom:8px}
+.cfg-cuenta{padding:4px 2px}
+.cfg-cuenta>h2,.cfg-cuenta>.ua-ok{display:none}
 </style>
 <link rel="manifest" href="/manifest.webmanifest">
 <meta name="theme-color" content="#000000">
@@ -1027,6 +1303,8 @@ body.con-q #vista-ped,body.con-q #vista-rec{display:none!important}
 </section>
 
 <div class="sheet" id="sheet" hidden><div class="sp" id="sp"></div></div>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><filter id="bbLente" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB"><feTurbulence type="fractalNoise" baseFrequency="0.011 0.035" numOctaves="2" seed="7" result="n"><animate attributeName="baseFrequency" dur="9s" values="0.011 0.035;0.017 0.046;0.011 0.035" repeatCount="indefinite"/></feTurbulence><feDisplacementMap in="SourceGraphic" in2="n" scale="46" xChannelSelector="R" yChannelSelector="B"/></filter></svg>
+<div id="acceso" class="esperando" aria-label="Iniciar sesión"><div class="ac-top"><div class="ac-w" id="ac-w"></div></div><div class="ac-bot"><button type="button" class="ac-exp" id="ac-exp">Explorar</button></div></div>
 <div class="plsheet" id="planes" hidden role="dialog" aria-modal="true" aria-label="Planes de suscripción"><div class="pl-wrap" id="pl-wrap"></div></div>
 <section id="vista-rec" hidden aria-label="Recientes">
   <h3 class="rt">Recientes</h3>
@@ -1074,29 +1352,38 @@ body.con-q #vista-ped,body.con-q #vista-rec{display:none!important}
   <div class="spin"></div>
   <div class="perr" id="per" hidden></div>
   <div class="ctl ptop">
-    <button class="ib" id="pb" aria-label="Volver"><svg class="st" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg></button>
-    <span class="ptitle" id="pt"></span>
+    <button class="ib gl" id="pb" aria-label="Volver"><svg class="st i-back" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg><svg class="st i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     <span class="grow"></span>
-    <button class="ib" id="ppv" aria-label="Episodio anterior" hidden><svg class="st" viewBox="0 0 24 24"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5"/></svg></button>
-    <button class="ib" id="pnx" aria-label="Episodio siguiente" hidden><svg class="st" viewBox="0 0 24 24"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg></button>
+    <span class="ptitle" id="pt2"></span>
+    <div class="gcap">
+    <button class="ib" id="ppv" aria-label="Episodio anterior" hidden data-ocultar><svg class="st" viewBox="0 0 24 24"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5"/></svg></button>
+    <button class="ib" id="pnx" aria-label="Episodio siguiente" hidden data-ocultar><svg class="st" viewBox="0 0 24 24"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg></button>
+    <button class="ib" id="ppip" aria-label="Imagen en imagen" hidden><svg class="st" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2.5"/><rect x="12" y="11" width="6.5" height="5" rx="1" style="fill:currentColor"/></svg></button>
     <button class="ib" id="ptv" aria-label="Transmitir a la TV"><svg viewBox="0 0 24 24"><path d="M1 18v3h3c0-1.66-1.34-3-3-3zm0-4v2c2.76 0 5 2.24 5 5h2c0-3.87-3.13-7-7-7zm0-4v2c4.97 0 9 4.03 9 9h2c0-6.08-4.93-11-11-11zm20-7H3c-1.1 0-2 .9-2 2v3h2V5h18v14h-7v2h7c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/></svg></button>
+    </div>
   </div>
+  <div class="vside vl" id="pbr" aria-label="Brillo"><div class="vtrk" id="pbr-t"><i id="pbr-f"></i><span class="vic"><svg class="st" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8"/></svg></span></div></div>
+  <div class="vside vr" id="pvl" aria-label="Volumen"><div class="vtrk" id="pvl-t"><i id="pvl-f"></i><button type="button" class="vic" id="pvl-b" aria-label="Silenciar"></button></div></div>
   <div class="ctl pmid">
     <button class="ib big" id="pr" aria-label="Retroceder 10 segundos"><svg class="st" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/><text x="12" y="15.2" font-size="7.2" font-weight="700" text-anchor="middle" font-family="Arial,sans-serif">10</text></svg></button>
     <button class="ib huge" id="pp" aria-label="Reproducir o pausar"></button>
     <button class="ib big" id="pfw" aria-label="Adelantar 10 segundos"><svg class="st" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.13-9.36L23 10"/><text x="12" y="15.2" font-size="7.2" font-weight="700" text-anchor="middle" font-family="Arial,sans-serif">10</text></svg></button>
   </div>
   <div class="ctl pbot">
+    <span class="ptitle" id="pt"></span>
     <div class="prow"><span id="pc">0:00</span><input class="seek" id="ps" type="range" min="0" max="0" step="0.1" value="0" aria-label="Progreso"><span id="pd">0:00</span></div>
     <div class="pact">
-      <button class="ib" id="pm" aria-label="Silenciar"></button>
+      <button class="ib" id="pm" aria-label="Silenciar" data-ocultar></button>
       <button class="ib txt" id="px" aria-label="Velocidad">1x</button>
-      <button class="ib txt" id="pa" aria-label="Relación de aspecto">Ajustar</button>
+      <button class="ib txt" id="pa" aria-label="Relación de aspecto">Auto</button>
       <span class="grow"></span>
+      <button class="ib txt" id="pep" aria-label="Episodios"><svg class="st" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 21h8M12 17v4"/></svg><span>Episodios</span></button>
+      <button class="ib txt" id="pnxb" aria-label="Siguiente episodio" hidden><svg class="st" viewBox="0 0 24 24"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg><span>Siguiente ep.</span></button>
       <button class="ib" id="pfs" aria-label="Pantalla completa"><svg class="st" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
     </div>
   </div>
 
+  <div id="peps" aria-label="Episodios"><div class="pe-h"><b id="pe-n">Episodios</b><div class="pe-t" id="pe-t"></div></div><div class="pe-l" id="pe-l"></div><button type="button" class="ib" id="pe-x" aria-label="Cerrar episodios"><svg class="st" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
   <div id="pnxt" hidden role="status">
     <small>Siguiente episodio</small>
     <b id="pnxt-t"></b>
@@ -1648,7 +1935,32 @@ todas().forEach(p => tarjetas.set(p, crearTarjeta(p)));
 ordenar();
 
 let abierta = null;
-function abrir(p, src) {                             // al tocar una película se abre su ficha (con datos de TMDB)
+const calientes = new Set();
+function calentar(url) {                                  // abre la conexión (DNS + TLS) con el servidor del video antes de reproducir
+  try {
+    const o = new URL(url, location.href).origin;
+    if (o === location.origin || calientes.has(o)) return;
+    calientes.add(o); setTimeout(() => calientes.delete(o), 8000);   // la conexión se enfría: se repite si hace falta
+    const l = document.createElement('link'); l.rel = 'preconnect'; l.href = o; document.head.appendChild(l);
+    setTimeout(() => l.remove(), 9000);
+  } catch (e) {}
+}
+/* Precarga: al abrir la ficha de una película, si se queda ahí un momento, el video empieza a bajar (sin sonido ni pantalla) para que al darle «Ver ahora» arranque antes.
+   No se hace con enlaces de Drive ni de lista (m3u8), con ahorro de datos o red lenta, ni si la película se retoma a la mitad. Se suelta al reproducir o a los 25 s. */
+let preV = null, preT = 0, preFin = 0;
+function soltarPre() { clearTimeout(preT); clearTimeout(preFin); if (preV) { try { preV.removeAttribute('src'); preV.load(); } catch (e) {} preV = null; } }
+function precargar(p) {
+  soltarPre();
+  const url = p && p.link; if (!url || /[{}]/.test(url) || /\.m3u8|drive\.google\.com|\/d\//i.test(url)) return;
+  const c = navigator.connection; if (c && (c.saveData || /(^|-)2g$/.test(c.effectiveType || ''))) return;
+  try { if (leerProg()[p.titulo]) return; } catch (e) {}
+  preT = setTimeout(() => {
+    preV = document.createElement('video'); preV.muted = true; preV.preload = 'auto'; preV.setAttribute('playsinline', ''); preV.src = url;
+    preFin = setTimeout(soltarPre, 25000);
+  }, 600);
+}
+function abrir(p, src) {
+  if (p && p.link) { calentar(p.link); precargar(p); }                             // al tocar una película se abre su ficha (con datos de TMDB)
   if (!p) return;
   cerrarBusqueda();
   volverY = scrollY; detHist = true; fuenteVT = src || null;
@@ -1695,6 +2007,7 @@ function ponerTitulo(p, logoEl, tEl) {                    // logo del título (T
    Android: navigator.vibrate (solo se controla la duración, así que "marcado" es un doble pulso).
    iPhone/iPad: Safari no vibra desde una página; se usa el toque suave de un interruptor oculto (iOS 17.4 o más nuevo).
    Niveles:  suave = navegar y tocar tarjetas · medio = acciones principales · marcado = momentos importantes. */
+const VIBRACION = false;     // false = la página no vibra por su cuenta (quedan solo las vibraciones propias de Android). true = vuelve la vibración al tocar
 const HAPT = (() => {
   const tactil = matchMedia('(pointer:coarse)').matches, hayVibrar = typeof navigator.vibrate === 'function';
   const PAT = { suave: 14, medio: 26, marcado: [40, 55, 40] };
@@ -1712,15 +2025,15 @@ const HAPT = (() => {
     lbl.click();
   }
   return {
-    disponible: tactil && !reducido(),
+    disponible: VIBRACION && tactil && !reducido(),
     activo: () => on,
     poner(v) { on = !!v; try { localStorage.setItem('bb_hapt', on ? '1' : '0'); } catch (e) {} },
     tick() {                                                                  // clic corto al pasar de una tarjeta a otra
-      if (!on || !tactil || reducido()) return;
+      if (!VIBRACION || !on || !tactil || reducido()) return;
       try { const h = nativo(); if (h) h.impact({ style: 'LIGHT' }); else if (hayVibrar) navigator.vibrate(8); } catch (e) {}
     },
     tocar(n) {
-      if (!on || !tactil || reducido()) return;
+      if (!VIBRACION || !on || !tactil || reducido()) return;
       try {
         const h = nativo();
         if (h) { if (n === 'marcado') h.notification({ type: 'SUCCESS' }); else h.impact({ style: n === 'medio' ? 'MEDIUM' : 'LIGHT' }); return; }
@@ -1742,7 +2055,7 @@ document.addEventListener('click', e => {
 document.addEventListener('contextmenu', e => { if (!(e.target.closest && e.target.closest('input, textarea, [contenteditable]'))) e.preventDefault(); });
 document.addEventListener('dragstart', e => e.preventDefault());
 /* Carruseles: un clic suave cada vez que pasa una tarjeta (como los selectores de iPhone) y al soltar la barra de avance */
-(() => {
+if (VIBRACION) (() => {
   const ult = new WeakMap(), paso = new WeakMap(); let t0 = 0;
   document.addEventListener('scroll', e => {
     const t = e.target;
@@ -1873,7 +2186,7 @@ const ICON = {
   mute: '<svg class="st" viewBox="0 0 24 24"><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5H4z" style="fill:currentColor"/><path d="M16 9.5l5 5M21 9.5l-5 5"/></svg>'
 };
 const VEL = [1, 1.25, 1.5, 2, 0.75];
-let hideT, dragging = false, hls = null, fsAuto = false, vi = 0, actualP = null, actualEp = null, reanudar = 0, ultGuardado = 0;
+let swipeFlag = false, ajustando = false, hideT, dragging = false, hls = null, fsAuto = false, vi = 0, actualP = null, actualEp = null, reanudar = 0, ultGuardado = 0;
 let tvModo = null, tvPeli = null, tvUrl = '', tvBloq = false;   // transmisión a TV: null | 'cast' | 'el'
 
 const fmt = s => { s = Math.max(0, Math.floor(s || 0)); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60;
@@ -1883,7 +2196,7 @@ const duracion = () => isFinite(V.duration) ? V.duration : 0;
 
 function showC() {
   pl.classList.add('c'); clearTimeout(hideT);
-  if (!V.paused && !dragging) hideT = setTimeout(() => pl.classList.remove('c'), 3000);
+  if (!V.paused && !dragging && !pl.classList.contains('eps') && !ajustando) hideT = setTimeout(() => pl.classList.remove('c'), pl.classList.contains('eps') ? 99999 : 3000);
 }
 function hideC() { clearTimeout(hideT); pl.classList.remove('c'); }
 function sync() {
@@ -1931,6 +2244,8 @@ async function horizontal() {
 }
 function iniciar(p, url, sinHist) {
   const id = driveId(url);
+  clearTimeout(preT); clearTimeout(preFin); if (preV) preFin = setTimeout(soltarPre, 20000);   // se deja bajar un rato más: el reproductor usa la misma conexión/caché
+  if (!id) calentar(url);
   actualP = id ? null : p;                       // los videos de Drive no permiten medir el avance
   tvPeli = p; tvUrl = url;
   const g = id ? null : leerProg()[p.titulo];
@@ -1957,11 +2272,38 @@ function reproducir(p) {                               // el acceso lo da la cue
   iniciar(p, p.link);
 }
 
-/* Relación de aspecto: Ajustar = se ve completo (barras negras); Llenar = cubre la pantalla recortando bordes. Nunca deforma. */
-let fit = 'contain';
-try { if (localStorage.getItem('bbfit') === 'cover') fit = 'cover'; } catch (e) {}
-function aplicarFit() { V.style.objectFit = fit; H('pa').textContent = fit === 'cover' ? 'Llenar' : 'Ajustar'; }
-H('pa').onclick = () => { fit = fit === 'cover' ? 'contain' : 'cover'; try { localStorage.setItem('bbfit', fit); } catch (e) {} aplicarFit(); };
+/* Relación de aspecto. Automático = la original del archivo (la más común, sin deformar). Las demás fuerzan la proporción estándar de cine/TV
+   (como VLC: sirve cuando un archivo viene mal marcado); "Llenar" cubre la pantalla recortando bordes. */
+const ASPECTOS = [
+  { k: 'auto', n: 'Automático', c: 'Auto' },
+  { k: '16:9', n: '16:9', r: 16 / 9, d: 'HD / TV estándar' },
+  { k: '1.85', n: '1.85:1', r: 1.85, d: 'Cine panorámico' },
+  { k: '2.39', n: '2.39:1', r: 2.39, d: 'Cinemascope' },
+  { k: '21:9', n: '21:9', r: 21 / 9, d: 'Ultrapanorámico' },
+  { k: '4:3', n: '4:3', r: 4 / 3, d: 'TV clásica' },
+  { k: 'fill', n: 'Llenar pantalla', c: 'Llenar', d: 'Recorta los bordes' }
+];
+let fit = 'auto';
+try { const g = localStorage.getItem('bbfit'); fit = g === 'cover' ? 'fill' : (ASPECTOS.some(x => x.k === g) ? g : 'auto'); } catch (e) {}
+function aspectoActual() { return ASPECTOS.find(x => x.k === fit) || ASPECTOS[0]; }
+function aspectoOriginal() { return V.videoWidth && V.videoHeight ? V.videoWidth / V.videoHeight : 0; }
+function aspectoTexto(r) { if (!r) return ''; const e = ASPECTOS.find(x => x.r && Math.abs(x.r - r) < 0.04); return e ? e.n : r.toFixed(2) + ':1'; }
+function aplicarFit() {
+  const a = aspectoActual(), st = V.style, box = V.parentElement && V.parentElement.getBoundingClientRect();
+  if (a.r && box && box.width) {
+    let w = box.width, h = w / a.r;
+    if (h > box.height) { h = box.height; w = h * a.r; }
+    st.objectFit = 'fill'; st.width = w + 'px'; st.height = h + 'px'; st.inset = '0'; st.margin = 'auto';
+  } else {
+    st.objectFit = fit === 'fill' ? 'cover' : 'contain'; st.width = ''; st.height = ''; st.inset = ''; st.margin = '';
+  }
+  H('pa').textContent = a.c || a.n;
+}
+function ponerAspecto(k) { fit = k; try { localStorage.setItem('bbfit', fit); } catch (e) {} aplicarFit(); }
+H('pa').onclick = () => { const i = ASPECTOS.findIndex(x => x.k === fit); ponerAspecto(ASPECTOS[(i + 1) % ASPECTOS.length].k); };
+window.addEventListener('resize', () => { if (aspectoActual().r) aplicarFit(); });
+V.addEventListener('loadedmetadata', () => { aplicarFit(); if (cfgEl) cfgRender(); });
+V.addEventListener('playing', () => { if (aspectoActual().r) aplicarFit(); });
 aplicarFit();
 
 function cerrarPlayer(desdePop) {
@@ -1970,7 +2312,7 @@ function cerrarPlayer(desdePop) {
   actualEp = null; pl.classList.remove('serie'); ocultarNxt();
   tvCerrar();
   if (detActual && !vistas.det.hidden) pintarDetalle(detActual);                 // la ficha de la serie actualiza "Continuar T1 E2" y los capítulos vistos
-  pl.hidden = true; clearTimeout(hideT); pl.classList.remove('c', 'wait', 'ini');
+  pl.hidden = true; clearTimeout(hideT); pl.classList.remove('c', 'wait', 'ini', 'eps');
   V.pause(); if (hls) { hls.destroy(); hls = null; }
   V.removeAttribute('src'); V.load(); H('pdrive').innerHTML = '';
   document.body.style.overflow = '';
@@ -2004,6 +2346,7 @@ H('pp').onclick = alternar;
 H('pr').onclick = () => saltar(-10);
 H('pfw').onclick = () => saltar(10);
 H('pb').onclick = () => cerrarPlayer();
+H('ppip').onclick = () => { if (window.bbPip) window.bbPip().catch(() => {}); };
 H('pm').onclick = () => { V.muted = !V.muted; H('pm').innerHTML = V.muted ? ICON.mute : ICON.vol; };
 H('px').onclick = () => { vi = (vi + 1) % VEL.length; V.playbackRate = VEL[vi]; H('px').textContent = VEL[vi] + 'x'; };
 H('pfs').onclick = () => {
@@ -2012,8 +2355,8 @@ H('pfs').onclick = () => {
 };
 /* tocar fuera de los controles los oculta / los muestra */
 pl.addEventListener('click', e => {
-  if (pl.classList.contains('drive')) return;
-  if (e.target.closest('button,input')) { showC(); return; }
+  if (pl.classList.contains('drive') || swipeFlag) return;
+  if (e.target.closest('button,input,.vside,#peps')) { showC(); return; }
   if (pl.classList.contains('c')) hideC(); else showC();
 });
 document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && fsAuto) { fsAuto = false; cerrarPlayer(); } });
@@ -2516,6 +2859,7 @@ function marcarDock(v) {
     const on = b.dataset.v === v; b.classList.toggle('on', on);
     if (on) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
   });
+  if (window.posicionarVidrio) window.posicionarVidrio();
 }
 function ponerModo(m) {                              // el inicio sirve para Películas y para Series
   const cambio = m !== modo; modo = m;
@@ -2565,7 +2909,76 @@ function pintarRecientes() {
   H('rec-grid').replaceChildren(...lista.map(tCol));
   H('rec-vacio').hidden = !!lista.length; H('rec-grid').hidden = !lista.length;
 }
-document.querySelectorAll('#dock .dk[data-v]').forEach(b => b.addEventListener('click', () => { cerrarBusqueda(); irA(b.dataset.v); }));
+document.querySelectorAll('#dock .dk[data-v]').forEach(b => b.addEventListener('click', () => { if (window.posicionarVidrio) window.posicionarVidrio(b); cerrarBusqueda(); irA(b.dataset.v); }));
+/* Efectos ajustables desde admin > Efectos (rebote, velocidad, intensidad y desenfoque del cristal) */
+const EF = { rebote: 30, velocidad: 60, intensidad: 60, desenfoque: 3, agrandar: 12, estirar: 50, panel: 28 };
+{ const ex = window.EFECTOS_EXTRA || {}; for (const k in EF) { const n = Number(ex[k]); if (ex[k] !== undefined && ex[k] !== '' && isFinite(n)) EF[k] = n; } }
+{ const r = document.documentElement.style;
+  r.setProperty('--vg-ov', (1 + EF.rebote * .012).toFixed(3)); r.setProperty('--vg-dur', (1 - EF.velocidad * .0075).toFixed(3) + 's');
+  r.setProperty('--vg-int', (EF.intensidad / 60).toFixed(3)); r.setProperty('--vg-blur', EF.desenfoque + 'px'); r.setProperty('--ac-blur', EF.panel + 'px'); }
+/* Cristal deslizante de la barra inferior: se mueve con rebote al cambiar de sección y se puede arrastrar con el dedo */
+(() => {
+  const dock = H('dock'), g = document.createElement('i');
+  g.id = 'dkglass'; g.setAttribute('aria-hidden', 'true'); dock.prepend(g);
+  const gf = document.createElement('i'); gf.className = 'dkfondo'; gf.setAttribute('aria-hidden', 'true'); dock.prepend(gf);
+  const movil = () => matchMedia('(max-width:820px)').matches;
+  const tabs = () => [...dock.querySelectorAll('.dk[data-v]')].filter(b => !b.hidden && b.offsetWidth);
+  const activa = () => dock.querySelector('.dk[data-v].on');
+  const num = v => parseFloat(g.style.getPropertyValue(v)) || 0;
+  let primera = true, arr = null, noClic = 0;
+  function poner(tab, animar = true) {
+    if (!movil()) return;
+    if (!tab || !tab.offsetWidth) { g.classList.remove('on'); return; }
+    const seco = primera || !animar;
+    if (seco) g.classList.add('sin');
+    g.style.setProperty('--gx', tab.offsetLeft + 'px'); g.style.setProperty('--gw', tab.offsetWidth + 'px');
+    g.classList.add('on');
+    if (seco) { void g.offsetWidth; g.classList.remove('sin'); primera = false; }
+  }
+  window.posicionarVidrio = tab => poner(tab || activa());
+  new ResizeObserver(() => poner(activa(), false)).observe(dock);
+  addEventListener('load', () => poner(activa(), false));
+  poner(activa(), false);
+
+  dock.addEventListener('pointerdown', e => {                       // se arrastra desde la sección activa (donde está el cristal)
+    if (!movil() || e.button > 0) return;
+    const t = e.target.closest && e.target.closest('.dk[data-v]');
+    if (!t || !t.classList.contains('on')) return;
+    const ts = tabs();
+    arr = { id: e.pointerId, x0: e.clientX, gx0: t.offsetLeft, ts, r: ts.map(b => ({ l: b.offsetLeft, w: b.offsetWidth })), on: false, last: e.clientX, lt: performance.now() };
+  });
+  const bajo = (a, cx) => { const i = a.r.findIndex(z => cx >= z.l && cx < z.l + z.w); return i < 0 ? (cx < a.r[0].l ? 0 : a.r.length - 1) : i; };
+  dock.addEventListener('pointermove', e => {
+    const a = arr; if (!a || e.pointerId !== a.id) return;
+    const dx = e.clientX - a.x0;
+    if (!a.on) {
+      if (Math.abs(dx) < 8) return;
+      a.on = true; g.classList.add('drag'); dock.classList.add('arr');
+      g.style.setProperty('--gsx', (1 + EF.agrandar / 100).toFixed(3)); g.style.setProperty('--gsy', (1 + EF.agrandar / 100 + .02).toFixed(3));
+      try { dock.setPointerCapture(e.pointerId); } catch (_) {}
+    }
+    const w = num('--gw'), x = Math.max(a.r[0].l, Math.min(a.r[a.r.length - 1].l + a.r[a.r.length - 1].w - w, a.gx0 + dx));
+    g.style.setProperty('--gx', x + 'px');
+    const t = performance.now(), vx = Math.abs(e.clientX - a.last) / Math.max(1, t - a.lt); a.last = e.clientX; a.lt = t;
+    const st = Math.min(.2, vx * .12) * (EF.estirar / 50), lf = EF.agrandar / 100;      // se estira según la velocidad, como gelatina
+    g.style.setProperty('--gsx', (1 + lf + st).toFixed(3)); g.style.setProperty('--gsy', (1 + lf + .02 - st * .5).toFixed(3));
+    const i = bajo(a, x + w / 2); a.ts.forEach((b, k) => b.classList.toggle('previa', k === i));
+  });
+  function fin(e) {
+    const a = arr; if (!a || e.pointerId !== a.id) return; arr = null;
+    if (!a.on) return;
+    g.classList.remove('drag'); dock.classList.remove('arr');
+    g.style.setProperty('--gsx', '1'); g.style.setProperty('--gsy', '1');
+    a.ts.forEach(b => b.classList.remove('previa'));
+    noClic = performance.now() + 400;
+    const dest = e.type === 'pointerup' ? a.ts[bajo(a, num('--gx') + num('--gw') / 2)] : activa();
+    poner(dest);
+    if (e.type === 'pointerup' && dest && !dest.classList.contains('on')) { cerrarBusqueda(); irA(dest.dataset.v); }
+  }
+  dock.addEventListener('pointerup', fin); dock.addEventListener('pointercancel', fin);
+  dock.addEventListener('click', e => { if (performance.now() < noClic) { e.stopPropagation(); e.preventDefault(); } }, true);
+})();
+
 H('brand').addEventListener('click', e => { e.preventDefault(); cerrarBusqueda(); irA('inicio'); });
 matchMedia('(max-width:820px)').addEventListener('change', () => { if (orden.length) mostrar(idx); if (detActual && !vistas.det.hidden) pintarDetalle(detActual); });
 
@@ -2681,6 +3094,7 @@ function iniciarEp(p, t, e, sinHist) {
 function actualizarNavEp() {
   if (!actualEp) return;
   H('ppv').hidden = !anteriorDe(actualEp.serie, actualEp.t, actualEp.e); H('pnx').hidden = !siguienteDe(actualEp.serie, actualEp.t, actualEp.e);
+  H('pnxb').hidden = H('pnx').hidden;
 }
 function irEp(dir) {
   if (!actualEp) return;
@@ -2695,12 +3109,108 @@ function mostrarSiguiente() {                        // al terminar un capítulo
   const d = datosEp(actualEp.serie, n.t, n.e);
   H('pnxt-t').textContent = 'T' + n.t + ' E' + n.e + (d && d.nombre ? ' · ' + d.nombre : '');
   let s = 8; H('pnxt-ok').textContent = 'Reproducir (' + s + ')'; H('pnxt').hidden = false; clearInterval(nxtT);
+  if (!opcGet('sig', true)) { H('pnxt-ok').textContent = 'Reproducir'; return; }       // opción desactivada: se espera a que lo elijas
   nxtT = setInterval(() => { s--; if (s <= 0) { ocultarNxt(); irEp(1); } else H('pnxt-ok').textContent = 'Reproducir (' + s + ')'; }, 1000);
 }
 H('pnxt-ok').onclick = () => { ocultarNxt(); irEp(1); };
 H('pnxt-no').onclick = ocultarNxt;
 H('ppv').onclick = () => irEp(-1);
 H('pnx').onclick = () => irEp(1);
+H('pnxb').onclick = () => { pl.classList.remove('eps'); irEp(1); };
+
+
+/* ---- Reproductor en la app: brillo (izquierda) y volumen (derecha) al deslizar por esas zonas + panel de episodios ---- */
+const enApp = document.documentElement.classList.contains('en-app');
+const tVer = {};
+const verSlider = id => { clearTimeout(tVer[id]); H(id).classList.add('show'); };
+const sombraSlider = id => { clearTimeout(tVer[id]); tVer[id] = setTimeout(() => H(id).classList.remove('show'), 900); };
+function vSlider(id, valor, alCambiar) {                    // deslizador vertical de cristal: el relleno sube con el dedo
+  const w = H(id), tr = w.querySelector('.vtrk'), f = w.querySelector('i');
+  const pintar = v => { f.style.height = (v * 100) + '%'; };
+  const poner = (e) => { const r = tr.getBoundingClientRect(); const v = Math.min(1, Math.max(0, 1 - (e.clientY - r.top) / r.height)); pintar(v); alCambiar(v); };
+  tr.addEventListener('pointerdown', e => { if (e.target.closest('button')) return; ajustando = true; verSlider(id); tr.setPointerCapture(e.pointerId); poner(e); tr.classList.add('act'); });
+  tr.addEventListener('pointermove', e => { if (ajustando && tr.hasPointerCapture(e.pointerId)) poner(e); });
+  const fin = () => { if (!ajustando) return; ajustando = false; tr.classList.remove('act'); sombraSlider(id); };
+  tr.addEventListener('pointerup', fin); tr.addEventListener('pointercancel', fin);
+  pintar(valor); return pintar;
+}
+let brillo = 0.58;                                          // 0..1  →  el video se ve de 30 % a 150 % (58 % = brillo normal)
+try { const b = parseFloat(localStorage.getItem('bbbrillo')); if (b >= 0 && b <= 1) brillo = b; } catch (e) {}
+let brilloNativo = null;                                    // null = aún no se sabe; true = brillo real de la pantalla; false = oscurecido del video
+const filtroBrillo = v => { V.style.filter = 'brightness(' + (0.3 + v * 1.2).toFixed(2) + ')'; };
+const aplicarBrillo = v => {
+  brillo = v;
+  if (window.bbBrillo && brilloNativo !== false) window.bbBrillo(v).then(() => { brilloNativo = true; V.style.filter = ''; }).catch(() => { brilloNativo = false; filtroBrillo(v); });
+  else { filtroBrillo(v); try { localStorage.setItem('bbbrillo', v.toFixed(2)); } catch (e) {} }
+};
+const ponerVol = v => { V.volume = v; V.muted = v === 0; };
+let pintarBr = () => {}, pintarVol = () => {};
+if (enApp) {
+  if (!window.bbBrillo) filtroBrillo(brillo);
+  pintarBr = vSlider('pbr', brillo, aplicarBrillo);
+  pintarVol = vSlider('pvl', V.muted ? 0 : V.volume, ponerVol);
+  const icoVol = () => { H('pvl-b').innerHTML = (V.muted || V.volume === 0) ? ICON.mute : ICON.vol; pintarVol(V.muted ? 0 : V.volume); };
+  V.addEventListener('volumechange', icoVol); icoVol();
+  H('pvl-b').onclick = () => { if (V.muted || V.volume === 0) { V.muted = false; if (V.volume === 0) V.volume = .6; } else V.muted = true; };
+  // título también arriba al centro (copia del de abajo)
+  new MutationObserver(() => { H('pt2').textContent = H('pt').textContent; }).observe(H('pt'), { childList: true, characterData: true, subtree: true });
+  // deslizar el dedo en vertical por el borde izquierdo (brillo) o derecho (volumen), como en Netflix / MX Player
+  let zona = null, x0 = 0, y0 = 0, v0 = 0, activo = false, pid = null;
+  pl.addEventListener('pointerdown', e => {
+    zona = null;
+    if (pl.classList.contains('drive') || pl.classList.contains('eps') || e.target.closest('button,input,.vtrk')) return;
+    const r = pl.getBoundingClientRect(), fx = (e.clientX - r.left) / r.width;
+    zona = fx < .25 ? 'pbr' : fx > .75 ? 'pvl' : null; if (!zona) return;
+    x0 = e.clientX; y0 = e.clientY; pid = e.pointerId; activo = false; v0 = zona === 'pbr' ? brillo : (V.muted ? 0 : V.volume);
+    if (zona === 'pbr' && window.bbBrilloActual && brilloNativo !== false) window.bbBrilloActual().then(v => { brilloNativo = true; if (!activo) { brillo = v; v0 = v; pintarBr(v); } }).catch(() => { brilloNativo = false; });
+  });
+  pl.addEventListener('pointermove', e => {
+    if (!zona || e.pointerId !== pid) return;
+    const dy = e.clientY - y0, dx = e.clientX - x0;
+    if (!activo) { if (Math.abs(dy) < 12 || Math.abs(dy) < Math.abs(dx) * 1.2) return; activo = true; ajustando = true; clearTimeout(hideT); try { pl.setPointerCapture(pid); } catch (_) {} }
+    const v = Math.min(1, Math.max(0, v0 - dy / (pl.clientHeight * .55)));
+    if (zona === 'pbr') { pintarBr(v); aplicarBrillo(v); } else { pintarVol(v); ponerVol(v); }
+    verSlider(zona);
+  });
+  const fin = e => {
+    if (!zona || (e && e.pointerId !== pid)) return;
+    if (activo) { swipeFlag = true; setTimeout(() => { swipeFlag = false; }, 350); sombraSlider(zona); ajustando = false; }
+    zona = null; activo = false;
+  };
+  pl.addEventListener('pointerup', fin); pl.addEventListener('pointercancel', fin);
+}
+
+let eraPlay = false;                                        // al abrir los episodios el video se pausa; al salir sin elegir vuelve a reproducirse
+function cerrarEps(reanudar) {
+  pl.classList.remove('eps');
+  if (reanudar && eraPlay && V.paused) V.play().catch(() => {});
+  eraPlay = false; showC();
+}
+async function pintarPanelEps(t) {
+  if (!actualEp) return;
+  const p = actualEp.serie, ts = temporadasDe(p), lista = H('pe-l'), chips = H('pe-t');
+  chips.replaceChildren(...(ts.length > 1 ? ts.map(x => { const b = mk('button', 'pe-c' + (x.n === t ? ' on' : ''), 'T' + x.n); b.type = 'button'; b.onclick = () => pintarPanelEps(x.n); return b; }) : []));
+  const n = (ts.find(x => x.n === t) || {}).eps || 0;
+  const datos = (await temporadaEps(p, t)) || [];
+  if (!actualEp || actualEp.serie !== p) return;
+  const eps = n ? Array.from({ length: n }, (_, i) => datos.find(x => x.e === i + 1) || { e: i + 1 }) : datos;
+  const g = leerProg(); let actual = null;
+  lista.replaceChildren(...eps.map(d => {
+    const b = mk('button', 'pe-ep' + (actualEp.t === t && actualEp.e === d.e ? ' now' : '')); b.type = 'button'; b.disabled = !linkEp(p, t, d.e);
+    const th = mk('i', 'pe-th'); if (d.still) th.style.backgroundImage = 'url("' + d.still + '")'; else th.textContent = d.e;
+    const pr = g[clavEp(p, t, d.e)]; if (pr && pr.d) { const bar = mk('span', 'pe-bar'), r = mk('i'); r.style.width = Math.min(100, pr.t / pr.d * 100) + '%'; bar.appendChild(r); th.appendChild(bar); }
+    b.append(th, mk('b', '', d.e + '. ' + (d.nombre || 'Episodio ' + d.e)), mk('small', '', d.min ? d.min + ' min' : ''));
+    b.onclick = () => {
+      if (actualEp.t === t && actualEp.e === d.e) { cerrarEps(true); return; }       // el mismo capítulo: solo se sale y sigue
+      pl.classList.remove('eps'); eraPlay = false; guardar(true); iniciarEp(p, t, d.e, true);
+    };
+    if (b.classList.contains('now')) actual = b;
+    return b;
+  }));
+  if (actual) lista.scrollLeft = actual.offsetLeft - 24;
+}
+H('pep').onclick = () => { if (!actualEp) return; eraPlay = !V.paused; V.pause(); clearTimeout(hideT); pl.classList.add('c', 'eps'); pintarPanelEps(actualEp.t); };
+H('pe-x').onclick = () => cerrarEps(true);
 
 /* ---- Ficha de la serie: temporadas y lista de capítulos ---- */
 const tempSel = new Map();
@@ -2920,7 +3430,7 @@ async function api(ruta, cuerpo) {
 const el = (t, c, x) => { const n = document.createElement(t); if (c) n.className = c; if (x !== undefined) n.textContent = x; return n; };
 /* hoja inferior estilo iOS (confirmar compra / mostrar datos) */
 const hoja = nodos => { H('sp').replaceChildren(...nodos); H('sheet').hidden = false; };
-const cerrarHoja = () => { H('sheet').hidden = true; };
+const cerrarHoja = () => { H('sheet').hidden = true; if (typeof cerrarConfig === 'function') cerrarConfig(true); };
 H('sheet').addEventListener('click', e => { if (e.target === H('sheet')) cerrarHoja(); });
 /* ---------- Cuenta de usuario (correo + contraseña) ----------
    Se abre desde el botón de configuración (engrane) del encabezado. Guarda en la cuenta lo que hoy vive solo en este
@@ -2930,6 +3440,7 @@ let uModo = 'entrar', uPush = 0;
 /* ---------- Planes y acceso por tiempo ----------
    Cada cuenta tiene una fecha de vencimiento (la manejas en /admin.html con códigos canjeables).
    Sin acceso vigente no se puede reproducir y se muestran los planes.  Cambia aquí los textos y precios. */
+const PANTALLA_ACCESO = 'app';        // 'app' = pantalla de inicio de sesión a pantalla completa solo en la app · 'siempre' = también en el navegador · 'nunca' = como antes
 const ACCESO_POR_CUENTA = true;       // false = no se pide cuenta ni tiempo para ver (todo como antes)
 const CONTACTO_URL = '';              // enlace para pedir un código (por ejemplo WhatsApp: https://wa.me/52XXXXXXXXXX). Vacío = no se muestra el botón
 const PLANES = [
@@ -2986,10 +3497,52 @@ function abrirPlanes(motivo, p, ep) {      // motivo: 'sinsesion' | 'vencido' | 
   H('planes').hidden = false;
 }
 H('planes').addEventListener('click', e => { if (e.target === H('planes')) cerrarPlanes(); });
-function sinAcceso(p, ep) { abrirPlanes(!U.correo ? 'sinsesion' : (uVigente() || porVales()) ? 'nolista' : (U.acceso && U.acceso.vence) ? 'vencido' : 'sinacceso', p, ep); }
+function sinAcceso(p, ep) { if (accesoActivo() && !U.correo && U.servicio === true) { mostrarAcceso(); return; } abrirPlanes(!U.correo ? 'sinsesion' : (uVigente() || porVales()) ? 'nolista' : (U.acceso && U.acceso.vence) ? 'vencido' : 'sinacceso', p, ep); }
 
-const uLocal = () => ({ prog: leerProg(), vis: leerVistos() });
-function uFusionar(a, b) {                              // a = este dispositivo, b = cuenta; en cada película gana lo más reciente
+/* ---------- Perfiles (solo en la app): cada perfil tiene su nombre, su avatar y su propio "Continuar viendo" / capítulos vistos.
+   El perfil activo vive en bbprog/bbsvis (así todo lo demás sigue igual); los demás se guardan aparte en bbpd:<id>. Se sincronizan con la cuenta. ---------- */
+const PERF_MAX = 5;
+let perfPreguntado = false;                              // la pantalla «¿Quién está viendo?» sale una vez por sesión de la app
+const PERF_AV = ['🦊', '🐼', '🐯', '🦁', '🐙', '🦄', '🐸', '🐵', '👾', '🚀', '🎬', '🍿'];
+const PERF_COL = ['#ff5a5f', '#ff9f0a', '#30d158', '#32ade6', '#5e5ce6', '#bf5af2', '#ff6bb5', '#8e8e93'];
+const perfNuevo = () => ({ lista: [{ id: 'p1', nombre: 'Principal', av: '🦊', c: 3, f: 0 }], activo: 'p1', del: [] });
+let PERF = (() => { try { const o = JSON.parse(localStorage.getItem('bbperf')); if (o && Array.isArray(o.lista) && o.lista.length) { o.del = o.del || []; return o; } } catch (e) {} return perfNuevo(); })();
+const perfGuardar = () => { try { localStorage.setItem('bbperf', JSON.stringify(PERF)); } catch (e) {} if (window.bbSync) window.bbSync(); };
+const perfActual = () => PERF.lista.find(p => p.id === PERF.activo) || PERF.lista[0];
+const perfOn = () => esApp() && !!U.correo;
+const perfStash = id => { try { return JSON.parse(localStorage.getItem('bbpd:' + id)) || { prog: {}, vis: {} }; } catch (e) { return { prog: {}, vis: {} }; } };
+const perfPonerStash = (id, d) => { try { localStorage.setItem('bbpd:' + id, JSON.stringify(d)); } catch (e) {} };
+const perfTodos = () => { const pp = {}; PERF.lista.forEach(p => { pp[p.id] = p.id === PERF.activo ? { prog: leerProg(), vis: leerVistos() } : perfStash(p.id); }); return pp; };
+function perfLimpiar() {                                    // al cerrar sesión: el siguiente que use el dispositivo empieza limpio
+  try { Object.keys(localStorage).filter(k => k.startsWith('bbpd:') || k === 'bbperf').forEach(k => localStorage.removeItem(k)); } catch (e) {}
+  PERF = perfNuevo(); perfPreguntado = false; perfBtn();
+}
+function perfAvatar(p, t) {
+  const a = el('span', 'pav', p.av || '🦊'); a.style.setProperty('--t', (t || 34) + 'px');
+  const c = PERF_COL[p.c % PERF_COL.length] || PERF_COL[0]; a.style.background = 'radial-gradient(120% 120% at 25% 15%,rgba(255,255,255,.45),transparent 55%),' + c;
+  return a;
+}
+const ICO_USR = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>';
+function perfBtn() {                                        // el botón de cuenta muestra el avatar del perfil activo
+  const u = document.querySelector('#ajustes .uic'); if (!u) return;
+  if (perfOn()) { u.classList.add('pf'); u.replaceChildren(perfAvatar(perfActual(), 30)); H('aj-t').textContent = perfActual().nombre; }
+  else if (u.classList.contains('pf')) { u.classList.remove('pf'); u.innerHTML = ICO_USR; }
+}
+function perfCambiar(id) {
+  if (id === PERF.activo || !PERF.lista.some(p => p.id === id)) return;
+  perfPonerStash(PERF.activo, { prog: leerProg(), vis: leerVistos() });
+  perfCargar(id);
+}
+function perfCargar(id) {                                   // pone el perfil id como activo (su progreso pasa a bbprog/bbsvis)
+  const d = perfStash(id);
+  try { localStorage.setItem('bbprog', JSON.stringify(d.prog || {})); localStorage.setItem('bbsvis', JSON.stringify(d.vis || {})); localStorage.removeItem('bbpd:' + id); } catch (e) {}
+  PERF.activo = id; perfGuardar(); perfBtn();
+  actualizarCont(); if (detActual && !vistas.det.hidden) pintarDetalle(detActual);
+}
+const uLocal = () => esApp()
+  ? ({ prog: leerProg(), vis: leerVistos(), perf: { lista: PERF.lista, activo: PERF.activo, del: PERF.del }, pp: perfTodos() })
+  : ({ prog: leerProg(), vis: leerVistos() });
+function fusPD(a, b) {                                  // a = este dispositivo, b = cuenta; en cada película gana lo más reciente
   const prog = { ...a.prog };
   for (const k in (b.prog || {})) if (!prog[k] || (b.prog[k].f || 0) > (prog[k].f || 0)) prog[k] = b.prog[k];
   const vis = { ...a.vis };
@@ -3000,9 +3553,28 @@ function uFusionar(a, b) {                              // a = este dispositivo,
   }
   return { prog, vis };
 }
+function uFusionar(a, b) {
+  if (!esApp()) return fusPD(a, b);
+  const bperf = b.perf || {}, bp = b.pp || {};
+  const del = [...new Set([...(PERF.del || []), ...(bperf.del || [])])];
+  const lista = PERF.lista.map(x => ({ ...x }));
+  (bperf.lista || []).forEach(x => { if (!x || del.includes(x.id)) return; const i = lista.findIndex(y => y.id === x.id); if (i < 0) lista.push(x); else if ((x.f || 0) > (lista[i].f || 0)) lista[i] = x; });
+  const vivos = lista.filter(x => !del.includes(x.id)).slice(0, PERF_MAX); if (!vivos.length) vivos.push(perfNuevo().lista[0]);
+  const loc = perfTodos(), pp = {};
+  vivos.forEach(x => { pp[x.id] = fusPD(loc[x.id] || { prog: {}, vis: {} }, bp[x.id] || { prog: {}, vis: {} }); });
+  const idTop = (bperf.activo && pp[bperf.activo]) ? bperf.activo : vivos[0].id;      // lo de arriba (prog/vis) es del perfil activo en la última escritura, o de la cuenta antigua sin perfiles
+  if (b.prog || b.vis) pp[idTop] = fusPD(pp[idTop], { prog: b.prog || {}, vis: b.vis || {} });
+  return { perf: { lista: vivos, activo: vivos.some(x => x.id === PERF.activo) ? PERF.activo : vivos[0].id, del }, pp };
+}
 function uAplicar(d) {
-  try { localStorage.setItem('bbprog', JSON.stringify(d.prog)); localStorage.setItem('bbsvis', JSON.stringify(d.vis)); } catch (e) {}
-  actualizarCont(); if (detActual && !vistas.det.hidden) pintarDetalle(detActual);
+  try {
+    if (esApp() && d.pp) {
+      PERF.lista = d.perf.lista; PERF.activo = d.perf.activo; PERF.del = d.perf.del; try { localStorage.setItem('bbperf', JSON.stringify(PERF)); } catch (e) {}
+      PERF.lista.forEach(x => { const v = d.pp[x.id] || { prog: {}, vis: {} }; if (x.id === PERF.activo) { localStorage.setItem('bbprog', JSON.stringify(v.prog)); localStorage.setItem('bbsvis', JSON.stringify(v.vis)); } else perfPonerStash(x.id, v); });
+      Object.keys(localStorage).filter(k => k.startsWith('bbpd:') && !PERF.lista.some(x => k === 'bbpd:' + x.id)).forEach(k => localStorage.removeItem(k));
+    } else { localStorage.setItem('bbprog', JSON.stringify(d.prog)); localStorage.setItem('bbsvis', JSON.stringify(d.vis)); }
+  } catch (e) {}
+  perfBtn(); actualizarCont(); if (detActual && !vistas.det.hidden) pintarDetalle(detActual);
 }
 let uUltimoSubido = '';                                   // lo último que se mandó: si no cambió, no se vuelve a mandar
 const uSubir = async () => {
@@ -3014,7 +3586,9 @@ const uSubir = async () => {
 };
 async function uBajar() {                               // al entrar: junta lo de este dispositivo con lo de la cuenta y lo guarda en ambos lados
   const j = await api('usuario/datos');
-  if (j && j.datos) { uAplicar(uFusionar(uLocal(), { prog: j.datos.prog || {}, vis: j.datos.vis || {} })); await uSubir(); }
+  if (j && j.datos) { uAplicar(uFusionar(uLocal(), { prog: j.datos.prog || {}, vis: j.datos.vis || {}, perf: j.datos.perf, pp: j.datos.pp })); await uSubir(); }
+  perfElegir();
+  perfQuien();
 }
 window.bbSync = () => { if (!U.correo || uPush) return; uPush = setTimeout(() => { uPush = 0; uSubir().catch(() => {}); }, 60000); };   // como máximo 1 guardado por minuto (antes: tras cada cambio)
 document.addEventListener('visibilitychange', () => {   // al salir de la página no se pierde el último avance
@@ -3023,7 +3597,7 @@ document.addEventListener('visibilitychange', () => {   // al salir de la págin
     try { fetch('/api/usuario/datos', { method: 'POST', keepalive: true, credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ datos: uLocal() }) }); } catch (e) {}
   }
 });
-const uBtn = () => { const b = H('ajustes'), n = !!U.correo; b.classList.toggle('ses', n); b.setAttribute('aria-label', n ? 'Mi cuenta' : 'Iniciar sesión'); H('aj-t').textContent = n ? 'Mi cuenta' : 'Iniciar sesión';
+const uBtn = () => { const b = H('ajustes'), n = !!U.correo; perfBtn(); b.classList.toggle('ses', n); b.setAttribute('aria-label', n ? 'Mi cuenta' : 'Iniciar sesión'); H('aj-t').textContent = n ? (perfOn() ? perfActual().nombre : 'Mi cuenta') : 'Iniciar sesión';
   window.bbCorreo = U.correo; document.dispatchEvent(new CustomEvent('bb-sesion', { detail: { correo: U.correo } }));   // la app (nativo.js) registra/quita las notificaciones push
 };
 const uError = x => {
@@ -3035,15 +3609,46 @@ const uError = x => {
 
 const OJO_ON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
 const OJO_OFF = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18"/><path d="M10.6 5.1A10.6 10.6 0 0 1 12 5c6.4 0 10 7 10 7a17 17 0 0 1-3.2 4.1M6.5 6.6A17 17 0 0 0 2 12s3.6 7 10 7a10 10 0 0 0 4.2-.9"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>';
-function uVistaAcceso() {
+const esApp = () => !!(window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform());
+const accesoActivo = () => ACCESO_POR_CUENTA && (PANTALLA_ACCESO === 'siempre' || (PANTALLA_ACCESO === 'app' && esApp()));
+const AX = { titulo: 'Black BOX', subtitulo: 'Inicia sesión para ver tu colección y retomar donde te quedaste.', canje: '¿Tienes un código de acceso? Inicia sesión o crea tu cuenta y canjéalo en «Mi cuenta» para activar tu acceso.', explorar: 'Explorar', logo: '', brillo: 60 };
+{ const ex = window.ACCESO_EXTRA || {}; for (const k in AX) if (typeof ex[k] === 'string' && ex[k].trim()) AX[k] = ex[k].trim(); if (ex.brillo !== undefined && ex.brillo !== '' && isFinite(Number(ex.brillo))) AX.brillo = Math.max(0, Math.min(100, Number(ex.brillo))); }   // lo que pones en admin > Pantalla de acceso
+let explorando = false, acTimer = 0;
+function armarAcceso() {
+  const w = H('ac-w'); w.replaceChildren();
+  const logo = el('img', 'ac-logo'); logo.alt = ''; logo.src = AX.logo || '/icon-512.png'; logo.onerror = () => { logo.onerror = null; logo.src = '/icon-512.png'; };
+  const lw = el('div', 'ac-lw'), card = el('div', 'ac-card'); lw.append(logo); card.append(uVistaAcceso(true)[0], el('p', 'ac-c', AX.canje));
+  H('acceso').style.setProperty('--gl', String(AX.brillo / 100));
+  w.append(lw, el('h1', 'ac-t', AX.titulo), el('p', 'ac-s', AX.subtitulo), card);
+  H('ac-exp').innerHTML = ''; H('ac-exp').append(AX.explorar + ' ');
+  H('ac-exp').insertAdjacentHTML('beforeend', '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>');
+}
+function mostrarAcceso() {
+  if (!accesoActivo()) return;
+  cerrarHoja(); cerrarPlanes(); try { if (dlg.open) dlg.close(); } catch (e) {}
+  clearTimeout(acTimer); window.__accesoListo = true;
+  armarAcceso();
+  const a = H('acceso'); a.classList.remove('esperando', 'fuera'); a.classList.add('on'); a.scrollTop = 0;
+}
+function ocultarAcceso() {
+  window.__accesoListo = true;
+  const a = H('acceso'); if (!a) return;
+  a.classList.add('fuera'); clearTimeout(acTimer);
+  acTimer = setTimeout(() => { a.classList.remove('on', 'fuera', 'esperando'); document.documentElement.classList.remove('acceso-app'); }, 420);
+}
+function decidirAcceso() {                                  // con sesión (o sin servidor de cuentas) se entra directo; si no, se pide iniciar sesión o explorar
+  if (!accesoActivo() || U.correo || U.servicio !== true || explorando) ocultarAcceso(); else mostrarAcceso();
+}
+H('ac-exp').onclick = () => { explorando = true; ocultarAcceso(); };
+function uVistaAcceso(pant) {
   const w = el('div', 'ua');
-  w.innerHTML = '<h2>Tu cuenta</h2><p class="ssub">Inicia sesión para guardar tu progreso y lo que has visto, y retomarlo en cualquier dispositivo.</p>' +
+  w.innerHTML = (pant ? '' : '<h2>Tu cuenta</h2><p class="ssub">Inicia sesión para guardar tu progreso y lo que has visto, y retomarlo en cualquier dispositivo.</p>') +
     '<div class="ua-tabs" role="tablist"><button type="button" data-m="entrar">Iniciar sesión</button><button type="button" data-m="registro">Crear cuenta</button></div>' +
     '<form id="ua-f" novalidate><label>Correo<input name="correo" type="email" inputmode="email" autocomplete="email" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="next" required></label>' +
     '<label>Contraseña<span class="pw"><input name="clave" type="password" autocomplete="current-password" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="go" minlength="8" required>' +
     '<button type="button" class="ojo" aria-label="Mostrar contraseña" aria-pressed="false">' + OJO_ON + '</button></span></label>' +
     '<p class="serr" id="ua-err" role="alert" hidden></p><button class="sbtn" id="ua-go" type="submit"></button></form>' +
-    '<button class="sbtn sec" id="ua-planes" type="button">Ver planes</button>';
+    (pant ? '' : '<button class="sbtn sec" id="ua-planes" type="button">Ver planes</button>');
   const f = w.querySelector('#ua-f'), err = w.querySelector('#ua-err'), go = w.querySelector('#ua-go');
   const ojo = w.querySelector('.ojo');
   ojo.addEventListener('mousedown', e => e.preventDefault());            // el teclado no se cierra al tocar el ojo
@@ -3063,7 +3668,7 @@ function uVistaAcceso() {
     f.clave.placeholder = m === 'registro' ? 'Mínimo 8 caracteres' : '';
   };
   w.querySelectorAll('.ua-tabs button').forEach(b => b.onclick = () => modo(b.dataset.m));
-  w.querySelector('#ua-planes').onclick = () => { cerrarHoja(); abrirPlanes(null); };
+  const vp = w.querySelector('#ua-planes'); if (vp) vp.onclick = () => { cerrarHoja(); abrirPlanes(null); };
   f.addEventListener('submit', async e => {
     e.preventDefault(); err.hidden = true;
     const correo = f.correo.value.trim(), clave = f.clave.value;
@@ -3077,7 +3682,7 @@ function uVistaAcceso() {
     const lento = setTimeout(() => info('Sigue trabajando… el servidor está tardando más de lo normal.'), 6000);
     try {
       const j = await api('usuario/' + (uModo === 'registro' ? 'registro' : 'entrar'), { correo, clave });
-      if (j.correo) { U.correo = j.correo; U.acceso = j.acceso || null; U.lista = j.lista || []; U.servicio = true; uBtn(); uPlan(); HAPT.tocar('marcado'); uBajar().catch(() => {}); abrirAjustes(); return; }
+      if (j.correo) { U.correo = j.correo; U.acceso = j.acceso || null; U.lista = j.lista || []; U.servicio = true; uBtn(); uPlan(); HAPT.tocar('marcado'); uBajar().catch(() => {}); if (pant) { explorando = false; ocultarAcceso(); } else abrirAjustes(); return; }
       mal(j.error || 'No se pudo completar la solicitud.');
     } catch (x) { mal(uError(x)); }
     finally { clearTimeout(lento); }
@@ -3093,7 +3698,8 @@ function uEstadoTexto() {                               // [titulo, detalle, vig
   const d = uDias();
   return ['Plan ' + uPlanNombre(U.acceso.plan) + ' · ' + (d === 1 ? 'te queda 1 día' : 'te quedan ' + d + ' días'), 'Vence el ' + uFechaLarga(U.acceso.vence) + '.', true];
 }
-function uVistaPerfil() {
+function uVistaPerfil() { return perfOn() ? uVistaAjustesPerfil() : uVistaCuenta(); }
+function uVistaCuenta() {
   const w = el('div', 'ua');
   const fila = el('div', 'dato'); fila.append(el('span', '', 'Correo'), el('b', '', U.correo));
   const [t1, t2, vig] = uEstadoTexto();
@@ -3124,14 +3730,282 @@ function uVistaPerfil() {
     try { await api('usuario/salir', {}); } catch (x) {}
     U.correo = ''; U.acceso = null; U.lista = []; uBtn(); uPlan();
     try { localStorage.removeItem('bbprog'); localStorage.removeItem('bbsvis'); } catch (x) {}   // el siguiente que use este dispositivo empieza limpio
+    perfLimpiar();
     actualizarCont(); if (detActual && !vistas.det.hidden) pintarDetalle(detActual);
-    abrirAjustes();
+    explorando = false; cerrarHoja(); abrirAjustes();
   };
   cerrar.onclick = cerrarHoja;
   const lab = el('p', 'ssub', 'Canjear un código de acceso'); lab.style.cssText = 'margin:14px 0 8px;font-weight:600;color:#fff';
-  w.append(el('h2', '', 'Tu cuenta'), el('div', 'ua-ok', 'Sesión iniciada'), fila, el('div', '', ''), est, lab, canje, msg, planes, sync, out, cerrar);
+  w.append(el('h2', '', perfOn() ? 'Cuenta' : 'Tu cuenta'), el('div', 'ua-ok', 'Sesión iniciada'), fila, el('div', '', ''), est, lab, canje, msg, planes, sync, out, cerrar);
   return [w];
 }
+
+/* ---- Opciones de reproducción (se guardan en este dispositivo) ---- */
+const opcLeer = () => { try { return JSON.parse(localStorage.getItem('bbopc')) || {}; } catch (e) { return {}; } };
+const opcGet = (k, def) => { const v = opcLeer()[k]; return v === undefined ? def : v; };
+function opcSet(k, v) { const o = opcLeer(); o[k] = v; try { localStorage.setItem('bbopc', JSON.stringify(o)); } catch (e) {} document.dispatchEvent(new CustomEvent('bb-opciones')); }
+function filaOpcion(titulo, desc, clave, def, svg) {
+  const f = el('button', 'opc-fila'); f.type = 'button'; f.setAttribute('role', 'switch');
+  const ic = el('span', 'opc-ic'); ic.innerHTML = svg;
+  const tx = el('span', 'opc-tx'); tx.append(el('b', '', titulo), el('small', '', desc));
+  const sw = el('i', 'sw'); f.append(ic, tx, sw);
+  const pintar = () => { const on = opcGet(clave, def); f.classList.toggle('on', on); f.setAttribute('aria-checked', on ? 'true' : 'false'); };
+  f.onclick = () => { opcSet(clave, !opcGet(clave, def)); pintar(); };
+  pintar(); return f;
+}
+function seccionOpciones() {
+  const w = el('div', 'ua pf-opc'); w.append(el('h2', '', 'Opciones'));
+  const g = el('div', 'opc-g');
+  if (document.documentElement.classList.contains('pip-ok'))
+    g.append(filaOpcion('Imagen en imagen', 'Al salir de la app con un video en marcha, pasa a una ventanita flotante.', 'pip', true,
+      '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2.5"/><rect x="12" y="11" width="6.5" height="5" rx="1" style="fill:currentColor"/></svg>'));
+  g.append(filaOpcion('Siguiente episodio automático', 'Al terminar un capítulo, empieza el siguiente tras una cuenta regresiva.', 'sig', true,
+    '<svg viewBox="0 0 24 24"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg>'));
+  w.append(g); return w;
+}
+
+/* ---- Menú de perfiles (como el de Apple TV) y pantalla "Ajustes del perfil" ---- */
+function cerrarMenuPerfil() { const o = document.querySelector('.pmenu-ov'); if (o) { o.classList.remove('on'); setTimeout(() => o.remove(), 260); } }
+function abrirMenuPerfil() {
+  cerrarMenuPerfil();
+  const ov = el('div', 'pmenu-ov'), m = el('div', 'pmenu vg-rim');
+  PERF.lista.forEach(p => {
+    const f = el('button', 'pm-fila'); f.type = 'button'; f.append(perfAvatar(p, 36), el('span', 'pm-n', p.nombre));
+    if (p.id === PERF.activo) f.append(el('i', 'pm-on'));
+    f.onclick = () => { cerrarMenuPerfil(); perfCambiar(p.id); };
+    m.append(f);
+  });
+  m.append(el('div', 'pm-sep'));
+  const aj = el('button', 'pm-fila'); aj.type = 'button';
+  const ic = el('span', 'pm-ic'); ic.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><circle cx="12" cy="9.5" r="3.2"/><path d="M5.8 18.6c1.4-2.4 3.7-3.6 6.2-3.6s4.8 1.2 6.2 3.6"/></svg>';
+  aj.append(ic, el('span', 'pm-n', 'Ajustes del perfil')); aj.onclick = () => { cerrarMenuPerfil(); abrirAjustes(); };
+  const cam = el('button', 'pm-fila'); cam.type = 'button'; const ic2 = el('span', 'pm-ic'); ic2.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h11l-3-3M17 17H6l3 3"/></svg>';
+  cam.append(ic2, el('span', 'pm-n', 'Cambiar de perfil')); cam.onclick = () => { cerrarMenuPerfil(); perfQuien(true); };
+  if (PERF.lista.length > 1) m.append(cam);
+  m.append(aj); ov.append(m); document.body.append(ov);
+  const r = H('ajustes').getBoundingClientRect(), abajo = r.top > innerHeight / 2;           // debajo del botón (arriba a la derecha) o encima si el botón está abajo
+  m.style.right = Math.max(10, innerWidth - r.right) + 'px';
+  if (abajo) { m.style.bottom = (innerHeight - r.top + 10) + 'px'; m.style.setProperty('--o', 'bottom right'); } else { m.style.top = (r.bottom + 10) + 'px'; m.style.setProperty('--o', 'top right'); }
+  requestAnimationFrame(() => ov.classList.add('on'));
+  ov.addEventListener('pointerdown', e => { if (e.target === ov) cerrarMenuPerfil(); });
+}
+function uVistaAjustesPerfil() {
+  const p = perfActual(), w = el('div', 'ua pf-aj');
+  const cab = el('div', 'pf-cab'); cab.append(perfAvatar(p, 84));
+  const nom = el('input', 'pf-nom'); nom.type = 'text'; nom.maxLength = 24; nom.value = p.nombre; nom.setAttribute('aria-label', 'Nombre del perfil'); nom.autocomplete = 'off';
+  const guardarNombre = () => { const v = nom.value.trim(); if (v && v !== p.nombre) { p.nombre = v; p.f = Date.now(); perfGuardar(); perfBtn(); uBtn(); } else nom.value = p.nombre; };
+  nom.addEventListener('change', guardarNombre); nom.addEventListener('keydown', e => { if (e.key === 'Enter') { nom.blur(); } });
+  cab.append(nom);
+  const tit = t => el('p', 'pf-t', t);
+  const avs = el('div', 'pf-avs');
+  PERF_AV.forEach(a => { const b = el('button', 'pf-av' + (a === p.av ? ' on' : ''), a); b.type = 'button'; b.setAttribute('aria-label', 'Avatar ' + a); b.onclick = () => { p.av = a; p.f = Date.now(); perfGuardar(); perfBtn(); hoja(uVistaPerfil()); }; avs.append(b); });
+  const cols = el('div', 'pf-cols');
+  PERF_COL.forEach((c, i) => { const b = el('button', 'pf-col' + (i === p.c ? ' on' : '')); b.type = 'button'; b.style.background = c; b.setAttribute('aria-label', 'Color ' + (i + 1)); b.onclick = () => { p.c = i; p.f = Date.now(); perfGuardar(); perfBtn(); hoja(uVistaPerfil()); }; cols.append(b); });
+  const lis = el('div', 'pf-lista');
+  PERF.lista.forEach(x => {
+    const f = el('button', 'pf-fila' + (x.id === PERF.activo ? ' on' : '')); f.type = 'button'; f.append(perfAvatar(x, 34), el('span', 'pm-n', x.nombre));
+    if (x.id === PERF.activo) f.append(el('i', 'pm-on')); else f.onclick = () => { perfCambiar(x.id); hoja(uVistaPerfil()); };
+    lis.append(f);
+  });
+  const nodos = [el('h2', '', 'Ajustes del perfil'), cab, tit('Avatar'), avs, tit('Color'), cols, tit('Perfiles'), lis];
+  if (PERF.lista.length < PERF_MAX) {
+    const add = el('button', 'sbtn sec', 'Agregar perfil'); add.type = 'button';
+    add.onclick = () => {
+      const n = PERF.lista.length + 1, id = 'p' + Date.now().toString(36);
+      perfPonerStash(PERF.activo, { prog: leerProg(), vis: leerVistos() });
+      PERF.lista.push({ id, nombre: 'Perfil ' + n, av: PERF_AV[(n * 3) % PERF_AV.length], c: (n * 2) % PERF_COL.length, f: Date.now() });
+      perfCargar(id); hoja(uVistaPerfil());
+    };
+    nodos.push(add);
+  }
+  if (PERF.lista.length > 1) {
+    const del = el('button', 'sbtn sec pf-del', 'Eliminar este perfil'); del.type = 'button'; let seguro = false;
+    del.onclick = () => {
+      if (!seguro) { seguro = true; del.textContent = 'Toca otra vez para eliminar «' + p.nombre + '»'; setTimeout(() => { seguro = false; del.textContent = 'Eliminar este perfil'; }, 3500); return; }
+      const id = p.id; PERF.lista = PERF.lista.filter(x => x.id !== id); PERF.del = [...new Set([...(PERF.del || []), id])];
+      try { localStorage.removeItem('bbpd:' + id); } catch (e) {}
+      perfCargar(PERF.lista[0].id); hoja(uVistaPerfil());
+    };
+    nodos.push(del);
+  }
+  w.append(...nodos);
+  const cuenta = uVistaCuenta()[0]; cuenta.classList.add('pf-cuenta');
+  return [w, seccionOpciones(), cuenta];
+}
+
+
+function perfQuien(forzar) { perfElegir(forzar); }          // la pantalla «¿Quién está viendo?» es perfElegir (más abajo)
+
+/* ---- «¿Quién está viendo?» (como Netflix): al abrir la app con varios perfiles ---- */
+function perfElegir(forzar) {
+  if (!perfOn() || (perfPreguntado && !forzar)) return;
+  perfPreguntado = true;
+  if (PERF.lista.length < 2 && !forzar) return;
+  document.querySelector('.qv')?.remove();
+  const ov = el('div', 'qv'), t = el('h1', '', '¿Quién está viendo?'), grid = el('div', 'qv-g');
+  let editar = false;
+  const cerrar = (despues) => { ov.classList.add('sale'); setTimeout(() => { ov.remove(); if (despues) despues(); }, 420); };
+  const pintar = () => {
+    grid.replaceChildren();
+    PERF.lista.forEach((p, i) => {
+      const b = el('button', 'qv-p' + (p.id === PERF.activo ? ' ult' : '')); b.type = 'button'; b.style.setProperty('--i', i);
+      const av = perfAvatar(p, 104); const w = el('span', 'qv-av'); w.append(av);
+      if (editar) { const l = el('i', 'qv-ed'); l.innerHTML = '<svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16v4zM14 6l4 4"/></svg>'; w.append(l); }
+      b.append(w, el('span', 'qv-n', p.nombre));
+      b.onclick = () => {
+        if (editar) { cerrar(() => { perfCambiar(p.id); abrirAjustes(); }); return; }
+        b.classList.add('elegido'); ov.classList.add('eligiendo');
+        setTimeout(() => { perfCambiar(p.id); cerrar(); }, 260);
+      };
+      grid.append(b);
+    });
+    if (PERF.lista.length < PERF_MAX) {
+      const b = el('button', 'qv-p qv-mas'); b.type = 'button'; b.style.setProperty('--i', PERF.lista.length);
+      const w = el('span', 'qv-av'); const c = el('span', 'pav qv-plus', '+'); c.style.setProperty('--t', '104px'); w.append(c);
+      b.append(w, el('span', 'qv-n', 'Agregar perfil'));
+      b.onclick = () => {
+        const n = PERF.lista.length + 1, id = 'p' + Date.now().toString(36);
+        perfPonerStash(PERF.activo, { prog: leerProg(), vis: leerVistos() });
+        PERF.lista.push({ id, nombre: 'Perfil ' + n, av: PERF_AV[(n * 3) % PERF_AV.length], c: (n * 2) % PERF_COL.length, f: Date.now() });
+        cerrar(() => { perfCargar(id); abrirAjustes(); });
+      };
+      grid.append(b);
+    }
+  };
+  const adm = el('button', 'qv-adm', 'Administrar perfiles'); adm.type = 'button';
+  adm.onclick = () => { editar = !editar; adm.textContent = editar ? 'Listo' : 'Administrar perfiles'; t.textContent = editar ? 'Administrar perfiles' : '¿Quién está viendo?'; ov.classList.toggle('edit', editar); pintar(); };
+  pintar(); ov.append(t, grid, adm); document.body.append(ov);
+  requestAnimationFrame(() => ov.classList.add('on'));
+}
+
+
+/* ---------- Página de Configuración (app): en lugar de una hoja, una pantalla propia con grupos de opciones, como los ajustes de Apple TV ---------- */
+let cfgPila = ['main'], cfgEl = null;
+const CFG_CHEV = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>';
+function cfgFila(o) {
+  const f = el('button', 'cfg-fila' + (o.azul ? ' azul' : '') + (o.rojo ? ' rojo' : '')); f.type = 'button';
+  if (o.av) f.append(perfAvatar(o.av, 46));
+  const tx = el('span', 'cfg-tx'); tx.append(el('b', '', o.titulo)); if (o.sub) tx.append(el('small', '', o.sub));
+  f.append(tx);
+  if (o.valor) f.append(el('span', 'cfg-val', o.valor));
+  if (o.toggle) { const sw = el('i', 'cfg-sw'); f.append(sw); f.setAttribute('role', 'switch'); const pintar = () => { const on = opcGet(o.toggle.k, o.toggle.def); f.classList.toggle('on', on); f.setAttribute('aria-checked', on ? 'true' : 'false'); }; pintar(); f.onclick = () => { opcSet(o.toggle.k, !opcGet(o.toggle.k, o.toggle.def)); pintar(); }; }
+  else { if (o.nav) { const c = el('span', 'cfg-chev'); c.innerHTML = CFG_CHEV; f.append(c); } f.onclick = o.onclick || null; }
+  return f;
+}
+function cfgGrupo(titulo, filas, pie) {
+  const g = el('div', 'cfg-g');
+  if (titulo) g.append(el('p', 'cfg-gt', titulo));
+  const c = el('div', 'cfg-card'); c.append(...filas); g.append(c);
+  if (pie) g.append(el('p', 'cfg-pie', pie));
+  return g;
+}
+function perfCrear() {
+  const n = PERF.lista.length + 1, id = 'p' + Date.now().toString(36);
+  perfPonerStash(PERF.activo, { prog: leerProg(), vis: leerVistos() });
+  PERF.lista.push({ id, nombre: 'Perfil ' + n, av: PERF_AV[(n * 3) % PERF_AV.length], c: (n * 2) % PERF_COL.length, f: Date.now() });
+  perfCargar(id);
+}
+function cfgMain() {
+  const p = perfActual(), nodos = [];
+  nodos.push(cfgGrupo(null, [cfgFila({ av: p, titulo: p.nombre, sub: U.correo, nav: true, onclick: () => cfgIr('perfil') })]));
+  const gp = [];
+  if (PERF.lista.length > 1) gp.push(cfgFila({ titulo: 'Cambiar de perfil', azul: true, onclick: () => { cerrarConfig(true); perfElegir(true); } }));
+  if (PERF.lista.length < PERF_MAX) gp.push(cfgFila({ titulo: 'Agregar perfil', azul: true, onclick: () => { perfCrear(); cfgIr('perfil'); } }));
+  if (gp.length) nodos.push(cfgGrupo('PERFILES', gp));
+  const pref = [];
+  if (document.documentElement.classList.contains('pip-ok')) pref.push(cfgFila({ titulo: 'Imagen en imagen', toggle: { k: 'pip', def: true } }));
+  pref.push(cfgFila({ titulo: 'Siguiente episodio automático', toggle: { k: 'sig', def: true } }));
+  nodos.push(cfgGrupo('PREFERENCIAS DEL DISPOSITIVO', pref, 'La imagen en imagen pasa el video a una ventanita al salir de la app. Con el siguiente episodio automático, al terminar un capítulo empieza el siguiente tras una cuenta regresiva.'));
+  nodos.push(cfgGrupo(null, [cfgFila({ titulo: 'Relación de aspecto', azul: true, nav: true, valor: aspectoActual().n, onclick: () => cfgIr('aspecto') })]));
+  const est = uEstadoTexto();
+  nodos.push(cfgGrupo('CUENTA', [
+    cfgFila({ titulo: 'Mi cuenta', azul: true, sub: est[0], nav: true, onclick: () => cfgIr('cuenta') }),
+    cfgFila({ titulo: 'Ver planes', azul: true, onclick: () => { cerrarConfig(true); abrirPlanes(null); } })
+  ]));
+  return nodos;
+}
+function cfgPerfil() {
+  const p = perfActual(), w = el('div', 'ua pf-aj cfg-perfil');
+  const cab = el('div', 'pf-cab'); cab.append(perfAvatar(p, 84));
+  const nom = el('input', 'pf-nom'); nom.type = 'text'; nom.maxLength = 24; nom.value = p.nombre; nom.setAttribute('aria-label', 'Nombre del perfil'); nom.autocomplete = 'off';
+  const guardar = () => { const v = nom.value.trim(); if (v && v !== p.nombre) { p.nombre = v; p.f = Date.now(); perfGuardar(); perfBtn(); uBtn(); } else nom.value = p.nombre; };
+  nom.addEventListener('change', guardar); nom.addEventListener('keydown', e => { if (e.key === 'Enter') nom.blur(); });
+  cab.append(nom);
+  const tit = t => el('p', 'cfg-gt', t);
+  const avs = el('div', 'pf-avs');
+  PERF_AV.forEach(a => { const b = el('button', 'pf-av' + (a === p.av ? ' on' : ''), a); b.type = 'button'; b.onclick = () => { p.av = a; p.f = Date.now(); perfGuardar(); perfBtn(); cfgRender(); }; avs.append(b); });
+  const cols = el('div', 'pf-cols');
+  PERF_COL.forEach((c, i) => { const b = el('button', 'pf-col' + (i === p.c ? ' on' : '')); b.type = 'button'; b.style.background = c; b.setAttribute('aria-label', 'Color ' + (i + 1)); b.onclick = () => { p.c = i; p.f = Date.now(); perfGuardar(); perfBtn(); cfgRender(); }; cols.append(b); });
+  const lis = PERF.lista.map(x => { const f = cfgFila({ av: x, titulo: x.nombre, onclick: x.id === PERF.activo ? null : () => { perfCambiar(x.id); cfgRender(); } }); if (x.id === PERF.activo) f.append(el('i', 'pm-on')); return f; });
+  const nodos = [cab, tit('AVATAR'), avs, tit('COLOR'), cols, cfgGrupo('PERFILES', lis)];
+  if (PERF.lista.length < PERF_MAX) nodos.push(cfgGrupo(null, [cfgFila({ titulo: 'Agregar perfil', azul: true, onclick: () => { perfCrear(); cfgRender(); } })]));
+  if (PERF.lista.length > 1) {
+    let seguro = false;
+    const del = cfgFila({ titulo: 'Eliminar este perfil', rojo: true, onclick: () => {
+      if (!seguro) { seguro = true; del.querySelector('b').textContent = 'Toca otra vez para eliminar «' + p.nombre + '»'; setTimeout(() => { seguro = false; del.querySelector('b').textContent = 'Eliminar este perfil'; }, 3500); return; }
+      const id = p.id; PERF.lista = PERF.lista.filter(x => x.id !== id); PERF.del = [...new Set([...(PERF.del || []), id])];
+      try { localStorage.removeItem('bbpd:' + id); } catch (e) {}
+      perfCargar(PERF.lista[0].id); cfgRender();
+    } });
+    nodos.push(cfgGrupo(null, [del]));
+  }
+  w.append(...nodos); return [w];
+}
+function cfgCuenta() {
+  const c = uVistaCuenta()[0]; c.classList.add('cfg-cuenta');
+  const ult = c.lastElementChild; if (ult && ult.textContent === 'Listo') ult.remove();
+  return [c];
+}
+function cfgAspecto() {
+  const orig = aspectoOriginal();
+  const filas = ASPECTOS.map(a => {
+    const sub = a.k === 'auto' ? (orig ? 'Original del video · ' + aspectoTexto(orig) : 'Usa la proporción original del video') : a.d;
+    const f = cfgFila({ titulo: a.n, sub, onclick: () => { ponerAspecto(a.k); cfgRender(); } });
+    if (a.k === fit) f.append(el('i', 'pm-on'));
+    return f;
+  });
+  return [cfgGrupo(null, filas, 'Automático respeta la proporción real del archivo y es lo recomendable. Las demás estiran el video a esa proporción estándar, útil si una película se ve aplastada o alargada. También puedes cambiarla desde el botón de la barra inferior del reproductor.')];
+}
+const CFG_PAGS = { main: ['Configuración', cfgMain], perfil: ['Perfil', cfgPerfil], cuenta: ['Cuenta', cfgCuenta], aspecto: ['Relación de aspecto', cfgAspecto] };
+function cfgPagina(clave) {
+  const [titulo, fn] = CFG_PAGS[clave], pag = el('div', 'cfg-pag');
+  const cab = el('div', 'cfg-cab'), atras = el('button', 'cfg-back'); atras.type = 'button'; atras.setAttribute('aria-label', 'Volver');
+  atras.innerHTML = '<svg viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>'; atras.onclick = cfgAtras;
+  cab.append(atras, el('h1', '', titulo));
+  const cuerpo = el('div', 'cfg-cuerpo'); cuerpo.append(...fn());
+  pag.append(cab, cuerpo); return pag;
+}
+function abrirConfig(pag) {
+  if (cfgEl) { cfgRender(); return; }
+  cfgPila = [pag || 'main'];
+  cfgEl = el('div', 'cfg'); cfgEl.append(cfgPagina(cfgPila[0]));
+  document.body.append(cfgEl); requestAnimationFrame(() => cfgEl && cfgEl.classList.add('on'));
+}
+function cfgRender() {                                       // vuelve a dibujar la página actual (conserva el desplazamiento)
+  if (!cfgEl) return;
+  const vieja = cfgEl.querySelector('.cfg-pag:last-child'), y = vieja ? vieja.scrollTop : 0, n = cfgPagina(cfgPila[cfgPila.length - 1]);
+  n.classList.add('quieta'); if (vieja) vieja.replaceWith(n); else cfgEl.append(n); n.scrollTop = y;
+}
+function cfgIr(clave) {
+  if (!cfgEl) return; cfgPila.push(clave);
+  const vieja = cfgEl.querySelector('.cfg-pag:last-child'), n = cfgPagina(clave); n.classList.add('entra');
+  if (vieja) vieja.classList.add('cede'); cfgEl.append(n);
+  setTimeout(() => { n.classList.remove('entra'); if (vieja) vieja.remove(); }, 380);
+}
+function cfgAtras() {
+  if (!cfgEl) return;
+  if (cfgPila.length < 2) { cerrarConfig(); return; }
+  cfgPila.pop(); const vieja = cfgEl.querySelector('.cfg-pag:last-child'), n = cfgPagina(cfgPila[cfgPila.length - 1]); n.classList.add('vuelve');
+  cfgEl.prepend(n); if (vieja) vieja.classList.add('sale');
+  setTimeout(() => { n.classList.remove('vuelve'); if (vieja) vieja.remove(); }, 380);
+}
+function cerrarConfig(ya) {
+  if (!cfgEl) return; const e = cfgEl; cfgEl = null; cfgPila = ['main'];
+  if (ya) { e.remove(); return; }
+  e.classList.remove('on'); setTimeout(() => e.remove(), 320);
+}
+document.addEventListener('bb-atras', e => { if (cfgEl) { e.preventDefault(); cfgAtras(); } });
+
 /* ---------- Pedidos: se busca por nombre en TMDB y se pide; el administrador lo cumple y se agrega a la lista de la cuenta ---------- */
 let pedBusq = 0, pedTimer = 0;
 async function pintarPedidos() {
@@ -3256,8 +4130,8 @@ async function pintarPedidos() {
   });
 }
 
-function abrirAjustes() { hoja(U.correo ? uVistaPerfil() : uVistaAcceso()); }
-H('ajustes').addEventListener('click', abrirAjustes);
+function abrirAjustes() { if (accesoActivo() && !U.correo && U.servicio === true) { mostrarAcceso(); return; } if (perfOn()) { abrirConfig(); return; } hoja(U.correo ? uVistaPerfil() : uVistaAcceso()); }
+H('ajustes').addEventListener('click', () => { if (perfOn()) abrirMenuPerfil(); else abrirAjustes(); });
 /* En pantalla vertical (la barra va abajo) el botón de cuenta se separa y queda arriba a la derecha, solo con el icono. En computadora vuelve a la barra. */
 (() => {
   const mq = matchMedia('(max-width:820px)'), dock = H('dock'), b = H('ajustes');
@@ -3271,6 +4145,7 @@ H('ajustes').addEventListener('click', abrirAjustes);
     U.servicio = j.servicio === true;                  // el servidor de cuentas respondió bien
     if (j.correo) { U.correo = j.correo; U.acceso = j.acceso || null; U.lista = j.lista || []; uBtn(); uPlan(); await uBajar(); }
   } catch (e) { U.servicio = false; }
+  finally { decidirAcceso(); }
 })();
 
 /* ---------- Colecciones por temática ----------

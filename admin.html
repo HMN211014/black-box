@@ -152,6 +152,8 @@ body.h .pan>.c.on.w{grid-column:1/-1}
     <button type="button" data-g="pedidos">Pedidos</button>
     <button type="button" data-g="colecciones">Colecciones</button>
     <button type="button" data-g="secciones">Secciones temáticas</button>
+    <button type="button" data-g="acceso">Pantalla de acceso</button>
+    <button type="button" data-g="efectos">Efectos</button>
   </nav>
 </aside>
 <div class="pan">
@@ -330,6 +332,47 @@ body.h .pan>.c.on.w{grid-column:1/-1}
     <div id="co-lista"></div>
   </div>
 
+  <div class="c w" data-g="acceso">
+    <h2>Pantalla de acceso (app)</h2>
+    <p class="s">Es lo primero que ve quien abre la app sin sesión: logo, título y las indicaciones para iniciar sesión y canjear un código. Lo que dejes vacío usa el texto de siempre.</p>
+    <label>Logo (enlace)<small class="h">Enlace de una imagen (https://…) o una ruta de tu sitio como /icon-512.png. Vacío = el logo de la app.</small><input id="ac-logo" maxlength="2000" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://…/logo.png"></label>
+    <label>Título<input id="ac-titulo" maxlength="60" autocomplete="off" placeholder="Black BOX"></label>
+    <label>Indicación para iniciar sesión<input id="ac-sub" maxlength="240" autocomplete="off" placeholder="Inicia sesión para ver tu colección y retomar donde te quedaste."></label>
+    <label>Indicación para canjear un código<input id="ac-canje" maxlength="300" autocomplete="off" placeholder="¿Tienes un código de acceso? Inicia sesión o crea tu cuenta y canjéalo en «Mi cuenta»."></label>
+    <label>Texto del botón de abajo<input id="ac-exp" maxlength="30" autocomplete="off" placeholder="Explorar"></label>
+    <label>Brillo detrás del logo: <b id="ac-bv">60</b><input id="ac-brillo" type="range" min="0" max="100" step="1" value="60" style="height:auto;padding:0;margin-top:8px"></label>
+    <div id="ac-pv" style="height:120px;border-radius:16px;background:linear-gradient(180deg,#071236,#000);display:grid;place-items:center;margin:2px 0 10px;overflow:hidden"><i id="ac-pvi" style="display:block;width:58px;height:58px;border-radius:16px;background:#000;border:1px solid rgba(255,255,255,.25)"></i></div>
+    <div class="row" style="margin-top:16px"><button id="ac-go" type="button">Guardar</button><button class="g" id="ac-cargar" type="button">Cargar los actuales</button></div>
+    <p class="m" id="ac-m" hidden></p>
+  </div>
+
+  <div class="c w" data-g="efectos">
+    <h2>Efectos de la app</h2>
+    <p class="s">Ajusta el cristal deslizante de la barra inferior y el panel de acceso. En la vista previa toca una opción, o mantén presionada la activa y arrástrala, para ver los cambios.</p>
+    <style>
+      .efp{position:relative;display:flex;gap:2px;padding:7px 5px;border-radius:999px;max-width:440px;margin:12px 0 20px;touch-action:none;user-select:none;-webkit-user-select:none;
+        background:linear-gradient(135deg,#0b2a7a,#161626);border:1px solid rgba(255,255,255,.16);box-shadow:inset 0 1px 0 rgba(255,255,255,.28),0 12px 30px rgba(0,0,0,.5)}
+      .efp button{position:relative;z-index:1;flex:1;height:54px;border:0;background:none;border-radius:999px;color:rgba(255,255,255,.75);font:600 12px/1 inherit;cursor:pointer;padding:0}
+      .efp button.on{color:#fff}
+      .efg{position:absolute;z-index:0;left:0;top:7px;height:calc(100% - 14px);width:var(--gw,0px);translate:var(--gx,0px) 0;scale:var(--gsx,1) var(--gsy,1);border-radius:999px;pointer-events:none;
+        background:linear-gradient(180deg,rgba(255,255,255,calc(.36*var(--vg-int,1))),rgba(255,255,255,calc(.13*var(--vg-int,1))) 55%,rgba(255,255,255,calc(.22*var(--vg-int,1))));border:1px solid rgba(255,255,255,calc(.42*var(--vg-int,1)));
+        box-shadow:inset 0 1.5px 0 rgba(255,255,255,.8),inset 0 -1px 0 rgba(255,255,255,.18),0 8px 22px rgba(0,0,0,.38);
+        backdrop-filter:blur(var(--vg-blur,3px)) saturate(1.9) brightness(1.2);-webkit-backdrop-filter:blur(var(--vg-blur,3px)) saturate(1.9) brightness(1.2);
+        transition:translate var(--vg-dur,.55s) cubic-bezier(.3,var(--vg-ov,1.35),.5,1),width var(--vg-dur,.55s) cubic-bezier(.3,var(--vg-ov,1.35),.5,1),scale calc(var(--vg-dur,.55s)*.8) cubic-bezier(.3,calc(var(--vg-ov,1.35) + .15),.5,1)}
+      .efg.d{transition:translate 0s,width .3s,scale .2s cubic-bezier(.3,calc(var(--vg-ov,1.35) + .15),.5,1)}
+    </style>
+    <div class="efp" id="ef-prev"><i class="efg" id="ef-g"></i><button type="button" class="on">Películas</button><button type="button">Series</button><button type="button">Pedidos</button><button type="button">Recientes</button></div>
+    <label>Rebote del cristal: <b id="ef-rebote-v">30</b><small class="h">Qué tanto se pasa y regresa al llegar a una sección.</small><input id="ef-rebote" data-ef="rebote" type="range" min="0" max="100" step="1" value="30" style="height:auto;padding:0;margin-top:6px"></label>
+    <label>Velocidad: <b id="ef-velocidad-v">60</b><small class="h">Qué tan rápido se desliza de una sección a otra.</small><input id="ef-velocidad" data-ef="velocidad" type="range" min="0" max="100" step="1" value="60" style="height:auto;padding:0;margin-top:6px"></label>
+    <label>Intensidad del cristal: <b id="ef-intensidad-v">60</b><small class="h">Qué tan visible es el cristal (borde y brillo).</small><input id="ef-intensidad" data-ef="intensidad" type="range" min="0" max="100" step="1" value="60" style="height:auto;padding:0;margin-top:6px"></label>
+    <label>Desenfoque del cristal (px): <b id="ef-desenfoque-v">3</b><small class="h">Cuánto difumina lo que hay detrás del cristal.</small><input id="ef-desenfoque" data-ef="desenfoque" type="range" min="0" max="20" step="1" value="3" style="height:auto;padding:0;margin-top:6px"></label>
+    <label>Agrandado al arrastrar (%): <b id="ef-agrandar-v">12</b><small class="h">Cuánto crece el cristal cuando lo arrastras con el dedo.</small><input id="ef-agrandar" data-ef="agrandar" type="range" min="0" max="40" step="1" value="12" style="height:auto;padding:0;margin-top:6px"></label>
+    <label>Estiramiento al arrastrar: <b id="ef-estirar-v">50</b><small class="h">Cuánto se estira como gelatina al moverlo rápido.</small><input id="ef-estirar" data-ef="estirar" type="range" min="0" max="100" step="1" value="50" style="height:auto;padding:0;margin-top:6px"></label>
+    <label>Desenfoque del panel de acceso (px): <b id="ef-panel-v">28</b><small class="h">Cristal del formulario de inicio de sesión.</small><input id="ef-panel" data-ef="panel" type="range" min="0" max="40" step="1" value="28" style="height:auto;padding:0;margin-top:6px"></label>
+    <div class="row" style="margin-top:16px"><button id="ef-go" type="button">Guardar</button><button class="g" id="ef-cargar" type="button">Cargar los actuales</button><button class="g" id="ef-reset" type="button">Valores de fábrica</button></div>
+    <p class="m" id="ef-m" hidden></p>
+  </div>
+
   <div class="c w" data-g="secciones" id="sec-card">
     <h2>Secciones temáticas</h2>
     <p class="s">Crea páginas como <b>Huluween</b>: una <b>franja</b> con tu logo, una frase, el botón <b>Detalles</b> y un carrusel de pósters (en el inicio o dentro de una colección). Al tocar el botón se abre la <b>página de la sección</b>, con un banner de fotos y las filas de películas que armes. Toca <b>Ver secciones</b> para editar las que ya creaste.</p>
@@ -410,6 +453,65 @@ async function con(btn, id, fn) {
 }
 const nombrePlan = p => ({ plus: 'Plus', pedidos: 'Películas por pedido' })[p] || 'Básico';
 const fecha = t => new Date(t).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' });
+/* ---- Efectos: deslizadores + vista previa ---- */
+const EF_FAB = { rebote: 30, velocidad: 60, intensidad: 60, desenfoque: 3, agrandar: 12, estirar: 50, panel: 28 };
+const efSliders = [...document.querySelectorAll('[data-ef]')];
+const efLeer = () => Object.fromEntries(efSliders.map(s => [s.dataset.ef, +s.value]));
+function efPintar() {
+  const e = efLeer(), p = $('ef-prev').style;
+  efSliders.forEach(s => { $('ef-' + s.dataset.ef + '-v').textContent = s.value; });
+  p.setProperty('--vg-ov', (1 + e.rebote * .012).toFixed(3)); p.setProperty('--vg-dur', (1 - e.velocidad * .0075).toFixed(3) + 's');
+  p.setProperty('--vg-int', (e.intensidad / 60).toFixed(3)); p.setProperty('--vg-blur', e.desenfoque + 'px');
+}
+function efPonerGlass(b, seco) {
+  const g = $('ef-g'); if (!b.offsetWidth) return;
+  if (seco) g.style.transition = 'none';
+  g.style.setProperty('--gx', b.offsetLeft + 'px'); g.style.setProperty('--gw', b.offsetWidth + 'px');
+  if (seco) { void g.offsetWidth; g.style.transition = ''; }
+}
+(function () {
+  const prev = $('ef-prev'), g = $('ef-g'), bs = () => [...prev.querySelectorAll('button')];
+  const act = () => prev.querySelector('button.on');
+  const marcar = b => { bs().forEach(x => x.classList.toggle('on', x === b)); efPonerGlass(b); };
+  bs().forEach(b => b.addEventListener('click', () => { if (performance.now() < (prev._noClic || 0)) return; marcar(b); }));
+  let a = null;
+  prev.addEventListener('pointerdown', e => { const t = e.target.closest('button'); if (!t || !t.classList.contains('on')) return; a = { x0: e.clientX, gx0: t.offsetLeft, on: false, last: e.clientX, lt: performance.now(), r: bs().map(b => ({ l: b.offsetLeft, w: b.offsetWidth })) }; });
+  prev.addEventListener('pointermove', e => {
+    if (!a) return; const dx = e.clientX - a.x0, E = efLeer();
+    if (!a.on) { if (Math.abs(dx) < 8) return; a.on = true; g.classList.add('d'); try { prev.setPointerCapture(e.pointerId); } catch (_) {} }
+    const w = parseFloat(g.style.getPropertyValue('--gw')) || 0, last = a.r[a.r.length - 1];
+    g.style.setProperty('--gx', Math.max(a.r[0].l, Math.min(last.l + last.w - w, a.gx0 + dx)) + 'px');
+    const t = performance.now(), vx = Math.abs(e.clientX - a.last) / Math.max(1, t - a.lt); a.last = e.clientX; a.lt = t;
+    const st = Math.min(.2, vx * .12) * (E.estirar / 50), lf = E.agrandar / 100;
+    g.style.setProperty('--gsx', (1 + lf + st).toFixed(3)); g.style.setProperty('--gsy', (1 + lf + .02 - st * .5).toFixed(3));
+  });
+  const fin = () => {
+    if (!a) return; const hizo = a.on, r = a.r; a = null; if (!hizo) return;
+    g.classList.remove('d'); g.style.setProperty('--gsx', '1'); g.style.setProperty('--gsy', '1'); prev._noClic = performance.now() + 400;
+    const cx = (parseFloat(g.style.getPropertyValue('--gx')) || 0) + (parseFloat(g.style.getPropertyValue('--gw')) || 0) / 2;
+    let i = r.findIndex(z => cx >= z.l && cx < z.l + z.w); if (i < 0) i = cx < r[0].l ? 0 : r.length - 1;
+    marcar(bs()[i]);
+  };
+  prev.addEventListener('pointerup', fin); prev.addEventListener('pointercancel', fin);
+  efSliders.forEach(s => s.addEventListener('input', efPintar));
+  efPintar(); requestAnimationFrame(() => efPonerGlass(act(), true)); addEventListener('load', () => efPonerGlass(act(), true)); addEventListener('resize', () => efPonerGlass(act(), true));
+  document.querySelectorAll('#nav button').forEach(n => n.addEventListener('click', () => setTimeout(() => efPonerGlass(act(), true), 30)));
+})();
+function efPoner(o) { efSliders.forEach(s => { const v = o && o[s.dataset.ef]; s.value = (v === undefined || v === '' || !isFinite(+v)) ? EF_FAB[s.dataset.ef] : v; }); efPintar(); }
+$('ef-reset').onclick = () => { efPoner({}); msg('ef-m', 'Se pusieron los valores de fábrica. Falta guardar.', true); };
+$('ef-cargar').onclick = () => con($('ef-cargar'), 'ef-m', async () => { efPoner((await admin({ op: 'efectos' })).item || {}); msg('ef-m', 'Se cargó lo que está guardado.', true); });
+$('ef-go').onclick = () => con($('ef-go'), 'ef-m', async () => { await admin({ op: 'guardar_efectos', efectos: efLeer() }); msg('ef-m', 'Guardado. En la app se actualiza en menos de un minuto.', true); });
+function acBrillo() { const v = +$('ac-brillo').value; $('ac-bv').textContent = v; $('ac-pvi').style.boxShadow = '0 0 ' + (v * .7) + 'px ' + (v * .22) + 'px rgba(96,156,255,' + (v / 100 * .9).toFixed(2) + ')'; }
+$('ac-brillo').addEventListener('input', acBrillo); acBrillo();
+$('ac-cargar').onclick = () => con($('ac-cargar'), 'ac-m', async () => {
+  const a = (await admin({ op: 'acceso' })).item || {};
+  $('ac-logo').value = a.logo || ''; $('ac-titulo').value = a.titulo || ''; $('ac-sub').value = a.subtitulo || ''; $('ac-canje').value = a.canje || ''; $('ac-exp').value = a.explorar || ''; $('ac-brillo').value = a.brillo === undefined ? 60 : a.brillo; acBrillo();
+  msg('ac-m', 'Se cargó lo que está guardado.', true);
+});
+$('ac-go').onclick = () => con($('ac-go'), 'ac-m', async () => {
+  await admin({ op: 'guardar_acceso', acceso: { logo: $('ac-logo').value, titulo: $('ac-titulo').value, subtitulo: $('ac-sub').value, canje: $('ac-canje').value, explorar: $('ac-exp').value, brillo: $('ac-brillo').value } });
+  msg('ac-m', 'Guardado. En la app se actualiza en menos de un minuto.', true);
+});
 
 function campoPlan(selId, diasL, pelL) { const f = () => { const v = $(selId).value === 'pedidos'; $(diasL).hidden = v; $(pelL).hidden = !v; }; $(selId).addEventListener('change', f); f(); }
 campoPlan('g-plan', 'g-dias-l', 'g-pel-l'); campoPlan('c-plan', 'c-dias-l', 'c-pel-l');
