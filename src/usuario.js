@@ -408,9 +408,18 @@ async function manejar({ request, env, params, waitUntil }) {
         prog: d.prog && typeof d.prog === 'object' && !Array.isArray(d.prog) ? d.prog : {},
         vis: d.vis && typeof d.vis === 'object' && !Array.isArray(d.vis) ? d.vis : {},
       };
+      const previo = await leerDatos(env, correo);
+      /* Perfiles (los manda la app): lista con nombre/avatar, perfiles borrados y el progreso de cada uno. La web no los manda: se conservan. */
+      const obj = x => x && typeof x === 'object' && !Array.isArray(x);
+      if (obj(d.perf) && Array.isArray(d.perf.lista) && obj(d.pp)) {
+        const txt = (v, n) => String(v == null ? '' : v).slice(0, n);
+        const lista = d.perf.lista.slice(0, 8).filter(x => obj(x) && x.id).map(x => ({ id: txt(x.id, 16), nombre: txt(x.nombre, 24) || 'Perfil', av: txt(x.av, 8), c: Number(x.c) | 0, f: Number(x.f) || 0 }));
+        const pp = {}; lista.forEach(x => { const v = d.pp[x.id]; pp[x.id] = obj(v) ? { prog: obj(v.prog) ? v.prog : {}, vis: obj(v.vis) ? v.vis : {} } : { prog: {}, vis: {} }; });
+        limpio.perf = { lista, activo: txt(d.perf.activo, 16), del: (Array.isArray(d.perf.del) ? d.perf.del : []).slice(0, 40).map(x => txt(x, 16)) };
+        limpio.pp = pp;
+      } else if (previo && previo.datos && previo.datos.perf) { limpio.perf = previo.datos.perf; limpio.pp = previo.datos.pp; }
       const texto = JSON.stringify({ datos: limpio, act: Date.now() });
       if (texto.length > 400000) return json({ error: 'Hay demasiados datos para guardar.' }, 413);
-      const previo = await leerDatos(env, correo);
       if (previo && JSON.stringify(previo.datos) === JSON.stringify(limpio)) return json({ ok: true, sinCambios: true });   // si no cambió nada, no se guarda
       await guardarDatos(env, correo, texto);
       return json({ ok: true });
@@ -505,7 +514,11 @@ async function manejar({ request, env, params, waitUntil }) {
     try { if (db) { const r = await db.prepare('SELECT datos FROM colecciones ORDER BY creado, id').all(); cols = r.results.map(x => datosCol(x.datos)).filter(Boolean).map(colParaPagina); } } catch (e) { console.error('[extras colecciones]', e && e.message); }
     let secs = [];
     try { if (db) { const r = await db.prepare('SELECT datos FROM secciones ORDER BY creado, id').all(); secs = r.results.map(x => datosSec(x.datos)).filter(Boolean); } } catch (e) { console.error('[extras secciones]', e && e.message); }
-    const js = 'window.PELICULAS_EXTRA=' + JSON.stringify(items).replace(/</g, '\\u003c') + ';window.COLECCIONES_EXTRA=' + JSON.stringify(cols).replace(/</g, '\\u003c') + ';window.SECCIONES_EXTRA=' + JSON.stringify(secs).replace(/</g, '\\u003c') + ';';
+    let acc = {};
+    try { if (db) { const r = await db.prepare("SELECT valor FROM meta WHERE clave = 'acceso'").first(); if (r && r.valor) acc = JSON.parse(r.valor) || {}; } } catch (e) {}
+    let efe = {};
+    try { if (db) { const r = await db.prepare("SELECT valor FROM meta WHERE clave = 'efectos'").first(); if (r && r.valor) efe = JSON.parse(r.valor) || {}; } } catch (e) {}
+    const js = 'window.PELICULAS_EXTRA=' + JSON.stringify(items).replace(/</g, '\\u003c') + ';window.COLECCIONES_EXTRA=' + JSON.stringify(cols).replace(/</g, '\\u003c') + ';window.SECCIONES_EXTRA=' + JSON.stringify(secs).replace(/</g, '\\u003c') + ';window.ACCESO_EXTRA=' + JSON.stringify(acc).replace(/</g, '\\u003c') + ';window.EFECTOS_EXTRA=' + JSON.stringify(efe).replace(/</g, '\\u003c') + ';';
     return new Response(js, { headers: { 'Content-Type': 'application/javascript; charset=utf-8', 'Cache-Control': 'public, max-age=30' } });
   }
 
@@ -647,6 +660,39 @@ async function manejar({ request, env, params, waitUntil }) {
     }
 
     /* Colecciones del inicio creadas desde el panel */
+    /* Pantalla de acceso de la app: logo y textos (se guardan en la tabla meta) */
+    if (cuerpo.op === 'acceso') {
+      let v = {};
+      try { const r = await db.prepare("SELECT valor FROM meta WHERE clave = 'acceso'").first(); if (r && r.valor) v = JSON.parse(r.valor) || {}; } catch (e) {}
+      return json({ item: v });
+    }
+    if (cuerpo.op === 'guardar_acceso') {
+      const a = cuerpo.acceso || {};
+      const t = (x, n) => String(x == null ? '' : x).trim().slice(0, n);
+      const logo = urlCol(a.logo);
+      if (logo === null) return json({ error: 'El logo debe ser un enlace que empiece con https:// (o una ruta como /logo.png).' }, 400);
+      const br = Number(a.brillo);
+      const v = { titulo: t(a.titulo, 60), subtitulo: t(a.subtitulo, 240), canje: t(a.canje, 300), explorar: t(a.explorar, 30), logo, brillo: isFinite(br) && a.brillo !== '' && a.brillo != null ? Math.max(0, Math.min(100, Math.round(br))) : 60 };
+      await db.prepare('CREATE TABLE IF NOT EXISTS meta (clave TEXT PRIMARY KEY, valor TEXT) WITHOUT ROWID').run();
+      await db.prepare("INSERT INTO meta (clave, valor) VALUES ('acceso', ?1) ON CONFLICT(clave) DO UPDATE SET valor = ?1").bind(JSON.stringify(v)).run();
+      return json({ ok: true });
+    }
+
+    /* Efectos visuales (cristal de la barra inferior y del panel de acceso): valores de los deslizadores */
+    const EF_RANGOS = { rebote: [0, 100, 30], velocidad: [0, 100, 60], intensidad: [0, 100, 60], desenfoque: [0, 20, 3], agrandar: [0, 40, 12], estirar: [0, 100, 50], panel: [0, 40, 28] };
+    if (cuerpo.op === 'efectos') {
+      let v = {};
+      try { const r = await db.prepare("SELECT valor FROM meta WHERE clave = 'efectos'").first(); if (r && r.valor) v = JSON.parse(r.valor) || {}; } catch (e) {}
+      return json({ item: v });
+    }
+    if (cuerpo.op === 'guardar_efectos') {
+      const a = cuerpo.efectos || {}, v = {};
+      for (const k in EF_RANGOS) { const [mn, mx, d] = EF_RANGOS[k], n = Number(a[k]); v[k] = (a[k] === '' || a[k] == null || !isFinite(n)) ? d : Math.max(mn, Math.min(mx, Math.round(n))); }
+      await db.prepare('CREATE TABLE IF NOT EXISTS meta (clave TEXT PRIMARY KEY, valor TEXT) WITHOUT ROWID').run();
+      await db.prepare("INSERT INTO meta (clave, valor) VALUES ('efectos', ?1) ON CONFLICT(clave) DO UPDATE SET valor = ?1").bind(JSON.stringify(v)).run();
+      return json({ ok: true });
+    }
+
     if (cuerpo.op === 'colecciones') {
       await prepararCatalogo(db, kv);
       const r = await db.prepare('SELECT datos FROM colecciones ORDER BY creado, id').all();
