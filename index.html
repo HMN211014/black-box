@@ -689,6 +689,15 @@ body.detmode #dbgwrap{view-transition-name:poster-x}
 ::view-transition-old(poster-x),::view-transition-new(poster-x){width:100%;height:100%;object-fit:cover;object-position:center top}
 html[data-vt="poster"]::view-transition-old(root){animation-duration:.18s}
 html[data-vt="poster"]::view-transition-new(root){animation-duration:.3s}
+/* estilos de transición elegidos en admin > Interacciones (html[data-vte]) */
+@keyframes vte-f-o{to{opacity:0}} @keyframes vte-f-i{from{opacity:0}}
+@keyframes vte-d-o{to{opacity:0;transform:translateX(-7%)}} @keyframes vte-d-i{from{opacity:0;transform:translateX(9%)}}
+@keyframes vte-z-o{to{opacity:0;transform:scale(.94)}} @keyframes vte-z-i{from{opacity:0;transform:scale(1.07)}}
+@keyframes vte-s-o{to{opacity:0;transform:translateY(-3%)}} @keyframes vte-s-i{from{opacity:0;transform:translateY(7%)}}
+html[data-vte="fundido"]::view-transition-old(root){animation:vte-f-o .2s ease both}   html[data-vte="fundido"]::view-transition-new(root){animation:vte-f-i .32s ease both}
+html[data-vte="deslizar"]::view-transition-old(root){animation:vte-d-o .2s cubic-bezier(.4,0,.9,.6) both} html[data-vte="deslizar"]::view-transition-new(root){animation:vte-d-i .34s cubic-bezier(.16,1,.3,1) both}
+html[data-vte="zoom"]::view-transition-old(root){animation:vte-z-o .2s cubic-bezier(.4,0,.9,.6) both}    html[data-vte="zoom"]::view-transition-new(root){animation:vte-z-i .34s cubic-bezier(.16,1,.3,1) both}
+html[data-vte="subir"]::view-transition-old(root){animation:vte-s-o .2s cubic-bezier(.4,0,.9,.6) both}   html[data-vte="subir"]::view-transition-new(root){animation:vte-s-i .36s cubic-bezier(.16,1,.3,1) both}
 @media (prefers-reduced-motion:reduce){::view-transition-group(*),::view-transition-old(*),::view-transition-new(*){animation:none!important}}
 
 /* ---- Sección Pedidos (por ahora solo un aviso) ---- */
@@ -2008,6 +2017,7 @@ function ponerTitulo(p, logoEl, tEl) {                    // logo del título (T
    iPhone/iPad: Safari no vibra desde una página; se usa el toque suave de un interruptor oculto (iOS 17.4 o más nuevo).
    Niveles:  suave = navegar y tocar tarjetas · medio = acciones principales · marcado = momentos importantes. */
 const VIBRACION = false;     // false = la página no vibra por su cuenta (quedan solo las vibraciones propias de Android). true = vuelve la vibración al tocar
+const VIB_P = { suave: { n: 'LIGHT', p: 14 }, medio: { n: 'MEDIUM', p: 26 }, fuerte: { n: 'HEAVY', p: 45 }, doble: { n: 'SUCCESS', p: [30, 50, 30] }, triple: { n: 'WARNING', p: [25, 40, 25, 40, 25] }, largo: { n: 'HEAVY', p: 90 } };
 const HAPT = (() => {
   const tactil = matchMedia('(pointer:coarse)').matches, hayVibrar = typeof navigator.vibrate === 'function';
   const PAT = { suave: 14, medio: 26, marcado: [40, 55, 40] };
@@ -2028,6 +2038,16 @@ const HAPT = (() => {
     disponible: VIBRACION && tactil && !reducido(),
     activo: () => on,
     poner(v) { on = !!v; try { localStorage.setItem('bb_hapt', on ? '1' : '0'); } catch (e) {} },
+    patron(n) {                                                               // vibración elegida en admin > Interacciones (independiente de VIBRACION)
+      if (!on || !tactil || reducido()) return;
+      const d = VIB_P[n]; if (!d) return;
+      try {
+        const h = nativo(), multi = Array.isArray(d.p);
+        if (h) { if (multi) h.notification({ type: d.n }); else h.impact({ style: d.n }); return; }
+        if (hayVibrar) navigator.vibrate(d.p);
+        else { tickIOS(); if (multi) setTimeout(tickIOS, 70); }
+      } catch (e) {}
+    },
     tick() {                                                                  // clic corto al pasar de una tarjeta a otra
       if (!VIBRACION || !on || !tactil || reducido()) return;
       try { const h = nativo(); if (h) h.impact({ style: 'LIGHT' }); else if (hayVibrar) navigator.vibrate(8); } catch (e) {}
@@ -2052,13 +2072,48 @@ document.addEventListener('click', e => {
   if (!t || t.disabled) return;
   for (const [nivel, sel] of HAPT_NIVEL) if (t.matches(sel)) { HAPT.tocar(nivel); return; }
 }, true);
+/* ---------- Animaciones y vibraciones por interacción (admin > Interacciones) ---------- */
+const INT = (() => { const x = window.INTERACCIONES_EXTRA; return { i: (x && x.i) || {}, t: (x && x.t) || {} }; })();
+const intCfg = id => INT.i[id] || { a: 'ninguna', v: 'ninguna' };
+const intTrans = tipo => INT.t[{ tab: 'seccion', poster: 'ficha', fade: 'busqueda' }[tipo]] || 'auto';
+function intVib(id) { const v = intCfg(id).v; if (v && v !== 'ninguna') HAPT.patron(v); }
+const ANIM_KF = {
+  rebote: [[{ scale: 1 }, { scale: .9, offset: .25 }, { scale: 1.08, offset: .6 }, { scale: .98, offset: .82 }, { scale: 1 }], 420],
+  hundir: [[{ scale: 1 }, { scale: .92 }, { scale: 1 }], 230],
+  pulso: [[{ scale: 1 }, { scale: 1.1 }, { scale: 1 }], 300],
+  sacudir: [[{ translate: '0 0' }, { translate: '-5px 0' }, { translate: '5px 0' }, { translate: '-3px 0' }, { translate: '3px 0' }, { translate: '0 0' }], 330],
+  giro: [[{ rotate: '0deg' }, { rotate: '-8deg' }, { rotate: '8deg' }, { rotate: '0deg' }], 340],
+  brillo: [[{ filter: 'brightness(1)' }, { filter: 'brightness(1.7)' }, { filter: 'brightness(1)' }], 330],
+  onda: [[{ boxShadow: '0 0 0 0 rgba(120,170,255,.55)' }, { boxShadow: '0 0 0 14px rgba(120,170,255,0)' }], 460]
+};
+function intAnim(el, a) {
+  const d = ANIM_KF[a]; if (!d || reduce || !el.animate) return;
+  try { el.animate(d[0], { duration: d[1], easing: 'cubic-bezier(.2,.8,.3,1)' }); } catch (e) {}
+}
+const INT_SEL = [
+  ['tarjeta', '.card, .ctile'], ['principal', '#hl, #hi, #dplay, .btn.primary, #dk-buscar'], ['dock', '#dock .dk'],
+  ['atras', '#hback, .cback, #pb, .cfg-back, #c-back, #s-back'], ['cuenta', '#ajustes'], ['menu', '.pm-fila, .cfg-fila'],
+  ['control', '#player .ib, #pp, #pt'], ['episodio', '.ep, .ci']
+];
+document.addEventListener('click', e => {
+  const t = e.target.closest && e.target.closest('button, a, [role="button"], .card, .ctile, .ep, .ci');
+  if (!t || t.disabled) return;
+  for (const [id, sel] of INT_SEL) {
+    if (!t.matches(sel)) continue;
+    const c = INT.i[id]; if (!c) return;
+    if (c.a && c.a !== 'ninguna') intAnim(t, c.a);
+    if (c.v && c.v !== 'ninguna') HAPT.patron(c.v);
+    return;
+  }
+}, true);
 document.addEventListener('contextmenu', e => { if (!(e.target.closest && e.target.closest('input, textarea, [contenteditable]'))) e.preventDefault(); });
 document.addEventListener('dragstart', e => e.preventDefault());
 /* Carruseles: un clic suave cada vez que pasa una tarjeta (como los selectores de iPhone) y al soltar la barra de avance */
-if (VIBRACION) (() => {
+(() => {
   const ult = new WeakMap(), paso = new WeakMap(); let t0 = 0;
   document.addEventListener('scroll', e => {
     const t = e.target;
+    if (!VIBRACION && intCfg('carrusel').v === 'ninguna') return;
     if (!t || !t.matches || !t.matches('.track, .eplist, #cols, #gens')) return;
     let w = paso.get(t);
     if (!w) { const c = t.firstElementChild; if (!c) return; w = (c.getBoundingClientRect().width || 0) + (parseFloat(getComputedStyle(t).columnGap) || 0); if (w < 40) return; paso.set(t, w); }
@@ -2066,7 +2121,7 @@ if (VIBRACION) (() => {
     ult.set(t, i);
     if (antes === undefined || antes === i) return;
     const ahora = performance.now();
-    if (ahora - t0 > 60) { t0 = ahora; HAPT.tick(); }
+    if (ahora - t0 > 60) { t0 = ahora; if (intCfg('carrusel').v !== 'ninguna') intVib('carrusel'); else HAPT.tick(); }
   }, { capture: true, passive: true });
   document.addEventListener('change', e => { if (e.target && e.target.id === 'ps') HAPT.tocar('suave'); }, true);
 })();
@@ -2075,10 +2130,13 @@ if (VIBRACION) (() => {
 let vtOK = false, vtDentro = false, fuenteVT = null;
 function conTransicion(fn, o = {}) {
   if (vtDentro || !vtOK || !document.startViewTransition || reduce || document.hidden) { fn(); return; }
+  const est = intTrans(o.tipo || 'tab');                                                          // estilo elegido en admin > Interacciones
+  if (est === 'ninguna') { fn(); return; }
   const raiz = document.documentElement; let nombrado = null;
   raiz.dataset.vt = o.tipo || 'tab';
-  if (o.desde && o.desde.isConnected) { o.desde.style.viewTransitionName = 'poster-x'; nombrado = o.desde; }   // de aquí sale la imagen que se agranda
-  const limpiar = () => { delete raiz.dataset.vt; if (nombrado) nombrado.style.viewTransitionName = ''; };
+  if (est !== 'auto') raiz.dataset.vte = est; else delete raiz.dataset.vte;
+  if (est === 'auto' && o.desde && o.desde.isConnected) { o.desde.style.viewTransitionName = 'poster-x'; nombrado = o.desde; }   // de aquí sale la imagen que se agranda
+  const limpiar = () => { delete raiz.dataset.vt; delete raiz.dataset.vte; if (nombrado) nombrado.style.viewTransitionName = ''; };
   let t;
   try {
     t = document.startViewTransition(() => {
@@ -2087,7 +2145,7 @@ function conTransicion(fn, o = {}) {
         if (nombrado) { nombrado.style.viewTransitionName = ''; nombrado = null; }
         fn();
         const dest = o.hacia && o.hacia();                                                                           // a esta tarjeta regresa
-        if (dest && dest.isConnected && dest.getClientRects().length) { dest.style.viewTransitionName = 'poster-x'; nombrado = dest; }
+        if (est === 'auto' && dest && dest.isConnected && dest.getClientRects().length) { dest.style.viewTransitionName = 'poster-x'; nombrado = dest; }
       } finally { vtDentro = false; }
     });
   } catch (e) { limpiar(); vtDentro = false; fn(); return; }
@@ -2244,6 +2302,7 @@ async function horizontal() {
 }
 function iniciar(p, url, sinHist) {
   const id = driveId(url);
+  intVib('reproducir');
   clearTimeout(preT); clearTimeout(preFin); if (preV) preFin = setTimeout(soltarPre, 20000);   // se deja bajar un rato más: el reproductor usa la misma conexión/caché
   if (!id) calentar(url);
   actualP = id ? null : p;                       // los videos de Drive no permiten medir el avance
@@ -3122,7 +3181,7 @@ H('pnxb').onclick = () => { pl.classList.remove('eps'); irEp(1); };
 /* ---- Reproductor en la app: brillo (izquierda) y volumen (derecha) al deslizar por esas zonas + panel de episodios ---- */
 const enApp = document.documentElement.classList.contains('en-app');
 const tVer = {};
-const verSlider = id => { clearTimeout(tVer[id]); H(id).classList.add('show'); };
+const verSlider = id => { clearTimeout(tVer[id]); if (!H(id).classList.contains('show')) intVib('slider'); H(id).classList.add('show'); };
 const sombraSlider = id => { clearTimeout(tVer[id]); tVer[id] = setTimeout(() => H(id).classList.remove('show'), 900); };
 function vSlider(id, valor, alCambiar) {                    // deslizador vertical de cristal: el relleno sube con el dedo
   const w = H(id), tr = w.querySelector('.vtrk'), f = w.querySelector('i');
@@ -3532,6 +3591,7 @@ function perfCambiar(id) {
   if (id === PERF.activo || !PERF.lista.some(p => p.id === id)) return;
   perfPonerStash(PERF.activo, { prog: leerProg(), vis: leerVistos() });
   perfCargar(id);
+  intVib('perfil');
 }
 function perfCargar(id) {                                   // pone el perfil id como activo (su progreso pasa a bbprog/bbsvis)
   const d = perfStash(id);

@@ -154,6 +154,7 @@ body.h .pan>.c.on.w{grid-column:1/-1}
     <button type="button" data-g="secciones">Secciones temáticas</button>
     <button type="button" data-g="acceso">Pantalla de acceso</button>
     <button type="button" data-g="efectos">Efectos</button>
+    <button type="button" data-g="interacciones">Interacciones</button>
   </nav>
 </aside>
 <div class="pan">
@@ -346,6 +347,33 @@ body.h .pan>.c.on.w{grid-column:1/-1}
     <p class="m" id="ac-m" hidden></p>
   </div>
 
+
+  <div class="c w" data-g="interacciones">
+    <h2>Animaciones, transiciones y vibraciones</h2>
+    <p class="s">Asigna a cada gesto o interacción de la app una animación y una vibración, y elige cómo cambian las pantallas. «Ninguna» deja el comportamiento de siempre. Toca <b>Probar</b> para verlo (la vibración se siente al abrir esta página en tu teléfono).</p>
+    <style>
+      .it-g{margin:18px 0 8px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.5)}
+      .it-f{display:grid;grid-template-columns:1fr;gap:8px;padding:12px;margin-top:8px;border-radius:16px;background:rgba(255,255,255,.06)}
+      .it-f b{font-size:15px}.it-f small{display:block;color:rgba(255,255,255,.55);font-size:12px;margin-top:2px}
+      .it-c{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end}
+      .it-c label{font-size:12px;color:rgba(255,255,255,.6)}.it-c select{height:42px;font-size:15px}
+      .it-p{height:42px;padding:0 16px}
+      .it-ch{display:inline-block;margin-top:2px;padding:7px 14px;border-radius:999px;background:rgba(255,255,255,.12);font-size:12px;width:max-content}
+      .it-st{position:relative;height:84px;border-radius:14px;overflow:hidden;background:#000;margin-top:6px}
+      .it-st i{position:absolute;inset:0;display:grid;place-items:center;font:700 15px/1 inherit;font-style:normal}
+      .it-st .a{background:linear-gradient(135deg,#1d3f9c,#2b2b6b)}.it-st .b{background:linear-gradient(135deg,#8b2a6f,#d0563b);opacity:0}
+      @media(max-width:520px){.it-c{grid-template-columns:1fr 1fr}.it-p{grid-column:1/-1}}
+    </style>
+    <p class="it-g">Gestos y toques</p>
+    <div id="it-lista"></div>
+    <p class="it-g">Solo vibración</p>
+    <div id="it-vib"></div>
+    <p class="it-g">Transiciones entre pantallas</p>
+    <div id="it-trans"></div>
+    <div class="row" style="margin-top:18px"><button id="it-go" type="button">Guardar</button><button class="g" id="it-cargar" type="button">Cargar los actuales</button><button class="g" id="it-reset" type="button">Valores de fábrica</button></div>
+    <p class="m" id="it-m" hidden></p>
+  </div>
+
   <div class="c w" data-g="efectos">
     <h2>Efectos de la app</h2>
     <p class="s">Ajusta el cristal deslizante de la barra inferior y el panel de acceso. En la vista previa toca una opción, o mantén presionada la activa y arrástrala, para ver los cambios.</p>
@@ -501,6 +529,68 @@ function efPoner(o) { efSliders.forEach(s => { const v = o && o[s.dataset.ef]; s
 $('ef-reset').onclick = () => { efPoner({}); msg('ef-m', 'Se pusieron los valores de fábrica. Falta guardar.', true); };
 $('ef-cargar').onclick = () => con($('ef-cargar'), 'ef-m', async () => { efPoner((await admin({ op: 'efectos' })).item || {}); msg('ef-m', 'Se cargó lo que está guardado.', true); });
 $('ef-go').onclick = () => con($('ef-go'), 'ef-m', async () => { await admin({ op: 'guardar_efectos', efectos: efLeer() }); msg('ef-m', 'Guardado. En la app se actualiza en menos de un minuto.', true); });
+/* ---- Interacciones: animación + vibración por gesto, estilo de transición por cambio de pantalla ---- */
+const IT_ANIM = [['ninguna', 'Ninguna'], ['rebote', 'Rebote'], ['hundir', 'Hundir'], ['pulso', 'Pulso'], ['sacudir', 'Sacudir'], ['giro', 'Giro'], ['brillo', 'Destello'], ['onda', 'Onda']];
+const IT_VIB = [['ninguna', 'Ninguna'], ['suave', 'Suave'], ['medio', 'Media'], ['fuerte', 'Fuerte'], ['doble', 'Doble toque'], ['triple', 'Triple toque'], ['largo', 'Larga']];
+const IT_TR = [['auto', 'Automática (la de siempre)'], ['fundido', 'Fundido'], ['deslizar', 'Deslizar'], ['zoom', 'Zoom'], ['subir', 'Subir'], ['ninguna', 'Sin transición']];
+const IT_GESTOS = [['tarjeta', 'Tocar una tarjeta', 'Póster de película o serie'], ['principal', 'Botones principales', 'Reproducir, Más información, Buscar'], ['dock', 'Barra inferior', 'Cambiar de sección'], ['atras', 'Botón atrás / cerrar', 'Volver desde fichas y páginas'], ['cuenta', 'Botón de cuenta o perfil', 'Esquina superior'], ['menu', 'Filas de menús', 'Menú del perfil y Configuración'], ['control', 'Controles del reproductor', 'Pausa, saltos, pantalla completa…'], ['episodio', 'Elegir un episodio', 'Lista de capítulos']];
+const IT_SOLO = [['carrusel', 'Pasar tarjetas de un carrusel', 'Un clic por cada tarjeta que pasa'], ['slider', 'Deslizar brillo / volumen', 'Al aparecer el deslizador en el reproductor'], ['perfil', 'Cambiar de perfil', ''], ['reproducir', 'Empezar a reproducir', 'Al abrir una película o episodio']];
+const IT_TRANS = [['seccion', 'Cambio de sección', 'Inicio, Series, Pedidos, Recientes y colecciones'], ['ficha', 'Abrir y cerrar una ficha', 'Con «Automática» el póster se agranda hasta ser el fondo'], ['busqueda', 'Búsqueda', 'Al entrar o salir de los resultados']];
+const IT_KF = {
+  rebote: [[{ scale: 1 }, { scale: .9, offset: .25 }, { scale: 1.08, offset: .6 }, { scale: .98, offset: .82 }, { scale: 1 }], 420], hundir: [[{ scale: 1 }, { scale: .92 }, { scale: 1 }], 230], pulso: [[{ scale: 1 }, { scale: 1.1 }, { scale: 1 }], 300],
+  sacudir: [[{ translate: '0 0' }, { translate: '-5px 0' }, { translate: '5px 0' }, { translate: '-3px 0' }, { translate: '3px 0' }, { translate: '0 0' }], 330], giro: [[{ rotate: '0deg' }, { rotate: '-8deg' }, { rotate: '8deg' }, { rotate: '0deg' }], 340],
+  brillo: [[{ filter: 'brightness(1)' }, { filter: 'brightness(1.7)' }, { filter: 'brightness(1)' }], 330], onda: [[{ boxShadow: '0 0 0 0 rgba(120,170,255,.55)' }, { boxShadow: '0 0 0 14px rgba(120,170,255,0)' }], 460]
+};
+const IT_VP = { suave: 14, medio: 26, fuerte: 45, doble: [30, 50, 30], triple: [25, 40, 25, 40, 25], largo: 90 };
+const IT_TK = {
+  fundido: [[{ opacity: 1 }, { opacity: 0 }], [{ opacity: 0 }, { opacity: 1 }]],
+  deslizar: [[{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'translateX(-7%)' }], [{ opacity: 0, transform: 'translateX(9%)' }, { opacity: 1, transform: 'none' }]],
+  zoom: [[{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'scale(.94)' }], [{ opacity: 0, transform: 'scale(1.07)' }, { opacity: 1, transform: 'none' }]],
+  subir: [[{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'translateY(-3%)' }], [{ opacity: 0, transform: 'translateY(7%)' }, { opacity: 1, transform: 'none' }]]
+};
+const itOpts = (l, v) => l.map(([k, n]) => '<option value="' + k + '"' + (k === v ? ' selected' : '') + '>' + n + '</option>').join('');
+function itFila(cont, id, nombre, desc, conAnim) {
+  const f = document.createElement('div'); f.className = 'it-f';
+  f.innerHTML = '<div><b>' + nombre + '</b>' + (desc ? '<small>' + desc + '</small>' : '') + '</div><div class="it-c">' +
+    (conAnim ? '<label>Animación<select data-it="' + id + '" data-c="a">' + itOpts(IT_ANIM, 'ninguna') + '</select></label>' : '') +
+    '<label>Vibración<select data-it="' + id + '" data-c="v">' + itOpts(IT_VIB, 'ninguna') + '</select></label>' +
+    '<button class="g it-p" type="button">Probar</button></div>' + (conAnim ? '<span class="it-ch">Vista previa</span>' : '');
+  f.querySelector('.it-p').onclick = () => {
+    const a = conAnim ? f.querySelector('[data-c="a"]').value : 'ninguna', v = f.querySelector('[data-c="v"]').value, ch = f.querySelector('.it-ch');
+    if (ch && IT_KF[a]) ch.animate(IT_KF[a][0], { duration: IT_KF[a][1], easing: 'cubic-bezier(.2,.8,.3,1)' });
+    if (IT_VP[v] && navigator.vibrate) navigator.vibrate(IT_VP[v]);
+  };
+  cont.append(f);
+}
+function itTransFila(id, nombre, desc) {
+  const f = document.createElement('div'); f.className = 'it-f';
+  f.innerHTML = '<div><b>' + nombre + '</b><small>' + desc + '</small></div><div class="it-c" style="grid-template-columns:1fr auto"><label>Estilo<select data-itt="' + id + '">' + itOpts(IT_TR, 'auto') + '</select></label><button class="g it-p" type="button">Probar</button></div><div class="it-st"><i class="a">Pantalla A</i><i class="b">Pantalla B</i></div>';
+  f.querySelector('.it-p').onclick = () => {
+    const est = f.querySelector('select').value, A = f.querySelector('.a'), B = f.querySelector('.b'), k = IT_TK[est === 'auto' ? 'zoom' : est];
+    A.getAnimations().concat(B.getAnimations()).forEach(x => x.cancel());
+    if (est === 'ninguna' || !k) { A.style.opacity = 0; B.style.opacity = 1; setTimeout(() => { A.style.opacity = 1; B.style.opacity = 0; }, 900); return; }
+    A.animate(k[0], { duration: 260, fill: 'forwards' });
+    B.animate(k[1], { duration: 380, delay: 160, fill: 'forwards' }).finished.then(() => setTimeout(() => { A.getAnimations().concat(B.getAnimations()).forEach(x => x.cancel()); }, 700), () => {});
+  };
+  $('it-trans').append(f);
+}
+IT_GESTOS.forEach(g => itFila($('it-lista'), g[0], g[1], g[2], true));
+IT_SOLO.forEach(g => itFila($('it-vib'), g[0], g[1], g[2], false));
+IT_TRANS.forEach(g => itTransFila(g[0], g[1], g[2]));
+const itLeer = () => {
+  const i = {}, t = {};
+  document.querySelectorAll('[data-it]').forEach(s => { (i[s.dataset.it] = i[s.dataset.it] || { a: 'ninguna', v: 'ninguna' })[s.dataset.c] = s.value; });
+  document.querySelectorAll('[data-itt]').forEach(s => { t[s.dataset.itt] = s.value; });
+  return { i, t };
+};
+function itPoner(o) {
+  o = o || {};
+  document.querySelectorAll('[data-it]').forEach(s => { const x = o.i && o.i[s.dataset.it]; s.value = (x && x[s.dataset.c]) || 'ninguna'; });
+  document.querySelectorAll('[data-itt]').forEach(s => { s.value = (o.t && o.t[s.dataset.itt]) || 'auto'; });
+}
+$('it-reset').onclick = () => { itPoner({}); msg('it-m', 'Se pusieron los valores de fábrica. Falta guardar.', true); };
+$('it-cargar').onclick = () => con($('it-cargar'), 'it-m', async () => { itPoner((await admin({ op: 'interacciones' })).item); msg('it-m', 'Se cargó lo que está guardado.', true); });
+$('it-go').onclick = () => con($('it-go'), 'it-m', async () => { await admin({ op: 'guardar_interacciones', interacciones: itLeer() }); msg('it-m', 'Guardado. En la app se actualiza en menos de un minuto.', true); });
 function acBrillo() { const v = +$('ac-brillo').value; $('ac-bv').textContent = v; $('ac-pvi').style.boxShadow = '0 0 ' + (v * .7) + 'px ' + (v * .22) + 'px rgba(96,156,255,' + (v / 100 * .9).toFixed(2) + ')'; }
 $('ac-brillo').addEventListener('input', acBrillo); acBrillo();
 $('ac-cargar').onclick = () => con($('ac-cargar'), 'ac-m', async () => {
