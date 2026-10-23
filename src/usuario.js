@@ -518,7 +518,9 @@ async function manejar({ request, env, params, waitUntil }) {
     try { if (db) { const r = await db.prepare("SELECT valor FROM meta WHERE clave = 'acceso'").first(); if (r && r.valor) acc = JSON.parse(r.valor) || {}; } } catch (e) {}
     let efe = {};
     try { if (db) { const r = await db.prepare("SELECT valor FROM meta WHERE clave = 'efectos'").first(); if (r && r.valor) efe = JSON.parse(r.valor) || {}; } } catch (e) {}
-    const js = 'window.PELICULAS_EXTRA=' + JSON.stringify(items).replace(/</g, '\\u003c') + ';window.COLECCIONES_EXTRA=' + JSON.stringify(cols).replace(/</g, '\\u003c') + ';window.SECCIONES_EXTRA=' + JSON.stringify(secs).replace(/</g, '\\u003c') + ';window.ACCESO_EXTRA=' + JSON.stringify(acc).replace(/</g, '\\u003c') + ';window.EFECTOS_EXTRA=' + JSON.stringify(efe).replace(/</g, '\\u003c') + ';';
+    let inter = {};
+    try { if (db) { const r = await db.prepare("SELECT valor FROM meta WHERE clave = 'interacciones'").first(); if (r && r.valor) inter = JSON.parse(r.valor) || {}; } } catch (e) {}
+    const js = 'window.PELICULAS_EXTRA=' + JSON.stringify(items).replace(/</g, '\\u003c') + ';window.COLECCIONES_EXTRA=' + JSON.stringify(cols).replace(/</g, '\\u003c') + ';window.SECCIONES_EXTRA=' + JSON.stringify(secs).replace(/</g, '\\u003c') + ';window.ACCESO_EXTRA=' + JSON.stringify(acc).replace(/</g, '\\u003c') + ';window.EFECTOS_EXTRA=' + JSON.stringify(efe).replace(/</g, '\\u003c') + ';window.INTERACCIONES_EXTRA=' + JSON.stringify(inter).replace(/</g, '\\u003c') + ';';
     return new Response(js, { headers: { 'Content-Type': 'application/javascript; charset=utf-8', 'Cache-Control': 'public, max-age=30' } });
   }
 
@@ -690,6 +692,28 @@ async function manejar({ request, env, params, waitUntil }) {
       for (const k in EF_RANGOS) { const [mn, mx, d] = EF_RANGOS[k], n = Number(a[k]); v[k] = (a[k] === '' || a[k] == null || !isFinite(n)) ? d : Math.max(mn, Math.min(mx, Math.round(n))); }
       await db.prepare('CREATE TABLE IF NOT EXISTS meta (clave TEXT PRIMARY KEY, valor TEXT) WITHOUT ROWID').run();
       await db.prepare("INSERT INTO meta (clave, valor) VALUES ('efectos', ?1) ON CONFLICT(clave) DO UPDATE SET valor = ?1").bind(JSON.stringify(v)).run();
+      return json({ ok: true });
+    }
+
+    /* Animaciones, transiciones y vibraciones asignadas a gestos e interacciones */
+    const IN_ANIM = ['ninguna', 'rebote', 'hundir', 'pulso', 'sacudir', 'giro', 'brillo', 'onda'];
+    const IN_VIB = ['ninguna', 'suave', 'medio', 'fuerte', 'doble', 'triple', 'largo'];
+    const IN_TRANS = ['auto', 'fundido', 'deslizar', 'zoom', 'subir', 'ninguna'];
+    const IN_AV = ['tarjeta', 'principal', 'dock', 'atras', 'cuenta', 'menu', 'control', 'episodio'];
+    const IN_V = ['carrusel', 'slider', 'perfil', 'reproducir'];
+    const IN_T = ['seccion', 'ficha', 'busqueda'];
+    if (cuerpo.op === 'interacciones') {
+      let v = {};
+      try { const r = await db.prepare("SELECT valor FROM meta WHERE clave = 'interacciones'").first(); if (r && r.valor) v = JSON.parse(r.valor) || {}; } catch (e) {}
+      return json({ item: v });
+    }
+    if (cuerpo.op === 'guardar_interacciones') {
+      const a = cuerpo.interacciones || {}, ai = a.i || {}, at = a.t || {}, v = { i: {}, t: {} };
+      for (const k of IN_AV) { const x = ai[k] || {}; v.i[k] = { a: IN_ANIM.includes(x.a) ? x.a : 'ninguna', v: IN_VIB.includes(x.v) ? x.v : 'ninguna' }; }
+      for (const k of IN_V) { const x = ai[k] || {}; v.i[k] = { a: 'ninguna', v: IN_VIB.includes(x.v) ? x.v : 'ninguna' }; }
+      for (const k of IN_T) v.t[k] = IN_TRANS.includes(at[k]) ? at[k] : 'auto';
+      await db.prepare('CREATE TABLE IF NOT EXISTS meta (clave TEXT PRIMARY KEY, valor TEXT) WITHOUT ROWID').run();
+      await db.prepare("INSERT INTO meta (clave, valor) VALUES ('interacciones', ?1) ON CONFLICT(clave) DO UPDATE SET valor = ?1").bind(JSON.stringify(v)).run();
       return json({ ok: true });
     }
 
