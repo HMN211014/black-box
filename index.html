@@ -115,6 +115,11 @@ body{-webkit-user-select:none;user-select:none}
  --st:env(safe-area-inset-top,0px);--sb:env(safe-area-inset-bottom,0px);--sl:env(safe-area-inset-left,0px);--sr:env(safe-area-inset-right,0px)}
 #player[hidden]{display:none}
 #pv{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000}
+#pv.fx{transition:width .62s cubic-bezier(.3,1.35,.5,1),height .62s cubic-bezier(.3,1.35,.5,1)}
+#pcr{position:absolute;left:0;top:0;width:0;height:0;pointer-events:none;opacity:0;border-radius:20px;border:1px solid rgba(255,255,255,.55);
+ background:linear-gradient(180deg,rgba(255,255,255,.2),rgba(255,255,255,.04) 55%,rgba(255,255,255,.13));
+ box-shadow:inset 0 1.5px 0 rgba(255,255,255,.85),inset 0 -1px 0 rgba(255,255,255,.22),0 12px 44px rgba(0,0,0,.5);
+ backdrop-filter:blur(7px) saturate(1.8) brightness(1.15);-webkit-backdrop-filter:blur(7px) saturate(1.8) brightness(1.15)}
 #pdrive{position:absolute;inset:0;padding:0 var(--sr) 0 var(--sl)}
 #pdrive iframe{display:block;width:100%;height:100%;border:0;background:#000}
 #player.drive #pv,#player.drive .pmid,#player.drive .pbot,#player.drive .spin{display:none}
@@ -412,7 +417,6 @@ body.colmode #chero:not(.top){margin-top:0}
 #tver:empty{display:none}
 #tvtoast{position:absolute;left:50%;bottom:calc(var(--sb) + 96px);transform:translateX(-50%);z-index:20;max-width:88%;padding:12px 18px;border-radius:14px;background:rgba(40,40,44,.94);color:#fff;font-size:14px;line-height:1.4;text-align:center;pointer-events:none}
 #tvtoast[hidden]{display:none}
-#castp.dlna .cp-ctl>.prow,#castp.dlna .cp-ctl>.cp-btns,#castp.dlna .cp-ctl>.cp-vol{display:none}
 
 /* ================= REDISEÑO: banner a pantalla casi completa, barra flotante, búsqueda y ficha ================= */
 :root{--dockh:70px;--kb:0px}
@@ -1113,7 +1117,8 @@ html.pip-ok #player #ppip[hidden]{display:inline-flex}
 #ppip{display:none}
 html.pip-ok #player.drive #ppip{display:none!important}
 html.en-pip #player .ctl,html.en-pip #player .vside,html.en-pip #player #peps,html.en-pip #player #pnxt,html.en-pip #player .spin{display:none!important}
-html.en-pip #player #pv{object-fit:contain}
+html.en-pip #player #pv{object-fit:contain!important;width:100%!important;height:100%!important;inset:0!important;margin:0!important;translate:none!important}
+html.en-pip #pcr{display:none}
 
 /* ---- Opciones (ajustes del perfil) ---- */
 .pf-opc{margin-top:18px;padding-top:6px;border-top:1px solid rgba(255,255,255,.12)}
@@ -1373,7 +1378,6 @@ html.en-pip #player #pv{object-fit:contain}
     </div>
   </div>
   <div class="vside vl" id="pbr" aria-label="Brillo"><div class="vtrk" id="pbr-t"><i id="pbr-f"></i><span class="vic"><svg class="st" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8"/></svg></span></div></div>
-  <div class="vside vr" id="pvl" aria-label="Volumen"><div class="vtrk" id="pvl-t"><i id="pvl-f"></i><button type="button" class="vic" id="pvl-b" aria-label="Silenciar"></button></div></div>
   <div class="ctl pmid">
     <button class="ib big" id="pr" aria-label="Retroceder 10 segundos"><svg class="st" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/><text x="12" y="15.2" font-size="7.2" font-weight="700" text-anchor="middle" font-family="Arial,sans-serif">10</text></svg></button>
     <button class="ib huge" id="pp" aria-label="Reproducir o pausar"></button>
@@ -2018,7 +2022,27 @@ function ponerTitulo(p, logoEl, tEl) {                    // logo del título (T
    iPhone/iPad: Safari no vibra desde una página; se usa el toque suave de un interruptor oculto (iOS 17.4 o más nuevo).
    Niveles:  suave = navegar y tocar tarjetas · medio = acciones principales · marcado = momentos importantes. */
 const VIBRACION = false;     // false = la página no vibra por su cuenta (quedan solo las vibraciones propias de Android). true = vuelve la vibración al tocar
-const VIB_P = { suave: { n: 'LIGHT', p: 14 }, medio: { n: 'MEDIUM', p: 26 }, fuerte: { n: 'HEAVY', p: 45 }, doble: { n: 'SUCCESS', p: [30, 50, 30] }, triple: { n: 'WARNING', p: [25, 40, 25, 40, 25] }, largo: { n: 'HEAVY', p: 90 } };
+/* n = estilo del plugin Haptics, p = respaldo navigator.vibrate, t/a = forma de onda (pausa, vibra, … / amplitud 0-255) del plugin Haptico, e = efecto del motor háptico */
+const VIB_P = {
+  suave: { n: 'LIGHT', p: 14, t: [0, 16], a: [0, 90] }, medio: { n: 'MEDIUM', p: 26, t: [0, 24], a: [0, 160] }, fuerte: { n: 'HEAVY', p: 45, t: [0, 40], a: [0, 255] },
+  doble: { n: 'SUCCESS', p: [30, 50, 30], t: [0, 28, 50, 28], a: [0, 200, 0, 200] }, triple: { n: 'WARNING', p: [25, 40, 25, 40, 25], t: [0, 24, 40, 24, 40, 24], a: [0, 200, 0, 200, 0, 200] },
+  largo: { n: 'HEAVY', p: 90, t: [0, 90], a: [0, 200] },
+  tic: { n: 'LIGHT', p: 8, e: 'TICK', t: [0, 8], a: [0, 70] }, clic: { n: 'MEDIUM', p: 18, e: 'CLICK', t: [0, 18], a: [0, 150] }, pesado: { n: 'HEAVY', p: 50, e: 'HEAVY', t: [0, 50], a: [0, 255] },
+  latido: { n: 'SUCCESS', p: [35, 70, 60], t: [0, 35, 70, 60], a: [0, 255, 0, 150] },
+  rampa: { n: 'WARNING', p: [20, 20, 30, 20, 45, 20, 70], t: [0, 20, 20, 30, 20, 45, 20, 70], a: [0, 60, 0, 110, 0, 170, 0, 255] },
+  /* c = composición con piezas del sistema [pieza, fuerza 0-1, pausa ms] (Android 11+) · s = respuesta háptica del sistema (Android 11/14+) · lo demás es el respaldo */
+  subida: { n: 'WARNING', p: [20, 20, 30, 20, 45, 20, 70], t: [0, 20, 20, 30, 20, 45, 20, 70], a: [0, 60, 0, 110, 0, 170, 0, 255], c: [['SLOW_RISE', .8, 0], ['CLICK', 1, 30]] },
+  caida: { n: 'MEDIUM', p: [60, 20, 30, 20, 15], t: [0, 60, 20, 30, 20, 15], a: [0, 255, 0, 150, 0, 70], c: [['QUICK_FALL', .9, 0], ['THUD', .7, 30]] },
+  seco: { n: 'HEAVY', p: 50, t: [0, 50], a: [0, 255], c: [['THUD', 1, 0]] },
+  espiral: { n: 'SUCCESS', p: [30, 40, 30, 40, 30], t: [0, 30, 40, 30, 40, 30], a: [0, 120, 0, 190, 0, 255], c: [['SPIN', .9, 0], ['SPIN', .9, 25], ['SPIN', 1, 25]] },
+  resorte: { n: 'MEDIUM', p: [35, 25, 20], t: [0, 35, 25, 20], a: [0, 230, 0, 120], c: [['QUICK_RISE', .7, 0], ['QUICK_FALL', .7, 0], ['TICK', .5, 30]] },
+  textura: { n: 'LIGHT', p: 6, e: 'TEXTURE', t: [0, 6], a: [0, 50] },
+  confirmar: { n: 'SUCCESS', p: [30, 50, 30], t: [0, 28, 50, 28], a: [0, 200, 0, 200], s: 'CONFIRM' },
+  rechazar: { n: 'WARNING', p: [25, 40, 25, 40, 25], t: [0, 24, 40, 24, 40, 24], a: [0, 200, 0, 200, 0, 200], s: 'REJECT' },
+  segmento: { n: 'LIGHT', p: 8, e: 'TICK', t: [0, 8], a: [0, 70], s: 'SEGMENT_TICK' },
+  interruptor: { n: 'MEDIUM', p: 18, e: 'CLICK', t: [0, 18], a: [0, 150], s: 'TOGGLE_ON' },
+  agarrar: { n: 'MEDIUM', p: 26, t: [0, 24], a: [0, 160], s: 'DRAG_START' }
+};
 const HAPT = (() => {
   const tactil = matchMedia('(pointer:coarse)').matches, hayVibrar = typeof navigator.vibrate === 'function';
   const PAT = { suave: 14, medio: 26, marcado: [40, 55, 40] };
@@ -2039,13 +2063,24 @@ const HAPT = (() => {
     disponible: VIBRACION && tactil && !reducido(),
     activo: () => on,
     poner(v) { on = !!v; try { localStorage.setItem('bb_hapt', on ? '1' : '0'); } catch (e) {} },
-    patron(n) {                                                               // vibración elegida en admin > Interacciones (independiente de VIBRACION)
+    patron(n, esc) {                                                          // vibración elegida en admin > Interacciones (independiente de VIBRACION)
       if (!on || !tactil || reducido()) return;
       const d = VIB_P[n]; if (!d) return;
+      const k = ((INT.m.intensidad || 70) / 100) * (esc || 1);
       try {
+        if (window.bbHapOk && window.bbHaptico) {                                // plugin propio: intensidad real
+          const hp = window.bbHaptico;
+          const onda = () => { if (d.e && k >= .55) hp.efecto(d.e); else hp.patron(d.t, d.a.map(x => Math.min(255, Math.round(x * k)))); };
+          if (d.s) { hp.sistema(d.s).then(r => { if (!r || !r.ok) onda(); }); return; }                 // la respuesta del sistema trae su propia fuerza
+          if (d.c && (window.bbHapInfo.prims || []).length) {
+            const pz = d.c.map(x => ({ n: x[0], e: Math.min(1, x[1] * k), d: x[2] }));
+            hp.compuesto(pz).then(r => { if (!r || !r.ok) onda(); }); return;                            // si falta alguna pieza, la forma de onda equivalente
+          }
+          onda(); return;
+        }
         const h = nativo(), multi = Array.isArray(d.p);
         if (h) { if (multi) h.notification({ type: d.n }); else h.impact({ style: d.n }); return; }
-        if (hayVibrar) navigator.vibrate(d.p);
+        if (hayVibrar) { const m = .5 + k * .8; navigator.vibrate(multi ? d.p.map((x, i) => i % 2 ? x : Math.max(4, Math.round(x * m))) : Math.max(4, Math.round(d.p * m))); }
         else { tickIOS(); if (multi) setTimeout(tickIOS, 70); }
       } catch (e) {}
     },
@@ -2074,7 +2109,7 @@ document.addEventListener('click', e => {
   for (const [nivel, sel] of HAPT_NIVEL) if (t.matches(sel)) { HAPT.tocar(nivel); return; }
 }, true);
 /* ---------- Animaciones y vibraciones por interacción (admin > Interacciones) ---------- */
-const INT = (() => { const x = window.INTERACCIONES_EXTRA; return { i: (x && x.i) || {}, t: (x && x.t) || {} }; })();
+const INT = (() => { const x = window.INTERACCIONES_EXTRA; return { i: (x && x.i) || {}, t: (x && x.t) || {}, m: Object.assign({ mantener: 'ninguna', doble: 'ninguna', flick: 'ninguna', borde: 'ninguna', arrastre: 'ninguna', paso: 48, intensidad: 70 }, (x && x.m) || {}) }; })();
 const intCfg = id => INT.i[id] || { a: 'ninguna', v: 'ninguna' };
 const intTrans = tipo => INT.t[{ tab: 'seccion', poster: 'ficha', fade: 'busqueda' }[tipo]] || 'auto';
 function intVib(id) { const v = intCfg(id).v; if (v && v !== 'ninguna') HAPT.patron(v); }
@@ -2107,6 +2142,57 @@ document.addEventListener('click', e => {
     return;
   }
 }, true);
+/* ---------- Movimientos del dedo (admin > Interacciones > Movimientos del dedo) ----------
+   Se leen con eventos táctiles (siguen llegando mientras la página se desplaza, a diferencia de los de puntero):
+   arrastre = un toque cada cierta distancia recorrida, con más fuerza si el dedo va rápido · flick = deslizar rápido y soltar
+   mantener = dejar presionado · doble = doble toque · borde = empezar a deslizar desde el borde de la pantalla. */
+(() => {
+  if (!matchMedia('(pointer:coarse)').matches) return;
+  const M = INT.m;
+  if (['mantener', 'doble', 'flick', 'borde', 'arrastre'].every(k => M[k] === 'ninguna')) return;
+  let g = null, ultToque = null, tPaso = 0;
+  const vib = (n, esc) => HAPT.patron(n, esc);
+  const campo = t => t && t.closest && t.closest('input, textarea, select, [contenteditable]');
+  document.addEventListener('touchstart', e => {
+    if (e.touches.length !== 1 || campo(e.target)) { g = null; return; }
+    const t = e.touches[0], ahora = performance.now();
+    g = { x0: t.clientX, y0: t.clientY, x: t.clientX, y: t.clientY, t0: ahora, tl: ahora, acum: 0, total: 0, mov: false, borde: false, bordeOk: false, m: [], tm: 0 };
+    const bw = 24; if (t.clientX < bw || t.clientX > innerWidth - bw) g.borde = true;
+    if (M.mantener !== 'ninguna') g.tm = setTimeout(() => { if (g && !g.mov) { g.largo = true; vib(M.mantener); } }, 480);
+  }, { passive: true, capture: true });
+  document.addEventListener('touchmove', e => {
+    if (!g || e.touches.length !== 1) return;
+    const t = e.touches[0], ahora = performance.now(), d = Math.hypot(t.clientX - g.x, t.clientY - g.y);
+    g.x = t.clientX; g.y = t.clientY; g.total = Math.hypot(g.x - g.x0, g.y - g.y0);
+    g.m.push([ahora, g.x, g.y]); while (g.m.length > 1 && ahora - g.m[0][0] > 120) g.m.shift();
+    if (g.total > 10 && !g.mov) { g.mov = true; clearTimeout(g.tm); }
+    if (g.borde && !g.bordeOk && g.total > 40 && M.borde !== 'ninguna') { g.bordeOk = true; vib(M.borde); }
+    if (M.arrastre !== 'ninguna' && g.mov) {
+      g.acum += d;
+      if (g.acum >= M.paso && ahora - tPaso > 22) {
+        const a = g.m[0], dt = Math.max(1, ahora - a[0]), v = Math.hypot(g.x - a[1], g.y - a[2]) / dt;   // px por ms
+        g.acum = g.acum % M.paso; tPaso = ahora;
+        vib(M.arrastre, Math.max(.5, Math.min(1.4, .5 + v * .6)));
+      }
+    }
+  }, { passive: true, capture: true });
+  const fin = e => {
+    if (!g) return; const ahora = performance.now(), a = g.m[0];
+    clearTimeout(g.tm);
+    if (e.type === 'touchend') {
+      if (g.mov && M.flick !== 'ninguna' && a && g.total > 60) {
+        const dt = Math.max(1, ahora - a[0]), v = Math.hypot(g.x - a[1], g.y - a[2]) / dt;
+        if (v > .9) vib(M.flick, Math.max(.7, Math.min(1.4, .6 + v * .35)));
+      } else if (!g.mov && !g.largo && ahora - g.t0 < 260 && M.doble !== 'ninguna') {
+        if (ultToque && ahora - ultToque.t < 320 && Math.hypot(g.x0 - ultToque.x, g.y0 - ultToque.y) < 40) { vib(M.doble); ultToque = null; }
+        else ultToque = { t: ahora, x: g.x0, y: g.y0 };
+      }
+    }
+    g = null;
+  };
+  document.addEventListener('touchend', fin, { passive: true, capture: true });
+  document.addEventListener('touchcancel', fin, { passive: true, capture: true });
+})();
 document.addEventListener('contextmenu', e => { if (!(e.target.closest && e.target.closest('input, textarea, [contenteditable]'))) e.preventDefault(); });
 document.addEventListener('dragstart', e => e.preventDefault());
 /* Carruseles: un clic suave cada vez que pasa una tarjeta (como los selectores de iPhone) y al soltar la barra de avance */
@@ -2115,6 +2201,7 @@ document.addEventListener('dragstart', e => e.preventDefault());
   document.addEventListener('scroll', e => {
     const t = e.target;
     if (!VIBRACION && intCfg('carrusel').v === 'ninguna') return;
+    if (INT.m.arrastre !== 'ninguna') return;                                  // ya vibra el arrastre continuo del dedo
     if (!t || !t.matches || !t.matches('.track, .eplist, #cols, #gens')) return;
     let w = paso.get(t);
     if (!w) { const c = t.firstElementChild; if (!c) return; w = (c.getBoundingClientRect().width || 0) + (parseFloat(getComputedStyle(t).columnGap) || 0); if (w < 40) return; paso.set(t, w); }
@@ -2246,7 +2333,8 @@ const ICON = {
 };
 const VEL = [1, 1.25, 1.5, 2, 0.75];
 let swipeFlag = false, ajustando = false, hideT, dragging = false, hls = null, fsAuto = false, vi = 0, actualP = null, actualEp = null, reanudar = 0, ultGuardado = 0;
-let tvModo = null, tvPeli = null, tvUrl = '', tvBloq = false, tvDlnaDevice = null;   // transmisión a TV: null | 'cast' | 'el' | 'dlna'
+let tvModo = null, tvPeli = null, tvUrl = '', tvBloq = false;   // transmisión a TV: null | 'cast' | 'el' | 'dlna'
+let tvDev = null, dlSt = { estado: '', t: 0, d: 0, vol: -1 }, dlPoll = 0, dlFallos = 0, dlMudo = false, dlVolT = 0;
 
 const fmt = s => { s = Math.max(0, Math.floor(s || 0)); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60;
   return (h ? h + ':' + String(m).padStart(2, '0') : m) + ':' + String(x).padStart(2, '0'); };
@@ -2348,22 +2436,54 @@ try { const g = localStorage.getItem('bbfit'); fit = g === 'cover' ? 'fill' : (A
 function aspectoActual() { return ASPECTOS.find(x => x.k === fit) || ASPECTOS[0]; }
 function aspectoOriginal() { return V.videoWidth && V.videoHeight ? V.videoWidth / V.videoHeight : 0; }
 function aspectoTexto(r) { if (!r) return ''; const e = ASPECTOS.find(x => x.r && Math.abs(x.r - r) < 0.04); return e ? e.n : r.toFixed(2) + ':1'; }
+/* Caja del video en píxeles (siempre así, para poder animar el cambio): Automático = proporción real del archivo, 16:9/2.39… = estirado a esa proporción,
+   Llenar = cubre toda la pantalla. Devuelve null si aún no se conoce el tamaño del archivo. */
+function cajaVideo() {
+  const pa = V.parentElement; if (!pa || !pa.offsetWidth) return null;           // medidas de layout: en vertical el reproductor va girado 90° con CSS
+  const a = aspectoActual(), ro = aspectoOriginal(), W = pa.offsetWidth, Hh = pa.offsetHeight;
+  let r = a.r || ro; if (!r) return null;
+  let w, h;
+  if (a.k === 'fill') { if (W / Hh > ro) { w = W; h = W / ro; } else { h = Hh; w = Hh * ro; } }
+  else { w = W; h = w / r; if (h > Hh) { h = Hh; w = h * r; } }
+  return { w, h, W, Hh };
+}
 function aplicarFit() {
-  const a = aspectoActual(), st = V.style, box = V.parentElement && V.parentElement.getBoundingClientRect();
-  if (a.r && box && box.width) {
-    let w = box.width, h = w / a.r;
-    if (h > box.height) { h = box.height; w = h * a.r; }
-    st.objectFit = 'fill'; st.width = w + 'px'; st.height = h + 'px'; st.inset = '0'; st.margin = 'auto';
+  const a = aspectoActual(), st = V.style, cj = cajaVideo();
+  if (cj) {
+    st.objectFit = 'fill'; st.width = cj.w + 'px'; st.height = cj.h + 'px'; st.inset = '50% auto auto 50%'; st.margin = '0'; st.translate = '-50% -50%';
   } else {
-    st.objectFit = fit === 'fill' ? 'cover' : 'contain'; st.width = ''; st.height = ''; st.inset = ''; st.margin = '';
+    st.objectFit = fit === 'fill' ? 'cover' : 'contain'; st.width = ''; st.height = ''; st.inset = ''; st.margin = ''; st.translate = '';
   }
   H('pa').textContent = a.c || a.n;
 }
-function ponerAspecto(k) { fit = k; try { localStorage.setItem('bbfit', fit); } catch (e) {} aplicarFit(); }
+/* Cambio de proporción o de orientación: la caja del video se transforma con rebote y una hoja de cristal acompaña el cambio (vertical <-> horizontal incluido) */
+const pcr = (() => { const i = document.createElement('i'); i.id = 'pcr'; i.setAttribute('aria-hidden', 'true'); V.after(i); return i; })();
+let fxT = 0;
+function transformarAspecto(cambio) {
+  const pa = V.parentElement, aw = V.offsetWidth, ah = V.offsetHeight;
+  if (reduce || !pa || !pa.offsetWidth || !aw || pl.hidden || !V.animate) { cambio(); return; }
+  V.classList.add('fx');
+  cambio();
+  const cj = cajaVideo(); if (!cj) return;
+  const d = { left: (cj.W - aw) / 2, top: (cj.Hh - ah) / 2, width: aw, height: ah };
+  const h = { left: (cj.W - cj.w) / 2, top: (cj.Hh - cj.h) / 2, width: cj.w, height: cj.h };
+  const px = o => ({ left: o.left + 'px', top: o.top + 'px', width: o.width + 'px', height: o.height + 'px' });
+  pcr.getAnimations().forEach(x => x.cancel());
+  const easing = 'cubic-bezier(.3,1.35,.5,1)';
+  pcr.animate([px(d), px(h)], { duration: 620, easing, fill: 'both' });
+  pcr.animate([{ opacity: 0 }, { opacity: 1, offset: .12 }, { opacity: 1, offset: .55 }, { opacity: 0 }], { duration: 950, fill: 'both' }).finished.then(() => pcr.getAnimations().forEach(x => x.cancel()), () => {});
+  clearTimeout(fxT); fxT = setTimeout(() => V.classList.remove('fx'), 700);
+}
+function ponerAspecto(k) { fit = k; try { localStorage.setItem('bbfit', fit); } catch (e) {} transformarAspecto(aplicarFit); }
 H('pa').onclick = () => { const i = ASPECTOS.findIndex(x => x.k === fit); ponerAspecto(ASPECTOS[(i + 1) % ASPECTOS.length].k); };
-window.addEventListener('resize', () => { if (aspectoActual().r) aplicarFit(); });
+let ultHoriz = innerWidth >= innerHeight;
+window.addEventListener('resize', () => {
+  const h = innerWidth >= innerHeight;
+  if (h !== ultHoriz && !pl.hidden) { ultHoriz = h; transformarAspecto(aplicarFit); } else { ultHoriz = h; aplicarFit(); }
+});
 V.addEventListener('loadedmetadata', () => { aplicarFit(); if (cfgEl) cfgRender(); });
-V.addEventListener('playing', () => { if (aspectoActual().r) aplicarFit(); });
+V.addEventListener('resize', () => aplicarFit());
+V.addEventListener('playing', () => aplicarFit());
 aplicarFit();
 
 function cerrarPlayer(desdePop) {
@@ -2445,8 +2565,8 @@ const remOk = !!(V.remote && typeof V.remote.prompt === 'function');
 const urlAbs = u => { try { return new URL(u, location.href).href; } catch (e) { return u; } };
 const mimeDe = u => /\.m3u8(\?|$)/i.test(u) ? 'application/x-mpegURL' : /\.webm(\?|$)/i.test(u) ? 'video/webm' : /\.mkv(\?|$)/i.test(u) ? 'video/x-matroska' : 'video/mp4';
 const sesion = () => { try { return cast.framework.CastContext.getInstance().getCurrentSession(); } catch (e) { return null; } };
-function tvTiempo() { return tvModo === 'cast' && rp ? (rp.currentTime || 0) : V.currentTime; }
-function tvDur() { return tvModo === 'cast' && rp && rp.duration ? rp.duration : duracion(); }
+function tvTiempo() { return tvModo === 'dlna' ? (dlSt.t || 0) : tvModo === 'cast' && rp ? (rp.currentTime || 0) : V.currentTime; }
+function tvDur() { return tvModo === 'dlna' ? (dlSt.d || duracion()) : tvModo === 'cast' && rp && rp.duration ? rp.duration : duracion(); }
 function tvAviso(t) {
   const e = H('tvtoast'); e.textContent = t; e.hidden = false;
   clearTimeout(tvToastT); tvToastT = setTimeout(() => { e.hidden = true; }, 5000);
@@ -2517,10 +2637,69 @@ if (remOk && !airOk) {
 }
 ['timeupdate', 'play', 'pause'].forEach(n => V.addEventListener(n, () => { if (tvModo === 'el') pintarPanel(); }));
 
+/* --- DLNA (Samsung, LG, Sony…) con el plugin nativo Transmitir: la TV descarga el video por su cuenta --- */
+function dlnaCortar() {
+  clearInterval(dlPoll); dlPoll = 0; clearTimeout(dlVolT);
+  const d = tvDev; tvDev = null; dlMudo = false;
+  if (d && window.bbTv) window.bbTv.control(d, 'Stop');
+}
+function dlnaSondeo() {
+  clearInterval(dlPoll); dlFallos = 0;
+  dlPoll = setInterval(async () => {
+    if (tvModo !== 'dlna' || !tvDev) { clearInterval(dlPoll); return; }
+    const dev = tvDev, r = await window.bbTv.estado(dev);
+    if (tvModo !== 'dlna' || tvDev !== dev) return;
+    if (!r || !r.ok) { if (++dlFallos >= 6) { tvAviso('Se perdió la conexión con la TV.'); salirTv(true); } return; }
+    dlFallos = 0;
+    dlSt.estado = r.estado; if (r.d > 0) dlSt.d = r.d;
+    if (!tvArrastra && (r.estado === 'PLAYING' || r.t > 0)) dlSt.t = r.t;
+    if (typeof r.vol === 'number') dlSt.vol = r.vol;
+    pintarPanel(); guardar(false);
+    if (r.estado === 'STOPPED' && tvVisto && actualP) terminado(actualP);
+  }, 1000);
+}
+async function enviarADlna(t) {
+  const url = urlAbs(tvUrl);
+  tvVisto = false; dlSt = { estado: 'BUFFERING', t: t, d: 0, vol: dlSt.vol }; pintarPanel();
+  const r = await window.bbTv.enviar(tvDev, { url, titulo: tvPeli ? (tvPeli.tituloVista || tvPeli.titulo) : 'Black BOX', mime: mimeDe(url), inicio: Math.floor(t) });
+  if (!r || !r.ok) { tvAviso((r && r.error) || 'La TV no pudo reproducir este video. Suele pasar con .mkv o formatos que no son H.264/AAC.'); salirTv(true); return false; }
+  dlnaSondeo(); return true;
+}
+async function entrarDlna(dev) {
+  if (tvModo || pl.hidden || !tvPeli) return;
+  if (driveId(tvUrl)) { tvAviso('Este video es de Google Drive y no se puede transmitir.'); return; }
+  const t = V.currentTime || Math.max(0, reanudar - 3) || 0;
+  tvModo = 'dlna'; tvDev = dev; tvUlt = t; dlSt = { estado: 'BUFFERING', t: t, d: 0, vol: -1 }; dlMudo = false;
+  HAPT.tocar('marcado');
+  V.pause();
+  mostrarPanel(dev.nombre);
+  await enviarADlna(t);
+}
+function buscarDlna() {
+  const cont = H('tvopts'); cont.innerHTML = ''; H('tvotras').hidden = true; H('tver').textContent = '';
+  const cab = document.createElement('p'); cab.className = 'meta'; cab.textContent = 'Buscando TV en tu red Wi-Fi…'; cont.append(cab);
+  const lista = document.createElement('div'); lista.id = 'tvdlna'; cont.append(lista);
+  const vistos = new Set();
+  const agregar = d => {
+    if (!d || !d.av || vistos.has(d.id)) return; vistos.add(d.id);
+    lista.append(opcionTv(d.nombre, 'Toca para transmitir aquí', () => { tvs.hidden = true; entrarDlna(d); }));
+  };
+  const volver = document.createElement('div'); volver.className = 'actions';
+  const otra = document.createElement('button'); otra.className = 'btn ghost'; otra.textContent = 'Volver'; otra.onclick = () => abrirTv();
+  volver.append(otra); cont.append(volver);
+  window.bbTv.buscar(agregar, 4500).then(r => {
+    (r || []).forEach(agregar);
+    if (r === null) cab.textContent = 'Esta versión de la app no trae la función. Instala la actualización.';
+    else if (!vistos.size) {
+      cab.textContent = 'No se encontró ninguna TV. Revisa que esté encendida y en la misma red Wi-Fi que el teléfono (no en datos móviles ni en la red de invitados).';
+      const re = document.createElement('button'); re.className = 'btn'; re.textContent = 'Buscar de nuevo'; re.onclick = buscarDlna; volver.prepend(re);
+    } else cab.textContent = 'Elige la TV:';
+  });
+}
+
 /* --- Panel de control remoto (el teléfono queda como mando) --- */
 function mostrarPanel(dev) {
-  tvp.classList.toggle('el', tvModo !== 'cast');
-  tvp.classList.toggle('dlna', tvModo === 'dlna');
+  tvp.classList.toggle('el', tvModo === 'el');
   H('cptit').textContent = tvPeli ? (tvPeli.tituloVista || tvPeli.titulo) : '';
   const pe = H('cpposter'); pe.innerHTML = ''; if (tvPeli) poster(tvPeli, pe);
   tvp.style.setProperty('--g', grad(tvPeli ? tvPeli.titulo : ''));
@@ -2536,15 +2715,21 @@ function pintarPanel() {
   const cast = tvModo === 'cast' && rp;
   const t = tvArrastra ? +cps.value : tvTiempo(), d = tvDur() || 0;
   let pausado, sub;
-  if (cast) {
+  if (tvModo === 'dlna') {
+    const st = dlSt.estado; if (st === 'PLAYING') tvVisto = true;
+    pausado = st !== 'PLAYING' && st !== 'BUFFERING';
+    sub = st === 'BUFFERING' || !st ? 'Cargando…' : (st === 'STOPPED' && tvVisto) ? 'Terminó' : pausado ? 'En pausa' : 'Reproduciendo en la TV · ya puedes apagar la pantalla del teléfono';
+    if (!tvArrastra && t > 0) tvUlt = t;
+    H('cpm').innerHTML = dlMudo ? ICON.mute : ICON.vol;
+    if (dlSt.vol >= 0 && document.activeElement !== cpv) cpv.value = dlSt.vol / 100;
+  } else if (cast) {
     const st = rp.playerState; if (st === 'PLAYING') tvVisto = true;
     pausado = st !== 'PLAYING' && st !== 'BUFFERING';
     sub = st === 'BUFFERING' ? 'Cargando…' : (st === 'IDLE' && tvVisto) ? 'Terminó' : pausado ? 'En pausa' : 'Reproduciendo en la TV';
     if (!tvArrastra && t > 0) tvUlt = t;
     H('cpm').innerHTML = rp.isMuted ? ICON.mute : ICON.vol;
     if (document.activeElement !== cpv) cpv.value = rp.volumeLevel;
-  } else if (tvModo === 'dlna') { pausado = false; sub = 'Reproduciendo en la TV'; }
-  else { pausado = V.paused; sub = pausado ? 'En pausa' : 'Reproduciendo en la TV'; }
+  } else { pausado = V.paused; sub = pausado ? 'En pausa' : 'Reproduciendo en la TV'; }
   if (!tvArrastra) { cps.max = d; cps.value = t; }
   const pc = d ? Math.min(100, t / d * 100) : 0;
   cps.style.setProperty('--p', pc + '%'); cps.style.setProperty('--b', pc + '%');
@@ -2555,12 +2740,18 @@ function pintarPanel() {
 }
 function tvIr(t) {
   const d = tvDur(); t = Math.max(0, d ? Math.min(t, d) : t);
-  if (tvModo === 'cast' && rp) { rp.currentTime = t; rc.seek(); tvUlt = t; } else V.currentTime = t;
+  if (tvModo === 'dlna') { dlSt.t = t; tvUlt = t; window.bbTv.saltar(tvDev, Math.floor(t)); }
+  else if (tvModo === 'cast' && rp) { rp.currentTime = t; rc.seek(); tvUlt = t; } else V.currentTime = t;
   pintarPanel();
 }
 const tvSaltar = d => tvIr(tvTiempo() + d);
 async function tvAlternar() {
-  if (tvModo === 'cast' && rp) {
+  if (tvModo === 'dlna') {
+    if (dlSt.estado === 'STOPPED' && tvVisto) { enviarADlna(0); return; }                 // ya terminó: volver a empezar
+    const ir = dlSt.estado === 'PLAYING' ? 'Pause' : 'Play';
+    dlSt.estado = ir === 'Pause' ? 'PAUSED' : 'PLAYING'; pintarPanel();
+    window.bbTv.control(tvDev, ir);
+  } else if (tvModo === 'cast' && rp) {
     const ses = sesion();
     if (rp.playerState === 'IDLE' && tvVisto && ses) { await enviarACast(ses, 0); return; }   // ya terminó: volver a empezar
     rc.playOrPause();
@@ -2569,8 +2760,11 @@ async function tvAlternar() {
 H('cpp').onclick = tvAlternar;
 H('cpr').onclick = () => tvSaltar(-10);
 H('cpf').onclick = () => tvSaltar(10);
-H('cpm').onclick = () => { if (tvModo === 'cast' && rc) rc.muteOrUnmute(); };
-cpv.addEventListener('input', () => { if (tvModo === 'cast' && rp) { rp.volumeLevel = +cpv.value; rc.setVolumeLevel(); } });
+H('cpm').onclick = () => { if (tvModo === 'cast' && rc) rc.muteOrUnmute(); else if (tvModo === 'dlna') { dlMudo = !dlMudo; window.bbTv.silenciar(tvDev, dlMudo); pintarPanel(); } };
+cpv.addEventListener('input', () => {
+  if (tvModo === 'cast' && rp) { rp.volumeLevel = +cpv.value; rc.setVolumeLevel(); }
+  else if (tvModo === 'dlna') { dlSt.vol = Math.round(+cpv.value * 100); clearTimeout(dlVolT); dlVolT = setTimeout(() => window.bbTv.volumen(tvDev, dlSt.vol), 120); }
+});
 cps.addEventListener('input', () => { tvArrastra = true; pintarPanel(); });
 cps.addEventListener('change', () => { const v = +cps.value; tvArrastra = false; tvIr(v); });
 H('cpb').onclick = () => cerrarPlayer();
@@ -2584,16 +2778,16 @@ function salirTv(volver) {
   const t = tvUlt;
   tvModo = null; ocultarPanel();
   if (era === 'cast') { try { const s = sesion(); if (s) s.endSession(true); } catch (e) {} }
-  if (era === 'dlna' && window.bbDlna) { window.bbDlna.detener().catch(() => {}); tvDlnaDevice = null; }
+  if (era === 'dlna') dlnaCortar();
   if (volver && !pl.hidden) {
-    if (era === 'cast' && t > 1) { try { V.currentTime = Math.max(0, t - 2); } catch (e) {} }
+    if ((era === 'cast' || era === 'dlna') && t > 1) { try { V.currentTime = Math.max(0, t - 2); } catch (e) {} }
     V.play().catch(() => {}); horizontal();
   }
 }
 function tvCerrar() {                                              // al cerrar el reproductor se corta la transmisión
   const era = tvModo; tvModo = null; ocultarPanel(); tvs.hidden = true; tvPeli = null; tvUrl = '';
   if (era === 'cast') { try { const s = sesion(); if (s) s.endSession(true); } catch (e) {} }
-  if (era === 'dlna' && window.bbDlna) { window.bbDlna.detener().catch(() => {}); tvDlnaDevice = null; }
+  if (era === 'dlna') dlnaCortar();
 }
 
 /* --- Bloqueo táctil: pantalla casi negra que ignora los toques; se desbloquea manteniendo presionado el candado --- */
@@ -2654,29 +2848,6 @@ function pedirRem() {
     tvAviso(e && e.name === 'NotFoundError' ? 'No se encontró ninguna TV cerca.' : 'Este navegador no pudo conectar con la TV.');
   });
 }
-async function pedirDlna() {
-  const cont = H('tvopts'); cont.innerHTML = '';
-  H('tvotras').hidden = true; H('tver').textContent = 'Buscando televisores en tu red Wi-Fi…'; tvs.hidden = false;
-  const api = window.bbDlna;
-  if (!api) { H('tver').textContent = 'Actualiza la app Black BOX para habilitar DLNA.'; return; }
-  try {
-    const result = await api.buscar(6000), devices = result && result.devices || [];
-    H('tver').textContent = devices.length ? 'Elige un televisor conectado a la misma red Wi-Fi.' : 'No se encontraron TVs. Revisa que el teléfono y la TV estén en la misma red Wi-Fi.';
-    for (const device of devices) cont.appendChild(opcionTv(device.name || 'Televisor DLNA', device.model || 'DLNA', async () => {
-      const btn = cont.querySelector('button:focus'); if (btn) btn.disabled = true;
-      H('tver').textContent = 'Conectando con ' + (device.name || 'el televisor') + '…';
-      try {
-        const videoUrl = urlAbs(tvUrl);
-        await api.reproducir(device.id, videoUrl, tvPeli ? (tvPeli.tituloVista || tvPeli.titulo) : 'Black BOX', mimeDe(videoUrl));
-        tvDlnaDevice = device; tvModo = 'dlna'; V.pause(); HAPT.tocar('marcado');
-        mostrarPanel(device.name || 'TV DLNA');
-      } catch (e) {
-        H('tver').textContent = 'La TV no pudo reproducir este video. Prueba con un enlace directo MP4 (H.264/AAC).';
-      }
-    }, !!driveId(tvUrl)));
-  } catch (e) { H('tver').textContent = 'No se pudieron buscar TVs. Revisa el Wi-Fi e inténtalo de nuevo.'; }
-  cont.appendChild(opcionTv('Buscar de nuevo', 'Volver a buscar televisores DLNA', pedirDlna));
-}
 function armarOtras(drive) {
   const o = H('tvotras'); o.innerHTML = '';
   const fila = (t, sub, fn, off) => o.appendChild(opcionTv(t, sub, fn, off));
@@ -2694,8 +2865,8 @@ function abrirTv() {
   cont.append(
     opcionTv('Chromecast y Google TV', castOk ? 'Android TV, Google TV y TV con Chromecast integrado' : 'Disponible en Chrome (Android o PC)', () => { tvs.hidden = true; pedirCast(); }, drive || !castOk),
     opcionTv('AirPlay', airOk ? 'Apple TV y TV con AirPlay (Samsung, LG, Sony…)' : 'Disponible en iPhone, iPad y Safari', () => { tvs.hidden = true; pedirAir(); }, drive || !airOk));
-  if (window.bbDlna) cont.appendChild(opcionTv('DLNA (Samsung, LG y otras TVs)', 'Buscar televisores en la misma red Wi-Fi', pedirDlna, drive));
   if (remOk && !castOk && !airOk) cont.append(opcionTv('Pantalla del navegador', 'Elige una TV o pantalla cercana', () => { tvs.hidden = true; pedirRem(); }, drive));
+  if (window.bbTv) cont.append(opcionTv('Samsung, LG, Sony y otras (DLNA)', 'Transmite sin duplicar la pantalla: la TV reproduce sola y puedes apagar el teléfono', buscarDlna, drive));
   cont.append(opcionTv('Otras TV (Samsung, LG…)', 'Enlace para apps DLNA o para abrir en la TV', () => { H('tvotras').hidden = !H('tvotras').hidden; }));
   armarOtras(drive);
   tvs.hidden = false;
@@ -3236,20 +3407,16 @@ let pintarBr = () => {}, pintarVol = () => {};
 if (enApp) {
   if (!window.bbBrillo) filtroBrillo(brillo);
   pintarBr = vSlider('pbr', brillo, aplicarBrillo);
-  pintarVol = vSlider('pvl', V.muted ? 0 : V.volume, ponerVol);
-  const icoVol = () => { H('pvl-b').innerHTML = (V.muted || V.volume === 0) ? ICON.mute : ICON.vol; pintarVol(V.muted ? 0 : V.volume); };
-  V.addEventListener('volumechange', icoVol); icoVol();
-  H('pvl-b').onclick = () => { if (V.muted || V.volume === 0) { V.muted = false; if (V.volume === 0) V.volume = .6; } else V.muted = true; };
   // título también arriba al centro (copia del de abajo)
   new MutationObserver(() => { H('pt2').textContent = H('pt').textContent; }).observe(H('pt'), { childList: true, characterData: true, subtree: true });
-  // deslizar el dedo en vertical por el borde izquierdo (brillo) o derecho (volumen), como en Netflix / MX Player
+  // deslizar el dedo en vertical por el borde izquierdo (brillo), como en Netflix / MX Player
   let zona = null, x0 = 0, y0 = 0, v0 = 0, activo = false, pid = null;
   pl.addEventListener('pointerdown', e => {
     zona = null;
     if (pl.classList.contains('drive') || pl.classList.contains('eps') || e.target.closest('button,input,.vtrk')) return;
     const r = pl.getBoundingClientRect(), fx = (e.clientX - r.left) / r.width;
-    zona = fx < .25 ? 'pbr' : fx > .75 ? 'pvl' : null; if (!zona) return;
-    x0 = e.clientX; y0 = e.clientY; pid = e.pointerId; activo = false; v0 = zona === 'pbr' ? brillo : (V.muted ? 0 : V.volume);
+    zona = fx < .25 ? 'pbr' : null; if (!zona) return;
+    x0 = e.clientX; y0 = e.clientY; pid = e.pointerId; activo = false; v0 = brillo;
     if (zona === 'pbr' && window.bbBrilloActual && brilloNativo !== false) window.bbBrilloActual().then(v => { brilloNativo = true; if (!activo) { brillo = v; v0 = v; pintarBr(v); } }).catch(() => { brilloNativo = false; });
   });
   pl.addEventListener('pointermove', e => {
@@ -3257,7 +3424,7 @@ if (enApp) {
     const dy = e.clientY - y0, dx = e.clientX - x0;
     if (!activo) { if (Math.abs(dy) < 12 || Math.abs(dy) < Math.abs(dx) * 1.2) return; activo = true; ajustando = true; clearTimeout(hideT); try { pl.setPointerCapture(pid); } catch (_) {} }
     const v = Math.min(1, Math.max(0, v0 - dy / (pl.clientHeight * .55)));
-    if (zona === 'pbr') { pintarBr(v); aplicarBrillo(v); } else { pintarVol(v); ponerVol(v); }
+    pintarBr(v); aplicarBrillo(v);
     verSlider(zona);
   });
   const fin = e => {

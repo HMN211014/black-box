@@ -136,6 +136,16 @@ body.h .pan>.c.on.w{grid-column:1/-1}
   body.h .pan>.c{padding:16px}
 }
 @media(max-width:900px){body.h .pan{grid-template-columns:minmax(0,1fr)}}
+/* ---- app Black BOX Admin (Android): una sección a la vez y barra de secciones abajo ---- */
+html.en-admin-app body:not(.h){padding:calc(env(safe-area-inset-top,0px) + 14px) 12px calc(env(safe-area-inset-bottom,0px) + 86px)}
+html.en-admin-app body:not(.h) .side>p.s{display:none}
+html.en-admin-app body:not(.h) .pan>.c{display:none}
+html.en-admin-app body:not(.h) .pan>.c.on{display:block}
+html.en-admin-app body:not(.h) .nav{display:flex;gap:8px;position:fixed;left:0;right:0;bottom:0;z-index:50;overflow-x:auto;padding:10px 12px calc(env(safe-area-inset-bottom,0px) + 10px);
+  background:rgba(14,14,18,.88);backdrop-filter:blur(18px) saturate(1.6);-webkit-backdrop-filter:blur(18px) saturate(1.6);border-top:1px solid rgba(255,255,255,.12);scrollbar-width:none}
+html.en-admin-app body:not(.h) .nav::-webkit-scrollbar{display:none}
+html.en-admin-app body:not(.h) .nav button{flex:none;width:auto;height:40px;padding:0 16px;border-radius:999px;background:rgba(255,255,255,.09);white-space:nowrap;font-size:14px;justify-content:center}
+html.en-admin-app body:not(.h) .nav button.on{background:#fff;color:#000}
 </style>
 </head>
 <body>
@@ -220,6 +230,11 @@ body.h .pan>.c.on.w{grid-column:1/-1}
     <h2>Pedidos de clientes</h2>
     <p class="s">Aquí llegan las películas que piden (las de plan por pedido ya gastaron un vale; si rechazas una, el vale vuelve a su cuenta). Elige el título tal como está en tu catálogo y agrégalo a su cuenta.</p>
     <div class="row" style="margin-top:12px"><button class="g" id="p-go" type="button">Actualizar pedidos</button><button class="g" id="p-cp" type="button" hidden>Copiar líneas de todos los pendientes</button></div>
+    <div id="np-box" hidden style="margin-top:12px;padding:12px;border-radius:14px;background:rgba(255,255,255,.06)">
+      <b>Avisos de pedidos nuevos</b>
+      <p class="s" id="np-est" style="margin:6px 0 10px"></p>
+      <div class="row"><button id="np-act" type="button">Activar avisos</button><button class="g" id="np-prueba" type="button">Enviar prueba</button></div>
+    </div>
     <p class="s" style="margin-top:10px">Pega el enlace del video y toca <b>Publicar y agregar a su cuenta</b>: la película aparece en la biblioteca y en la lista del cliente, sin tocar <b>index.html</b>. En una serie pega el enlace con <b>{t}</b> y <b>{e}</b> (temporada y capítulo), por ejemplo <b>https://…/T{t}/E{e}.mp4</b>.</p>
     <p class="m" id="p-m" hidden></p>
     <div id="p-lista"></div>
@@ -368,6 +383,12 @@ body.h .pan>.c.on.w{grid-column:1/-1}
     <div id="it-lista"></div>
     <p class="it-g">Solo vibración</p>
     <div id="it-vib"></div>
+    <p class="it-g">Movimientos del dedo</p>
+    <p class="s" style="margin:0 0 6px">Las vibraciones «Composiciones» y «Del sistema» usan el motor háptico del teléfono (Android 11 o superior; las del sistema respetan los ajustes de vibración del teléfono). Si el teléfono no las soporta, la app usa la forma de onda equivalente. Aquí en el navegador solo se aproximan.</p>
+    <p class="s" style="margin:0 0 6px">La app lee cómo mueves el dedo y vibra en consecuencia. Funciona dentro de la app (con el plugin Haptico, que da intensidad real); en el navegador se aproxima.</p>
+    <div id="it-dedo"></div>
+    <label style="display:block;margin-top:12px">Distancia entre toques al arrastrar (px): <b id="it-paso-v">48</b><small class="h">Cada cuántos píxeles de recorrido vibra el arrastre continuo. Menos = textura más fina.</small><input id="it-paso" type="range" min="16" max="160" step="4" value="48" style="height:auto;padding:0;margin-top:6px"></label>
+    <label style="display:block;margin-top:12px">Intensidad general: <b id="it-int-v">70</b><small class="h">Escala la fuerza de todas las vibraciones (solo con el plugin Haptico).</small><input id="it-int" type="range" min="10" max="100" step="5" value="70" style="height:auto;padding:0;margin-top:6px"></label>
     <p class="it-g">Transiciones entre pantallas</p>
     <div id="it-trans"></div>
     <div class="row" style="margin-top:18px"><button id="it-go" type="button">Guardar</button><button class="g" id="it-cargar" type="button">Cargar los actuales</button><button class="g" id="it-reset" type="button">Valores de fábrica</button></div>
@@ -531,24 +552,28 @@ $('ef-cargar').onclick = () => con($('ef-cargar'), 'ef-m', async () => { efPoner
 $('ef-go').onclick = () => con($('ef-go'), 'ef-m', async () => { await admin({ op: 'guardar_efectos', efectos: efLeer() }); msg('ef-m', 'Guardado. En la app se actualiza en menos de un minuto.', true); });
 /* ---- Interacciones: animación + vibración por gesto, estilo de transición por cambio de pantalla ---- */
 const IT_ANIM = [['ninguna', 'Ninguna'], ['rebote', 'Rebote'], ['hundir', 'Hundir'], ['pulso', 'Pulso'], ['sacudir', 'Sacudir'], ['giro', 'Giro'], ['brillo', 'Destello'], ['onda', 'Onda']];
-const IT_VIB = [['ninguna', 'Ninguna'], ['suave', 'Suave'], ['medio', 'Media'], ['fuerte', 'Fuerte'], ['doble', 'Doble toque'], ['triple', 'Triple toque'], ['largo', 'Larga']];
+const IT_VIB = [['ninguna', 'Ninguna'], ['suave', 'Suave'], ['medio', 'Media'], ['fuerte', 'Fuerte'], ['doble', 'Doble toque'], ['triple', 'Triple toque'], ['largo', 'Larga'], ['tic', 'Tic (muy corta)', 'Motor háptico · Android 10+'], ['clic', 'Clic (mecánico)', 'Motor háptico · Android 10+'], ['pesado', 'Golpe pesado', 'Motor háptico · Android 10+'], ['latido', 'Latido', 'Motor háptico · Android 10+'], ['rampa', 'Rampa (crece)', 'Motor háptico · Android 10+'], ['textura', 'Textura (superficie)', 'Motor háptico · Android 10+'],
+  ['subida', 'Subida', 'Composiciones · Android 11+'], ['caida', 'Caída', 'Composiciones · Android 11+'], ['seco', 'Golpe seco', 'Composiciones · Android 11+'], ['espiral', 'Espiral (giro)', 'Composiciones · Android 11+'], ['resorte', 'Resorte', 'Composiciones · Android 11+'],
+  ['confirmar', 'Confirmar', 'Del sistema · Android 11+'], ['rechazar', 'Rechazar', 'Del sistema · Android 11+'], ['segmento', 'Tic de segmento (deslizador)', 'Del sistema · Android 14+'], ['interruptor', 'Interruptor', 'Del sistema · Android 14+'], ['agarrar', 'Agarrar (inicio de arrastre)', 'Del sistema · Android 14+']];
 const IT_TR = [['auto', 'Automática (la de siempre)'], ['fundido', 'Fundido'], ['deslizar', 'Deslizar'], ['zoom', 'Zoom'], ['subir', 'Subir'], ['ninguna', 'Sin transición']];
 const IT_GESTOS = [['tarjeta', 'Tocar una tarjeta', 'Póster de película o serie'], ['principal', 'Botones principales', 'Reproducir, Más información, Buscar'], ['dock', 'Barra inferior', 'Cambiar de sección'], ['atras', 'Botón atrás / cerrar', 'Volver desde fichas y páginas'], ['cuenta', 'Botón de cuenta o perfil', 'Esquina superior'], ['menu', 'Filas de menús', 'Menú del perfil y Configuración'], ['control', 'Controles del reproductor', 'Pausa, saltos, pantalla completa…'], ['episodio', 'Elegir un episodio', 'Lista de capítulos']];
 const IT_SOLO = [['carrusel', 'Pasar tarjetas de un carrusel', 'Un clic por cada tarjeta que pasa'], ['slider', 'Deslizar brillo / volumen', 'Al aparecer el deslizador en el reproductor'], ['perfil', 'Cambiar de perfil', ''], ['reproducir', 'Empezar a reproducir', 'Al abrir una película o episodio']];
+const IT_DEDO = [['arrastre', 'Arrastrar el dedo (textura)', 'Un toque cada cierta distancia; más fuerte si vas rápido'], ['flick', 'Deslizar rápido y soltar', 'Un impulso al soltar un deslizamiento veloz'], ['mantener', 'Mantener presionado', 'Tras medio segundo sin mover el dedo'], ['doble', 'Doble toque', 'Dos toques seguidos en el mismo lugar'], ['borde', 'Deslizar desde el borde', 'Empezar en el borde izquierdo o derecho de la pantalla']];
 const IT_TRANS = [['seccion', 'Cambio de sección', 'Inicio, Series, Pedidos, Recientes y colecciones'], ['ficha', 'Abrir y cerrar una ficha', 'Con «Automática» el póster se agranda hasta ser el fondo'], ['busqueda', 'Búsqueda', 'Al entrar o salir de los resultados']];
 const IT_KF = {
   rebote: [[{ scale: 1 }, { scale: .9, offset: .25 }, { scale: 1.08, offset: .6 }, { scale: .98, offset: .82 }, { scale: 1 }], 420], hundir: [[{ scale: 1 }, { scale: .92 }, { scale: 1 }], 230], pulso: [[{ scale: 1 }, { scale: 1.1 }, { scale: 1 }], 300],
   sacudir: [[{ translate: '0 0' }, { translate: '-5px 0' }, { translate: '5px 0' }, { translate: '-3px 0' }, { translate: '3px 0' }, { translate: '0 0' }], 330], giro: [[{ rotate: '0deg' }, { rotate: '-8deg' }, { rotate: '8deg' }, { rotate: '0deg' }], 340],
   brillo: [[{ filter: 'brightness(1)' }, { filter: 'brightness(1.7)' }, { filter: 'brightness(1)' }], 330], onda: [[{ boxShadow: '0 0 0 0 rgba(120,170,255,.55)' }, { boxShadow: '0 0 0 14px rgba(120,170,255,0)' }], 460]
 };
-const IT_VP = { suave: 14, medio: 26, fuerte: 45, doble: [30, 50, 30], triple: [25, 40, 25, 40, 25], largo: 90 };
+const IT_VP = { suave: 14, medio: 26, fuerte: 45, doble: [30, 50, 30], triple: [25, 40, 25, 40, 25], largo: 90, tic: 8, clic: 18, pesado: 50, latido: [35, 70, 60], rampa: [20, 20, 30, 20, 45, 20, 70],
+  textura: 6, subida: [20, 20, 30, 20, 45, 20, 70], caida: [60, 20, 30, 20, 15], seco: 50, espiral: [30, 40, 30, 40, 30], resorte: [35, 25, 20], confirmar: [30, 50, 30], rechazar: [25, 40, 25, 40, 25], segmento: 8, interruptor: 18, agarrar: 26 };
 const IT_TK = {
   fundido: [[{ opacity: 1 }, { opacity: 0 }], [{ opacity: 0 }, { opacity: 1 }]],
   deslizar: [[{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'translateX(-7%)' }], [{ opacity: 0, transform: 'translateX(9%)' }, { opacity: 1, transform: 'none' }]],
   zoom: [[{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'scale(.94)' }], [{ opacity: 0, transform: 'scale(1.07)' }, { opacity: 1, transform: 'none' }]],
   subir: [[{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'translateY(-3%)' }], [{ opacity: 0, transform: 'translateY(7%)' }, { opacity: 1, transform: 'none' }]]
 };
-const itOpts = (l, v) => l.map(([k, n]) => '<option value="' + k + '"' + (k === v ? ' selected' : '') + '>' + n + '</option>').join('');
+const itOpts = (l, v) => { let g = '', o = ''; for (const [k, n, gr] of l) { if (gr !== undefined && gr !== g) { if (g) o += '</optgroup>'; o += '<optgroup label="' + gr + '">'; g = gr; } o += '<option value="' + k + '"' + (k === v ? ' selected' : '') + '>' + n + '</option>'; } return o + (g ? '</optgroup>' : ''); };
 function itFila(cont, id, nombre, desc, conAnim) {
   const f = document.createElement('div'); f.className = 'it-f';
   f.innerHTML = '<div><b>' + nombre + '</b>' + (desc ? '<small>' + desc + '</small>' : '') + '</div><div class="it-c">' +
@@ -576,17 +601,24 @@ function itTransFila(id, nombre, desc) {
 }
 IT_GESTOS.forEach(g => itFila($('it-lista'), g[0], g[1], g[2], true));
 IT_SOLO.forEach(g => itFila($('it-vib'), g[0], g[1], g[2], false));
+IT_DEDO.forEach(g => itFila($('it-dedo'), 'm_' + g[0], g[1], g[2], false));
+['paso', 'int'].forEach(k => $('it-' + k).addEventListener('input', () => { $('it-' + k + '-v').textContent = $('it-' + k).value; }));
 IT_TRANS.forEach(g => itTransFila(g[0], g[1], g[2]));
 const itLeer = () => {
   const i = {}, t = {};
   document.querySelectorAll('[data-it]').forEach(s => { (i[s.dataset.it] = i[s.dataset.it] || { a: 'ninguna', v: 'ninguna' })[s.dataset.c] = s.value; });
   document.querySelectorAll('[data-itt]').forEach(s => { t[s.dataset.itt] = s.value; });
-  return { i, t };
+  const m = { paso: +$('it-paso').value, intensidad: +$('it-int').value };
+  IT_DEDO.forEach(([k]) => { m[k] = (i['m_' + k] || {}).v || 'ninguna'; delete i['m_' + k]; });
+  return { i, t, m };
 };
 function itPoner(o) {
   o = o || {};
   document.querySelectorAll('[data-it]').forEach(s => { const x = o.i && o.i[s.dataset.it]; s.value = (x && x[s.dataset.c]) || 'ninguna'; });
   document.querySelectorAll('[data-itt]').forEach(s => { s.value = (o.t && o.t[s.dataset.itt]) || 'auto'; });
+  const m = o.m || {};
+  IT_DEDO.forEach(([k]) => { const s = document.querySelector('[data-it="m_' + k + '"][data-c="v"]'); if (s) s.value = m[k] || 'ninguna'; });
+  $('it-paso').value = m.paso || 48; $('it-int').value = m.intensidad || 70; $('it-paso-v').textContent = $('it-paso').value; $('it-int-v').textContent = $('it-int').value;
 }
 $('it-reset').onclick = () => { itPoner({}); msg('it-m', 'Se pusieron los valores de fábrica. Falta guardar.', true); };
 $('it-cargar').onclick = () => con($('it-cargar'), 'it-m', async () => { itPoner((await admin({ op: 'interacciones' })).item); msg('it-m', 'Se cargó lo que está guardado.', true); });
@@ -1571,5 +1603,6 @@ async function dAvisar(r) {
   box.hidden = false;
 }
 </script>
+<script src="/admin-app.js"></script>
 </body>
 </html>

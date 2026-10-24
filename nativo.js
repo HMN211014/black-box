@@ -5,13 +5,6 @@
   if (!cap || !cap.isNativePlatform || !cap.isNativePlatform()) return;
   const P = cap.Plugins || {};
   const inmersivo = P.Inmersivo || (cap.registerPlugin && cap.registerPlugin('Inmersivo'));
-  const dlna = P.Dlna || (cap.registerPlugin && cap.registerPlugin('Dlna'));
-  if (dlna) window.bbDlna = {
-    buscar: (timeoutMs) => dlna.discover({ timeoutMs }),
-    reproducir: (id, url, title, contentType) => dlna.cast({ id, url, title, contentType }),
-    detener: () => dlna.stop(),
-    on: (evento, callback) => dlna.addListener(evento, callback)
-  };
   const sinError = (f) => { try { const r = f(); return r && r.catch ? r.catch(() => {}) : r; } catch (e) {} };
 
   // ---- Reproductor: giro REAL a horizontal + barras del sistema ocultas ----
@@ -20,6 +13,47 @@
     if (inmersivo) sinError(() => activo ? inmersivo.activar() : inmersivo.desactivar());
     else if (P.StatusBar) sinError(() => activo ? P.StatusBar.hide() : P.StatusBar.show());   // respaldo: solo oculta la barra de arriba
   }
+  // Vibración propia de la app (plugin Haptico): intensidad, formas de onda y efectos del motor háptico, sin depender de Chrome.
+  // Si la app es antigua y no lo tiene, el sitio usa los métodos de siempre.
+  const hap = P.Haptico || (cap.registerPlugin && cap.registerPlugin('Haptico'));
+  if (hap && hap.info) {
+    sinError(() => hap.info().then((r) => {
+      if (!r || !r.ok) return;
+      window.bbHapOk = true; window.bbHapInfo = r;
+      window.bbHaptico = {
+        patron: (t, a) => sinError(() => hap.patron({ t, a })),
+        efecto: (tipo) => sinError(() => hap.efecto({ tipo })),
+        compuesto: (p) => hap.compuesto({ p }).catch(() => ({ ok: false })),     // piezas del sistema (Android 11+)
+        sistema: (tipo) => hap.sistema({ tipo }).catch(() => ({ ok: false })),   // respuestas hápticas del propio Android
+        cancelar: () => sinError(() => hap.cancelar())
+      };
+      document.documentElement.classList.add('hap-ok');
+    }));
+  }
+
+  // Transmitir a TV por DLNA (Samsung, LG, Sony…) con el plugin Transmitir: la TV recibe el enlace y reproduce sola; el teléfono es el control
+  const tr = P.Transmitir || (cap.registerPlugin && cap.registerPlugin('Transmitir'));
+  const trOk = !!tr && (!cap.isPluginAvailable || cap.isPluginAvailable('Transmitir'));
+  if (trOk) {
+    const d2 = (d) => ({ av: d.av, avTipo: d.avTipo, rc: d.rc, rcTipo: d.rcTipo });
+    const sinTv = (e) => ({ ok: false, error: 'No se pudo hablar con la TV.' });
+    window.bbTv = {
+      buscar: (alEncontrar, ms) => {
+        let h = null;
+        sinError(() => tr.addListener('dispositivo', alEncontrar).then((x) => { h = x; }));
+        const fin = (r) => { try { if (h && h.remove) h.remove(); } catch (e) {} return r; };
+        return tr.buscar({ ms: ms || 4500 }).then((r) => fin((r && r.lista) || []), () => fin(null));   // null = la app no tiene el plugin
+      },
+      enviar: (d, o) => tr.enviar(Object.assign(d2(d), o)).catch(sinTv),
+      control: (d, accion) => tr.control(Object.assign(d2(d), { accion })).catch(sinTv),
+      saltar: (d, segundos) => tr.saltar(Object.assign(d2(d), { segundos })).catch(sinTv),
+      estado: (d) => tr.estado(d2(d)).catch(sinTv),
+      volumen: (d, valor) => tr.volumen(Object.assign(d2(d), { valor })).catch(sinTv),
+      silenciar: (d, activo) => tr.silenciar(Object.assign(d2(d), { activo })).catch(sinTv)
+    };
+    document.documentElement.classList.add('dlna-ok');
+  }
+
   // Brillo real de la pantalla para el deslizador del reproductor (si la app es antigua y no lo tiene, el sitio usa un oscurecido del video)
   window.bbBrillo = (v) => inmersivo ? inmersivo.brillo({ valor: v }) : Promise.reject();
   window.bbBrilloActual = () => inmersivo ? inmersivo.brilloActual().then((r) => r.valor) : Promise.reject();
