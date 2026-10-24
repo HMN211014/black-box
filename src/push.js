@@ -63,3 +63,37 @@ export async function avisarUsuario(env, correo, { titulo, texto, datos = {} }) 
     }
   } catch (e) { console.error('[push]', String((e && e.message) || e)); }
 }
+
+/* ---------- Avisos al administrador (app Black BOX Admin): pedidos nuevos ---------- */
+let tablaAdminLista = false;
+export async function asegurarPushAdmin(db) {
+  if (tablaAdminLista) return;
+  await db.prepare('CREATE TABLE IF NOT EXISTS dispositivos_admin (token TEXT PRIMARY KEY, plataforma TEXT, creado INTEGER NOT NULL) WITHOUT ROWID').run();
+  tablaAdminLista = true;
+}
+/* Envía una notificación a todos los teléfonos con la app de administración. Devuelve cuántos se intentaron. Nunca lanza error hacia afuera. */
+export async function avisarAdmins(env, { titulo, texto, datos = {} }) {
+  try {
+    if (!env.FCM_SERVICE_ACCOUNT || !env.DB) return 0;
+    let sa; try { sa = JSON.parse(env.FCM_SERVICE_ACCOUNT); } catch (e) { console.error('[push admin] FCM_SERVICE_ACCOUNT no es un JSON válido'); return 0; }
+    await asegurarPushAdmin(env.DB);
+    const filas = (await env.DB.prepare('SELECT token FROM dispositivos_admin').all()).results;
+    if (!filas.length) return 0;
+    const acceso = await tokenGoogle(sa);
+    const url = 'https://fcm.googleapis.com/v1/projects/' + sa.project_id + '/messages:send';
+    const data = Object.fromEntries(Object.entries(datos).map(([k, v]) => [k, String(v)]));
+    for (const { token } of filas) {
+      const r = await fetch(url, {
+        method: 'POST', headers: { Authorization: 'Bearer ' + acceso, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: { token, notification: { title: titulo, body: texto }, data,
+          android: { priority: 'HIGH', notification: { channel_id: 'pedidos_admin' } } } })
+      });
+      if (!r.ok) {
+        const t = await r.text();
+        console.error('[push admin] FCM', r.status, t.slice(0, 300));
+        if (/UNREGISTERED|NOT_FOUND|not a valid FCM registration token/i.test(t)) await env.DB.prepare('DELETE FROM dispositivos_admin WHERE token = ?1').bind(token).run();
+      }
+    }
+    return filas.length;
+  } catch (e) { console.error('[push admin]', String((e && e.message) || e)); return 0; }
+}

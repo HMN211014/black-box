@@ -3,7 +3,7 @@
    Las películas publicadas desde el panel viven en D1 (tablas publicados y meta). El KV (binding USUARIOS) solo se lee una vez para copiarlas.
    Ruta:  /api/usuario/registro | entrar | salir | yo | datos | canjear | pedir | pedidos | extras | push | pushquitar | admin */
 
-import { avisarUsuario, asegurarPush } from './push.js';
+import { avisarUsuario, asegurarPush, avisarAdmins, asegurarPushAdmin } from './push.js';
 
 const enc = new TextEncoder();
 const SESION_DIAS = 30;
@@ -496,6 +496,11 @@ async function manejar({ request, env, params, waitUntil }) {
       .bind(id, correo, tmdb, tipo, titulo, anio, poster, creado, porVales ? 1 : 0)];
     if (porVales) pasos.push(db.prepare('UPDATE usuarios SET vales = MAX(0, vales - 1) WHERE correo = ?1').bind(correo));
     await db.batch(pasos);                                     // el pedido y el vale se guardan juntos o no se guarda ninguno
+    {                                                          // aviso al administrador (app Black BOX Admin): «Nuevo pedido»
+      let pend = 0; try { pend = (await db.prepare("SELECT COUNT(*) AS n FROM pedidos WHERE estado = 'pendiente'").first()).n || 0; } catch (e) {}
+      const pa = avisarAdmins(env, { titulo: 'Nuevo pedido', texto: '«' + titulo + '»' + (anio ? ' (' + anio + ')' : '') + ' · ' + correo + (pend > 1 ? ' · ' + pend + ' pendientes' : ''), datos: { tipo: 'pedido_nuevo', id } });
+      if (waitUntil) waitUntil(pa);
+    }
     const vales = porVales ? (await accesoDe(db, correo)).vales : undefined;
     return json({ pedido: ped, ...(porVales ? { vales } : {}) });
   }
@@ -532,6 +537,26 @@ async function manejar({ request, env, params, waitUntil }) {
     if (!(await mismaClave(String(cuerpo.clave || ''), String(env.ADMIN_CLAVE)))) {
       await sumarIntento(db, kIp, 900);
       return json({ error: 'Clave incorrecta.' }, 401);
+    }
+
+    /* Teléfonos del administrador que reciben el aviso de pedidos nuevos (app Black BOX Admin) */
+    if (cuerpo.op === 'push_registrar') {
+      const t = String(cuerpo.token || '').trim();
+      if (t.length < 20 || t.length > 4096) return json({ error: 'Token no válido.' }, 400);
+      await asegurarPushAdmin(db);
+      await db.prepare('INSERT INTO dispositivos_admin (token, plataforma, creado) VALUES (?1, ?2, ?3) ON CONFLICT(token) DO UPDATE SET plataforma = ?2').bind(t, String(cuerpo.plataforma || 'android').slice(0, 20), Date.now()).run();
+      return json({ ok: true });
+    }
+    if (cuerpo.op === 'push_quitar') {
+      await asegurarPushAdmin(db);
+      await db.prepare('DELETE FROM dispositivos_admin WHERE token = ?1').bind(String(cuerpo.token || '')).run();
+      return json({ ok: true });
+    }
+    if (cuerpo.op === 'push_probar') {
+      if (!env.FCM_SERVICE_ACCOUNT) return json({ error: 'Falta el secreto FCM_SERVICE_ACCOUNT en Cloudflare (ver LEEME-PUSH.md).' }, 503);
+      await asegurarPushAdmin(db);
+      const n = await avisarAdmins(env, { titulo: 'Prueba de Black BOX Admin', texto: 'Si ves esto, los avisos de pedidos nuevos funcionan.', datos: { tipo: 'prueba' } });
+      return json(n ? { ok: true, enviados: n } : { error: 'Todavía no hay ningún teléfono registrado. Abre la app, escribe la clave y toca «Activar avisos».' }, n ? 200 : 404);
     }
 
     const plan = PLANES_OK.includes(cuerpo.plan) ? cuerpo.plan : 'basico';
@@ -697,7 +722,8 @@ async function manejar({ request, env, params, waitUntil }) {
 
     /* Animaciones, transiciones y vibraciones asignadas a gestos e interacciones */
     const IN_ANIM = ['ninguna', 'rebote', 'hundir', 'pulso', 'sacudir', 'giro', 'brillo', 'onda'];
-    const IN_VIB = ['ninguna', 'suave', 'medio', 'fuerte', 'doble', 'triple', 'largo'];
+    const IN_VIB = ['ninguna', 'suave', 'medio', 'fuerte', 'doble', 'triple', 'largo', 'tic', 'clic', 'pesado', 'latido', 'rampa', 'subida', 'caida', 'seco', 'espiral', 'resorte', 'textura', 'confirmar', 'rechazar', 'segmento', 'interruptor', 'agarrar'];
+    const IN_M = ['mantener', 'doble', 'flick', 'borde', 'arrastre'];
     const IN_TRANS = ['auto', 'fundido', 'deslizar', 'zoom', 'subir', 'ninguna'];
     const IN_AV = ['tarjeta', 'principal', 'dock', 'atras', 'cuenta', 'menu', 'control', 'episodio'];
     const IN_V = ['carrusel', 'slider', 'perfil', 'reproducir'];
@@ -712,6 +738,11 @@ async function manejar({ request, env, params, waitUntil }) {
       for (const k of IN_AV) { const x = ai[k] || {}; v.i[k] = { a: IN_ANIM.includes(x.a) ? x.a : 'ninguna', v: IN_VIB.includes(x.v) ? x.v : 'ninguna' }; }
       for (const k of IN_V) { const x = ai[k] || {}; v.i[k] = { a: 'ninguna', v: IN_VIB.includes(x.v) ? x.v : 'ninguna' }; }
       for (const k of IN_T) v.t[k] = IN_TRANS.includes(at[k]) ? at[k] : 'auto';
+      const am = a.m || {}; v.m = {};
+      for (const k of IN_M) v.m[k] = IN_VIB.includes(am[k]) ? am[k] : 'ninguna';
+      const pn = Number(am.paso), it = Number(am.intensidad);
+      v.m.paso = isFinite(pn) ? Math.max(16, Math.min(160, Math.round(pn))) : 48;
+      v.m.intensidad = isFinite(it) ? Math.max(10, Math.min(100, Math.round(it))) : 70;
       await db.prepare('CREATE TABLE IF NOT EXISTS meta (clave TEXT PRIMARY KEY, valor TEXT) WITHOUT ROWID').run();
       await db.prepare("INSERT INTO meta (clave, valor) VALUES ('interacciones', ?1) ON CONFLICT(clave) DO UPDATE SET valor = ?1").bind(JSON.stringify(v)).run();
       return json({ ok: true });
