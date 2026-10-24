@@ -412,6 +412,7 @@ body.colmode #chero:not(.top){margin-top:0}
 #tver:empty{display:none}
 #tvtoast{position:absolute;left:50%;bottom:calc(var(--sb) + 96px);transform:translateX(-50%);z-index:20;max-width:88%;padding:12px 18px;border-radius:14px;background:rgba(40,40,44,.94);color:#fff;font-size:14px;line-height:1.4;text-align:center;pointer-events:none}
 #tvtoast[hidden]{display:none}
+#castp.dlna .cp-ctl>.prow,#castp.dlna .cp-ctl>.cp-btns,#castp.dlna .cp-ctl>.cp-vol{display:none}
 
 /* ================= REDISEÑO: banner a pantalla casi completa, barra flotante, búsqueda y ficha ================= */
 :root{--dockh:70px;--kb:0px}
@@ -2245,7 +2246,7 @@ const ICON = {
 };
 const VEL = [1, 1.25, 1.5, 2, 0.75];
 let swipeFlag = false, ajustando = false, hideT, dragging = false, hls = null, fsAuto = false, vi = 0, actualP = null, actualEp = null, reanudar = 0, ultGuardado = 0;
-let tvModo = null, tvPeli = null, tvUrl = '', tvBloq = false;   // transmisión a TV: null | 'cast' | 'el'
+let tvModo = null, tvPeli = null, tvUrl = '', tvBloq = false, tvDlnaDevice = null;   // transmisión a TV: null | 'cast' | 'el' | 'dlna'
 
 const fmt = s => { s = Math.max(0, Math.floor(s || 0)); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60;
   return (h ? h + ':' + String(m).padStart(2, '0') : m) + ':' + String(x).padStart(2, '0'); };
@@ -2519,6 +2520,7 @@ if (remOk && !airOk) {
 /* --- Panel de control remoto (el teléfono queda como mando) --- */
 function mostrarPanel(dev) {
   tvp.classList.toggle('el', tvModo !== 'cast');
+  tvp.classList.toggle('dlna', tvModo === 'dlna');
   H('cptit').textContent = tvPeli ? (tvPeli.tituloVista || tvPeli.titulo) : '';
   const pe = H('cpposter'); pe.innerHTML = ''; if (tvPeli) poster(tvPeli, pe);
   tvp.style.setProperty('--g', grad(tvPeli ? tvPeli.titulo : ''));
@@ -2541,7 +2543,8 @@ function pintarPanel() {
     if (!tvArrastra && t > 0) tvUlt = t;
     H('cpm').innerHTML = rp.isMuted ? ICON.mute : ICON.vol;
     if (document.activeElement !== cpv) cpv.value = rp.volumeLevel;
-  } else { pausado = V.paused; sub = pausado ? 'En pausa' : 'Reproduciendo en la TV'; }
+  } else if (tvModo === 'dlna') { pausado = false; sub = 'Reproduciendo en la TV'; }
+  else { pausado = V.paused; sub = pausado ? 'En pausa' : 'Reproduciendo en la TV'; }
   if (!tvArrastra) { cps.max = d; cps.value = t; }
   const pc = d ? Math.min(100, t / d * 100) : 0;
   cps.style.setProperty('--p', pc + '%'); cps.style.setProperty('--b', pc + '%');
@@ -2581,6 +2584,7 @@ function salirTv(volver) {
   const t = tvUlt;
   tvModo = null; ocultarPanel();
   if (era === 'cast') { try { const s = sesion(); if (s) s.endSession(true); } catch (e) {} }
+  if (era === 'dlna' && window.bbDlna) { window.bbDlna.detener().catch(() => {}); tvDlnaDevice = null; }
   if (volver && !pl.hidden) {
     if (era === 'cast' && t > 1) { try { V.currentTime = Math.max(0, t - 2); } catch (e) {} }
     V.play().catch(() => {}); horizontal();
@@ -2589,6 +2593,7 @@ function salirTv(volver) {
 function tvCerrar() {                                              // al cerrar el reproductor se corta la transmisión
   const era = tvModo; tvModo = null; ocultarPanel(); tvs.hidden = true; tvPeli = null; tvUrl = '';
   if (era === 'cast') { try { const s = sesion(); if (s) s.endSession(true); } catch (e) {} }
+  if (era === 'dlna' && window.bbDlna) { window.bbDlna.detener().catch(() => {}); tvDlnaDevice = null; }
 }
 
 /* --- Bloqueo táctil: pantalla casi negra que ignora los toques; se desbloquea manteniendo presionado el candado --- */
@@ -2649,6 +2654,29 @@ function pedirRem() {
     tvAviso(e && e.name === 'NotFoundError' ? 'No se encontró ninguna TV cerca.' : 'Este navegador no pudo conectar con la TV.');
   });
 }
+async function pedirDlna() {
+  const cont = H('tvopts'); cont.innerHTML = '';
+  H('tvotras').hidden = true; H('tver').textContent = 'Buscando televisores en tu red Wi-Fi…'; tvs.hidden = false;
+  const api = window.bbDlna;
+  if (!api) { H('tver').textContent = 'Actualiza la app Black BOX para habilitar DLNA.'; return; }
+  try {
+    const result = await api.buscar(6000), devices = result && result.devices || [];
+    H('tver').textContent = devices.length ? 'Elige un televisor conectado a la misma red Wi-Fi.' : 'No se encontraron TVs. Revisa que el teléfono y la TV estén en la misma red Wi-Fi.';
+    for (const device of devices) cont.appendChild(opcionTv(device.name || 'Televisor DLNA', device.model || 'DLNA', async () => {
+      const btn = cont.querySelector('button:focus'); if (btn) btn.disabled = true;
+      H('tver').textContent = 'Conectando con ' + (device.name || 'el televisor') + '…';
+      try {
+        const videoUrl = urlAbs(tvUrl);
+        await api.reproducir(device.id, videoUrl, tvPeli ? (tvPeli.tituloVista || tvPeli.titulo) : 'Black BOX', mimeDe(videoUrl));
+        tvDlnaDevice = device; tvModo = 'dlna'; V.pause(); HAPT.tocar('marcado');
+        mostrarPanel(device.name || 'TV DLNA');
+      } catch (e) {
+        H('tver').textContent = 'La TV no pudo reproducir este video. Prueba con un enlace directo MP4 (H.264/AAC).';
+      }
+    }, !!driveId(tvUrl)));
+  } catch (e) { H('tver').textContent = 'No se pudieron buscar TVs. Revisa el Wi-Fi e inténtalo de nuevo.'; }
+  cont.appendChild(opcionTv('Buscar de nuevo', 'Volver a buscar televisores DLNA', pedirDlna));
+}
 function armarOtras(drive) {
   const o = H('tvotras'); o.innerHTML = '';
   const fila = (t, sub, fn, off) => o.appendChild(opcionTv(t, sub, fn, off));
@@ -2666,6 +2694,7 @@ function abrirTv() {
   cont.append(
     opcionTv('Chromecast y Google TV', castOk ? 'Android TV, Google TV y TV con Chromecast integrado' : 'Disponible en Chrome (Android o PC)', () => { tvs.hidden = true; pedirCast(); }, drive || !castOk),
     opcionTv('AirPlay', airOk ? 'Apple TV y TV con AirPlay (Samsung, LG, Sony…)' : 'Disponible en iPhone, iPad y Safari', () => { tvs.hidden = true; pedirAir(); }, drive || !airOk));
+  if (window.bbDlna) cont.appendChild(opcionTv('DLNA (Samsung, LG y otras TVs)', 'Buscar televisores en la misma red Wi-Fi', pedirDlna, drive));
   if (remOk && !castOk && !airOk) cont.append(opcionTv('Pantalla del navegador', 'Elige una TV o pantalla cercana', () => { tvs.hidden = true; pedirRem(); }, drive));
   cont.append(opcionTv('Otras TV (Samsung, LG…)', 'Enlace para apps DLNA o para abrir en la TV', () => { H('tvotras').hidden = !H('tvotras').hidden; }));
   armarOtras(drive);

@@ -5,6 +5,13 @@
   if (!cap || !cap.isNativePlatform || !cap.isNativePlatform()) return;
   const P = cap.Plugins || {};
   const inmersivo = P.Inmersivo || (cap.registerPlugin && cap.registerPlugin('Inmersivo'));
+  const dlna = P.Dlna || (cap.registerPlugin && cap.registerPlugin('Dlna'));
+  if (dlna) window.bbDlna = {
+    buscar: (timeoutMs) => dlna.discover({ timeoutMs }),
+    reproducir: (id, url, title, contentType) => dlna.cast({ id, url, title, contentType }),
+    detener: () => dlna.stop(),
+    on: (evento, callback) => dlna.addListener(evento, callback)
+  };
   const sinError = (f) => { try { const r = f(); return r && r.catch ? r.catch(() => {}) : r; } catch (e) {} };
 
   // ---- Reproductor: giro REAL a horizontal + barras del sistema ocultas ----
