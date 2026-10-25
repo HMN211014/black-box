@@ -1272,6 +1272,10 @@ html.en-pip #pcr{display:none}
 .cfg-chev{flex:none;display:grid;place-items:center}
 .cfg-chev svg{width:18px;height:18px;fill:none;stroke:rgba(255,255,255,.4);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
 .cfg-pie{margin:0 6px;font-size:14px;line-height:1.5;color:rgba(255,255,255,.55)}
+.cfg-adjust{padding:12px 18px 16px;border-top:1px solid rgba(255,255,255,.1)}
+.cfg-adjust label{display:block;margin:0 0 8px;color:#fff;font-size:16px;font-weight:500}
+.cfg-adjust input[type=range]{display:block;width:100%;height:30px;margin:0;padding:0;accent-color:#fff}
+.cfg-adjust small{display:block;margin-top:5px;color:rgba(255,255,255,.55);font-size:13px;line-height:1.4}
 .cfg-sw{position:relative;flex:none;width:62px;height:38px;border-radius:999px;background:rgba(255,255,255,.2);transition:background .25s}
 .cfg-sw::after{content:"";position:absolute;top:3px;left:3px;width:32px;height:32px;border-radius:50%;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.35);transition:transform .3s cubic-bezier(.3,1.5,.5,1)}
 .cfg-fila.on .cfg-sw{background:#3478f6}.cfg-fila.on .cfg-sw::after{transform:translateX(24px)}
@@ -4318,31 +4322,6 @@ function uVistaCuenta() {
     } catch (x) { msg.textContent = uError(x); msg.hidden = false; }
     ok.disabled = false; ok.textContent = 'Canjear';
   });
-  const push = el('button', 'sbtn sec', 'Activar notificaciones'); push.type = 'button'; push.id = 'cuenta-push-btn';
-  const pushInfo = el('p', 'ssub', 'Recibe un aviso cuando tus pedidos estén listos.'); pushInfo.id = 'cuenta-push-info'; pushInfo.style.margin = '8px 2px 14px';
-  const pintarPush = estado => {
-    if (!estado || estado.receive === 'unavailable') { push.textContent = 'Notificaciones en la app'; pushInfo.textContent = 'Esta función está disponible en la app instalada.'; push.disabled = true; return; }
-    push.disabled = false;
-    if (estado.receive === 'granted') { push.textContent = estado.registrado ? 'Actualizar notificaciones' : 'Activar notificaciones'; pushInfo.textContent = estado.registrado ? 'Las notificaciones están activas en este dispositivo.' : 'Permiso concedido. Toca para registrar este dispositivo.'; }
-    else if (estado.receive === 'denied') { push.textContent = 'Permitir notificaciones'; pushInfo.textContent = 'El permiso está bloqueado. Actívalo en Ajustes de Android > Apps > Black BOX > Notificaciones.'; }
-    else if (estado.receive === 'no-session') { push.textContent = 'Inicia sesión para activar'; pushInfo.textContent = 'Vincula este dispositivo a tu cuenta para recibir avisos de tus pedidos.'; push.disabled = true; }
-    else { push.textContent = 'Activar notificaciones'; pushInfo.textContent = 'Recibe un aviso cuando tus pedidos estén listos.'; }
-  };
-  window.bbCuentaPushActualizar = pintarPush;
-  push.onclick = async () => {
-    if (!window.bbPushActivar) { pintarPush({ receive: 'unavailable' }); return; }
-    push.disabled = true; push.textContent = 'Solicitando permiso…';
-    const r = await window.bbPushActivar();
-    pintarPush(r && r.ok ? await window.bbPushEstado() : r);
-    if (r && r.ok && r.receive === 'granted' && !(await window.bbPushEstado()).registrado) pushInfo.textContent = 'Permiso concedido. Estamos registrando este dispositivo; vuelve a intentarlo en unos segundos si no cambia.';
-  };
-  if (window.bbPushEstado) window.bbPushEstado().then(pintarPush);
-  else pintarPush({ receive: 'unavailable' });
-  let glassNivel = 60; try { const n = Number(localStorage.getItem('bblg')); if (localStorage.getItem('bblg') !== null && isFinite(n)) glassNivel = Math.max(0, Math.min(100, n)); } catch (e) {}
-  const glassLab = el('label', 'ssub', 'Intensidad de Liquid Glass · ' + Math.round(glassNivel) + '%'); glassLab.style.cssText = 'display:block;margin:18px 2px 8px;color:#fff;font-weight:600'; glassLab.htmlFor = 'cuenta-glass';
-  const glassRange = el('input'); glassRange.id = 'cuenta-glass'; glassRange.type = 'range'; glassRange.min = '0'; glassRange.max = '100'; glassRange.step = '1'; glassRange.value = String(glassNivel); glassRange.setAttribute('aria-label', 'Intensidad de Liquid Glass'); glassRange.style.cssText = 'display:block;width:100%;height:34px;padding:0;margin:0 0 2px';
-  const glassHint = el('small', 'ssub', 'Ajusta el efecto de cristal de la barra, los menús y los paneles. Solo se guarda en este dispositivo.'); glassHint.style.cssText = 'display:block;margin:0 2px 14px;color:var(--muted);font-size:13px';
-  glassRange.addEventListener('input', () => { const n = Number(glassRange.value); glassLab.textContent = 'Intensidad de Liquid Glass · ' + n + '%'; if (window.bbGlassSet) window.bbGlassSet(n); });
   const planes = el('button', 'sbtn sec', 'Ver planes'); planes.type = 'button'; planes.onclick = () => { cerrarHoja(); abrirPlanes(null); };
   const sync = el('button', 'sbtn sec', 'Sincronizar ahora'), out = el('button', 'sbtn sec', 'Cerrar sesión'), cerrar = el('button', 'sbtn', 'Listo');
   sync.onclick = async () => { sync.disabled = true; sync.textContent = 'Sincronizando…'; try { await uBajar(); sync.textContent = 'Listo ✓'; } catch (x) { sync.textContent = 'No se pudo sincronizar'; } setTimeout(() => { sync.disabled = false; sync.textContent = 'Sincronizar ahora'; }, 1800); };
@@ -4359,7 +4338,7 @@ function uVistaCuenta() {
   };
   cerrar.onclick = cerrarHoja;
   const lab = el('p', 'ssub', 'Canjear un código de acceso'); lab.style.cssText = 'margin:14px 0 8px;font-weight:600;color:#fff';
-  w.append(el('h2', '', perfOn() ? 'Cuenta' : 'Tu cuenta'), el('div', 'ua-ok', 'Sesión iniciada'), fila, el('div', '', ''), est, lab, canje, msg, push, pushInfo, glassLab, glassRange, glassHint, planes, sync, out, cerrar);
+  w.append(el('h2', '', perfOn() ? 'Cuenta' : 'Tu cuenta'), el('div', 'ua-ok', 'Sesión iniciada'), fila, el('div', '', ''), est, lab, canje, msg, planes, sync, out, cerrar);
   return [w];
 }
 
@@ -4528,6 +4507,42 @@ function perfCrear() {
   PERF.lista.push({ id, nombre: 'Perfil ' + n, av: PERF_AV[(n * 3) % PERF_AV.length], c: (n * 2) % PERF_COL.length, f: Date.now() });
   perfCargar(id);
 }
+function cfgPreferenciasDispositivo(filas) {
+  const grupo = cfgGrupo('PREFERENCIAS DEL DISPOSITIVO', filas, 'La imagen en imagen pasa el video a una ventanita al salir de la app. El siguiente episodio automático empieza el capítulo siguiente tras una cuenta regresiva.');
+  const push = cfgFila({ titulo: 'Activar notificaciones', sub: 'Recibe un aviso cuando tus pedidos estén listos.', onclick: null }); push.id = 'cuenta-push-btn';
+  const pushTitulo = push.querySelector('b'), pushInfo = push.querySelector('small');
+  const pintarPush = estado => {
+    push.disabled = false;
+    if (!estado || estado.receive === 'unavailable') { pushTitulo.textContent = 'Notificaciones en la app'; pushInfo.textContent = 'Esta función está disponible en la app instalada.'; push.disabled = true; }
+    else if (estado.receive === 'granted') { pushTitulo.textContent = estado.registrado ? 'Actualizar notificaciones' : 'Activar notificaciones'; pushInfo.textContent = estado.registrado ? 'Las notificaciones están activas en este dispositivo.' : 'Permiso concedido. Toca para registrar este dispositivo.'; }
+    else if (estado.receive === 'denied') { pushTitulo.textContent = 'Permitir notificaciones'; pushInfo.textContent = 'El permiso está bloqueado. Actívalo en Ajustes de Android > Apps > Black BOX > Notificaciones.'; }
+    else if (estado.receive === 'no-session') { pushTitulo.textContent = 'Inicia sesión para activar'; pushInfo.textContent = 'Vincula este dispositivo a tu cuenta para recibir avisos de tus pedidos.'; push.disabled = true; }
+    else if (estado.receive === 'error') { pushTitulo.textContent = 'No se pudo consultar'; pushInfo.textContent = 'Vuelve a intentarlo cuando la app tenga conexión.'; }
+    else { pushTitulo.textContent = 'Activar notificaciones'; pushInfo.textContent = 'Recibe un aviso cuando tus pedidos estén listos.'; }
+  };
+  window.bbCuentaPushActualizar = pintarPush;
+  push.onclick = async () => {
+    if (!window.bbPushActivar) { pintarPush({ receive: 'unavailable' }); return; }
+    push.disabled = true; pushTitulo.textContent = 'Solicitando permiso…';
+    try {
+      const r = await window.bbPushActivar(), estado = r && r.ok && window.bbPushEstado ? await window.bbPushEstado() : r;
+      pintarPush(estado);
+      if (r && r.ok && r.receive === 'granted' && estado && !estado.registrado) pushInfo.textContent = 'Permiso concedido. Estamos registrando este dispositivo; vuelve a intentarlo en unos segundos si no cambia.';
+    } catch (_) { pintarPush({ receive: 'error' }); }
+  };
+  if (!window.bbCorreo) pintarPush({ receive: 'no-session' });
+  else if (window.bbPushEstado) window.bbPushEstado().then(pintarPush).catch(() => pintarPush({ receive: 'error' }));
+  else pintarPush({ receive: 'unavailable' });
+  grupo.querySelector('.cfg-card').appendChild(push);
+
+  let nivel = 60; try { const n = Number(localStorage.getItem('bblg')); if (localStorage.getItem('bblg') !== null && isFinite(n)) nivel = Math.max(0, Math.min(100, n)); } catch (_) {}
+  const ajuste = el('div', 'cfg-adjust'), lab = el('label', '', 'Intensidad de Liquid Glass · ' + Math.round(nivel) + '%'); lab.htmlFor = 'cuenta-glass';
+  const rango = el('input'); rango.id = 'cuenta-glass'; rango.type = 'range'; rango.min = '0'; rango.max = '100'; rango.step = '1'; rango.value = String(nivel); rango.setAttribute('aria-label', 'Intensidad de Liquid Glass');
+  rango.addEventListener('input', () => { const n = Number(rango.value); lab.textContent = 'Intensidad de Liquid Glass · ' + n + '%'; if (window.bbGlassSet) window.bbGlassSet(n); });
+  ajuste.append(lab, rango, el('small', '', 'Ajusta el efecto de cristal de la barra, los menús y los paneles. Solo se guarda en este dispositivo.'));
+  grupo.querySelector('.cfg-card').appendChild(ajuste);
+  return grupo;
+}
 function cfgMain() {
   const p = perfActual(), nodos = [];
   nodos.push(cfgGrupo(null, [cfgFila({ av: p, titulo: p.nombre, sub: U.correo, nav: true, onclick: () => cfgIr('perfil') })]));
@@ -4538,7 +4553,7 @@ function cfgMain() {
   const pref = [];
   if (document.documentElement.classList.contains('pip-ok')) pref.push(cfgFila({ titulo: 'Imagen en imagen', toggle: { k: 'pip', def: true } }));
   pref.push(cfgFila({ titulo: 'Siguiente episodio automático', toggle: { k: 'sig', def: true } }));
-  nodos.push(cfgGrupo('PREFERENCIAS DEL DISPOSITIVO', pref, 'La imagen en imagen pasa el video a una ventanita al salir de la app. Con el siguiente episodio automático, al terminar un capítulo empieza el siguiente tras una cuenta regresiva.'));
+  nodos.push(cfgPreferenciasDispositivo(pref));
   nodos.push(cfgGrupo(null, [cfgFila({ titulo: 'Relación de aspecto', azul: true, nav: true, valor: aspectoActual().n, onclick: () => cfgIr('aspecto') })]));
   const est = uEstadoTexto();
   nodos.push(cfgGrupo('CUENTA', [
