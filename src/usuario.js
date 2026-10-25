@@ -525,7 +525,9 @@ async function manejar({ request, env, params, waitUntil }) {
     try { if (db) { const r = await db.prepare("SELECT valor FROM meta WHERE clave = 'efectos'").first(); if (r && r.valor) efe = JSON.parse(r.valor) || {}; } } catch (e) {}
     let inter = {};
     try { if (db) { const r = await db.prepare("SELECT valor FROM meta WHERE clave = 'interacciones'").first(); if (r && r.valor) inter = JSON.parse(r.valor) || {}; } } catch (e) {}
-    const js = 'window.PELICULAS_EXTRA=' + JSON.stringify(items).replace(/</g, '\\u003c') + ';window.COLECCIONES_EXTRA=' + JSON.stringify(cols).replace(/</g, '\\u003c') + ';window.SECCIONES_EXTRA=' + JSON.stringify(secs).replace(/</g, '\\u003c') + ';window.ACCESO_EXTRA=' + JSON.stringify(acc).replace(/</g, '\\u003c') + ';window.EFECTOS_EXTRA=' + JSON.stringify(efe).replace(/</g, '\\u003c') + ';window.INTERACCIONES_EXTRA=' + JSON.stringify(inter).replace(/</g, '\\u003c') + ';';
+    let introdb = [];
+    try { if (db) { const r = await db.prepare("SELECT valor FROM meta WHERE clave = 'introdb'").first(); if (r && r.valor) introdb = JSON.parse(r.valor) || []; } } catch (e) {}
+    const js = 'window.PELICULAS_EXTRA=' + JSON.stringify(items).replace(/</g, '\\u003c') + ';window.COLECCIONES_EXTRA=' + JSON.stringify(cols).replace(/</g, '\\u003c') + ';window.SECCIONES_EXTRA=' + JSON.stringify(secs).replace(/</g, '\\u003c') + ';window.ACCESO_EXTRA=' + JSON.stringify(acc).replace(/</g, '\\u003c') + ';window.EFECTOS_EXTRA=' + JSON.stringify(efe).replace(/</g, '\\u003c') + ';window.INTERACCIONES_EXTRA=' + JSON.stringify(inter).replace(/</g, '\\u003c') + ';window.INTRODB_EXTRA=' + JSON.stringify(introdb).replace(/</g, '\\u003c') + ';';
     return new Response(js, { headers: { 'Content-Type': 'application/javascript; charset=utf-8', 'Cache-Control': 'public, max-age=30' } });
   }
 
@@ -540,6 +542,24 @@ async function manejar({ request, env, params, waitUntil }) {
     }
 
     if (cuerpo.op === 'verificar_clave') return json({ ok: true, claveValida: true });
+
+    if (cuerpo.op === 'introdb') {
+      let items = [];
+      try { const r = await db.prepare("SELECT valor FROM meta WHERE clave = 'introdb'").first(); if (r && r.valor) items = JSON.parse(r.valor) || []; } catch (e) {}
+      return json({ items });
+    }
+    if (cuerpo.op === 'guardar_introdb') {
+      const src = Array.isArray(cuerpo.items) ? cuerpo.items : [];
+      const items = [], vistos = new Set();
+      for (const x of src.slice(0, 500)) {
+        const tmdb = Math.floor(Number(x && x.tmdb)), tipo = x && x.tipo === 'serie' ? 'serie' : 'pelicula';
+        const titulo = String(x && x.titulo || '').trim().slice(0, 200), k = tipo + ':' + tmdb;
+        if (tmdb > 0 && titulo && !vistos.has(k)) { vistos.add(k); items.push({ tmdb, tipo, titulo }); }
+      }
+      await db.prepare('CREATE TABLE IF NOT EXISTS meta (clave TEXT PRIMARY KEY, valor TEXT) WITHOUT ROWID').run();
+      await db.prepare("INSERT INTO meta (clave, valor) VALUES ('introdb', ?1) ON CONFLICT(clave) DO UPDATE SET valor = ?1").bind(JSON.stringify(items)).run();
+      return json({ items });
+    }
 
     /* Teléfonos del administrador que reciben el aviso de pedidos nuevos (app Black BOX Admin) */
     if (cuerpo.op === 'push_registrar') {

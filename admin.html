@@ -285,6 +285,15 @@ html.en-admin-app body:not(.h) .nav button.on{background:#fff;color:#000}
     <div id="l-out" hidden></div>
   </div>
 
+  <div class="c" data-g="biblioteca" id="introdb-card">
+    <h2>Saltar créditos con IntroDB</h2>
+    <p class="s">Activa la opción por película o serie. Durante la reproducción aparecerá un botón para saltar al inicio de los créditos cuando IntroDB tenga ese dato.</p>
+    <label style="margin-top:12px">Buscar película o serie en TMDB<input id="idb-q" type="search" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Nombre del título"></label>
+    <div class="sr" id="idb-res"></div>
+    <p class="m" id="idb-m" hidden></p>
+    <div id="idb-list"></div>
+  </div>
+
   <div class="c w" data-g="colecciones" id="col-card">
     <h2>Colecciones</h2>
     <p class="s">Crea y edita cuadros como Marvel o Nolan. Toca <b>Ver colecciones</b> para ver también las de <b>colecciones.js</b> y editarlas: el panel guarda una versión que las reemplaza y el archivo no se toca (puedes <b>restaurar la original</b> cuando quieras).</p>
@@ -1038,6 +1047,33 @@ $('p-go').onclick = () => con($('p-go'), 'p-m', async () => {
 });
 
 /* ---- películas publicadas desde el panel ---- */
+$('idb-q') && (async function iniciarIntroDbAdmin() {
+  let items = [];
+  const box = $('idb-list');
+  function pintar() {
+    box.replaceChildren();
+    if (!items.length) { msg('idb-m', 'No hay títulos habilitados. La función permanece apagada para todos los demás.', true); return; }
+    msg('idb-m', items.length + ' título(s) habilitado(s).', true);
+    items.forEach((x, i) => {
+      const d = document.createElement('div'); d.className = 'it';
+      const tx = document.createElement('div'); tx.className = 'tx';
+      const b = document.createElement('b'); b.textContent = x.titulo;
+      const sm = document.createElement('small'); sm.textContent = (x.tipo === 'serie' ? 'Serie' : 'Película') + ' · TMDB ' + x.tmdb;
+      tx.append(b, sm);
+      const rm = document.createElement('button'); rm.className = 'g'; rm.type = 'button'; rm.textContent = 'Desactivar';
+      rm.onclick = () => con(rm, 'idb-m', async () => { items.splice(i, 1); const j = await admin({ op: 'guardar_introdb', items }); items = j.items || items; pintar(); });
+      d.append(tx, rm); box.appendChild(d);
+    });
+  }
+  try { const j = await admin({ op: 'introdb' }); items = j.items || []; pintar(); } catch (e) { msg('idb-m', e.message, false); }
+  buscadorTmdb('idb-q', 'idb-res', 'idb-m', r => con($('idb-q'), 'idb-m', async () => {
+    const tipo = r.media_type === 'tv' ? 'serie' : 'pelicula', tmdb = Number(r.id);
+    if (items.some(x => Number(x.tmdb) === tmdb && x.tipo === tipo)) { msg('idb-m', 'Ese título ya está habilitado.', true); return; }
+    const j = await admin({ op: 'guardar_introdb', items: [...items, { tmdb, tipo, titulo: r.title || r.name || 'Título' }] });
+    items = j.items || []; $('idb-q').value = ''; $('idb-res').replaceChildren(); pintar();
+  }), r => items.some(x => Number(x.tmdb) === Number(r.id) && x.tipo === (r.media_type === 'tv' ? 'serie' : 'pelicula')) ? ['Activo', 'd'] : null);
+})();
+
 $('x-go').onclick = () => con($('x-go'), 'x-m', async () => {
   const j = await admin({ op: 'publicadas' });
   const box = $('x-lista'); box.replaceChildren();
