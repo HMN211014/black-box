@@ -118,17 +118,30 @@
     setTimeout(() => { d.style.transform = 'translate(-50%,-140%)'; setTimeout(() => d.remove(), 500); }, 5500);
   }
   async function registrarPush() {
-    if (!PN) return;
+    if (!PN) return { ok: false, receive: 'unavailable' };
     try {
       let perm = await PN.checkPermissions();
       if (perm.receive === 'prompt' || perm.receive === 'prompt-with-rationale') perm = await PN.requestPermissions();   // Android 13+: pregunta una vez
-      if (perm.receive !== 'granted') return;
+      if (perm.receive !== 'granted') return { ok: false, receive: perm.receive };
       await sinError(() => PN.createChannel({ id: 'pedidos', name: 'Pedidos', description: 'Avisa cuando tu pedido está listo', importance: 4, visibility: 1, vibration: true }));
       await PN.register();
-    } catch (e) { console.warn('push', e); }
+      return { ok: true, receive: 'granted' };
+    } catch (e) { console.warn('push', e); return { ok: false, receive: 'error' }; }
   }
+  async function estadoPush() {
+    if (!PN) return { receive: 'unavailable', registrado: false };
+    try { const p = await PN.checkPermissions(); return { receive: p.receive, registrado: !!guardado() }; }
+    catch (e) { return { receive: 'error', registrado: !!guardado() }; }
+  }
+  window.bbPushEstado = estadoPush;
+  window.bbPushActivar = async () => {
+    const correo = window.bbCorreo;
+    if (!correo) return { ok: false, receive: 'no-session' };
+    return registrarPush();
+  };
+  function actualizarPushUI() { if (typeof window.bbCuentaPushActualizar === 'function') estadoPush().then(window.bbCuentaPushActualizar); }
   if (PN) {
-    PN.addListener('registration', (t) => { try { localStorage.setItem('bb_push_token', t.value); } catch (e) {} post('push', { token: t.value, plataforma: cap.getPlatform ? cap.getPlatform() : 'android' }); });
+    PN.addListener('registration', (t) => { try { localStorage.setItem('bb_push_token', t.value); } catch (e) {} post('push', { token: t.value, plataforma: cap.getPlatform ? cap.getPlatform() : 'android' }); actualizarPushUI(); });
     PN.addListener('registrationError', (e) => console.warn('push error', JSON.stringify(e)));
     PN.addListener('pushNotificationReceived', (n) => {              // con la app abierta Android no muestra nada solo: lo mostramos aquí
       aviso(n.title, n.body);
@@ -140,8 +153,8 @@
     });
     let sesion = '';
     const cambio = (correo) => {
-      if (correo && correo !== sesion) { sesion = correo; registrarPush(); }
-      else if (!correo && sesion) { sesion = ''; const t = guardado(); if (t) post('pushquitar', { token: t }); sinError(() => PN.unregister()); try { localStorage.removeItem('bb_push_token'); } catch (e) {} }
+      if (correo && correo !== sesion) { sesion = correo; registrarPush().then(actualizarPushUI); }
+      else if (!correo && sesion) { sesion = ''; const t = guardado(); if (t) post('pushquitar', { token: t }); sinError(() => PN.unregister()); try { localStorage.removeItem('bb_push_token'); } catch (e) {} actualizarPushUI(); }
     };
     document.addEventListener('bb-sesion', (e) => cambio(e.detail && e.detail.correo));
     if (window.bbCorreo) cambio(window.bbCorreo);                    // la sesión ya estaba abierta antes de que cargara este archivo

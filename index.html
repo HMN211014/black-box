@@ -3985,6 +3985,26 @@ function uVistaCuenta() {
     } catch (x) { msg.textContent = uError(x); msg.hidden = false; }
     ok.disabled = false; ok.textContent = 'Canjear';
   });
+  const push = el('button', 'sbtn sec', 'Activar notificaciones'); push.type = 'button'; push.id = 'cuenta-push-btn';
+  const pushInfo = el('p', 'ssub', 'Recibe un aviso cuando tus pedidos estén listos.'); pushInfo.id = 'cuenta-push-info'; pushInfo.style.margin = '8px 2px 14px';
+  const pintarPush = estado => {
+    if (!estado || estado.receive === 'unavailable') { push.textContent = 'Notificaciones en la app'; pushInfo.textContent = 'Esta función está disponible en la app instalada.'; push.disabled = true; return; }
+    push.disabled = false;
+    if (estado.receive === 'granted') { push.textContent = estado.registrado ? 'Actualizar notificaciones' : 'Activar notificaciones'; pushInfo.textContent = estado.registrado ? 'Las notificaciones están activas en este dispositivo.' : 'Permiso concedido. Toca para registrar este dispositivo.'; }
+    else if (estado.receive === 'denied') { push.textContent = 'Permitir notificaciones'; pushInfo.textContent = 'El permiso está bloqueado. Actívalo en Ajustes de Android > Apps > Black BOX > Notificaciones.'; }
+    else if (estado.receive === 'no-session') { push.textContent = 'Inicia sesión para activar'; pushInfo.textContent = 'Vincula este dispositivo a tu cuenta para recibir avisos de tus pedidos.'; push.disabled = true; }
+    else { push.textContent = 'Activar notificaciones'; pushInfo.textContent = 'Recibe un aviso cuando tus pedidos estén listos.'; }
+  };
+  window.bbCuentaPushActualizar = pintarPush;
+  push.onclick = async () => {
+    if (!window.bbPushActivar) { pintarPush({ receive: 'unavailable' }); return; }
+    push.disabled = true; push.textContent = 'Solicitando permiso…';
+    const r = await window.bbPushActivar();
+    pintarPush(r && r.ok ? await window.bbPushEstado() : r);
+    if (r && r.ok && r.receive === 'granted' && !(await window.bbPushEstado()).registrado) pushInfo.textContent = 'Permiso concedido. Estamos registrando este dispositivo; vuelve a intentarlo en unos segundos si no cambia.';
+  };
+  if (window.bbPushEstado) window.bbPushEstado().then(pintarPush);
+  else pintarPush({ receive: 'unavailable' });
   const planes = el('button', 'sbtn sec', 'Ver planes'); planes.type = 'button'; planes.onclick = () => { cerrarHoja(); abrirPlanes(null); };
   const sync = el('button', 'sbtn sec', 'Sincronizar ahora'), out = el('button', 'sbtn sec', 'Cerrar sesión'), cerrar = el('button', 'sbtn', 'Listo');
   sync.onclick = async () => { sync.disabled = true; sync.textContent = 'Sincronizando…'; try { await uBajar(); sync.textContent = 'Listo ✓'; } catch (x) { sync.textContent = 'No se pudo sincronizar'; } setTimeout(() => { sync.disabled = false; sync.textContent = 'Sincronizar ahora'; }, 1800); };
@@ -4001,7 +4021,7 @@ function uVistaCuenta() {
   };
   cerrar.onclick = cerrarHoja;
   const lab = el('p', 'ssub', 'Canjear un código de acceso'); lab.style.cssText = 'margin:14px 0 8px;font-weight:600;color:#fff';
-  w.append(el('h2', '', perfOn() ? 'Cuenta' : 'Tu cuenta'), el('div', 'ua-ok', 'Sesión iniciada'), fila, el('div', '', ''), est, lab, canje, msg, planes, sync, out, cerrar);
+  w.append(el('h2', '', perfOn() ? 'Cuenta' : 'Tu cuenta'), el('div', 'ua-ok', 'Sesión iniciada'), fila, el('div', '', ''), est, lab, canje, msg, push, pushInfo, planes, sync, out, cerrar);
   return [w];
 }
 
