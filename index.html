@@ -684,25 +684,25 @@ body.buscando #dock{transition:transform .2s cubic-bezier(.4,0,1,1),opacity .15s
 /* cambio de pestaña y de resultados: fundido con un leve zoom */
 @keyframes vt-out{to{opacity:0;transform:scale(.992)}}
 @keyframes vt-in{from{opacity:0;transform:scale(1.008)}}
-::view-transition-old(root){animation:vt-out .14s cubic-bezier(.4,0,.9,.6) both}
-::view-transition-new(root){animation:vt-in .28s cubic-bezier(.16,1,.3,1) both}
-html[data-vt="fade"]::view-transition-old(root){animation-duration:.1s}
-html[data-vt="fade"]::view-transition-new(root){animation-duration:.18s}
+::view-transition-old(root){animation:vt-out var(--vt-out-duration,.14s) cubic-bezier(.4,0,.9,.6) both}
+::view-transition-new(root){animation:vt-in var(--vt-in-duration,.28s) cubic-bezier(.16,1,.3,1) both}
+html[data-vt="fade"]::view-transition-old(root){animation-duration:var(--vt-out-duration,.1s)}
+html[data-vt="fade"]::view-transition-new(root){animation-duration:var(--vt-in-duration,.18s)}
 /* tarjeta o banner -> ficha: la imagen se agranda hasta ser el fondo (y regresa al volver) */
 body.detmode #dbgwrap{view-transition-name:poster-x}
-::view-transition-group(poster-x){animation-duration:.4s;animation-timing-function:cubic-bezier(.2,.9,.2,1);overflow:hidden;border-radius:22px}
+::view-transition-group(poster-x){animation-duration:var(--vt-poster-duration,.4s);animation-timing-function:cubic-bezier(.2,.9,.2,1);overflow:hidden;border-radius:22px}
 ::view-transition-old(poster-x),::view-transition-new(poster-x){width:100%;height:100%;object-fit:cover;object-position:center top}
-html[data-vt="poster"]::view-transition-old(root){animation-duration:.18s}
-html[data-vt="poster"]::view-transition-new(root){animation-duration:.3s}
+html[data-vt="poster"]::view-transition-old(root){animation-duration:var(--vt-out-duration,.18s)}
+html[data-vt="poster"]::view-transition-new(root){animation-duration:var(--vt-in-duration,.3s)}
 /* estilos de transición elegidos en admin > Interacciones (html[data-vte]) */
 @keyframes vte-f-o{to{opacity:0}} @keyframes vte-f-i{from{opacity:0}}
 @keyframes vte-d-o{to{opacity:0;transform:translateX(-7%)}} @keyframes vte-d-i{from{opacity:0;transform:translateX(9%)}}
 @keyframes vte-z-o{to{opacity:0;transform:scale(.94)}} @keyframes vte-z-i{from{opacity:0;transform:scale(1.07)}}
 @keyframes vte-s-o{to{opacity:0;transform:translateY(-3%)}} @keyframes vte-s-i{from{opacity:0;transform:translateY(7%)}}
-html[data-vte="fundido"]::view-transition-old(root){animation:vte-f-o .2s ease both}   html[data-vte="fundido"]::view-transition-new(root){animation:vte-f-i .32s ease both}
-html[data-vte="deslizar"]::view-transition-old(root){animation:vte-d-o .2s cubic-bezier(.4,0,.9,.6) both} html[data-vte="deslizar"]::view-transition-new(root){animation:vte-d-i .34s cubic-bezier(.16,1,.3,1) both}
-html[data-vte="zoom"]::view-transition-old(root){animation:vte-z-o .2s cubic-bezier(.4,0,.9,.6) both}    html[data-vte="zoom"]::view-transition-new(root){animation:vte-z-i .34s cubic-bezier(.16,1,.3,1) both}
-html[data-vte="subir"]::view-transition-old(root){animation:vte-s-o .2s cubic-bezier(.4,0,.9,.6) both}   html[data-vte="subir"]::view-transition-new(root){animation:vte-s-i .36s cubic-bezier(.16,1,.3,1) both}
+html[data-vte="fundido"]::view-transition-old(root){animation:vte-f-o var(--vt-out-duration,.2s) ease both}   html[data-vte="fundido"]::view-transition-new(root){animation:vte-f-i var(--vt-in-duration,.32s) ease both}
+html[data-vte="deslizar"]::view-transition-old(root){animation:vte-d-o var(--vt-out-duration,.2s) cubic-bezier(.4,0,.9,.6) both} html[data-vte="deslizar"]::view-transition-new(root){animation:vte-d-i var(--vt-in-duration,.34s) cubic-bezier(.16,1,.3,1) both}
+html[data-vte="zoom"]::view-transition-old(root){animation:vte-z-o var(--vt-out-duration,.2s) cubic-bezier(.4,0,.9,.6) both}    html[data-vte="zoom"]::view-transition-new(root){animation:vte-z-i var(--vt-in-duration,.34s) cubic-bezier(.16,1,.3,1) both}
+html[data-vte="subir"]::view-transition-old(root){animation:vte-s-o var(--vt-out-duration,.2s) cubic-bezier(.4,0,.9,.6) both}   html[data-vte="subir"]::view-transition-new(root){animation:vte-s-i var(--vt-in-duration,.36s) cubic-bezier(.16,1,.3,1) both}
 @media (prefers-reduced-motion:reduce){::view-transition-group(*),::view-transition-old(*),::view-transition-new(*){animation:none!important}}
 
 /* ---- Sección Pedidos (por ahora solo un aviso) ---- */
@@ -2112,7 +2112,11 @@ document.addEventListener('click', e => {
 /* ---------- Animaciones y vibraciones por interacción (admin > Interacciones) ---------- */
 const INT = (() => { const x = window.INTERACCIONES_EXTRA; return { i: (x && x.i) || {}, t: (x && x.t) || {}, m: Object.assign({ mantener: 'ninguna', doble: 'ninguna', flick: 'ninguna', borde: 'ninguna', arrastre: 'ninguna', paso: 48, intensidad: 70 }, (x && x.m) || {}) }; })();
 const intCfg = id => INT.i[id] || { a: 'ninguna', v: 'ninguna' };
-const intTrans = tipo => INT.t[{ tab: 'seccion', poster: 'ficha', fade: 'busqueda' }[tipo]] || 'auto';
+const intTransConfig = tipo => {
+  const id = { tab: 'seccion', poster: 'ficha', fade: 'busqueda' }[tipo] || tipo || 'seccion', raw = INT.t[id];
+  return typeof raw === 'string' ? { style: raw, speed: 100 } : { style: raw && (raw.style || raw.estilo) || 'auto', speed: Math.max(50, Math.min(200, Number(raw && raw.speed) || 100)) };
+};
+const intTrans = tipo => intTransConfig(tipo).style;
 function intVib(id) { const v = intCfg(id).v; if (v && v !== 'ninguna') HAPT.patron(v); }
 const ANIM_KF = {
   rebote: [[{ scale: 1 }, { scale: .9, offset: .25 }, { scale: 1.08, offset: .6 }, { scale: .98, offset: .82 }, { scale: 1 }], 420],
@@ -2219,13 +2223,17 @@ document.addEventListener('dragstart', e => e.preventDefault());
 let vtOK = false, vtDentro = false, fuenteVT = null;
 function conTransicion(fn, o = {}) {
   if (vtDentro || !vtOK || !document.startViewTransition || reduce || document.hidden) { fn(); return; }
-  const est = intTrans(o.tipo || 'tab');                                                          // estilo elegido en admin > Interacciones
+  const tipo = o.tipo || 'tab', config = intTransConfig(tipo), est = config.style;                 // estilo elegido en admin > Interacciones
   if (est === 'ninguna') { fn(); return; }
   const raiz = document.documentElement; let nombrado = null;
-  raiz.dataset.vt = o.tipo || 'tab';
+  raiz.dataset.vt = tipo;
   if (est !== 'auto') raiz.dataset.vte = est; else delete raiz.dataset.vte;
+  const escala = 100 / config.speed, base = est === 'auto' ? (tipo === 'poster' ? [180, 300, 400] : tipo === 'fade' ? [100, 180, 0] : [140, 280, 0]) : ({ fundido: [200, 320, 0], deslizar: [200, 340, 0], zoom: [200, 340, 0], subir: [200, 360, 0] }[est] || [140, 280, 0]);
+  raiz.style.setProperty('--vt-out-duration', Math.round(base[0] * escala) + 'ms');
+  raiz.style.setProperty('--vt-in-duration', Math.round(base[1] * escala) + 'ms');
+  raiz.style.setProperty('--vt-poster-duration', Math.round((base[2] || 400) * escala) + 'ms');
   if (est === 'auto' && o.desde && o.desde.isConnected) { o.desde.style.viewTransitionName = 'poster-x'; nombrado = o.desde; }   // de aquí sale la imagen que se agranda
-  const limpiar = () => { delete raiz.dataset.vt; delete raiz.dataset.vte; if (nombrado) nombrado.style.viewTransitionName = ''; };
+  const limpiar = () => { delete raiz.dataset.vt; delete raiz.dataset.vte; raiz.style.removeProperty('--vt-out-duration'); raiz.style.removeProperty('--vt-in-duration'); raiz.style.removeProperty('--vt-poster-duration'); if (nombrado) nombrado.style.viewTransitionName = ''; };
   let t;
   try {
     t = document.startViewTransition(() => {

@@ -739,7 +739,10 @@ async function manejar({ request, env, params, waitUntil }) {
       const a = cuerpo.interacciones || {}, ai = a.i || {}, at = a.t || {}, v = { i: {}, t: {} };
       for (const k of IN_AV) { const x = ai[k] || {}, sp = Number(x.speed); v.i[k] = { a: IN_ANIM.includes(x.a) ? x.a : 'ninguna', v: IN_VIB.includes(x.v) ? x.v : 'ninguna', speed: isFinite(sp) ? Math.max(50, Math.min(200, Math.round(sp))) : 100 }; }
       for (const k of IN_V) { const x = ai[k] || {}; v.i[k] = { a: 'ninguna', v: IN_VIB.includes(x.v) ? x.v : 'ninguna' }; }
-      for (const k of IN_T) v.t[k] = IN_TRANS.includes(at[k]) ? at[k] : 'auto';
+      for (const k of IN_T) {
+        const x = at[k] || {}, estilo = typeof x === 'string' ? x : (x.style || x.estilo), sp = Number(x.speed);
+        v.t[k] = { style: IN_TRANS.includes(estilo) ? estilo : 'auto', speed: isFinite(sp) ? Math.max(50, Math.min(200, Math.round(sp))) : 100 };
+      }
       const am = a.m || {}; v.m = {};
       for (const k of IN_M) v.m[k] = IN_VIB.includes(am[k]) ? am[k] : 'ninguna';
       const pn = Number(am.paso), it = Number(am.intensidad);
