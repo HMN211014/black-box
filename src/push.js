@@ -11,6 +11,7 @@ export async function asegurarPush(db) {
   if (tablaLista) return;
   await db.prepare('CREATE TABLE IF NOT EXISTS dispositivos (token TEXT PRIMARY KEY, correo TEXT NOT NULL, plataforma TEXT, creado INTEGER NOT NULL) WITHOUT ROWID').run();
   await db.prepare('CREATE INDEX IF NOT EXISTS dispositivos_correo ON dispositivos (correo)').run();
+  await db.prepare('CREATE TABLE IF NOT EXISTS dispositivos_preferencias (token TEXT PRIMARY KEY, sonido TEXT NOT NULL DEFAULT \'suave\') WITHOUT ROWID').run();
   tablaLista = true;
 }
 
@@ -44,16 +45,17 @@ export async function avisarUsuario(env, correo, { titulo, texto, datos = {} }) 
     if (!env.FCM_SERVICE_ACCOUNT || !env.DB) return;                       // sin configurar: simplemente no avisa
     let sa; try { sa = JSON.parse(env.FCM_SERVICE_ACCOUNT); } catch (e) { console.error('[push] FCM_SERVICE_ACCOUNT no es un JSON válido'); return; }
     await asegurarPush(env.DB);
-    const filas = (await env.DB.prepare('SELECT token FROM dispositivos WHERE correo = ?1').bind(correo).all()).results;
+    const filas = (await env.DB.prepare("SELECT d.token, COALESCE(p.sonido, 'suave') AS sonido FROM dispositivos d LEFT JOIN dispositivos_preferencias p ON p.token = d.token WHERE d.correo = ?1").bind(correo).all()).results;
     if (!filas.length) return;
     const acceso = await tokenGoogle(sa);
     const url = 'https://fcm.googleapis.com/v1/projects/' + sa.project_id + '/messages:send';
     const data = Object.fromEntries(Object.entries(datos).map(([k, v]) => [k, String(v)]));   // FCM solo acepta textos
-    for (const { token } of filas) {
+    for (const { token, sonido } of filas) {
+      const canal = ['suave', 'sistema', 'silencio'].includes(sonido) ? 'pedidos_' + sonido : 'pedidos_suave';
       const r = await fetch(url, {
         method: 'POST', headers: { Authorization: 'Bearer ' + acceso, 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: { token, notification: { title: titulo, body: texto }, data,
-          android: { priority: 'HIGH', notification: { channel_id: 'pedidos' } } } })
+          android: { priority: 'HIGH', notification: { channel_id: canal } } } })
       });
       if (!r.ok) {
         const t = await r.text();

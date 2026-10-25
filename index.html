@@ -1288,6 +1288,8 @@ html.en-pip #pcr{display:none}
 .cfg-adjust input[type=range]{display:block;width:100%;height:30px;margin:0;padding:0;accent-color:#fff}
 .cfg-adjust small{display:block;margin-top:5px;color:rgba(255,255,255,.55);font-size:13px;line-height:1.4}
 .cfg-glass-preview{position:relative;isolation:isolate;display:flex;align-items:center;min-height:88px;margin:12px 0 8px;padding:14px;overflow:hidden;border-radius:16px;background:radial-gradient(ellipse at 18% 25%,#f18a5b 0,transparent 40%),radial-gradient(ellipse at 82% 70%,#6554e8 0,transparent 48%),linear-gradient(125deg,#155f75,#14213e 55%,#722e70)}
+.bb-noti-preview{display:flex;flex-direction:column;gap:4px;padding:16px 18px;border-radius:16px;color:#fff;background:rgba(40,40,44,.96);border:1px solid rgba(255,255,255,.16);box-shadow:0 12px 32px rgba(0,0,0,.35)}
+.bb-noti-preview span{font-size:14px;font-weight:400;opacity:.82}.bb-noti-preview.azul{background:linear-gradient(120deg,#102c50,#164e83);border-color:#4da3ff}.bb-noti-preview.claro{background:#f5f5f7;color:#17171a;border-color:#fff}.bb-noti-preview.claro span{opacity:.7}
 .cfg-glass-surface{position:relative;isolation:isolate;display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:58px;padding:10px 14px;overflow:hidden;border:1px solid rgba(255,255,255,.26);border-radius:13px;background:linear-gradient(145deg,rgba(255,255,255,.19),rgba(255,255,255,.055));backdrop-filter:blur(var(--bb-glass-blur,18px)) saturate(var(--bb-glass-saturate,1.66)) brightness(var(--bb-glass-brightness,1.06));-webkit-backdrop-filter:blur(var(--bb-glass-blur,18px)) saturate(var(--bb-glass-saturate,1.66)) brightness(var(--bb-glass-brightness,1.06));box-shadow:inset 0 1px 0 rgba(255,255,255,.45),0 7px 18px rgba(0,0,0,.18)}
 .cfg-glass-surface::before{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;border-radius:inherit;background:linear-gradient(160deg,rgba(255,255,255,.35),transparent 58%);opacity:var(--bb-glass-rim,.68)}
 .cfg-glass-surface>*{position:relative;z-index:1}.cfg-glass-surface b{font-size:14px;font-weight:650}.cfg-glass-surface span{color:rgba(255,255,255,.78);font-size:12px}
@@ -4563,6 +4565,7 @@ function cfgPreferenciasDispositivo(filas) {
   else if (window.bbPushEstado) window.bbPushEstado().then(pintarPush).catch(() => pintarPush({ receive: 'error' }));
   else pintarPush({ receive: 'unavailable' });
   grupo.querySelector('.cfg-card').appendChild(push);
+  grupo.querySelector('.cfg-card').appendChild(cfgFila({ titulo: 'Sonido y estilo de notificaciones', sub: 'Personaliza los avisos de Black BOX.', valor: `${({ suave: 'Suave', sistema: 'Sistema', silencio: 'Silencio' })[opcGet('notiSonido', 'suave')] || 'Suave'} · ${({ cristal: 'Cristal', azul: 'Azul', claro: 'Claro' })[opcGet('notiEstilo', 'cristal')] || 'Cristal'}`, azul: true, nav: true, onclick: () => cfgIr('notificaciones') }));
 
   let nivel = 60; try { const n = Number(localStorage.getItem('bblg')); if (localStorage.getItem('bblg') !== null && isFinite(n)) nivel = Math.max(0, Math.min(100, n)); } catch (_) {}
   const ajuste = el('div', 'cfg-adjust'), lab = el('label', '', 'Intensidad de Liquid Glass · ' + Math.round(nivel) + '%'); lab.htmlFor = 'cuenta-glass';
@@ -4636,7 +4639,19 @@ function cfgAspecto() {
   });
   return [cfgGrupo(null, filas, 'Automático respeta la proporción real del archivo y es lo recomendable. Las demás estiran el video a esa proporción estándar, útil si una película se ve aplastada o alargada. También puedes cambiarla desde el botón de la barra inferior del reproductor.')];
 }
-const CFG_PAGS = { main: ['Configuración', cfgMain], perfil: ['Perfil', cfgPerfil], cuenta: ['Cuenta', cfgCuenta], aspecto: ['Relación de aspecto', cfgAspecto] };
+function cfgNotificaciones() {
+  const opciones = (clave, lista) => cfgGrupo(clave === 'notiSonido' ? 'SONIDO' : 'ESTILO DEL AVISO', lista.map(([valor, nombre, desc]) => {
+    const f = cfgFila({ titulo: nombre, sub: desc, onclick: () => { opcSet(clave, valor); cfgRender(); } });
+    if (opcGet(clave, clave === 'notiSonido' ? 'suave' : 'cristal') === valor) f.append(el('i', 'pm-on'));
+    return f;
+  }));
+  const prueba = el('div', 'bb-noti-preview ' + opcGet('notiEstilo', 'cristal'));
+  prueba.append(el('b', '', 'Black BOX'), el('span', '', 'Tu pedido está listo'));
+  const muestra = cfgGrupo('VISTA PREVIA', []); muestra.querySelector('.cfg-card').append(prueba);
+  const probar = cfgFila({ titulo: 'Probar sonido', azul: true, onclick: () => { if (window.bbPushProbarSonido) window.bbPushProbarSonido(); } });
+  return [opciones('notiSonido', [['suave','Suave','Tono de Black BOX'],['sistema','Sistema','Sonido predeterminado del dispositivo'],['silencio','Silencio','Sin sonido ni vibración']]), opciones('notiEstilo', [['cristal','Cristal','Aviso oscuro con efecto de cristal'],['azul','Azul','Aviso con acento azul'],['claro','Claro','Aviso claro de alto contraste']]), muestra, cfgGrupo(null, [probar], 'El estilo cambia los avisos que aparecen dentro de Black BOX. El sonido se aplica a las notificaciones push de este dispositivo.')];
+}
+const CFG_PAGS = { main: ['Configuración', cfgMain], perfil: ['Perfil', cfgPerfil], cuenta: ['Cuenta', cfgCuenta], aspecto: ['Relación de aspecto', cfgAspecto], notificaciones: ['Notificaciones', cfgNotificaciones] };
 function cfgPagina(clave) {
   const [titulo, fn] = CFG_PAGS[clave], pag = el('div', 'cfg-pag');
   const cab = el('div', 'cfg-cab'), atras = el('button', 'cfg-back'); atras.type = 'button'; atras.setAttribute('aria-label', 'Volver');

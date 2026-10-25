@@ -379,14 +379,17 @@ async function manejar({ request, env, params, waitUntil }) {
     const token = String(cuerpo.token || '').trim();
     if (token.length < 20 || token.length > 4096) return json({ error: 'Token no válido.' }, 400);
     await asegurarPush(db);
+    const sonido = ['suave', 'sistema', 'silencio'].includes(String(cuerpo.sonido || '')) ? String(cuerpo.sonido) : 'suave';
     await db.prepare('INSERT INTO dispositivos (token, correo, plataforma, creado) VALUES (?1, ?2, ?3, ?4) ON CONFLICT(token) DO UPDATE SET correo = ?2, plataforma = ?3, creado = ?4')
       .bind(token, correo, String(cuerpo.plataforma || '').slice(0, 20), Date.now()).run();
+    await db.prepare('INSERT INTO dispositivos_preferencias (token, sonido) VALUES (?1, ?2) ON CONFLICT(token) DO UPDATE SET sonido = ?2').bind(token, sonido).run();
     await db.prepare('DELETE FROM dispositivos WHERE correo = ?1 AND token NOT IN (SELECT token FROM dispositivos WHERE correo = ?1 ORDER BY creado DESC LIMIT 10)').bind(correo).run();   // máximo 10 teléfonos por cuenta
     return json({ ok: true });
   }
   if (accion === 'pushquitar' && esPost) {
     await asegurarPush(db);
     await db.prepare('DELETE FROM dispositivos WHERE token = ?1').bind(String(cuerpo.token || '')).run();
+    await db.prepare('DELETE FROM dispositivos_preferencias WHERE token = ?1').bind(String(cuerpo.token || '')).run();
     return json({ ok: true });
   }
 
@@ -539,10 +542,9 @@ async function manejar({ request, env, params, waitUntil }) {
     try { if (db) { const r = await db.prepare("SELECT valor FROM meta WHERE clave = 'interacciones'").first(); if (r && r.valor) inter = JSON.parse(r.valor) || {}; } } catch (e) {}
     let introdb = [];
     try { if (db) { const r = await db.prepare("SELECT valor FROM meta WHERE clave = 'introdb'").first(); if (r && r.valor) introdb = JSON.parse(r.valor) || []; } } catch (e) {}
-    let sug = {}, noti = {};
+    let sug = {};
     try { if (db) { const r = await db.prepare("SELECT valor FROM meta WHERE clave = 'sugerencia'").first(); if (r && r.valor) sug = JSON.parse(r.valor) || {}; } } catch (e) {}
-    try { if (db) { const r = await db.prepare("SELECT valor FROM meta WHERE clave = 'notificaciones'").first(); if (r && r.valor) noti = JSON.parse(r.valor) || {}; } } catch (e) {}
-    const js = 'window.PELICULAS_EXTRA=' + JSON.stringify(items).replace(/</g, '\\u003c') + ';window.COLECCIONES_EXTRA=' + JSON.stringify(cols).replace(/</g, '\\u003c') + ';window.SECCIONES_EXTRA=' + JSON.stringify(secs).replace(/</g, '\\u003c') + ';window.ACCESO_EXTRA=' + JSON.stringify(acc).replace(/</g, '\\u003c') + ';window.EFECTOS_EXTRA=' + JSON.stringify(efe).replace(/</g, '\\u003c') + ';window.INTERACCIONES_EXTRA=' + JSON.stringify(inter).replace(/</g, '\\u003c') + ';window.INTRODB_EXTRA=' + JSON.stringify(introdb).replace(/</g, '\\u003c') + ';window.SUGERENCIA_EXTRA=' + JSON.stringify(sug).replace(/</g, '\\u003c') + ';window.NOTIFICACIONES_EXTRA=' + JSON.stringify(noti).replace(/</g, '\\u003c') + ';';
+    const js = 'window.PELICULAS_EXTRA=' + JSON.stringify(items).replace(/</g, '\\u003c') + ';window.COLECCIONES_EXTRA=' + JSON.stringify(cols).replace(/</g, '\\u003c') + ';window.SECCIONES_EXTRA=' + JSON.stringify(secs).replace(/</g, '\\u003c') + ';window.ACCESO_EXTRA=' + JSON.stringify(acc).replace(/</g, '\\u003c') + ';window.EFECTOS_EXTRA=' + JSON.stringify(efe).replace(/</g, '\\u003c') + ';window.INTERACCIONES_EXTRA=' + JSON.stringify(inter).replace(/</g, '\\u003c') + ';window.INTRODB_EXTRA=' + JSON.stringify(introdb).replace(/</g, '\\u003c') + ';window.SUGERENCIA_EXTRA=' + JSON.stringify(sug).replace(/</g, '\\u003c') + ';';
     return new Response(js, { headers: { 'Content-Type': 'application/javascript; charset=utf-8', 'Cache-Control': 'public, max-age=30' } });
   }
 
@@ -824,8 +826,8 @@ async function manejar({ request, env, params, waitUntil }) {
       return json({ ok: true });
     }
 
-    if (cuerpo.op === 'sugerencia' || cuerpo.op === 'notificaciones') {
-      const clave = cuerpo.op;
+    if (cuerpo.op === 'sugerencia') {
+      const clave = 'sugerencia';
       let item = {};
       try { const r = await db.prepare('SELECT valor FROM meta WHERE clave = ?1').bind(clave).first(); if (r && r.valor) item = JSON.parse(r.valor) || {}; } catch (e) {}
       return json({ item });
@@ -835,12 +837,6 @@ async function manejar({ request, env, params, waitUntil }) {
       const v = { estilo: ['cristal', 'azul', 'claro'].includes(a.estilo) ? a.estilo : 'cristal', playX: n(a.playX, 4), playY: Math.max(55, Math.min(80, n(a.playY, 68))), cancelX: n(a.cancelX, 52), cancelY: Math.max(55, Math.min(80, n(a.cancelY, 68))) };
       await db.prepare('CREATE TABLE IF NOT EXISTS meta (clave TEXT PRIMARY KEY, valor TEXT) WITHOUT ROWID').run();
       await db.prepare("INSERT INTO meta (clave, valor) VALUES ('sugerencia', ?1) ON CONFLICT(clave) DO UPDATE SET valor = ?1").bind(JSON.stringify(v)).run();
-      return json({ ok: true });
-    }
-    if (cuerpo.op === 'guardar_notificaciones') {
-      const a = cuerpo.notificaciones || {}, v = { sonido: ['suave', 'sistema', 'silencio'].includes(a.sonido) ? a.sonido : 'suave', estilo: ['cristal', 'azul', 'claro'].includes(a.estilo) ? a.estilo : 'cristal' };
-      await db.prepare('CREATE TABLE IF NOT EXISTS meta (clave TEXT PRIMARY KEY, valor TEXT) WITHOUT ROWID').run();
-      await db.prepare("INSERT INTO meta (clave, valor) VALUES ('notificaciones', ?1) ON CONFLICT(clave) DO UPDATE SET valor = ?1").bind(JSON.stringify(v)).run();
       return json({ ok: true });
     }
 

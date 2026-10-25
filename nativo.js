@@ -108,11 +108,26 @@
   const PN = P.PushNotifications;
   const post = (ruta, cuerpo) => fetch('/api/usuario/' + ruta, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cuerpo) }).catch(() => {});
   const guardado = () => { try { return localStorage.getItem('bb_push_token') || ''; } catch (e) { return ''; } };
+  const preferencias = () => { try { return JSON.parse(localStorage.getItem('bbopc') || '{}'); } catch (_) { return {}; } };
+  const sonidoActual = () => ['suave','sistema','silencio'].includes(preferencias().notiSonido) ? preferencias().notiSonido : 'suave';
+  async function crearCanales() {
+    if (!PN) return;
+    await sinError(() => PN.createChannel({ id: 'pedidos_suave', name: 'Pedidos · Suave', description: 'Avisos de pedidos con el tono de Black BOX', importance: 4, visibility: 1, vibration: true, sound: 'bb_notification.wav' }));
+    await sinError(() => PN.createChannel({ id: 'pedidos_sistema', name: 'Pedidos · Sistema', description: 'Avisos de pedidos con el sonido del dispositivo', importance: 4, visibility: 1, vibration: true }));
+    await sinError(() => PN.createChannel({ id: 'pedidos_silencio', name: 'Pedidos · Silencio', description: 'Avisos de pedidos sin sonido ni vibración', importance: 4, visibility: 1, vibration: false, sound: 'bb_silent.wav' }));
+  }
+  function sonidoVistaPrevia() {
+    if (sonidoActual() === 'silencio') return;
+    try { const a = new Audio('/bb_notification.wav'); a.volume = .7; a.play().catch(() => {}); } catch (_) {}
+  }
+  window.bbPushProbarSonido = sonidoVistaPrevia;
   function aviso(titulo, texto) {                                   // recuadro dentro de la app (cuando el push llega con la app abierta)
     const d = document.createElement('div');
     d.setAttribute('role', 'status');
-    d.style.cssText = 'position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 14px);transform:translate(-50%,-140%);z-index:2147483000;width:min(92vw,420px);padding:14px 18px;border-radius:18px;background:rgba(40,40,44,.96);color:#fff;font:600 15px/1.35 -apple-system,Helvetica,Arial,sans-serif;box-shadow:0 18px 50px rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.16);transition:transform .45s cubic-bezier(.34,1.3,.64,1)';
-    const t = document.createElement('div'); t.textContent = titulo || ''; const x = document.createElement('div'); x.textContent = texto || ''; x.style.cssText = 'font-weight:400;color:#d1d1d6;margin-top:2px';
+    const estilo = preferencias().notiEstilo || 'cristal';
+    d.className = 'bb-noti-preview ' + (['cristal','azul','claro'].includes(estilo) ? estilo : 'cristal');
+    d.style.cssText = 'position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 14px);transform:translate(-50%,-140%);z-index:2147483000;width:min(92vw,420px);font:600 15px/1.35 -apple-system,Helvetica,Arial,sans-serif;transition:transform .45s cubic-bezier(.34,1.3,.64,1)';
+    const t = document.createElement('div'); t.textContent = titulo || ''; const x = document.createElement('div'); x.textContent = texto || ''; x.style.cssText = 'font-weight:400;color:' + (estilo === 'claro' ? '#545762' : '#d1d1d6') + ';margin-top:2px';
     d.append(t, x); document.body.appendChild(d);
     requestAnimationFrame(() => requestAnimationFrame(() => { d.style.transform = 'translate(-50%,0)'; }));
     setTimeout(() => { d.style.transform = 'translate(-50%,-140%)'; setTimeout(() => d.remove(), 500); }, 5500);
@@ -123,7 +138,7 @@
       let perm = await PN.checkPermissions();
       if (perm.receive === 'prompt' || perm.receive === 'prompt-with-rationale') perm = await PN.requestPermissions();   // Android 13+: pregunta una vez
       if (perm.receive !== 'granted') return { ok: false, receive: perm.receive };
-      await sinError(() => PN.createChannel({ id: 'pedidos', name: 'Pedidos', description: 'Avisa cuando tu pedido está listo', importance: 4, visibility: 1, vibration: true }));
+      await crearCanales();
       await PN.register();
       return { ok: true, receive: 'granted' };
     } catch (e) { console.warn('push', e); return { ok: false, receive: 'error' }; }
@@ -141,7 +156,8 @@
   };
   function actualizarPushUI() { if (typeof window.bbCuentaPushActualizar === 'function') estadoPush().then(window.bbCuentaPushActualizar); }
   if (PN) {
-    PN.addListener('registration', (t) => { try { localStorage.setItem('bb_push_token', t.value); } catch (e) {} post('push', { token: t.value, plataforma: cap.getPlatform ? cap.getPlatform() : 'android' }); actualizarPushUI(); });
+    const registrarEnServidor = (token) => post('push', { token, plataforma: cap.getPlatform ? cap.getPlatform() : 'android', sonido: sonidoActual() });
+    PN.addListener('registration', (t) => { try { localStorage.setItem('bb_push_token', t.value); } catch (e) {} registrarEnServidor(t.value); actualizarPushUI(); });
     PN.addListener('registrationError', (e) => console.warn('push error', JSON.stringify(e)));
     PN.addListener('pushNotificationReceived', (n) => {              // con la app abierta Android no muestra nada solo: lo mostramos aquí
       aviso(n.title, n.body);
@@ -157,6 +173,7 @@
       else if (!correo && sesion) { sesion = ''; const t = guardado(); if (t) post('pushquitar', { token: t }); sinError(() => PN.unregister()); try { localStorage.removeItem('bb_push_token'); } catch (e) {} actualizarPushUI(); }
     };
     document.addEventListener('bb-sesion', (e) => cambio(e.detail && e.detail.correo));
+    document.addEventListener('bb-opciones', () => { crearCanales(); const token = guardado(); if (token && window.bbCorreo) registrarEnServidor(token); });
     if (window.bbCorreo) cambio(window.bbCorreo);                    // la sesión ya estaba abierta antes de que cargara este archivo
   }
 })();
