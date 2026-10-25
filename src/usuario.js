@@ -737,7 +737,7 @@ async function manejar({ request, env, params, waitUntil }) {
     }
     if (cuerpo.op === 'guardar_interacciones') {
       const a = cuerpo.interacciones || {}, ai = a.i || {}, at = a.t || {}, v = { i: {}, t: {} };
-      for (const k of IN_AV) { const x = ai[k] || {}; v.i[k] = { a: IN_ANIM.includes(x.a) ? x.a : 'ninguna', v: IN_VIB.includes(x.v) ? x.v : 'ninguna' }; }
+      for (const k of IN_AV) { const x = ai[k] || {}, sp = Number(x.speed); v.i[k] = { a: IN_ANIM.includes(x.a) ? x.a : 'ninguna', v: IN_VIB.includes(x.v) ? x.v : 'ninguna', speed: isFinite(sp) ? Math.max(50, Math.min(200, Math.round(sp))) : 100 }; }
       for (const k of IN_V) { const x = ai[k] || {}; v.i[k] = { a: 'ninguna', v: IN_VIB.includes(x.v) ? x.v : 'ninguna' }; }
       for (const k of IN_T) v.t[k] = IN_TRANS.includes(at[k]) ? at[k] : 'auto';
       const am = a.m || {}; v.m = {};

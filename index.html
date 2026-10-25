@@ -2123,9 +2123,9 @@ const ANIM_KF = {
   brillo: [[{ filter: 'brightness(1)' }, { filter: 'brightness(1.7)' }, { filter: 'brightness(1)' }], 330],
   onda: [[{ boxShadow: '0 0 0 0 rgba(120,170,255,.55)' }, { boxShadow: '0 0 0 14px rgba(120,170,255,0)' }], 460]
 };
-function intAnim(el, a) {
+function intAnim(el, a, speed) {
   const d = ANIM_KF[a]; if (!d || reduce || !el.animate) return;
-  try { el.animate(d[0], { duration: d[1], easing: 'cubic-bezier(.2,.8,.3,1)' }); } catch (e) {}
+  try { el.animate(d[0], { duration: Math.round(d[1] * 100 / Math.max(50, Math.min(200, Number(speed) || 100))), easing: 'cubic-bezier(.2,.8,.3,1)' }); } catch (e) {}
 }
 const INT_SEL = [
   ['tarjeta', '.card, .ctile'], ['principal', '#hl, #hi, #dplay, .btn.primary, #dk-buscar'], ['dock', '#dock .dk'],
@@ -2138,7 +2138,7 @@ document.addEventListener('click', e => {
   for (const [id, sel] of INT_SEL) {
     if (!t.matches(sel)) continue;
     const c = INT.i[id]; if (!c) return;
-    if (c.a && c.a !== 'ninguna') intAnim(t, c.a);
+    if (c.a && c.a !== 'ninguna') intAnim(t, c.a, c.speed);
     if (c.v && c.v !== 'ninguna') HAPT.patron(c.v);
     return;
   }

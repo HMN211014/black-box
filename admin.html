@@ -388,10 +388,39 @@ html.en-admin-app body:not(.h) .nav button.on{background:#fff;color:#000}
       .it-st{position:relative;height:84px;border-radius:14px;overflow:hidden;background:#000;margin-top:6px}
       .it-st i{position:absolute;inset:0;display:grid;place-items:center;font:700 15px/1 inherit;font-style:normal}
       .it-st .a{background:linear-gradient(135deg,#1d3f9c,#2b2b6b)}.it-st .b{background:linear-gradient(135deg,#8b2a6f,#d0563b);opacity:0}
+      .it-carousel{display:grid;grid-template-columns:40px minmax(0,1fr) 40px;gap:8px;align-items:center;margin:14px 0 8px}
+      .it-arrow{height:42px;min-width:40px;padding:0;border-radius:50%;background:rgba(255,255,255,.12);color:#fff;font-size:24px}
+      .it-track{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;padding:8px 14%;overscroll-behavior-x:contain}
+      .it-track::-webkit-scrollbar{display:none}
+      .it-slide{flex:0 0 78%;min-width:0;min-height:176px;padding:12px;border-radius:18px;border:1px solid rgba(255,255,255,.1);background:linear-gradient(145deg,#202027,#111116);color:#fff;text-align:left;scroll-snap-align:center;opacity:.58;scale:.94;transition:opacity .2s,scale .2s,border-color .2s}
+      .it-slide.on{opacity:1;scale:1;border-color:rgba(130,175,255,.75);box-shadow:0 10px 28px rgba(0,0,0,.28)}
+      .it-demo{height:105px;display:grid;place-items:center;margin-bottom:9px;border-radius:13px;background:radial-gradient(ellipse at center,rgba(60,91,170,.5),rgba(8,8,14,.2) 72%);overflow:hidden}
+      .it-demo-target{display:flex;align-items:center;gap:9px;min-width:130px;padding:10px 12px;border-radius:13px;background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.25);box-shadow:0 6px 18px rgba(0,0,0,.25);transform-origin:center}
+      .it-demo-poster{width:34px;height:48px;border-radius:7px;background:linear-gradient(145deg,#76a7ff,#633f9c 55%,#e77c72);box-shadow:inset 0 1px 5px rgba(255,255,255,.45)}
+      .it-demo-copy b{display:block;font-size:12px}.it-demo-copy small{display:block;margin-top:3px;font-size:10px;color:rgba(255,255,255,.65)}
+      .it-slide>strong{font-size:14px}.it-slide>small{display:block;margin-top:3px;color:rgba(255,255,255,.58);font-size:11px}
+      .it-dots{display:flex;justify-content:center;gap:7px;margin:8px 0 16px}
+      .it-dot{width:7px;min-width:7px;height:7px;padding:0;border-radius:50%;background:rgba(255,255,255,.28)}.it-dot.on{background:#fff;scale:1.25}
+      .it-controls{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:14px;border:1px solid rgba(255,255,255,.1);border-radius:16px;background:rgba(255,255,255,.045)}
+      .it-controls label{margin:0;font-size:12px;color:rgba(255,255,255,.65)}.it-controls select{height:42px;font-size:14px}
+      .it-speed{grid-column:1/-1}.it-speed input{height:auto;padding:0;margin-top:8px}
+      .it-controls .it-p{grid-column:1/-1;width:100%}
       @media(max-width:520px){.it-c{grid-template-columns:1fr 1fr}.it-p{grid-column:1/-1}}
     </style>
     <p class="it-g">Gestos y toques</p>
-    <div id="it-lista"></div>
+    <div class="it-carousel" aria-label="Carrusel de animaciones">
+      <button class="it-arrow" id="it-prev" type="button" aria-label="Animación anterior">‹</button>
+      <div class="it-track" id="it-track" aria-live="polite"></div>
+      <button class="it-arrow" id="it-next" type="button" aria-label="Animación siguiente">›</button>
+    </div>
+    <div class="it-dots" id="it-dots" aria-label="Elegir animación"></div>
+    <div class="it-controls">
+      <label>Interacción<select id="it-target"></select></label>
+      <label>Animación<select id="it-animation"></select></label>
+      <label>Vibración<select id="it-vibration"></select></label>
+      <label class="it-speed">Velocidad · <b id="it-speed-v">100%</b><small class="h">100% es la velocidad actual; más porcentaje hace la animación más rápida.</small><input id="it-speed" type="range" min="50" max="200" step="10" value="100" style="height:auto"></label>
+      <button class="g it-p" id="it-preview" type="button">Probar animación y vibración</button>
+    </div>
     <p class="it-g">Solo vibración</p>
     <div id="it-vib"></div>
     <p class="it-g">Movimientos del dedo</p>
@@ -618,6 +647,69 @@ function itFila(cont, id, nombre, desc, conAnim) {
   };
   cont.append(f);
 }
+const itDraft = Object.fromEntries(IT_GESTOS.map(([id]) => [id, { a: 'ninguna', v: 'ninguna', speed: 100 }]));
+const itTrack = $('it-track'), itSlides = [], itDots = [];
+let itTarget = IT_GESTOS[0][0], itAnimIndex = 0, itScrollFrame = 0;
+IT_GESTOS.forEach(([id, nombre, desc]) => {
+  const o = document.createElement('option'); o.value = id; o.textContent = nombre; $('it-target').appendChild(o);
+});
+$('it-animation').innerHTML = itOpts(IT_ANIM, 'ninguna');
+$('it-vibration').innerHTML = itOpts(IT_VIB, 'ninguna');
+const IT_ANIM_DESC = { ninguna: 'Sin efecto visual', rebote: 'Se comprime y rebota', hundir: 'Se hunde y vuelve', pulso: 'Crece y regresa', sacudir: 'Se mueve de lado a lado', giro: 'Se inclina en ambos sentidos', brillo: 'Destella al tocar', onda: 'Expande un halo' };
+IT_ANIM.forEach(([key, nombre]) => {
+  const slide = document.createElement('button'); slide.type = 'button'; slide.className = 'it-slide'; slide.dataset.anim = key;
+  slide.setAttribute('aria-label', nombre + ': ' + (IT_ANIM_DESC[key] || ''));
+  slide.innerHTML = '<div class="it-demo"><div class="it-demo-target"><span class="it-demo-poster"></span><span class="it-demo-copy"><b>Black BOX</b><small>Vista previa</small></span></div></div><strong>' + nombre + '</strong><small>' + (IT_ANIM_DESC[key] || '') + '</small>';
+  slide.addEventListener('click', () => itElegirAnim(key, true)); itTrack.appendChild(slide); itSlides.push(slide);
+  const dot = document.createElement('button'); dot.type = 'button'; dot.className = 'it-dot'; dot.setAttribute('aria-label', 'Elegir ' + nombre); dot.onclick = () => itElegirAnim(key, true); $('it-dots').appendChild(dot); itDots.push(dot);
+});
+function itGuardarBorrador() {
+  if (!itTarget) return;
+  itDraft[itTarget] = { a: $('it-animation').value || 'ninguna', v: $('it-vibration').value || 'ninguna', speed: Math.max(50, Math.min(200, Number($('it-speed').value) || 100)) };
+}
+function itProbarVisual(anim, speed) {
+  const slide = itSlides[IT_ANIM.findIndex(x => x[0] === anim)], demo = slide && slide.querySelector('.it-demo-target'), k = IT_KF[anim];
+  if (!demo || !k || !demo.animate) return;
+  demo.getAnimations().forEach(a => a.cancel());
+  demo.animate(k[0], { duration: Math.round(k[1] * 100 / Math.max(50, Math.min(200, Number(speed) || 100))), easing: 'cubic-bezier(.2,.8,.3,1)' });
+}
+function itElegirAnim(anim, desplazar) {
+  const i = Math.max(0, IT_ANIM.findIndex(x => x[0] === anim)), cambio = i !== itAnimIndex; itAnimIndex = i;
+  itSlides.forEach((s, n) => { s.classList.toggle('on', n === i); s.setAttribute('aria-current', n === i ? 'true' : 'false'); });
+  itDots.forEach((d, n) => { d.classList.toggle('on', n === i); d.setAttribute('aria-pressed', String(n === i)); });
+  $('it-animation').value = IT_ANIM[i][0]; itGuardarBorrador();
+  if (cambio) itProbarVisual(IT_ANIM[i][0], $('it-speed').value);
+  if (desplazar) {
+    const r = itSlides[i].getBoundingClientRect(), t = itTrack.getBoundingClientRect();
+    itTrack.scrollTo({ left: itTrack.scrollLeft + r.left - t.left - (t.width - r.width) / 2, behavior: 'smooth' });
+  }
+}
+function itCargarControles() {
+  const x = itDraft[itTarget] || { a: 'ninguna', v: 'ninguna', speed: 100 };
+  $('it-vibration').value = x.v || 'ninguna'; $('it-speed').value = Math.max(50, Math.min(200, Number(x.speed) || 100));
+  $('it-speed-v').textContent = $('it-speed').value + '%'; itElegirAnim(x.a || 'ninguna', true);
+}
+$('it-target').addEventListener('change', () => { itGuardarBorrador(); itTarget = $('it-target').value; itCargarControles(); });
+$('it-animation').addEventListener('change', () => itElegirAnim($('it-animation').value, true));
+$('it-vibration').addEventListener('change', itGuardarBorrador);
+$('it-speed').addEventListener('input', () => { $('it-speed-v').textContent = $('it-speed').value + '%'; itGuardarBorrador(); });
+$('it-prev').onclick = () => itElegirAnim(IT_ANIM[Math.max(0, itAnimIndex - 1)][0], true);
+$('it-next').onclick = () => itElegirAnim(IT_ANIM[Math.min(IT_ANIM.length - 1, itAnimIndex + 1)][0], true);
+itTrack.addEventListener('scroll', () => {
+  cancelAnimationFrame(itScrollFrame); itScrollFrame = requestAnimationFrame(() => {
+    const c = itTrack.getBoundingClientRect(), centro = c.left + c.width / 2;
+    let mejor = 0, dist = Infinity;
+    itSlides.forEach((s, i) => { const r = s.getBoundingClientRect(), d = Math.abs(r.left + r.width / 2 - centro); if (d < dist) { dist = d; mejor = i; } });
+    if (mejor !== itAnimIndex) itElegirAnim(IT_ANIM[mejor][0], false);
+  });
+});
+$('it-preview').onclick = () => {
+  itGuardarBorrador();
+  const anim = $('it-animation').value, speed = Number($('it-speed').value) || 100, vib = $('it-vibration').value;
+  itProbarVisual(anim, speed);
+  const pattern = IT_VP[vib]; if (pattern && navigator.vibrate) navigator.vibrate(pattern);
+};
+itCargarControles();
 function itTransFila(id, nombre, desc) {
   const f = document.createElement('div'); f.className = 'it-f';
   f.innerHTML = '<div><b>' + nombre + '</b><small>' + desc + '</small></div><div class="it-c" style="grid-template-columns:1fr auto"><label>Estilo<select data-itt="' + id + '">' + itOpts(IT_TR, 'auto') + '</select></label><button class="g it-p" type="button">Probar</button></div><div class="it-st"><i class="a">Pantalla A</i><i class="b">Pantalla B</i></div>';
@@ -630,13 +722,13 @@ function itTransFila(id, nombre, desc) {
   };
   $('it-trans').append(f);
 }
-IT_GESTOS.forEach(g => itFila($('it-lista'), g[0], g[1], g[2], true));
 IT_SOLO.forEach(g => itFila($('it-vib'), g[0], g[1], g[2], false));
 IT_DEDO.forEach(g => itFila($('it-dedo'), 'm_' + g[0], g[1], g[2], false));
 ['paso', 'int'].forEach(k => $('it-' + k).addEventListener('input', () => { $('it-' + k + '-v').textContent = $('it-' + k).value; }));
 IT_TRANS.forEach(g => itTransFila(g[0], g[1], g[2]));
 const itLeer = () => {
-  const i = {}, t = {};
+  itGuardarBorrador();
+  const i = Object.fromEntries(IT_GESTOS.map(([id]) => [id, { ...itDraft[id] }])), t = {};
   document.querySelectorAll('[data-it]').forEach(s => { (i[s.dataset.it] = i[s.dataset.it] || { a: 'ninguna', v: 'ninguna' })[s.dataset.c] = s.value; });
   document.querySelectorAll('[data-itt]').forEach(s => { t[s.dataset.itt] = s.value; });
   const m = { paso: +$('it-paso').value, intensidad: +$('it-int').value };
@@ -645,6 +737,11 @@ const itLeer = () => {
 };
 function itPoner(o) {
   o = o || {};
+  IT_GESTOS.forEach(([id]) => {
+    const x = (o.i && o.i[id]) || {};
+    itDraft[id] = { a: IT_ANIM.some(a => a[0] === x.a) ? x.a : 'ninguna', v: IT_VIB.some(v => v[0] === x.v) ? x.v : 'ninguna', speed: Math.max(50, Math.min(200, Number(x.speed) || 100)) };
+  });
+  itCargarControles();
   document.querySelectorAll('[data-it]').forEach(s => { const x = o.i && o.i[s.dataset.it]; s.value = (x && x[s.dataset.c]) || 'ninguna'; });
   document.querySelectorAll('[data-itt]').forEach(s => { s.value = (o.t && o.t[s.dataset.itt]) || 'auto'; });
   const m = o.m || {};
