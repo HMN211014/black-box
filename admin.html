@@ -207,6 +207,7 @@ html.en-admin-app body:not(.h) .nav button.on{background:#fff;color:#000}
         <label style="margin:0">Título como se verá<input id="s-tit" autocomplete="off"></label>
         <small id="s-info" style="color:#a1a1a6;font-size:13px"></small>
       </div></div>
+      <label style="margin-top:12px">Audio / subtítulos<select id="s-version"><option value="latino" selected>Español latino</option><option value="subtitulada">Subtitulada</option></select></label>
       <label class="ck" style="margin-top:12px"><input type="checkbox" id="s-introdb"> Activar Saltar créditos con IntroDB para este título</label>
       <div class="sdup" id="s-dup" hidden></div>
       <div id="s-eps" hidden style="margin-top:14px">
@@ -1716,6 +1717,8 @@ buscadorTmdb('s-q', 's-res', 's-m', r => sElegir(r), dMarca);
 function sElegir(r) {
   sElegido = r;
   const serie = r.media_type === 'tv';
+  const pub = (window.PELICULAS_EXTRA || []).find(x => Number(x.tmdb) === Number(r.id) && (x.tipo === 'serie') === serie);
+  $('s-version').value = pub && pub.version === 'subtitulada' ? 'subtitulada' : 'latino';
   $('s-introdb').checked = false; $('s-introdb').disabled = true;
   introdbAdminLeer().then(items => { if (sElegido === r) { $('s-introdb').checked = items.some(x => Number(x.tmdb) === Number(r.id) && x.tipo === (serie ? 'serie' : 'pelicula')); $('s-introdb').disabled = false; } }).catch(() => { if (sElegido === r) $('s-introdb').disabled = false; });
   $('s-img').src = r.poster_path ? IMG + 'w185' + r.poster_path : '';
@@ -1798,7 +1801,7 @@ function sFila(t, x) {
     inp.disabled = true;
     try {
       await introdbAdminLeer();
-      const j = await admin({ op: 'publicar_ep', titulo, tmdb: sElegido.id, t, e: x.e, link, introdb: $('s-introdb').checked });
+      const j = await admin({ op: 'publicar_ep', titulo, tmdb: sElegido.id, t, e: x.e, link, version: $('s-version').value, introdb: $('s-introdb').checked });
       introdbAdminCacheTitulo(sElegido.id, 'serie', titulo, $('s-introdb').checked);
       sEps = j.episodios || sEps; marca(); sProg();
       msg('s-m', 'T' + t + ' E' + x.e + ' publicado. En menos de un minuto aparece en la biblioteca.', true);
@@ -1837,7 +1840,7 @@ $('s-go').onclick = () => con($('s-go'), 's-m', async () => {
   if (!link) throw new Error('Pega el enlace.');
   const serie = sTipo() === 'serie';
   if (serie && !/\{(e|ee)\}/.test(link)) throw new Error('En una serie el enlace debe llevar {e} (capítulo) y {t} (temporada). Usa los botones de arriba.');
-  const j = await admin({ op: 'publicar', titulo, tmdb: sElegido.id, tipo: sTipo(), link, introdb: $('s-introdb').checked });
+  const j = await admin({ op: 'publicar', titulo, tmdb: sElegido.id, tipo: sTipo(), link, version: $('s-version').value, introdb: $('s-introdb').checked });
   introdbAdminCacheTitulo(sElegido.id, sTipo(), titulo, $('s-introdb').checked);
   msg('s-m', (j.actualizada ? 'Actualizada: ' : 'Publicada: ') + titulo + '. En menos de un minuto aparece en la biblioteca.', true);
   sLimpiar();

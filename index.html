@@ -646,6 +646,7 @@ body.con-q #top .cred{display:none}
 .dact .btn svg{width:22px;height:22px}
 .dchips{display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:17px;font-weight:600;color:#fff;margin-bottom:10px}
 .dchips .cert{border:1.5px solid rgba(255,255,255,.7);border-radius:6px;padding:1px 8px;font-size:14px;line-height:1.5}
+.dchips .audio-tag{border:1px solid rgba(255,255,255,.24);border-radius:999px;padding:4px 10px;background:rgba(255,255,255,.11);font-size:13px;font-weight:700;line-height:1.25}
 .dchips .rate{display:inline-flex;align-items:center;gap:6px}
 .dchips svg,.hmeta svg{width:18px;height:18px;color:#ffc933}
 .ddir{color:#a1a1a6;font-size:17px;margin-bottom:14px}
@@ -1808,7 +1809,7 @@ const peliculas = (window.PELICULAS_DB && window.PELICULAS_DB.length) ? window.P
 (window.PELICULAS_EXTRA || []).forEach(x => {
   const sr = x && x.tipo === 'serie';
   if (x && x.titulo && (x.link || (sr && x.episodios)) && !peliculas.some(p => p.tmdb && Number(p.tmdb) === Number(x.tmdb) && (p.tipo === 'serie') === sr))
-    peliculas.push(sr ? { titulo: x.titulo, tipo: 'serie', tmdb: x.tmdb, enlace: x.link || '', ...(x.episodios ? { episodios: x.episodios } : {}) } : { titulo: x.titulo, tmdb: x.tmdb, link: x.link });
+    peliculas.push(sr ? { titulo: x.titulo, tipo: 'serie', tmdb: x.tmdb, version: x.version, enlace: x.link || '', ...(x.episodios ? { episodios: x.episodios } : {}) } : { titulo: x.titulo, tmdb: x.tmdb, version: x.version, link: x.link });
 });
 /* Colecciones creadas desde el panel de admin: se suman a las de colecciones.js (si un id se repite, la versión del panel reemplaza a la del archivo en su mismo lugar; el archivo no se toca). */
 if (typeof COLECCIONES !== 'undefined') (window.COLECCIONES_EXTRA || []).forEach(c => { if (!c || !c.id) return; const i = COLECCIONES.findIndex(x => x.id === c.id); if (i < 0) COLECCIONES.push(c); else COLECCIONES[i] = c; });
@@ -3786,6 +3787,7 @@ function pintarDetalle(p) {
   const ch = H('dchips'); ch.replaceChildren();
   if (p.anio) ch.appendChild(mk('span', '', p.anio));
   if (p.minutos || p.duracion) ch.appendChild(mk('span', '', p.minutos ? fmtMin(p.minutos) : p.duracion));
+  ch.appendChild(mk('span', 'audio-tag', p.version === 'subtitulada' ? 'Subtitulada' : 'Español latino'));
   if (p.cert) ch.appendChild(mk('span', 'cert', p.cert));
   if (p.rating) { const r = mk('span', 'rate'); r.innerHTML = ICN.star; r.append(p.rating); ch.appendChild(r); }
   const nombres = (p.director || []).map(d => d.nombre).join(', '), dr = H('ddir');
