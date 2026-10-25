@@ -833,6 +833,15 @@ body.con-q #vista-ped,body.con-q #vista-rec{display:none!important}
 #pnxt b{font-size:17px;line-height:1.25}
 #pnxt .acc{display:flex;gap:8px}
 #pnxt .btn{flex:1;min-height:44px;padding:0 14px;font-size:15px}
+#psuggest{position:absolute;right:calc(var(--sr) + 20px);bottom:calc(var(--sb) + 120px);z-index:12;width:min(390px,calc(100vw - 40px));padding:16px;border-radius:20px;background:rgba(28,28,32,.92);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);border:1px solid rgba(255,255,255,.16);color:#fff;box-shadow:0 18px 55px rgba(0,0,0,.45)}
+#psuggest[hidden]{display:none}
+#psuggest>small{color:#a1a1a6;font-size:13px}
+.psg-item{display:flex;align-items:center;gap:12px;margin:10px 0 14px;min-height:82px}
+.psg-item img{width:54px;height:80px;border-radius:9px;object-fit:cover;background:#333;flex:none}
+.psg-item b{font-size:16px;line-height:1.25;display:block}
+.psg-item span{display:block;margin-top:5px;color:#a1a1a6;font-size:13px}
+#psuggest .acc{display:flex;gap:8px}
+#psuggest .btn{flex:1;min-height:44px;padding:0 14px;font-size:14px}
 @media(max-width:820px){.ep{gap:12px;padding:10px}.epth{width:128px}#pnxt{left:20px;right:20px;max-width:none;bottom:calc(var(--sb) + 110px)}}
 
 /* ---- Series: insignia de temporadas y filas por género ---- */
@@ -1474,6 +1483,11 @@ html.en-pip #pcr{display:none}
     <small>Siguiente episodio</small>
     <b id="pnxt-t"></b>
     <div class="acc"><button class="btn primary" id="pnxt-ok" type="button">Reproducir</button><button class="btn ghost" id="pnxt-no" type="button">Cancelar</button></div>
+  </div>
+  <div id="psuggest" hidden role="status" aria-live="polite">
+    <small>Te recomendamos</small>
+    <div class="psg-item"><img id="psuggest-img" alt=""><div><b id="psuggest-title"></b><span id="psuggest-meta"></span></div></div>
+    <div class="acc"><button class="btn primary" id="psuggest-open" type="button">Ver ahora</button><button class="btn ghost" id="psuggest-later" type="button">Seguir viendo</button></div>
   </div>
   <div id="castp" hidden>
     <div class="cp-top">
@@ -2417,11 +2431,47 @@ let tvModo = null, tvPeli = null, tvUrl = '', tvBloq = false;   // transmisión 
 let tvDev = null, dlSt = { estado: '', t: 0, d: 0, vol: -1 }, dlPoll = 0, dlFallos = 0, dlMudo = false, dlVolT = 0;
 let introDbOutro = null, introDbRun = 0;
 const introDbImdb = new Map(), introDbSegments = new Map();
+let psuggestTimer = 0, psuggestRun = 0, psuggestShown = false, psuggestItem = null;
+function limpiarSugerencia() {
+  clearTimeout(psuggestTimer); psuggestTimer = 0; psuggestRun++; psuggestShown = false; psuggestItem = null;
+  H('psuggest').hidden = true;
+}
+function programarSugerencia(ms) {
+  if (psuggestShown || (actualEp && siguienteDe(actualEp.serie, actualEp.t, actualEp.e))) return;
+  clearTimeout(psuggestTimer);
+  psuggestTimer = setTimeout(() => { psuggestTimer = 0; mostrarSugerencia(); }, Math.max(0, ms));
+}
+function fuenteRecomendacion() { return actualEp ? actualEp.serie : (actualP || tvPeli); }
+async function mostrarSugerencia() {
+  if (psuggestShown || pl.hidden || !fuenteRecomendacion() || (actualEp && siguienteDe(actualEp.serie, actualEp.t, actualEp.e))) return;
+  const fuente = fuenteRecomendacion(), run = ++psuggestRun;
+  psuggestShown = true;
+  const ids = await recomendadosTmdb(fuente);
+  if (run !== psuggestRun || pl.hidden || fuenteRecomendacion() !== fuente) return;
+  const orden = new Map(ids.map((id, i) => [Number(id), i]));
+  const progreso = leerProg();
+  const candidatas = [...peliculas, ...series].filter(x => x !== fuente && x.link && idTm(x) !== idTm(fuente) && !((progreso[x.titulo] || {}).t > 0));
+  candidatas.sort((a, b) => {
+    const ai = a.tipo === fuente.tipo && orden.has(idTm(a)) ? orden.get(idTm(a)) : 10000;
+    const bi = b.tipo === fuente.tipo && orden.has(idTm(b)) ? orden.get(idTm(b)) : 10000;
+    return ai - bi || puntajeParecido(fuente, b) - puntajeParecido(fuente, a);
+  });
+  const item = candidatas[0];
+  if (!item) return;
+  psuggestItem = item;
+  H('psuggest-img').src = item.poster || ''; H('psuggest-img').hidden = !item.poster;
+  H('psuggest-title').textContent = item.titulo;
+  H('psuggest-meta').textContent = (item.tipo === 'serie' ? 'Serie' : 'Película') + (item.anio ? ' · ' + item.anio : '');
+  H('psuggest').hidden = false;
+}
+H('psuggest-open').onclick = () => { const p = psuggestItem; if (!p) return; limpiarSugerencia(); cerrarPlayer(); reproducir(p); };
+H('psuggest-later').onclick = limpiarSugerencia;
 async function introDbPreparar(p) {
   const run = ++introDbRun, b = p && p.serie ? p.serie : p, serie = !!(p && p.serie) || !!(b && b.tipo === 'serie');
   introDbOutro = null; H('pskip-credits').hidden = true;
   const id = Number(b && (b.tmdbId || b.tmdb)) || 0;
   if (!id || !(window.INTRODB_EXTRA || []).some(x => Number(x.tmdb) === id && (x.tipo === 'serie') === serie)) return;
+  if (serie && !(p && p.serie)) return;     // IntroDB requiere temporada y episodio para las series
   const key = (serie ? 'tv:' : 'movie:') + id;
   try {
     let imdb = introDbImdb.get(key);
@@ -2446,6 +2496,7 @@ async function introDbPreparar(p) {
 function introDbActualizar() {
   const t = introDbOutro, d = duracion();
   H('pskip-credits').hidden = !(t != null && d > 0 && t < d - 2 && V.currentTime >= Math.max(0, t - 45));
+  if (t != null && V.currentTime >= t + 5) programarSugerencia(0);
 }
 H('pskip-credits').onclick = () => { if (introDbOutro == null) return; V.currentTime = Math.min(introDbOutro + .25, Math.max(0, duracion() - .5)); sync(); H('pskip-credits').hidden = true; };
 
@@ -2503,6 +2554,7 @@ async function horizontal() {
   }
 }
 function iniciar(p, url, sinHist) {
+  limpiarSugerencia();
   const id = driveId(url);
   intVib('reproducir');
   clearTimeout(preT); clearTimeout(preFin); if (preV) preFin = setTimeout(soltarPre, 20000);   // se deja bajar un rato más: el reproductor usa la misma conexión/caché
@@ -2602,6 +2654,7 @@ aplicarFit();
 
 function cerrarPlayer(desdePop) {
   if (pl.hidden) return;
+  limpiarSugerencia();
   guardar(true); actualP = null;
   actualEp = null; pl.classList.remove('serie'); ocultarNxt();
   tvCerrar();
@@ -2625,7 +2678,11 @@ V.addEventListener('pause', () => { H('pp').innerHTML = ICON.play; showC(); guar
 V.addEventListener('loadedmetadata', () => {      // retoma donde se quedó (unos segundos antes)
   if (reanudar > 0) { V.currentTime = Math.max(0, reanudar - 3); reanudar = 0; }
 });
-V.addEventListener('ended', () => { if (actualP) terminado(actualP); if (actualEp) mostrarSiguiente(); });
+V.addEventListener('ended', () => {
+  if (actualP) terminado(actualP);
+  if (actualEp) { mostrarSiguiente(); if (!siguienteDe(actualEp.serie, actualEp.t, actualEp.e)) programarSugerencia(5000); }
+  else programarSugerencia(5000);
+});
 addEventListener('pagehide', () => guardar(true));
 document.addEventListener('visibilitychange', () => { if (document.hidden) guardar(true); });
 ['loadeddata', 'playing', 'error'].forEach(n => V.addEventListener(n, () => pl.classList.remove('ini')));
