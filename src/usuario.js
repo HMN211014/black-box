@@ -708,7 +708,7 @@ async function manejar({ request, env, params, waitUntil }) {
     }
 
     /* Efectos visuales (cristal de la barra inferior y del panel de acceso): valores de los deslizadores */
-    const EF_RANGOS = { rebote: [0, 100, 30], velocidad: [0, 100, 60], intensidad: [0, 100, 60], brilloPoster: [0, 100, 58], desenfoque: [0, 20, 3], agrandar: [0, 40, 12], estirar: [0, 100, 50], panel: [0, 40, 28] };
+    const EF_RANGOS = { rebote: [0, 100, 30], velocidad: [0, 100, 60], intensidad: [0, 100, 60], brilloFondo: [0, 100, 58], desenfoque: [0, 20, 3], agrandar: [0, 40, 12], estirar: [0, 100, 50], panel: [0, 40, 28] };
     if (cuerpo.op === 'efectos') {
       let v = {};
       try { const r = await db.prepare("SELECT valor FROM meta WHERE clave = 'efectos'").first(); if (r && r.valor) v = JSON.parse(r.valor) || {}; } catch (e) {}

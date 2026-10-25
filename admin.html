@@ -472,7 +472,7 @@ html.en-admin-app body:not(.h) .nav button.on{background:#fff;color:#000}
 
   <div class="c w" data-g="efectos">
     <h2>Efectos de la app</h2>
-    <p class="s">Ajusta el cristal deslizante, el brillo detrás de los pósters y el panel de acceso. En la vista previa toca una opción, o mantén presionada la activa y arrástrala, para ver los cambios.</p>
+    <p class="s">Ajusta el cristal deslizante, la iluminación ambiental de la página y el panel de acceso. En la vista previa toca una opción, o mantén presionada la activa y arrástrala, para ver los cambios.</p>
     <style>
       .efp{position:relative;display:flex;gap:2px;padding:7px 5px;border-radius:999px;max-width:440px;margin:12px 0 20px;touch-action:none;user-select:none;-webkit-user-select:none;
         background:linear-gradient(135deg,#0b2a7a,#161626);border:1px solid rgba(255,255,255,.16);box-shadow:inset 0 1px 0 rgba(255,255,255,.28),0 12px 30px rgba(0,0,0,.5)}
@@ -489,7 +489,7 @@ html.en-admin-app body:not(.h) .nav button.on{background:#fff;color:#000}
     <label>Rebote del cristal: <b id="ef-rebote-v">30</b><small class="h">Qué tanto se pasa y regresa al llegar a una sección.</small><input id="ef-rebote" data-ef="rebote" type="range" min="0" max="100" step="1" value="30" style="height:auto;padding:0;margin-top:6px"></label>
     <label>Velocidad: <b id="ef-velocidad-v">60</b><small class="h">Qué tan rápido se desliza de una sección a otra.</small><input id="ef-velocidad" data-ef="velocidad" type="range" min="0" max="100" step="1" value="60" style="height:auto;padding:0;margin-top:6px"></label>
     <label>Intensidad del cristal: <b id="ef-intensidad-v">60</b><small class="h">Qué tan visible es el cristal (borde y brillo).</small><input id="ef-intensidad" data-ef="intensidad" type="range" min="0" max="100" step="1" value="60" style="height:auto;padding:0;margin-top:6px"></label>
-    <label>Brillo de fondo de pósters: <b id="ef-brilloPoster-v">58</b><small class="h">Controla la luz de color que se proyecta detrás de las tarjetas de películas y series.</small><input id="ef-brilloPoster" data-ef="brilloPoster" type="range" min="0" max="100" step="1" value="58" style="height:auto;padding:0;margin-top:6px"></label>
+    <label>Iluminación del fondo: <b id="ef-brilloFondo-v">58</b><small class="h">Controla el resplandor ambiental detrás del contenido de toda la página.</small><input id="ef-brilloFondo" data-ef="brilloFondo" type="range" min="0" max="100" step="1" value="58" style="height:auto;padding:0;margin-top:6px"></label>
     <label>Desenfoque del cristal (px): <b id="ef-desenfoque-v">3</b><small class="h">Cuánto difumina lo que hay detrás del cristal.</small><input id="ef-desenfoque" data-ef="desenfoque" type="range" min="0" max="20" step="1" value="3" style="height:auto;padding:0;margin-top:6px"></label>
     <label>Agrandado al arrastrar (%): <b id="ef-agrandar-v">12</b><small class="h">Cuánto crece el cristal cuando lo arrastras con el dedo.</small><input id="ef-agrandar" data-ef="agrandar" type="range" min="0" max="40" step="1" value="12" style="height:auto;padding:0;margin-top:6px"></label>
     <label>Estiramiento al arrastrar: <b id="ef-estirar-v">50</b><small class="h">Cuánto se estira como gelatina al moverlo rápido.</small><input id="ef-estirar" data-ef="estirar" type="range" min="0" max="100" step="1" value="50" style="height:auto;padding:0;margin-top:6px"></label>
@@ -599,7 +599,7 @@ $('clave').addEventListener('input', () => msg('clave-m', '', true));
 const nombrePlan = p => ({ plus: 'Plus', pedidos: 'Películas por pedido' })[p] || 'Básico';
 const fecha = t => new Date(t).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' });
 /* ---- Efectos: deslizadores + vista previa ---- */
-const EF_FAB = { rebote: 30, velocidad: 60, intensidad: 60, brilloPoster: 58, desenfoque: 3, agrandar: 12, estirar: 50, panel: 28 };
+const EF_FAB = { rebote: 30, velocidad: 60, intensidad: 60, brilloFondo: 58, desenfoque: 3, agrandar: 12, estirar: 50, panel: 28 };
 const efSliders = [...document.querySelectorAll('[data-ef]')];
 const efLeer = () => Object.fromEntries(efSliders.map(s => [s.dataset.ef, +s.value]));
 function efPintar() {
@@ -642,7 +642,7 @@ function efPonerGlass(b, seco) {
   efPintar(); requestAnimationFrame(() => efPonerGlass(act(), true)); addEventListener('load', () => efPonerGlass(act(), true)); addEventListener('resize', () => efPonerGlass(act(), true));
   document.querySelectorAll('#nav button').forEach(n => n.addEventListener('click', () => setTimeout(() => efPonerGlass(act(), true), 30)));
 })();
-function efPoner(o) { efSliders.forEach(s => { const v = o && o[s.dataset.ef]; s.value = (v === undefined || v === '' || !isFinite(+v)) ? EF_FAB[s.dataset.ef] : v; }); efPintar(); }
+function efPoner(o) { efSliders.forEach(s => { const v = o && (s.dataset.ef === 'brilloFondo' ? (o.brilloFondo ?? o.brilloPoster) : o[s.dataset.ef]); s.value = (v === undefined || v === '' || !isFinite(+v)) ? EF_FAB[s.dataset.ef] : v; }); efPintar(); }
 $('ef-reset').onclick = () => { efPoner({}); msg('ef-m', 'Se pusieron los valores de fábrica. Falta guardar.', true); };
 $('ef-cargar').onclick = () => con($('ef-cargar'), 'ef-m', async () => { efPoner((await admin({ op: 'efectos' })).item || {}); msg('ef-m', 'Se cargó lo que está guardado.', true); });
 $('ef-go').onclick = () => con($('ef-go'), 'ef-m', async () => { await admin({ op: 'guardar_efectos', efectos: efLeer() }); msg('ef-m', 'Guardado. En la app se actualiza en menos de un minuto.', true); });
