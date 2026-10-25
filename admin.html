@@ -155,19 +155,20 @@ html.en-admin-app body:not(.h) .nav button.on{background:#fff;color:#000}
 .cg-layout{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(260px,.9fr);gap:20px;align-items:start}
 .cg-controls{display:flex;gap:8px;align-items:end;flex-wrap:wrap}.cg-controls label{flex:1;min-width:180px;margin:0}
 .cg-results{display:grid;grid-template-columns:repeat(auto-fill,minmax(145px,1fr));gap:9px;max-height:560px;overflow:auto;margin-top:12px;padding:2px;overscroll-behavior:contain}
-.cg-movie{position:relative;display:flex;align-items:center;gap:9px;min-width:0;padding:7px;border:1px solid rgba(255,255,255,.1);border-radius:13px;background:rgba(255,255,255,.045);color:#fff;text-align:left;cursor:pointer}
-.cg-movie:hover,.cg-movie.on{border-color:rgba(110,170,255,.8);background:rgba(50,115,230,.18)}
+.cg-movie{position:relative;display:flex;align-items:center;gap:9px;min-width:0;padding:7px;border:2px solid transparent;border-radius:13px;background:rgba(255,255,255,.045);color:#fff;text-align:left;cursor:pointer}
+.cg-movie:hover,.cg-movie.on{background:rgba(50,115,230,.18)}
+.cg-movie.new,.cg-movie.new.on,.cg-movie.new:hover{border-color:#ffb547;box-shadow:0 0 0 1px rgba(255,181,71,.28)}
 .cg-movie img{width:46px;height:68px;flex:none;border-radius:7px;object-fit:cover;background:#17171c}
 .cg-no-poster{display:grid;place-items:center;width:46px;height:68px;flex:none;border-radius:7px;background:#17171c;color:#92929a;font-style:normal}
 .cg-movie:disabled{opacity:.6;cursor:wait}
 .cg-movie span{min-width:0;font-size:12px;line-height:1.3}.cg-movie small{display:block;color:#a1a1a6;margin-top:4px}
 .cg-check{position:absolute;right:6px;top:6px;width:20px;height:20px;border-radius:50%;background:#3978f6;color:white;text-align:center;line-height:20px;font-size:12px}
-.cg-tabs{display:flex;gap:8px;margin-top:12px}.cg-tabs button.on{background:#fff;color:#000}
 .cg-preview{position:sticky;top:18px}.cg-board{width:min(100%,520px);aspect-ratio:9/16;margin:10px auto 14px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(4,minmax(0,1fr));overflow:hidden;border:1px solid rgba(255,255,255,.14);border-radius:18px;background:#101014;box-shadow:0 18px 45px rgba(0,0,0,.45)}
-.cg-slot{position:relative;min-width:0;min-height:0;overflow:hidden;background:linear-gradient(145deg,#24242b,#101014);border:0;padding:0;cursor:pointer}
+.cg-slot{position:relative;display:block;width:100%;height:100%;min-width:0;min-height:0;overflow:hidden;background:linear-gradient(145deg,#24242b,#101014);border:0;padding:0;cursor:pointer}
 .cg-slot img{position:absolute;inset:0;display:block;width:100%;height:100%;object-fit:cover;object-position:center}.cg-slot span{position:absolute;inset:0;display:grid;place-items:center;color:rgba(255,255,255,.27);font-size:12px;font-weight:700}
 .cg-slot b{position:absolute;right:5px;top:5px;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:rgba(0,0,0,.7);color:white;font-size:15px}
 .cg-preview .row{display:flex;gap:8px;justify-content:center}.cg-preview .row button{min-width:135px}
+.cg-legend{display:flex;align-items:center;gap:8px;color:#a1a1a6;font-size:12px;margin:8px 0}.cg-legend i{width:18px;height:14px;border:2px solid #ffb547;border-radius:4px}
 @media(max-width:720px){.cg-layout{grid-template-columns:minmax(0,1fr)}.cg-preview{position:static;grid-row:1}.cg-board{width:min(92vw,430px)}.cg-results{grid-template-columns:repeat(auto-fill,minmax(130px,1fr));max-height:45vh}}
 </style>
 </head>
@@ -400,11 +401,11 @@ html.en-admin-app body:not(.h) .nav button.on{background:#fff;color:#000}
 
   <div class="c w" data-g="collage">
     <h2>Collage de películas de <span id="cg-year"></span></h2>
-    <p class="s">Cambia entre los estrenos del año actual y las películas de tu base de datos. Elige hasta 12, ordénalas al agregarlas y revisa el lienzo vertical de 1080 × 1920 con 3 columnas y 4 filas, listo para una Historia de Instagram.</p>
+    <p class="s">La lista combina los estrenos del año actual y las películas de tu base de datos. Elige hasta 12, ordénalas al agregarlas y revisa el lienzo vertical de 1080 × 1920 con 3 columnas y 4 filas, listo para una Historia de Instagram.</p>
     <div class="cg-layout">
       <section>
-        <div class="cg-tabs" role="tablist" aria-label="Origen de las películas"><button class="g on" id="cg-tab-year" type="button" role="tab" aria-selected="true">Estrenos <span id="cg-tab-year-label"></span></button><button class="g" id="cg-tab-library" type="button" role="tab" aria-selected="false">Mi base de datos <span id="cg-tab-library-count"></span></button></div>
-        <div class="cg-controls" style="margin-top:10px"><label id="cg-search-label">Buscar estrenos de este año<input id="cg-q" type="search" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Nombre de la película"></label><button class="g" id="cg-search" type="button">Buscar</button></div>
+        <div class="cg-controls"><label>Buscar película<input id="cg-q" type="search" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Título o parte del título"></label><button class="g" id="cg-search" type="button">Buscar</button></div>
+        <p class="cg-legend"><i aria-hidden="true"></i>Estreno del año que todavía no está en tu base de datos</p>
         <div class="row" style="margin-top:10px"><button class="g" id="cg-more" type="button" hidden>Cargar más</button></div>
         <p class="m" id="cg-m" role="status" aria-live="polite" hidden></p>
         <div class="cg-results" id="cg-results" aria-label="Películas disponibles"></div>
@@ -2199,38 +2200,37 @@ $('pnxt-go').onclick = () => con($('pnxt-go'), 'pnxt-m', async () => { await adm
 /* ---- creador de collage para Historia ---- */
 const cgYear = new Date().getFullYear();
 $('cg-year').textContent = cgYear;
-$('cg-tab-year-label').textContent = cgYear;
-let cgLista = [], cgEstrenos = [], cgBiblioteca = [], cgSeleccion = [], cgPagina = 0, cgTotalPaginas = 1, cgModo = 'discover', cgConsulta = '', cgFuente = 'year', cgYearCargado = false, cgBibliotecaCargada = false, cgPeticion = 0, cgLibraryJob = 0;
+let cgLista = [], cgMaestra = [], cgEstrenos = [], cgBiblioteca = [], cgSeleccion = [], cgPagina = 0, cgTotalPaginas = 1, cgModo = 'discover', cgConsulta = '', cgYearCargado = false, cgBibliotecaCargada = false, cgPeticion = 0, cgLibraryJob = 0;
 const cgId = x => { const n = Number(x.tmdbId || x.id); return n > 0 ? 'tmdb:' + n : String(x.cgKey || ('tmdb:' + x.id)); };
 function cgPosterURL(x, size) {
   if (x.poster_path) return IMG + (size || 'w185') + x.poster_path;
   const u = String(x.poster_url || x.poster || '');
   return u.startsWith('http') ? u.replace(/\/w\d+\//, '/' + (size || 'w185') + '/') : (u.startsWith('/') ? IMG + (size || 'w185') + u : '');
 }
-function cgSeleccionarFuente(fuente) {
-  cgFuente = fuente;
-  $('cg-tab-year').classList.toggle('on', fuente === 'year'); $('cg-tab-year').setAttribute('aria-selected', fuente === 'year');
-  $('cg-tab-library').classList.toggle('on', fuente === 'library'); $('cg-tab-library').setAttribute('aria-selected', fuente === 'library');
-  $('cg-q').value = ''; $('cg-more').hidden = fuente !== 'year' || cgPagina >= cgTotalPaginas;
-  $('cg-search-label').firstChild.textContent = fuente === 'year' ? 'Buscar estrenos de este año' : 'Buscar en mi base de datos';
-  if (fuente === 'year') {
-    cgLista = cgEstrenos; $('cg-search').textContent = 'Buscar';
-    if (!cgYearCargado || cgModo === 'search') cgCargar(true); else { cgPintarLista(); msg('cg-m', cgEstrenos.length + ' estreno(s) de ' + cgYear + ' cargados.', true); }
-  } else {
-    cgModo = 'library'; $('cg-search').textContent = 'Filtrar'; cgLista = cgBiblioteca;
-    if (!cgBibliotecaCargada) cgCargarBiblioteca(); else { cgPintarLista(); msg('cg-m', cgBiblioteca.length + ' película(s) de tu base de datos.', true); }
-  }
+function cgCombinarLista() {
+  const porId = new Map(), porTitulo = new Map(), unidas = [];
+  cgBiblioteca.forEach(x => { x.enBase = true; x.esEstreno = String(x.release_date || '').startsWith(String(cgYear)); unidas.push(x); if (Number(x.tmdbId || x.id) > 0) porId.set(Number(x.tmdbId || x.id), x); porTitulo.set(dNorm(x.title), x); });
+  cgEstrenos.forEach(x => {
+    const porTituloSinId = porTitulo.get(dNorm(x.title || x.original_title));
+    const existente = porId.get(Number(x.id)) || (porTituloSinId && !Number(porTituloSinId.tmdbId || porTituloSinId.id) ? porTituloSinId : null);
+    if (existente) { existente.esEstreno = true; existente.release_date = existente.release_date || x.release_date; existente.id = x.id; existente.tmdbId = Number(existente.tmdbId || x.id); if (!cgPosterURL(existente, 'w185')) existente.poster_path = x.poster_path; }
+    else { x.enBase = false; x.esEstreno = true; unidas.push(x); }
+  });
+  cgMaestra = unidas.sort((a, b) => Number(!!b.esEstreno) - Number(!!a.esEstreno));
+  const q = dNorm(cgConsulta);
+  cgLista = q ? cgMaestra.filter(x => dNorm(x.title || x.original_title).includes(q)) : cgMaestra;
+  cgPintarLista();
 }
 function cgPintarLista() {
   const box = $('cg-results'), seleccionados = new Set(cgSeleccion.map(cgId));
   box.replaceChildren();
   cgLista.forEach(x => {
-    const id = cgId(x), poster = cgPosterURL(x, 'w185'), b = document.createElement('button'); b.type = 'button'; b.disabled = !poster; b.className = 'cg-movie' + (seleccionados.has(id) ? ' on' : '');
+    const id = cgId(x), poster = cgPosterURL(x, 'w185'), b = document.createElement('button'); b.type = 'button'; b.disabled = !poster; b.className = 'cg-movie' + (x.esEstreno && !x.enBase ? ' new' : '') + (seleccionados.has(id) ? ' on' : '');
     b.setAttribute('aria-pressed', seleccionados.has(id) ? 'true' : 'false');
     if (poster) { const im = document.createElement('img'); im.loading = 'lazy'; im.src = poster; im.alt = ''; b.appendChild(im); }
     else { const no = document.createElement('i'); no.className = 'cg-no-poster'; no.textContent = '…'; b.appendChild(no); }
     const tx = document.createElement('span'); tx.append(document.createTextNode(x.title || x.original_title || 'Película'));
-    const sm = document.createElement('small'); sm.textContent = cgFuente === 'year' ? ((x.release_date || '').slice(0, 4) || String(cgYear)) : (x.release_date || '').slice(0, 4) || 'En biblioteca'; tx.appendChild(sm);
+    const sm = document.createElement('small'); sm.textContent = (x.release_date || '').slice(0, 4) || (x.esEstreno ? String(cgYear) : ''); tx.appendChild(sm);
     b.appendChild(tx);
     if (seleccionados.has(id)) { const ck = document.createElement('i'); ck.className = 'cg-check'; ck.textContent = String(cgSeleccion.findIndex(y => cgId(y) === id) + 1); b.appendChild(ck); }
     b.onclick = () => {
@@ -2254,9 +2254,8 @@ function cgPintarVista() {
   $('cg-count').textContent = cgSeleccion.length + ' de 12 seleccionadas'; $('cg-download').disabled = cgSeleccion.length === 0;
 }
 async function cgCargar(reset) {
-  if (cgFuente !== 'year') return;
   const pet = ++cgPeticion, year = cgYear;
-  if (reset) { cgPagina = 0; cgEstrenos = []; cgLista = cgEstrenos; cgModo = 'discover'; cgConsulta = ''; }
+  if (reset) { cgPagina = 0; cgEstrenos = []; cgModo = 'discover'; cgConsulta = ''; }
   const page = cgPagina + 1;
   msg('cg-m', 'Buscando películas de ' + year + ' en TMDB…', true);
   try {
@@ -2265,12 +2264,12 @@ async function cgCargar(reset) {
       : `${TMDB}/discover/movie?api_key=${TMDB_KEY}&language=es-MX&include_adult=false&primary_release_date.gte=${year}-01-01&primary_release_date.lte=${year}-12-31&sort_by=popularity.desc&page=${page}`;
     const r = await fetch(url, { signal: AbortSignal.timeout(12000) }), j = await r.json();
     if (!r.ok || j.success === false) throw new Error(j.status_message || 'TMDB no pudo cargar las películas.');
-    if (pet !== cgPeticion || cgFuente !== 'year') return;
+    if (pet !== cgPeticion) return;
     const nuevas = (j.results || []).filter(x => x.poster_path && String(x.release_date || '').startsWith(String(year)));
-    const map = new Map(cgEstrenos.map(x => [Number(x.id), x])); nuevas.forEach(x => map.set(Number(x.id), x)); cgEstrenos = [...map.values()]; cgLista = cgEstrenos;
+    const map = new Map(cgEstrenos.map(x => [Number(x.id), x])); nuevas.forEach(x => map.set(Number(x.id), x)); cgEstrenos = [...map.values()];
     cgPagina = page; cgTotalPaginas = Math.min(Number(j.total_pages) || 1, 500); cgYearCargado = true;
-    $('cg-more').hidden = cgPagina >= cgTotalPaginas; $('cg-tab-year-label').textContent = cgYear + ' · ' + cgEstrenos.length;
-    cgPintarLista(); msg('cg-m', cgEstrenos.length ? cgEstrenos.length + ' estreno(s) de ' + year + ' cargados. Toca un póster para agregarlo o quitarlo.' : 'No se encontraron estrenos con póster para ese criterio.', true);
+    $('cg-more').hidden = cgPagina >= cgTotalPaginas; cgCombinarLista();
+    msg('cg-m', cgEstrenos.length + ' estreno(s) de ' + year + ' y ' + cgBiblioteca.length + ' película(s) de tu base de datos. Toca un póster para agregarlo o quitarlo.', true);
   } catch (e) { if (pet === cgPeticion) msg('cg-m', e.message || 'No se pudo conectar con TMDB.', false); }
 }
 async function cgResolverPoster(item) {
@@ -2294,38 +2293,31 @@ async function cgCargarBiblioteca() {
   msg('cg-m', 'Cargando tu biblioteca y sus pósters…', true);
   try {
     await Promise.all([dIndice(), dPanel()]);
-    if (pet !== cgLibraryJob || cgFuente !== 'library') return;
+    if (pet !== cgLibraryJob) return;
     const unicos = new Map();
     dTodos().filter(x => x.tipo !== 'serie').forEach((x, i) => {
       const tmdbId = Number(x.tmdb) || 0, clave = tmdbId ? 'tmdb:' + tmdbId : 'titulo:' + dNorm(x.titulo);
       if (!unicos.has(clave)) unicos.set(clave, { id: tmdbId || ('lib-' + i), cgKey: 'lib:' + clave, tmdbId, title: x.titulo, buscar: x.buscar || '', release_date: x.anio ? String(x.anio) + '-01-01' : '', poster_url: '', poster_path: '' });
     });
-    cgBiblioteca = [...unicos.values()]; cgLista = cgBiblioteca; cgBibliotecaCargada = true; $('cg-tab-library-count').textContent = '(' + cgBiblioteca.length + ')'; cgPintarLista();
-    $('cg-more').hidden = true;
+    cgBiblioteca = [...unicos.values()]; cgBibliotecaCargada = true; cgCombinarLista();
     if (!cgBiblioteca.length) { msg('cg-m', 'No encontré películas en tu base de datos.', true); return; }
     msg('cg-m', cgBiblioteca.length + ' película(s) de tu base de datos. Cargando los pósters que faltan…', true);
     let cursor = 0;
-    const worker = async () => { while (cursor < cgBiblioteca.length) { const item = cgBiblioteca[cursor++]; if (!cgPosterURL(item, 'w185')) await cgResolverPoster(item); if (pet !== cgLibraryJob) return; if (cgFuente === 'library') cgPintarLista(); } };
+    const worker = async () => { while (cursor < cgBiblioteca.length) { const item = cgBiblioteca[cursor++]; if (!cgPosterURL(item, 'w185')) await cgResolverPoster(item); if (pet !== cgLibraryJob) return; cgCombinarLista(); } };
     await Promise.all(Array.from({ length: 4 }, worker));
-    if (pet === cgLibraryJob && cgFuente === 'library') msg('cg-m', cgBiblioteca.length + ' película(s) de tu base de datos listas para elegir.', true);
-  } catch (e) { if (pet === cgLibraryJob && cgFuente === 'library') msg('cg-m', e.message || 'No se pudo cargar tu base de datos.', false); }
+    if (pet === cgLibraryJob) msg('cg-m', cgEstrenos.length + ' estreno(s) de ' + cgYear + ' y ' + cgBiblioteca.length + ' película(s) de tu base de datos. Los estrenos fuera de tu biblioteca tienen contorno de color.', true);
+  } catch (e) { if (pet === cgLibraryJob) msg('cg-m', e.message || 'No se pudo cargar tu base de datos.', false); }
 }
 async function cgBuscar() {
   const q = $('cg-q').value.trim();
-  if (cgFuente === 'library') {
-    const n = dNorm(q); cgLista = n ? cgBiblioteca.filter(x => dNorm(x.title).includes(n)) : cgBiblioteca;
-    cgPintarLista(); msg('cg-m', cgLista.length + ' película(s) encontradas en tu base de datos.', true); return;
-  }
   if (!q) { cgModo = 'discover'; cgConsulta = ''; await cgCargar(true); return; }
-  cgModo = 'search'; cgConsulta = q; cgPagina = 0; cgEstrenos = []; cgLista = cgEstrenos; await cgCargar(false);
+  cgModo = 'search'; cgConsulta = q; cgPagina = 0; cgEstrenos = []; await cgCargar(false);
 }
-$('cg-tab-year').onclick = () => cgSeleccionarFuente('year');
-$('cg-tab-library').onclick = () => cgSeleccionarFuente('library');
 $('cg-search').onclick = cgBuscar;
 $('cg-q').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); cgBuscar(); } });
 $('cg-more').onclick = () => cgCargar(false);
 $('cg-clear').onclick = () => { cgSeleccion = []; cgPintarLista(); cgPintarVista(); msg('cg-m', 'Selección vacía.', true); };
-document.querySelector('#nav button[data-g="collage"]').addEventListener('click', () => { if (!cgYearCargado) cgCargar(true); });
+document.querySelector('#nav button[data-g="collage"]').addEventListener('click', () => { if (!cgYearCargado) cgCargar(true); if (!cgBibliotecaCargada) cgCargarBiblioteca(); });
 cgPintarVista();
 $('cg-download').onclick = () => con($('cg-download'), 'cg-m', async () => {
   if (!cgSeleccion.length) throw new Error('Agrega al menos una película al collage.');
