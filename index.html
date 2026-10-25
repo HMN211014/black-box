@@ -836,6 +836,10 @@ body.con-q #vista-ped,body.con-q #vista-rec{display:none!important}
 .card img,.card .shine{border-radius:inherit;-webkit-mask-image:var(--fade);mask-image:var(--fade)}
 .card img{transition:filter .25s ease}
 .card::after{display:none}
+.card{isolation:isolate}
+.card::after{display:block;content:"";position:absolute;left:-20%;right:-20%;top:54%;bottom:-3%;z-index:-1;pointer-events:none;border-radius:50%;
+  background:radial-gradient(ellipse at 50% 42%,hsl(var(--poster-hue,225) 90% 64% / .9) 0%,hsl(var(--poster-hue,225) 88% 54% / .46) 34%,transparent 72%);
+  filter:blur(24px);opacity:var(--poster-glow-opacity,.58);transition:opacity .25s ease,filter .25s ease}
 .card:hover,.card:focus-visible{box-shadow:none}
 .card:hover img,.card:focus-visible img{filter:brightness(1.12) saturate(1.08)}
 /* título debajo, más grande, justificado y con sombreado fuerte */
@@ -1918,7 +1922,8 @@ const track = document.getElementById('track'), dlg = document.getElementById('d
 const grad = t => { let h = 0; for (const c of t) h = (h*31 + c.charCodeAt(0)) % 360;
   return `linear-gradient(155deg,hsl(${h} 55% 38%),hsl(${(h+50)%360} 60% 14%))`; };
 const poster = (p, el) => {
-  el.style.setProperty('--g', grad(p.titulo));
+  let h = 0; for (const c of p.titulo) h = (h * 31 + c.charCodeAt(0)) % 360;
+  el.style.setProperty('--g', grad(p.titulo)); el.style.setProperty('--poster-hue', String(h));
   if (p.poster) { const i = new Image(); i.alt = ''; i.decoding = 'async'; i.onload = () => { if (i.animate && !matchMedia('(prefers-reduced-motion:reduce)').matches) i.animate([{ opacity: 0, transform: 'scale(1.04)' }, { opacity: 1, transform: 'none' }], { duration: 420, easing: 'cubic-bezier(.2,.8,.2,1)' }); }; i.src = p.poster; i.onerror = () => i.remove(); el.prepend(i); }
 };
 
@@ -3256,13 +3261,13 @@ window.addEventListener('hashchange', () => {
   });
 });
 /* Efectos ajustables desde admin > Efectos (rebote, velocidad, intensidad y desenfoque del cristal) */
-const EF = { rebote: 30, velocidad: 60, intensidad: 60, desenfoque: 3, agrandar: 12, estirar: 50, panel: 28 };
+const EF = { rebote: 30, velocidad: 60, intensidad: 60, brilloPoster: 58, desenfoque: 3, agrandar: 12, estirar: 50, panel: 28 };
 { const ex = window.EFECTOS_EXTRA || {}; for (const k in EF) { const n = Number(ex[k]); if (ex[k] !== undefined && ex[k] !== '' && isFinite(n)) EF[k] = n; } }
 { const r = document.documentElement.style;
   let glassNivel = .6; try { const n = Number(localStorage.getItem('bblg')); if (localStorage.getItem('bblg') !== null && isFinite(n)) glassNivel = Math.max(0, Math.min(1, n / 100)); } catch (e) {}
   r.setProperty('--bb-glass-level', glassNivel.toFixed(2)); r.setProperty('--bb-glass-blur', (3 + 25 * glassNivel).toFixed(1) + 'px'); r.setProperty('--bb-glass-saturate', (1 + 1.1 * glassNivel).toFixed(2)); r.setProperty('--bb-glass-brightness', (1 + .1 * glassNivel).toFixed(2)); r.setProperty('--bb-glass-rim', (.2 + .8 * glassNivel).toFixed(2));
   r.setProperty('--vg-ov', (1 + EF.rebote * .012).toFixed(3)); r.setProperty('--vg-dur', (1 - EF.velocidad * .0075).toFixed(3) + 's');
-  r.setProperty('--vg-int', (EF.intensidad / 60 * (.25 + 1.25 * glassNivel)).toFixed(3)); r.setProperty('--vg-blur', EF.desenfoque + 'px'); r.setProperty('--ac-blur', EF.panel + 'px'); }
+  r.setProperty('--vg-int', (EF.intensidad / 60 * (.25 + 1.25 * glassNivel)).toFixed(3)); r.setProperty('--vg-blur', EF.desenfoque + 'px'); r.setProperty('--ac-blur', EF.panel + 'px'); r.setProperty('--poster-glow-opacity', (EF.brilloPoster / 100).toFixed(2)); }
 window.bbGlassSet = value => {
   const n = Math.max(0, Math.min(100, Number(value) || 0)), nivel = n / 100, r = document.documentElement.style;
   try { localStorage.setItem('bblg', String(Math.round(n))); } catch (e) {}
