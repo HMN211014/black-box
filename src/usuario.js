@@ -22,6 +22,16 @@ const deb64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
 const b64url = buf => b64(buf).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 const limpiarCorreo = x => String(x || '').trim().toLowerCase();
 
+async function guardarIntroDbTitulo(db, tmdb, tipo, titulo, activo) {
+  const r = await db.prepare("SELECT valor FROM meta WHERE clave = 'introdb'").first();
+  let items = []; try { if (r && r.valor) { const v = JSON.parse(r.valor); if (Array.isArray(v)) items = v; } } catch (e) {}
+  const k = Number(tmdb), esSerie = tipo === 'serie';
+  items = items.filter(x => !(Number(x.tmdb) === k && (x.tipo === 'serie') === esSerie));
+  if (activo) items.push({ tmdb: k, tipo: esSerie ? 'serie' : 'pelicula', titulo: String(titulo || '').trim().slice(0, 200) });
+  await db.prepare('CREATE TABLE IF NOT EXISTS meta (clave TEXT PRIMARY KEY, valor TEXT) WITHOUT ROWID').run();
+  await db.prepare("INSERT INTO meta (clave, valor) VALUES ('introdb', ?1) ON CONFLICT(clave) DO UPDATE SET valor = ?1").bind(JSON.stringify(items)).run();
+}
+
 async function hashClave(clave, salt) {
   const key = await crypto.subtle.importKey('raw', enc.encode(clave), 'PBKDF2', false, ['deriveBits']);
   return new Uint8Array(await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt, iterations: 100000 }, key, 256));
@@ -551,7 +561,7 @@ async function manejar({ request, env, params, waitUntil }) {
     if (cuerpo.op === 'guardar_introdb') {
       const src = Array.isArray(cuerpo.items) ? cuerpo.items : [];
       const items = [], vistos = new Set();
-      for (const x of src.slice(0, 500)) {
+      for (const x of src.slice(0, 3000)) {
         const tmdb = Math.floor(Number(x && x.tmdb)), tipo = x && x.tipo === 'serie' ? 'serie' : 'pelicula';
         const titulo = String(x && x.titulo || '').trim().slice(0, 200), k = tipo + ':' + tmdb;
         if (tmdb > 0 && titulo && !vistos.has(k)) { vistos.add(k); items.push({ tmdb, tipo, titulo }); }
@@ -654,6 +664,7 @@ async function manejar({ request, env, params, waitUntil }) {
       if (!ya && (await totalPublicados(db)) >= 1500) return json({ error: 'Ya hay demasiadas películas publicadas desde el panel.' }, 400);
       await db.prepare("INSERT INTO publicados (tmdb, titulo, tipo, link, episodios, creado) VALUES (?1, ?2, ?3, ?4, '{}', ?5) ON CONFLICT(tmdb) DO UPDATE SET titulo = ?2, tipo = ?3, link = ?4")
         .bind(tmdb, titulo, tipo, link, Date.now()).run();       // si ya existía, se conservan sus capítulos sueltos
+      if (cuerpo.introdb !== undefined) await guardarIntroDbTitulo(db, tmdb, tipo, titulo, cuerpo.introdb === true);
       let lista = null;
       if (cuerpo.correo) {
         const r = await asignarLista(db, limpiarCorreo(cuerpo.correo), titulo, tmdb, cuerpo.pedido, avisarListo);
@@ -697,6 +708,7 @@ async function manejar({ request, env, params, waitUntil }) {
       }
       await db.prepare("UPDATE publicados SET titulo = ?2, tipo = 'serie', episodios = json_set(episodios, ?3, ?4) WHERE tmdb = ?1")
         .bind(tmdb, titulo, '$."' + k + '"', link).run();       // cambia solo ese capítulo, de un solo golpe
+      if (cuerpo.introdb !== undefined) await guardarIntroDbTitulo(db, tmdb, 'serie', titulo, cuerpo.introdb === true);
       const r = await db.prepare('SELECT episodios FROM publicados WHERE tmdb = ?1').bind(tmdb).first();
       return json({ episodios: epsDe(r && r.episodios) });
     }

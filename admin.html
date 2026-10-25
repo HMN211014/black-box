@@ -207,6 +207,7 @@ html.en-admin-app body:not(.h) .nav button.on{background:#fff;color:#000}
         <label style="margin:0">Título como se verá<input id="s-tit" autocomplete="off"></label>
         <small id="s-info" style="color:#a1a1a6;font-size:13px"></small>
       </div></div>
+      <label class="ck" style="margin-top:12px"><input type="checkbox" id="s-introdb"> Activar Saltar créditos con IntroDB para este título</label>
       <div class="sdup" id="s-dup" hidden></div>
       <div id="s-eps" hidden style="margin-top:14px">
         <label>Temporada<select id="s-temp"></select></label>
@@ -287,7 +288,8 @@ html.en-admin-app body:not(.h) .nav button.on{background:#fff;color:#000}
 
   <div class="c" data-g="biblioteca" id="introdb-card">
     <h2>Saltar créditos con IntroDB</h2>
-    <p class="s">Activa la opción por película o serie. Durante la reproducción aparecerá un botón para saltar al inicio de los créditos cuando IntroDB tenga ese dato.</p>
+    <p class="s">Sincronizar activa IntroDB para todos los títulos registrados en la biblioteca; después puedes desactivar cada uno por separado. Al subir un título también puedes elegir si activarlo. Durante la reproducción, el botón de salto aparece cuando IntroDB tiene el dato de créditos.</p>
+    <div class="row"><button class="g" id="idb-sync" type="button">Sincronizar toda la biblioteca</button></div>
     <label style="margin-top:12px">Buscar película o serie en TMDB<input id="idb-q" type="search" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Nombre del título"></label>
     <div class="sr" id="idb-res"></div>
     <p class="m" id="idb-m" hidden></p>
@@ -1047,9 +1049,31 @@ $('p-go').onclick = () => con($('p-go'), 'p-m', async () => {
 });
 
 /* ---- películas publicadas desde el panel ---- */
+let introdbAdminItems = [], introdbAdminCargado = false, introdbAdminCarga = null;
+function introdbAdminLeer() {
+  if (introdbAdminCargado) return Promise.resolve(introdbAdminItems);
+  if (introdbAdminCarga) return introdbAdminCarga;
+  introdbAdminCarga = admin({ op: 'introdb' }).then(j => {
+    introdbAdminItems = j.items || []; introdbAdminCargado = true; return introdbAdminItems;
+  }).finally(() => { introdbAdminCarga = null; });
+  return introdbAdminCarga;
+}
+function introdbAdminCache(items) {
+  introdbAdminItems = items || []; introdbAdminCargado = true;
+  window.dispatchEvent(new Event('introdb-cambio'));
+}
+function introdbAdminCacheTitulo(tmdb, tipo, titulo, activo) {
+  const k = tipo + ':' + Number(tmdb), next = introdbAdminItems.filter(x => x.tipo + ':' + Number(x.tmdb) !== k);
+  if (activo) next.push({ tmdb: Number(tmdb), tipo, titulo });
+  introdbAdminCache(next);
+}
+async function introdbAdminGuardar(items) {
+  const j = await admin({ op: 'guardar_introdb', items });
+  introdbAdminCache(j.items || items); return introdbAdminItems;
+}
 $('idb-q') && (async function iniciarIntroDbAdmin() {
-  let items = [];
   const box = $('idb-list');
+  let items = introdbAdminItems;
   function pintar() {
     box.replaceChildren();
     if (!items.length) { msg('idb-m', 'No hay títulos habilitados. La función permanece apagada para todos los demás.', true); return; }
@@ -1061,17 +1085,34 @@ $('idb-q') && (async function iniciarIntroDbAdmin() {
       const sm = document.createElement('small'); sm.textContent = (x.tipo === 'serie' ? 'Serie' : 'Película') + ' · TMDB ' + x.tmdb;
       tx.append(b, sm);
       const rm = document.createElement('button'); rm.className = 'g'; rm.type = 'button'; rm.textContent = 'Desactivar';
-      rm.onclick = () => con(rm, 'idb-m', async () => { items.splice(i, 1); const j = await admin({ op: 'guardar_introdb', items }); items = j.items || items; pintar(); });
+      rm.onclick = () => con(rm, 'idb-m', async () => { const next = introdbAdminItems.filter((_, k) => k !== i); await introdbAdminGuardar(next); pintar(); });
       d.append(tx, rm); box.appendChild(d);
     });
   }
-  try { const j = await admin({ op: 'introdb' }); items = j.items || []; pintar(); } catch (e) { msg('idb-m', e.message, false); }
+  window.addEventListener('introdb-cambio', () => { items = introdbAdminItems; pintar(); });
+  try { await introdbAdminLeer(); items = introdbAdminItems; pintar(); } catch (e) { msg('idb-m', e.message, false); }
   buscadorTmdb('idb-q', 'idb-res', 'idb-m', r => con($('idb-q'), 'idb-m', async () => {
     const tipo = r.media_type === 'tv' ? 'serie' : 'pelicula', tmdb = Number(r.id);
-    if (items.some(x => Number(x.tmdb) === tmdb && x.tipo === tipo)) { msg('idb-m', 'Ese título ya está habilitado.', true); return; }
-    const j = await admin({ op: 'guardar_introdb', items: [...items, { tmdb, tipo, titulo: r.title || r.name || 'Título' }] });
-    items = j.items || []; $('idb-q').value = ''; $('idb-res').replaceChildren(); pintar();
+    await introdbAdminLeer();
+    if (introdbAdminItems.some(x => Number(x.tmdb) === tmdb && x.tipo === tipo)) { msg('idb-m', 'Ese título ya está habilitado.', true); return; }
+    await introdbAdminGuardar([...introdbAdminItems, { tmdb, tipo, titulo: r.title || r.name || 'Título' }]);
+    $('idb-q').value = ''; $('idb-res').replaceChildren(); pintar();
   }), r => items.some(x => Number(x.tmdb) === Number(r.id) && x.tipo === (r.media_type === 'tv' ? 'serie' : 'pelicula')) ? ['Activo', 'd'] : null);
+  $('idb-sync').onclick = () => con($('idb-sync'), 'idb-m', async () => {
+    if (!confirm('¿Activar IntroDB para todas las películas y series registradas en la biblioteca? Podrás desactivar títulos individuales después.')) return;
+    await introdbAdminLeer();
+    const [base, pub] = await Promise.all([dIndice(), admin({ op: 'publicadas' })]);
+    const catalogo = [...base, ...(pub.items || []).map(x => ({ ...x, link: x.link || '', eps: x.eps || 0 }))];
+    const map = new Map(introdbAdminItems.map(x => [x.tipo + ':' + Number(x.tmdb), x]));
+    catalogo.forEach(x => {
+      const tmdb = Number(x.tmdb || x.tmdbId) || 0, tipo = x.tipo === 'serie' ? 'serie' : 'pelicula';
+      if (!tmdb || (!(x.link || x.enlace) && !x.eps && !x.episodios)) return;
+      const k = tipo + ':' + tmdb; if (!map.has(k)) map.set(k, { tmdb, tipo, titulo: x.titulo || 'Título' });
+    });
+    const antes = introdbAdminItems.length;
+    await introdbAdminGuardar([...map.values()]);
+    msg('idb-m', 'Sincronización lista: ' + (introdbAdminItems.length - antes) + ' título(s) agregado(s); ' + introdbAdminItems.length + ' habilitado(s) en total.', true);
+  });
 })();
 
 $('x-go').onclick = () => con($('x-go'), 'x-m', async () => {
@@ -1640,7 +1681,7 @@ sePoner(null);
 const TMDB_KEY = '28e735f7aea07e37f38a95d346bcdd7f', TMDB = 'https://api.themoviedb.org/3', IMG = 'https://image.tmdb.org/t/p/';
 let sElegido = null, sTemps = [], sEps = {}, sCache = {}, sDupOk = true, sDupTxt = '';   // sEps: capítulos ya publicados de la serie elegida ("1x3" → enlace)
 const sTipo = () => sElegido && sElegido.media_type === 'tv' ? 'serie' : 'pelicula';
-function sLimpiar() { sElegido = null; sTemps = []; sEps = {}; sCache = {}; sDupOk = true; $('s-dup').hidden = true; $('s-sel').hidden = true; }
+function sLimpiar() { sElegido = null; sTemps = []; sEps = {}; sCache = {}; sDupOk = true; $('s-dup').hidden = true; $('s-sel').hidden = true; $('s-introdb').checked = false; $('s-introdb').disabled = false; }
 /* Buscador de TMDB reutilizable: escribe en inpId, pinta los resultados en resId y llama a alElegir(resultado) */
 function buscadorTmdb(inpId, resId, msgId, alElegir, marca) {
   let timer = null, n = 0;
@@ -1675,6 +1716,8 @@ buscadorTmdb('s-q', 's-res', 's-m', r => sElegir(r), dMarca);
 function sElegir(r) {
   sElegido = r;
   const serie = r.media_type === 'tv';
+  $('s-introdb').checked = false; $('s-introdb').disabled = true;
+  introdbAdminLeer().then(items => { if (sElegido === r) { $('s-introdb').checked = items.some(x => Number(x.tmdb) === Number(r.id) && x.tipo === (serie ? 'serie' : 'pelicula')); $('s-introdb').disabled = false; } }).catch(() => { if (sElegido === r) $('s-introdb').disabled = false; });
   $('s-img').src = r.poster_path ? IMG + 'w185' + r.poster_path : '';
   $('s-tit').value = r.title || r.name || '';
   $('s-info').textContent = [(r.release_date || r.first_air_date || '').slice(0, 4), serie ? 'Serie' : 'Película', 'TMDB ' + r.id].filter(Boolean).join(' · ');
@@ -1754,7 +1797,9 @@ function sFila(t, x) {
     if (!link) throw new Error('Pega el enlace del capítulo ' + x.e + '.');
     inp.disabled = true;
     try {
-      const j = await admin({ op: 'publicar_ep', titulo, tmdb: sElegido.id, t, e: x.e, link });
+      await introdbAdminLeer();
+      const j = await admin({ op: 'publicar_ep', titulo, tmdb: sElegido.id, t, e: x.e, link, introdb: $('s-introdb').checked });
+      introdbAdminCacheTitulo(sElegido.id, 'serie', titulo, $('s-introdb').checked);
       sEps = j.episodios || sEps; marca(); sProg();
       msg('s-m', 'T' + t + ' E' + x.e + ' publicado. En menos de un minuto aparece en la biblioteca.', true);
       const sig = d.nextElementSibling && d.nextElementSibling.querySelector('input'); if (sig) sig.focus();
@@ -1786,12 +1831,14 @@ $('s-no').onclick = () => { sLimpiar(); msg('s-m', '', true); };
 $('s-go').onclick = () => con($('s-go'), 's-m', async () => {
   if (!sElegido) throw new Error('Primero busca y elige el título.');
   if (!sDupOk) throw new Error(sDupTxt);
+  await introdbAdminLeer();
   const titulo = $('s-tit').value.trim(), link = $('s-link').value.trim();
   if (!titulo) throw new Error('Escribe el título.');
   if (!link) throw new Error('Pega el enlace.');
   const serie = sTipo() === 'serie';
   if (serie && !/\{(e|ee)\}/.test(link)) throw new Error('En una serie el enlace debe llevar {e} (capítulo) y {t} (temporada). Usa los botones de arriba.');
-  const j = await admin({ op: 'publicar', titulo, tmdb: sElegido.id, tipo: sTipo(), link });
+  const j = await admin({ op: 'publicar', titulo, tmdb: sElegido.id, tipo: sTipo(), link, introdb: $('s-introdb').checked });
+  introdbAdminCacheTitulo(sElegido.id, sTipo(), titulo, $('s-introdb').checked);
   msg('s-m', (j.actualizada ? 'Actualizada: ' : 'Publicada: ') + titulo + '. En menos de un minuto aparece en la biblioteca.', true);
   sLimpiar();
 });
