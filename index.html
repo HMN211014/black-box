@@ -1263,13 +1263,6 @@ html.en-pip #pcr{display:none}
 <button id="nav-scrim" type="button" aria-label="Cerrar menú"></button>
 <aside id="explore-nav" aria-label="Explorar biblioteca">
   <div class="side-brand"><small>Black BOX</small><strong>Explorar</strong></div>
-  <section class="side-group side-primary"><h2 class="side-label">Secciones</h2><div class="side-list">
-    <button class="side-item on" type="button" data-view="inicio">Películas</button>
-    <button class="side-item" type="button" data-view="series">Series</button>
-    <button class="side-item" type="button" data-view="pedidos">Pedidos</button>
-    <button class="side-item" type="button" data-view="recientes">Recientes</button>
-  </div></section>
-  <section class="side-group" id="side-themes-group" hidden><h2 class="side-label">Destacadas</h2><div class="side-list" id="side-themes"></div></section>
   <section class="side-group" id="side-categories-group" hidden><h2 class="side-label">Categorías</h2><div class="side-list" id="side-categories"></div></section>
   <section class="side-group" id="side-genres-group" hidden><h2 class="side-label">Géneros</h2><div class="side-list" id="side-genres"></div></section>
 </aside>
@@ -3189,10 +3182,6 @@ function marcarDock(v) {
     const on = b.dataset.v === v; b.classList.toggle('on', on);
     if (on) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
   });
-  document.querySelectorAll('#explore-nav [data-view]').forEach(b => {
-    const on = b.dataset.view === v; b.classList.toggle('on', on);
-    if (on) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
-  });
   if (window.posicionarVidrio) window.posicionarVidrio();
 }
 function ponerModo(m) {                              // el inicio sirve para Películas y para Series
@@ -3244,7 +3233,6 @@ function pintarRecientes() {
   H('rec-vacio').hidden = !!lista.length; H('rec-grid').hidden = !lista.length;
 }
 document.querySelectorAll('#dock .dk[data-v]').forEach(b => b.addEventListener('click', () => { if (window.posicionarVidrio) window.posicionarVidrio(b); cerrarBusqueda(); irA(b.dataset.v); }));
-document.querySelectorAll('#explore-nav [data-view]').forEach(b => b.addEventListener('click', () => { cerrarBusqueda(); irA(b.dataset.view); }));
 const menuToggle = H('menu-toggle'), menuPanel = H('explore-nav');
 function cerrarMenuExplorar() {
   document.body.classList.remove('menu-open'); menuToggle.setAttribute('aria-expanded', 'false'); menuToggle.setAttribute('aria-label', 'Abrir menú de exploración');
@@ -3255,7 +3243,7 @@ menuToggle.addEventListener('click', () => {
   menuToggle.setAttribute('aria-label', abrir ? 'Cerrar menú de exploración' : 'Abrir menú de exploración');
 });
 H('nav-scrim').addEventListener('click', cerrarMenuExplorar);
-menuPanel.addEventListener('click', e => { if (e.target.closest('a.side-item, [data-view]')) cerrarMenuExplorar(); });
+menuPanel.addEventListener('click', e => { if (e.target.closest('a.side-item')) cerrarMenuExplorar(); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && document.body.classList.contains('menu-open')) { cerrarMenuExplorar(); menuToggle.focus(); } });
 window.addEventListener('hashchange', () => {
   const hash = location.hash || '';
@@ -4771,9 +4759,9 @@ const marcaGenero = nombre => {
   return palabras.length > 1 ? palabras.slice(0, 2).map(x => x[0]).join('').toLocaleUpperCase('es') : (palabras[0] || '').slice(0, 3).toLocaleUpperCase('es');
 };
 function pintarSideNav() {
-  const cats = H('side-categories'), gens = H('side-genres'), themes = H('side-themes');
-  if (!cats || !gens || !themes) return;
-  cats.replaceChildren(); gens.replaceChildren(); themes.replaceChildren();
+  const cats = H('side-categories'), gens = H('side-genres');
+  if (!cats || !gens) return;
+  cats.replaceChildren(); gens.replaceChildren();
   const hash = location.hash || '';
   const agregarEnlace = (box, href, texto, marca, count, id) => {
     const a = el('a', 'side-item' + (hash === href ? ' on' : ''), ''); a.href = href;
@@ -4788,10 +4776,8 @@ function pintarSideNav() {
   colecciones.forEach(c => agregarEnlace(cats, '#/c/' + c.id, c.nombre, '', pelisDe(c).length, c.id));
   const gs = generosLista();
   gs.forEach(g => agregarEnlace(gens, '#/c/g-' + g.k, g.nombre, marcaGenero(g.nombre), g.n, 'g-' + g.k));
-  secLista().filter(s => (s.ubicacion || 'inicio') === 'inicio').forEach(s => agregarEnlace(themes, '#/s/' + s.id, s.nombre, '', null, s.id));
   H('side-categories-group').hidden = !colecciones.length;
   H('side-genres-group').hidden = !gs.length;
-  H('side-themes-group').hidden = !themes.children.length;
 }
 function pintarGenerosInicio() {
   const box = H('gens'), w = H('gen-w'), L = generosLista(); box.replaceChildren();
