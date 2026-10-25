@@ -2500,19 +2500,20 @@ let tvModo = null, tvPeli = null, tvUrl = '', tvBloq = false;   // transmisión 
 let tvDev = null, dlSt = { estado: '', t: 0, d: 0, vol: -1 }, dlPoll = 0, dlFallos = 0, dlMudo = false, dlVolT = 0;
 let introDbOutro = null, introDbRun = 0;
 const introDbImdb = new Map(), introDbSegments = new Map(), skipDbSegments = new Map();
-let psuggestTimer = 0, psuggestRun = 0, psuggestShown = false, psuggestItem = null;
-function limpiarSugerencia() {
+let psuggestTimer = 0, psuggestRun = 0, psuggestShown = false, psuggestDescartada = false, psuggestItem = null;
+function limpiarSugerencia(nuevaReproduccion = false) {
   clearTimeout(psuggestTimer); psuggestTimer = 0; psuggestRun++; psuggestShown = false; psuggestItem = null;
+  psuggestDescartada = !nuevaReproduccion;
   H('psuggest').hidden = true;
 }
 function programarSugerencia(ms) {
-  if (psuggestShown || (actualEp && siguienteDe(actualEp.serie, actualEp.t, actualEp.e))) return;
+  if (psuggestDescartada || psuggestShown || (actualEp && siguienteDe(actualEp.serie, actualEp.t, actualEp.e))) return;
   clearTimeout(psuggestTimer);
   psuggestTimer = setTimeout(() => { psuggestTimer = 0; mostrarSugerencia(); }, Math.max(0, ms));
 }
 function fuenteRecomendacion() { return actualEp ? actualEp.serie : (actualP || tvPeli); }
 async function mostrarSugerencia() {
-  if (psuggestShown || pl.hidden || !fuenteRecomendacion() || (actualEp && siguienteDe(actualEp.serie, actualEp.t, actualEp.e))) return;
+  if (psuggestDescartada || psuggestShown || pl.hidden || !fuenteRecomendacion() || (actualEp && siguienteDe(actualEp.serie, actualEp.t, actualEp.e))) return;
   const fuente = fuenteRecomendacion(), run = ++psuggestRun;
   psuggestShown = true;
   const ids = await recomendadosTmdb(fuente);
@@ -2534,7 +2535,11 @@ async function mostrarSugerencia() {
   H('psuggest').hidden = false;
 }
 H('psuggest-open').onclick = () => { const p = psuggestItem; if (!p) return; limpiarSugerencia(); cerrarPlayer(); reproducir(p); };
-H('psuggest-later').onclick = limpiarSugerencia;
+H('psuggest-later').onclick = () => limpiarSugerencia();
+document.addEventListener('pointerdown', e => {
+  const aviso = H('psuggest');
+  if (!aviso.hidden && !aviso.contains(e.target)) limpiarSugerencia();
+}, true);
 async function introDbPreparar(p) {
   const run = ++introDbRun, b = p && p.serie ? p.serie : p, serie = !!(p && p.serie) || !!(b && b.tipo === 'serie');
   introDbOutro = null; H('pskip-credits').hidden = true;
@@ -2641,7 +2646,7 @@ async function horizontal() {
   }
 }
 function iniciar(p, url, sinHist) {
-  limpiarSugerencia();
+  limpiarSugerencia(true);
   const id = driveId(url);
   const net = navigator.connection;
   V.preload = net && (net.saveData || /(^|-)2g$/.test(net.effectiveType || '')) ? 'metadata' : 'auto';
