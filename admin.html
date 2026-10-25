@@ -424,7 +424,7 @@ html.en-admin-app body:not(.h) .nav button.on{background:#fff;color:#000}
       .it-dot{width:7px;min-width:7px;height:7px;padding:0;border-radius:50%;background:rgba(255,255,255,.28)}.it-dot.on{background:#fff;scale:1.25}
       .it-controls{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:14px;border:1px solid rgba(255,255,255,.1);border-radius:16px;background:rgba(255,255,255,.045)}
       .it-controls label{margin:0;font-size:12px;color:rgba(255,255,255,.65)}.it-controls select{height:42px;font-size:14px}
-      #it-target[hidden],#it-animation[hidden]{display:none}
+      #it-target[hidden],#it-animation[hidden],#it-trans-target[hidden],#it-trans-style[hidden]{display:none}
       .it-speed{grid-column:1/-1}.it-speed input{height:auto;padding:0;margin-top:8px}
       .it-controls .it-p{grid-column:1/-1;width:100%}
       @media(max-width:520px){.it-c{grid-template-columns:1fr 1fr}.it-p{grid-column:1/-1}}
@@ -453,17 +453,18 @@ html.en-admin-app body:not(.h) .nav button.on{background:#fff;color:#000}
     <label style="display:block;margin-top:12px">Distancia entre toques al arrastrar (px): <b id="it-paso-v">48</b><small class="h">Cada cuántos píxeles de recorrido vibra el arrastre continuo. Menos = textura más fina.</small><input id="it-paso" type="range" min="16" max="160" step="4" value="48" style="height:auto;padding:0;margin-top:6px"></label>
     <label style="display:block;margin-top:12px">Intensidad general: <b id="it-int-v">70</b><small class="h">Escala la fuerza de todas las vibraciones (solo con el plugin Haptico).</small><input id="it-int" type="range" min="10" max="100" step="5" value="70" style="height:auto;padding:0;margin-top:6px"></label>
     <p class="it-g">Transiciones entre pantallas</p>
-    <div class="it-carousel" aria-label="Carrusel de transiciones">
-      <button class="it-arrow" id="it-trans-prev" type="button" aria-label="Transición anterior">‹</button>
+    <div class="it-carousel" aria-label="Carrusel de secciones con transición">
+      <button class="it-arrow" id="it-trans-prev" type="button" aria-label="Sección anterior">‹</button>
       <div class="it-track" id="it-trans-track" aria-live="polite"></div>
-      <button class="it-arrow" id="it-trans-next" type="button" aria-label="Transición siguiente">›</button>
+      <button class="it-arrow" id="it-trans-next" type="button" aria-label="Sección siguiente">›</button>
     </div>
-    <div class="it-dots" id="it-trans-dots" aria-label="Elegir transición"></div>
+    <div class="it-dots" id="it-trans-dots" aria-label="Elegir sección"></div>
     <div class="it-controls">
-      <label>Al cambiar<select id="it-trans-target"></select></label>
-      <label>Transición<select id="it-trans-style"></select></label>
+      <div class="it-anim-list" id="it-trans-list" role="listbox" aria-label="Estilos de transición"></div>
+      <select id="it-trans-target" hidden aria-hidden="true" tabindex="-1"></select>
+      <select id="it-trans-style" hidden aria-hidden="true" tabindex="-1"></select>
       <label class="it-speed">Velocidad · <b id="it-trans-speed-v">100%</b><small class="h">Cada tipo de cambio conserva su propia velocidad.</small><input id="it-trans-speed" type="range" min="50" max="200" step="10" value="100" style="height:auto"></label>
-      <button class="g it-p" id="it-trans-preview" type="button">Probar transición</button>
+      <button class="g it-p" id="it-trans-preview" type="button">Probar transición de la sección</button>
     </div>
     <div class="row" style="margin-top:18px"><button id="it-go" type="button">Guardar</button><button class="g" id="it-cargar" type="button">Cargar los actuales</button><button class="g" id="it-reset" type="button">Valores de fábrica</button></div>
     <p class="m" id="it-m" hidden></p>
@@ -770,16 +771,25 @@ itCargarControles(); itElegirInteraccion(itTarget, false);
 const itTransDraft = Object.fromEntries(IT_TRANS.map(([id]) => [id, { style: 'auto', speed: 100 }]));
 const itTransTrack = $('it-trans-track'), itTransSlides = [], itTransDots = [];
 let itTransTarget = IT_TRANS[0][0], itTransIndex = 0, itTransScrollFrame = 0;
-const IT_TRANS_DESC = { auto: 'El póster se agranda al abrir una ficha', fundido: 'Una pantalla desaparece y la otra aparece', deslizar: 'La pantalla nueva entra desde un lado', zoom: 'La pantalla nueva crece desde el centro', subir: 'La pantalla nueva entra desde abajo', ninguna: 'Cambia de pantalla sin animación' };
+const IT_TRANS_STYLE_DESC = { auto: 'Usa el efecto habitual de la app', fundido: 'La pantalla actual se funde y entra la nueva', deslizar: 'La pantalla nueva entra desde un lado', zoom: 'La pantalla nueva crece desde el centro', subir: 'La pantalla nueva entra desde abajo', ninguna: 'Cambia de pantalla sin animación' };
+const IT_TRANS_GLYPH = { auto: '✦', fundido: '◐', deslizar: '⇢', zoom: '◎', subir: '↑', ninguna: '·' };
+const IT_TRANS_DEMO = { seccion: ['INICIO', 'SERIES', 'Cambiar de sección'], ficha: ['PÓSTER', 'DETALLES', 'Abrir una ficha'], busqueda: ['CATÁLOGO', 'RESULTADOS', 'Ver una búsqueda'] };
 IT_TRANS.forEach(([id, nombre]) => { const o = document.createElement('option'); o.value = id; o.textContent = nombre; $('it-trans-target').appendChild(o); });
 $('it-trans-style').innerHTML = itOpts(IT_TR, 'auto');
+const itTransOptions = [];
 IT_TR.forEach(([key, nombre]) => {
-  const slide = document.createElement('button'); slide.type = 'button'; slide.className = 'it-slide'; slide.dataset.style = key;
-  slide.style.setProperty('--it-hue', String((IT_TR.findIndex(x => x[0] === key) * 57 + 205) % 360));
-  slide.setAttribute('aria-label', nombre + ': ' + (IT_TRANS_DESC[key] || ''));
-  slide.innerHTML = '<div class="it-poster it-trans-demo"><div class="it-screen a"><span class="it-poster-mark">BLACK BOX ORIGINAL</span><b class="it-art-watermark">BB</b><span class="it-art-copy"><small>INICIO</small><b>Una pantalla<br>se transforma</b></span></div><div class="it-screen b"><span class="it-poster-mark">BLACK BOX ORIGINAL</span><b class="it-art-watermark">BB</b><span class="it-art-copy"><small>SERIES</small><b>Otra historia<br>comienza</b></span></div></div><strong>' + nombre + '</strong><small>' + (IT_TRANS_DESC[key] || '') + '</small>';
-  slide.addEventListener('click', () => itTransElegir(key, true)); itTransTrack.appendChild(slide); itTransSlides.push(slide);
-  const dot = document.createElement('button'); dot.type = 'button'; dot.className = 'it-dot'; dot.setAttribute('aria-label', 'Elegir ' + nombre); dot.onclick = () => itTransElegir(key, true); $('it-trans-dots').appendChild(dot); itTransDots.push(dot);
+  const option = document.createElement('button'); option.type = 'button'; option.className = 'it-anim-opt'; option.dataset.style = key; option.setAttribute('role', 'option'); option.setAttribute('aria-selected', 'false');
+  option.innerHTML = '<span class="it-anim-glyph" aria-hidden="true">' + (IT_TRANS_GLYPH[key] || '•') + '</span><span class="it-anim-copy"><b>' + nombre + '</b><small>' + (IT_TRANS_STYLE_DESC[key] || '') + '</small></span><span class="it-anim-check" aria-hidden="true">✓</span>';
+  option.addEventListener('click', () => itTransElegir(key, true)); $('it-trans-list').appendChild(option); itTransOptions.push(option);
+});
+IT_TRANS.forEach(([id, nombre, desc], index) => {
+  const demo = IT_TRANS_DEMO[id] || ['INICIO', 'NUEVA PANTALLA', nombre];
+  const slide = document.createElement('button'); slide.type = 'button'; slide.className = 'it-slide'; slide.dataset.section = id;
+  slide.style.setProperty('--it-hue', String((index * 57 + 205) % 360));
+  slide.setAttribute('aria-label', nombre + ': ' + (desc || ''));
+  slide.innerHTML = '<div class="it-poster it-trans-demo"><div class="it-screen a"><span class="it-poster-mark">BLACK BOX · ' + demo[0] + '</span><b class="it-art-watermark">BB</b><span class="it-art-copy"><small>' + demo[2] + '</small><b>' + demo[0] + '</b></span></div><div class="it-screen b"><span class="it-poster-mark">BLACK BOX · ' + demo[1] + '</span><b class="it-art-watermark">BB</b><span class="it-art-copy"><small>' + demo[2] + '</small><b>' + demo[1] + '</b></span></div></div><strong>' + nombre + '</strong><small>' + (desc || '') + '</small>';
+  slide.addEventListener('click', () => itTransElegirSeccion(id, true)); itTransTrack.appendChild(slide); itTransSlides.push(slide);
+  const dot = document.createElement('button'); dot.type = 'button'; dot.className = 'it-dot'; dot.setAttribute('aria-label', 'Elegir ' + nombre); dot.onclick = () => itTransElegirSeccion(id, true); $('it-trans-dots').appendChild(dot); itTransDots.push(dot);
 });
 function itTransGuardarBorrador() {
   if (!itTransTarget) return;
@@ -799,37 +809,46 @@ function itTransProbarVisual(style, speed, slide = itTransSlides[itTransIndex]) 
   const ob = b.animate(k[1], { duration: Math.round(380 * escala), delay: Math.round(160 * escala), fill: 'forwards' });
   ob.finished.then(() => setTimeout(() => { oa.cancel(); ob.cancel(); }, 400), () => {});
 }
-function itTransElegir(style, desplazar) {
-  const i = Math.max(0, IT_TR.findIndex(x => x[0] === style)), cambio = i !== itTransIndex; itTransIndex = i;
+function itTransElegir(style, probar) {
+  const key = IT_TR.some(x => x[0] === style) ? style : 'auto';
+  $('it-trans-style').value = key;
+  itTransOptions.forEach(o => { const on = o.dataset.style === key; o.classList.toggle('on', on); o.setAttribute('aria-selected', String(on)); });
+  itTransGuardarBorrador();
+  if (probar) itTransProbarVisual(key, $('it-trans-speed').value, itTransSlides[itTransIndex]);
+}
+function itTransElegirSeccion(id, desplazar) {
+  const i = Math.max(0, IT_TRANS.findIndex(x => x[0] === id));
+  if (itTransTarget !== IT_TRANS[i][0]) itTransGuardarBorrador();
+  itTransIndex = i; itTransTarget = IT_TRANS[i][0]; $('it-trans-target').value = itTransTarget;
   itTransSlides.forEach((s, n) => { s.classList.toggle('on', n === i); s.setAttribute('aria-current', n === i ? 'true' : 'false'); });
   itTransDots.forEach((d, n) => { d.classList.toggle('on', n === i); d.setAttribute('aria-pressed', String(n === i)); });
-  $('it-trans-style').value = IT_TR[i][0]; itTransGuardarBorrador();
-  if (cambio) itTransProbarVisual(IT_TR[i][0], $('it-trans-speed').value, itTransSlides[i]);
+  itTransCargarControles();
   if (desplazar) {
     const r = itTransSlides[i].getBoundingClientRect(), t = itTransTrack.getBoundingClientRect();
     itTransTrack.scrollTo({ left: itTransTrack.scrollLeft + r.left - t.left - (t.width - r.width) / 2, behavior: 'smooth' });
   }
+  if (desplazar) itTransProbarVisual($('it-trans-style').value, $('it-trans-speed').value, itTransSlides[i]);
 }
 function itTransCargarControles() {
   const x = itTransDraft[itTransTarget] || { style: 'auto', speed: 100 };
   $('it-trans-speed').value = Math.max(50, Math.min(200, Number(x.speed) || 100));
-  $('it-trans-speed-v').textContent = $('it-trans-speed').value + '%'; itTransElegir(x.style || 'auto', true);
+  $('it-trans-speed-v').textContent = $('it-trans-speed').value + '%'; itTransElegir(x.style || 'auto', false);
 }
-$('it-trans-target').addEventListener('change', () => { itTransGuardarBorrador(); itTransTarget = $('it-trans-target').value; itTransCargarControles(); });
+$('it-trans-target').addEventListener('change', () => itTransElegirSeccion($('it-trans-target').value, false));
 $('it-trans-style').addEventListener('change', () => itTransElegir($('it-trans-style').value, true));
 $('it-trans-speed').addEventListener('input', () => { $('it-trans-speed-v').textContent = $('it-trans-speed').value + '%'; itTransGuardarBorrador(); });
-$('it-trans-prev').onclick = () => itTransElegir(IT_TR[Math.max(0, itTransIndex - 1)][0], true);
-$('it-trans-next').onclick = () => itTransElegir(IT_TR[Math.min(IT_TR.length - 1, itTransIndex + 1)][0], true);
+$('it-trans-prev').onclick = () => itTransElegirSeccion(IT_TRANS[Math.max(0, itTransIndex - 1)][0], true);
+$('it-trans-next').onclick = () => itTransElegirSeccion(IT_TRANS[Math.min(IT_TRANS.length - 1, itTransIndex + 1)][0], true);
 itTransTrack.addEventListener('scroll', () => {
   cancelAnimationFrame(itTransScrollFrame); itTransScrollFrame = requestAnimationFrame(() => {
     const c = itTransTrack.getBoundingClientRect(), centro = c.left + c.width / 2;
     let mejor = 0, dist = Infinity;
     itTransSlides.forEach((s, i) => { const r = s.getBoundingClientRect(), d = Math.abs(r.left + r.width / 2 - centro); if (d < dist) { dist = d; mejor = i; } });
-    if (mejor !== itTransIndex) itTransElegir(IT_TR[mejor][0], false);
+    if (mejor !== itTransIndex) itTransElegirSeccion(IT_TRANS[mejor][0], false);
   });
 });
 $('it-trans-preview').onclick = () => { itTransGuardarBorrador(); itTransProbarVisual($('it-trans-style').value, $('it-trans-speed').value); };
-itTransCargarControles();
+itTransCargarControles(); itTransElegirSeccion(itTransTarget, false);
 IT_SOLO.forEach(g => itFila($('it-vib'), g[0], g[1], g[2], false));
 IT_DEDO.forEach(g => itFila($('it-dedo'), 'm_' + g[0], g[1], g[2], false));
 ['paso', 'int'].forEach(k => $('it-' + k).addEventListener('input', () => { $('it-' + k + '-v').textContent = $('it-' + k).value; }));
