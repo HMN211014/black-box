@@ -395,7 +395,7 @@ html.en-admin-app body:not(.h) .nav button.on{background:#fff;color:#000}
 
   <div class="c w" data-g="interacciones">
     <h2>Animaciones, transiciones y vibraciones</h2>
-    <p class="s">Asigna a cada gesto o interacción de la app una animación y una vibración, y elige cómo cambian las pantallas. «Ninguna» deja el comportamiento de siempre. Toca <b>Probar</b> para verlo (la vibración se siente al abrir esta página en tu teléfono).</p>
+    <p class="s">Asigna a cada gesto o interacción de la app una animación y una vibración, y elige cómo cambian las pantallas. «Ninguna» deja el comportamiento de siempre. Los cambios se guardan automáticamente al terminar de ajustar cada control. Toca <b>Probar</b> para verlo (la vibración se siente al abrir esta página en tu teléfono).</p>
     <style>
       .it-g{margin:18px 0 8px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.5)}
       .it-f{display:grid;grid-template-columns:1fr;gap:8px;padding:12px;margin-top:8px;border-radius:16px;background:rgba(255,255,255,.06)}
@@ -485,7 +485,7 @@ html.en-admin-app body:not(.h) .nav button.on{background:#fff;color:#000}
       <label class="it-speed">Velocidad · <b id="it-trans-speed-v">100%</b><small class="h">Cada tipo de cambio conserva su propia velocidad.</small><input id="it-trans-speed" type="range" min="50" max="200" step="10" value="100" style="height:auto"></label>
       <button class="g it-p" id="it-trans-preview" type="button">Probar transición de la sección</button>
     </div>
-    <div class="row" style="margin-top:18px"><button id="it-go" type="button">Guardar</button><button class="g" id="it-cargar" type="button">Cargar los actuales</button><button class="g" id="it-reset" type="button">Valores de fábrica</button></div>
+    <div class="row" style="margin-top:18px"><button id="it-go" type="button">Guardar ahora</button><button class="g" id="it-cargar" type="button">Cargar los actuales</button><button class="g" id="it-reset" type="button">Valores de fábrica</button></div>
     <p class="m" id="it-m" hidden></p>
   </div>
 
@@ -610,6 +610,10 @@ function comprobarClave() {
     if (!$('clave').value) throw new Error('Escribe la clave de administrador.');
     await admin({ op: 'verificar_clave' });
     msg('clave-m', 'La clave es correcta.', true);
+    if (window.bbAdminCargarInteracciones) {
+      try { await window.bbAdminCargarInteracciones(); }
+      catch (e) { msg('it-m', 'La clave es correcta, pero no se pudieron cargar los últimos cambios: ' + e.message, false); }
+    }
   });
 }
 $('clave-ver').onclick = () => {
@@ -756,6 +760,7 @@ function itElegirAnim(anim, probar) {
   $('it-animation').value = key;
   itAnimOptions.forEach(o => { const on = o.dataset.anim === key; o.classList.toggle('on', on); o.setAttribute('aria-selected', String(on)); });
   itGuardarBorrador();
+  if (probar) itProgramarAutoGuardado();
   if (probar) itProbarVisual(key, $('it-speed').value);
 }
 function itElegirInteraccion(id, desplazar) {
@@ -778,8 +783,9 @@ function itCargarControles() {
 }
 $('it-target').addEventListener('change', () => itElegirInteraccion($('it-target').value, false));
 $('it-animation').addEventListener('change', () => itElegirAnim($('it-animation').value, true));
-$('it-vibration').addEventListener('change', itGuardarBorrador);
-$('it-speed').addEventListener('input', () => { $('it-speed-v').textContent = $('it-speed').value + '%'; itGuardarBorrador(); });
+$('it-vibration').addEventListener('change', () => { itGuardarBorrador(); itProgramarAutoGuardado(); });
+$('it-speed').addEventListener('input', () => { $('it-speed-v').textContent = $('it-speed').value + '%'; itGuardarBorrador(); itProgramarAutoGuardado(); });
+['it-vib', 'it-dedo'].forEach(id => $(id).addEventListener('change', e => { if (e.target.matches('[data-it]')) itProgramarAutoGuardado(); }));
 $('it-prev').onclick = () => itElegirInteraccion(IT_GESTOS[Math.max(0, itGestureIndex - 1)][0], true);
 $('it-next').onclick = () => itElegirInteraccion(IT_GESTOS[Math.min(IT_GESTOS.length - 1, itGestureIndex + 1)][0], true);
 itTrack.addEventListener('scroll', () => {
@@ -843,6 +849,7 @@ function itTransElegir(style, probar) {
   $('it-trans-style').value = key;
   itTransOptions.forEach(o => { const on = o.dataset.style === key; o.classList.toggle('on', on); o.setAttribute('aria-selected', String(on)); });
   itTransGuardarBorrador();
+  if (probar) itProgramarAutoGuardado();
   if (probar) itTransProbarVisual(key, $('it-trans-speed').value, itTransSlides[itTransIndex]);
 }
 function itTransElegirSeccion(id, desplazar) {
@@ -865,7 +872,7 @@ function itTransCargarControles() {
 }
 $('it-trans-target').addEventListener('change', () => itTransElegirSeccion($('it-trans-target').value, false));
 $('it-trans-style').addEventListener('change', () => itTransElegir($('it-trans-style').value, true));
-$('it-trans-speed').addEventListener('input', () => { $('it-trans-speed-v').textContent = $('it-trans-speed').value + '%'; itTransGuardarBorrador(); });
+$('it-trans-speed').addEventListener('input', () => { $('it-trans-speed-v').textContent = $('it-trans-speed').value + '%'; itTransGuardarBorrador(); itProgramarAutoGuardado(); });
 $('it-trans-prev').onclick = () => itTransElegirSeccion(IT_TRANS[Math.max(0, itTransIndex - 1)][0], true);
 $('it-trans-next').onclick = () => itTransElegirSeccion(IT_TRANS[Math.min(IT_TRANS.length - 1, itTransIndex + 1)][0], true);
 itTransTrack.addEventListener('scroll', () => {
@@ -880,7 +887,7 @@ $('it-trans-preview').onclick = () => { itTransGuardarBorrador(); itTransProbarV
 itTransCargarControles(); itTransElegirSeccion(itTransTarget, false);
 IT_SOLO.forEach(g => itFila($('it-vib'), g[0], g[1], g[2], false));
 IT_DEDO.forEach(g => itFila($('it-dedo'), 'm_' + g[0], g[1], g[2], false));
-['paso', 'int'].forEach(k => $('it-' + k).addEventListener('input', () => { $('it-' + k + '-v').textContent = $('it-' + k).value; }));
+['paso', 'int'].forEach(k => $('it-' + k).addEventListener('input', () => { $('it-' + k + '-v').textContent = $('it-' + k).value; itProgramarAutoGuardado(); }));
 const itLeer = () => {
   itGuardarBorrador();
   const i = Object.fromEntries(IT_GESTOS.map(([id]) => [id, { ...itDraft[id] }])), t = {};
@@ -907,9 +914,51 @@ function itPoner(o) {
   IT_DEDO.forEach(([k]) => { const s = document.querySelector('[data-it="m_' + k + '"][data-c="v"]'); if (s) s.value = m[k] || 'ninguna'; });
   $('it-paso').value = m.paso || 48; $('it-int').value = m.intensidad || 70; $('it-paso-v').textContent = $('it-paso').value; $('it-int-v').textContent = $('it-int').value;
 }
-$('it-reset').onclick = () => { itPoner({}); msg('it-m', 'Se pusieron los valores de fábrica. Falta guardar.', true); };
-$('it-cargar').onclick = () => con($('it-cargar'), 'it-m', async () => { itPoner((await admin({ op: 'interacciones' })).item); msg('it-m', 'Se cargó lo que está guardado.', true); });
-$('it-go').onclick = () => con($('it-go'), 'it-m', async () => { await admin({ op: 'guardar_interacciones', interacciones: itLeer() }); msg('it-m', 'Guardado. En la app se actualiza en menos de un minuto.', true); });
+let itAutoTimer = 0, itAutoVersion = 0, itAutoGuardando = false, itAutoTieneEdiciones = false, itAutoQueue = Promise.resolve();
+function itPersistir(datos) {
+  const tarea = itAutoQueue.then(() => admin({ op: 'guardar_interacciones', interacciones: datos }));
+  itAutoQueue = tarea.catch(() => {});
+  return tarea;
+}
+function itProgramarAutoGuardado() {
+  const version = ++itAutoVersion; itAutoTieneEdiciones = true;
+  clearTimeout(itAutoTimer); msg('it-m', 'Cambios pendientes de guardado…', true);
+  itAutoTimer = setTimeout(() => itAutoGuardar(version), 650);
+}
+async function itAutoGuardar(version) {
+  if (itAutoGuardando) return;
+  itAutoGuardando = true; msg('it-m', 'Guardando automáticamente…', true);
+  try {
+    await itPersistir(itLeer());
+    if (version === itAutoVersion) { itAutoTieneEdiciones = false; msg('it-m', 'Últimos cambios guardados automáticamente.', true); }
+  } catch (e) {
+    if (version === itAutoVersion) msg('it-m', 'No se pudieron guardar los cambios: ' + e.message, false);
+  } finally {
+    itAutoGuardando = false;
+    if (itAutoVersion > version) { clearTimeout(itAutoTimer); itAutoTimer = setTimeout(() => itAutoGuardar(itAutoVersion), 250); }
+  }
+}
+async function itCargarGuardados(preservarEdiciones = false) {
+  clearTimeout(itAutoTimer);
+  await itAutoQueue;
+  if (preservarEdiciones && itAutoTieneEdiciones) {
+    await itPersistir(itLeer()); itAutoTieneEdiciones = false;
+    msg('it-m', 'Se guardaron tus cambios pendientes.', true); return;
+  }
+  const respuesta = await admin({ op: 'interacciones' });
+  itPoner(respuesta.item || {}); itAutoTieneEdiciones = false;
+  msg('it-m', 'Se cargaron los últimos cambios guardados.', true);
+}
+window.bbAdminCargarInteracciones = () => itCargarGuardados(true);
+$('it-reset').onclick = () => { itPoner({}); msg('it-m', 'Restableciendo y guardando los valores de fábrica…', true); itProgramarAutoGuardado(); };
+$('it-cargar').onclick = () => con($('it-cargar'), 'it-m', itCargarGuardados);
+$('it-go').onclick = () => con($('it-go'), 'it-m', async () => {
+  clearTimeout(itAutoTimer);
+  const version = itAutoVersion;
+  await itPersistir(itLeer());
+  if (version === itAutoVersion) itAutoTieneEdiciones = false;
+  msg('it-m', 'Últimos cambios guardados. En la app se actualizan en menos de un minuto.', true);
+});
 function acBrillo() { const v = +$('ac-brillo').value; $('ac-bv').textContent = v; $('ac-pvi').style.boxShadow = '0 0 ' + (v * .7) + 'px ' + (v * .22) + 'px rgba(96,156,255,' + (v / 100 * .9).toFixed(2) + ')'; }
 $('ac-brillo').addEventListener('input', acBrillo); acBrillo();
 $('ac-cargar').onclick = () => con($('ac-cargar'), 'ac-m', async () => {
