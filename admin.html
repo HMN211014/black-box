@@ -223,7 +223,8 @@ html.en-admin-app body:not(.h) .nav button.on{background:#fff;color:#000}
         <button class="g" type="button" data-v="{t}">+ {t} temporada</button><button class="g" type="button" data-v="{e}">+ {e} capítulo</button><button class="g" type="button" data-v="{tt}">+ {tt} temp. con cero</button><button class="g" type="button" data-v="{ee}">+ {ee} cap. con cero</button>
       </div>
       <p class="s" id="s-ayuda" hidden>Pon el enlace de un capítulo y cambia los números por las marcas. Ejemplo: <b>https://…/Serie/T{t}/E{e}.mp4</b> sirve para todos los capítulos.</p>
-      <div class="row" style="margin-top:12px"><button id="s-go" type="button">Publicar en la biblioteca</button></div>
+      <p class="s" style="margin:8px 0 0">Si el título ya está registrado, deja el enlace vacío para guardar los cambios sin reemplazar el enlace actual.</p>
+      <div class="row" style="margin-top:12px"><button id="s-go" type="button">Publicar o actualizar</button></div>
       </div>
       <div class="row" style="margin-top:12px"><button class="g" id="s-no" type="button">Cerrar</button></div>
     </div>
@@ -1125,7 +1126,7 @@ $('x-go').onclick = () => con($('x-go'), 'x-m', async () => {
     const tx = document.createElement('div'); tx.className = 'tx';
     const b = document.createElement('b'); b.textContent = x.titulo;
     const sm = document.createElement('small');
-    const detallePub = () => (x.tipo === 'serie' ? 'Serie' : 'Película') + (x.eps ? ' · ' + x.eps + ' capítulo(s) sueltos' : '') + ' · ' + (x.version === 'subtitulada' ? 'Subtitulada' : 'Español latino') + ' · TMDB ' + x.tmdb;
+    const detallePub = () => (x.tipo === 'serie' ? 'Serie' : 'Película') + (x.eps ? ' · ' + x.eps + ' capítulo(s) sueltos' : '') + ' · ' + (x.proximamente ? 'Próximamente' : (x.version === 'subtitulada' ? 'Subtitulada' : 'Español latino')) + ' · TMDB ' + x.tmdb;
     sm.textContent = detallePub();
     tx.append(b, sm);
     const q = document.createElement('button'); q.className = 'g'; q.type = 'button'; q.textContent = 'Quitar de la biblioteca';
@@ -1157,7 +1158,14 @@ $('x-go').onclick = () => con($('x-go'), 'x-m', async () => {
       });
       row.append(save, cancel); vf.append(tit, lab, row); d.appendChild(vf);
     };
-    d.append(tx, ed, ve, q); box.appendChild(d);
+    const px = document.createElement('button'); px.className = 'g'; px.type = 'button'; px.textContent = x.proximamente ? 'Publicar ahora' : 'Marcar Próximamente';
+    px.onclick = () => con(px, 'x-m', async () => {
+      const nuevoEstado = !x.proximamente;
+      await admin({ op: 'estado_publicacion', tmdb: x.tmdb, proximamente: nuevoEstado });
+      x.proximamente = nuevoEstado; px.textContent = nuevoEstado ? 'Publicar ahora' : 'Marcar Próximamente'; sm.textContent = detallePub();
+      msg('x-m', nuevoEstado ? '«' + x.titulo + '» se mostrará como Próximamente; su enlace quedó guardado.' : '«' + x.titulo + '» vuelve a estar publicado.', true);
+    });
+    d.append(tx, ed, ve, px, q); box.appendChild(d);
   });
 });
 
@@ -1504,7 +1512,12 @@ function enlaceForm(cfg) {
   const r = seEl('div', 'row'), ok = seEl('button', '', 'Guardar enlace'), no = seEl('button', 'g', 'Cancelar'); ok.type = no.type = 'button';
   no.onclick = cfg.alCancelar;
   const guardar = () => con(ok, mid, async () => {
-    const link = inp.value.trim(); if (!/^https?:\/\/\S{4,2000}$/.test(link)) throw new Error('El enlace debe empezar con http:// o https://');
+    const link = inp.value.trim();
+    if (!link && cfg.existe) {
+      await admin({ op: 'actualizar_publicacion', tmdb: x.tmdb, titulo: cfg.titulo || x.titulo, tipo: serie ? 'serie' : 'pelicula', version: x.version === 'subtitulada' ? 'subtitulada' : 'latino' });
+      cfg.alGuardar(cfg.actual || ''); return;
+    }
+    if (!/^https?:\/\/\S{4,2000}$/.test(link)) throw new Error('El enlace debe empezar con http:// o https://');
     await admin({ op: 'publicar', titulo: cfg.titulo || x.titulo, tmdb: x.tmdb, tipo: serie ? 'serie' : 'pelicula', link });
     cfg.alGuardar(link);
   });
@@ -1858,12 +1871,13 @@ $('s-go').onclick = () => con($('s-go'), 's-m', async () => {
   await introdbAdminLeer();
   const titulo = $('s-tit').value.trim(), link = $('s-link').value.trim();
   if (!titulo) throw new Error('Escribe el título.');
-  if (!link) throw new Error('Pega el enlace.');
   const serie = sTipo() === 'serie';
-  if (serie && !/\{(e|ee)\}/.test(link)) throw new Error('En una serie el enlace debe llevar {e} (capítulo) y {t} (temporada). Usa los botones de arriba.');
-  const j = await admin({ op: 'publicar', titulo, tmdb: sElegido.id, tipo: sTipo(), link, version: $('s-version').value, introdb: $('s-introdb').checked });
+  if (link && serie && !/\{(e|ee)\}/.test(link)) throw new Error('En una serie el enlace debe llevar {e} (capítulo) y {t} (temporada). Usa los botones de arriba.');
+  const j = link
+    ? await admin({ op: 'publicar', titulo, tmdb: sElegido.id, tipo: sTipo(), link, version: $('s-version').value, introdb: $('s-introdb').checked })
+    : await admin({ op: 'actualizar_publicacion', titulo, tmdb: sElegido.id, tipo: sTipo(), version: $('s-version').value, introdb: $('s-introdb').checked });
   introdbAdminCacheTitulo(sElegido.id, sTipo(), titulo, $('s-introdb').checked);
-  msg('s-m', (j.actualizada ? 'Actualizada: ' : 'Publicada: ') + titulo + '. En menos de un minuto aparece en la biblioteca.', true);
+  msg('s-m', (j.actualizada || !link ? 'Actualizada sin cambiar el enlace: ' : 'Publicada: ') + titulo + '. En menos de un minuto aparece en la biblioteca.', true);
   sLimpiar();
 });
 

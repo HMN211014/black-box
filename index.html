@@ -1808,8 +1808,15 @@ const peliculas = (window.PELICULAS_DB && window.PELICULAS_DB.length) ? window.P
    Si el mismo código de TMDB ya está en la lista de arriba, se respeta la de arriba. */
 (window.PELICULAS_EXTRA || []).forEach(x => {
   const sr = x && x.tipo === 'serie';
-  if (x && x.titulo && (x.link || (sr && x.episodios)) && !peliculas.some(p => p.tmdb && Number(p.tmdb) === Number(x.tmdb) && (p.tipo === 'serie') === sr))
-    peliculas.push(sr ? { titulo: x.titulo, tipo: 'serie', tmdb: x.tmdb, version: x.version, enlace: x.link || '', ...(x.episodios ? { episodios: x.episodios } : {}) } : { titulo: x.titulo, tmdb: x.tmdb, version: x.version, link: x.link });
+  if (!x || !x.titulo) return;
+  const existente = peliculas.find(p => p.tmdb && Number(p.tmdb) === Number(x.tmdb) && (p.tipo === 'serie') === sr);
+  if (existente) {
+    if (x.proximamente) { existente.link = ''; existente.enlace = ''; existente.plantilla = ''; delete existente.episodios; existente.proximamente = true; }
+    if (x.version) existente.version = x.version;
+    return;
+  }
+  if (x.link || x.proximamente || (sr && x.episodios))
+    peliculas.push(sr ? { titulo: x.titulo, tipo: 'serie', tmdb: x.tmdb, version: x.version, proximamente: !!x.proximamente, enlace: x.proximamente ? '' : (x.link || ''), ...(!x.proximamente && x.episodios ? { episodios: x.episodios } : {}) } : { titulo: x.titulo, tmdb: x.tmdb, version: x.version, proximamente: !!x.proximamente, link: x.proximamente ? '' : x.link });
 });
 /* Colecciones creadas desde el panel de admin: se suman a las de colecciones.js (si un id se repite, la versión del panel reemplaza a la del archivo en su mismo lugar; el archivo no se toca). */
 if (typeof COLECCIONES !== 'undefined') (window.COLECCIONES_EXTRA || []).forEach(c => { if (!c || !c.id) return; const i = COLECCIONES.findIndex(x => x.id === c.id); if (i < 0) COLECCIONES.push(c); else COLECCIONES[i] = c; });

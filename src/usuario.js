@@ -187,12 +187,13 @@ let catListo = null;      // promesa: tablas creadas y copia desde KV hecha (una
 function prepararCatalogo(db, kv) {
   if (!catListo) catListo = (async () => {
     await db.batch([
-      db.prepare("CREATE TABLE IF NOT EXISTS publicados (tmdb INTEGER PRIMARY KEY, titulo TEXT NOT NULL, tipo TEXT NOT NULL DEFAULT 'pelicula', link TEXT NOT NULL DEFAULT '', episodios TEXT NOT NULL DEFAULT '{}', version TEXT NOT NULL DEFAULT 'latino', creado INTEGER NOT NULL)"),
+      db.prepare("CREATE TABLE IF NOT EXISTS publicados (tmdb INTEGER PRIMARY KEY, titulo TEXT NOT NULL, tipo TEXT NOT NULL DEFAULT 'pelicula', link TEXT NOT NULL DEFAULT '', episodios TEXT NOT NULL DEFAULT '{}', version TEXT NOT NULL DEFAULT 'latino', proximamente INTEGER NOT NULL DEFAULT 0, creado INTEGER NOT NULL)"),
       db.prepare('CREATE TABLE IF NOT EXISTS meta (clave TEXT PRIMARY KEY, valor TEXT) WITHOUT ROWID'),
       db.prepare('CREATE TABLE IF NOT EXISTS colecciones (id TEXT PRIMARY KEY, datos TEXT NOT NULL, creado INTEGER NOT NULL)'),
       db.prepare('CREATE TABLE IF NOT EXISTS secciones (id TEXT PRIMARY KEY, datos TEXT NOT NULL, creado INTEGER NOT NULL)')
     ]);
     try { await db.prepare("ALTER TABLE publicados ADD COLUMN version TEXT NOT NULL DEFAULT 'latino'").run(); } catch (e) { if (!/duplicate column/i.test(String(e && e.message))) throw e; }
+    try { await db.prepare('ALTER TABLE publicados ADD COLUMN proximamente INTEGER NOT NULL DEFAULT 0').run(); } catch (e) { if (!/duplicate column/i.test(String(e && e.message))) throw e; }
     const hecho = await db.prepare("SELECT valor FROM meta WHERE clave = 'catalogo_desde_kv'").first();
     if (hecho) return;
     let items = [], leido = true;
@@ -522,8 +523,8 @@ async function manejar({ request, env, params, waitUntil }) {
     try {
       if (db) {
         await prepararCatalogo(db, kv);
-        const r = await db.prepare('SELECT titulo, tmdb, link, tipo, episodios, version FROM publicados ORDER BY creado, tmdb').all();
-        items = r.results.map(i => { const eps = epsDe(i.episodios); return { titulo: i.titulo, tmdb: i.tmdb, link: i.link, version: i.version === 'subtitulada' ? 'subtitulada' : 'latino', ...(i.tipo === 'serie' ? { tipo: 'serie' } : {}), ...(Object.keys(eps).length ? { episodios: eps } : {}) }; });
+        const r = await db.prepare('SELECT titulo, tmdb, link, tipo, episodios, version, proximamente FROM publicados ORDER BY creado, tmdb').all();
+        items = r.results.map(i => { const eps = epsDe(i.episodios), px = !!i.proximamente; return { titulo: i.titulo, tmdb: i.tmdb, link: px ? '' : i.link, version: i.version === 'subtitulada' ? 'subtitulada' : 'latino', ...(px ? { proximamente: true } : {}), ...(i.tipo === 'serie' ? { tipo: 'serie' } : {}), ...(!px && Object.keys(eps).length ? { episodios: eps } : {}) }; });
       }
     } catch (e) { console.error('[extras]', e && e.message); }
     let cols = [];
@@ -664,7 +665,7 @@ async function manejar({ request, env, params, waitUntil }) {
       const version = cuerpo.version === 'subtitulada' ? 'subtitulada' : cuerpo.version === 'latino' ? 'latino' : null;
       const ya = await db.prepare('SELECT 1 AS x FROM publicados WHERE tmdb = ?1').bind(tmdb).first();
       if (!ya && (await totalPublicados(db)) >= 1500) return json({ error: 'Ya hay demasiadas películas publicadas desde el panel.' }, 400);
-      await db.prepare("INSERT INTO publicados (tmdb, titulo, tipo, link, episodios, version, creado) VALUES (?1, ?2, ?3, ?4, '{}', COALESCE(?5, 'latino'), ?6) ON CONFLICT(tmdb) DO UPDATE SET titulo = ?2, tipo = ?3, link = ?4, version = COALESCE(?5, publicados.version)")
+      await db.prepare("INSERT INTO publicados (tmdb, titulo, tipo, link, episodios, version, proximamente, creado) VALUES (?1, ?2, ?3, ?4, '{}', COALESCE(?5, 'latino'), 0, ?6) ON CONFLICT(tmdb) DO UPDATE SET titulo = ?2, tipo = ?3, link = ?4, version = COALESCE(?5, publicados.version), proximamente = 0")
         .bind(tmdb, titulo, tipo, link, version, Date.now()).run();       // si ya existía, se conservan sus capítulos sueltos
       if (cuerpo.introdb !== undefined) await guardarIntroDbTitulo(db, tmdb, tipo, titulo, cuerpo.introdb === true);
       let lista = null;
@@ -678,8 +679,8 @@ async function manejar({ request, env, params, waitUntil }) {
 
     if (cuerpo.op === 'publicadas') {
       await prepararCatalogo(db, kv);
-      const r = await db.prepare('SELECT titulo, tmdb, link, tipo, episodios, version FROM publicados ORDER BY creado DESC').all();
-      return json({ items: r.results.map(i => ({ titulo: i.titulo, tmdb: i.tmdb, link: i.link, tipo: i.tipo, version: i.version === 'subtitulada' ? 'subtitulada' : 'latino', eps: Object.keys(epsDe(i.episodios)).length })) });
+      const r = await db.prepare('SELECT titulo, tmdb, link, tipo, episodios, version, proximamente FROM publicados ORDER BY creado DESC').all();
+      return json({ items: r.results.map(i => ({ titulo: i.titulo, tmdb: i.tmdb, link: i.link, tipo: i.tipo, version: i.version === 'subtitulada' ? 'subtitulada' : 'latino', proximamente: !!i.proximamente, eps: Object.keys(epsDe(i.episodios)).length })) });
     }
 
     if (cuerpo.op === 'version_titulo') {
@@ -691,6 +692,27 @@ async function manejar({ request, env, params, waitUntil }) {
       if (!existe) return json({ error: 'Ese título ya no está registrado en la biblioteca.' }, 404);
       await db.prepare('UPDATE publicados SET version = ?2 WHERE tmdb = ?1').bind(tmdb, version).run();
       return json({ tmdb, version });
+    }
+
+    if (cuerpo.op === 'actualizar_publicacion') {
+      await prepararCatalogo(db, kv);
+      const tmdb = Math.floor(Number(cuerpo.tmdb)) || 0, titulo = String(cuerpo.titulo || '').trim().slice(0, 200);
+      const tipo = cuerpo.tipo === 'serie' ? 'serie' : 'pelicula', version = cuerpo.version === 'subtitulada' ? 'subtitulada' : cuerpo.version === 'latino' ? 'latino' : null;
+      if (!tmdb || !titulo || !version) return json({ error: 'Faltan el título o la versión.' }, 400);
+      const existe = await db.prepare('SELECT 1 AS x FROM publicados WHERE tmdb = ?1').bind(tmdb).first();
+      if (!existe) return json({ error: 'Este título no está publicado desde Admin. Para agregarlo por primera vez necesitas su enlace.' }, 404);
+      await db.prepare('UPDATE publicados SET titulo = ?2, tipo = ?3, version = ?4 WHERE tmdb = ?1').bind(tmdb, titulo, tipo, version).run();
+      if (cuerpo.introdb !== undefined) await guardarIntroDbTitulo(db, tmdb, tipo, titulo, cuerpo.introdb === true);
+      return json({ tmdb, titulo, tipo, version, actualizada: true });
+    }
+
+    if (cuerpo.op === 'estado_publicacion') {
+      await prepararCatalogo(db, kv);
+      const tmdb = Math.floor(Number(cuerpo.tmdb)) || 0, proximamente = cuerpo.proximamente === true ? 1 : 0;
+      const existe = await db.prepare('SELECT 1 AS x FROM publicados WHERE tmdb = ?1').bind(tmdb).first();
+      if (!existe) return json({ error: 'Ese título ya no está registrado en la biblioteca.' }, 404);
+      await db.prepare('UPDATE publicados SET proximamente = ?2 WHERE tmdb = ?1').bind(tmdb, proximamente).run();
+      return json({ tmdb, proximamente: !!proximamente });
     }
 
     /* Capítulos sueltos de una serie: ver los guardados y guardar/actualizar uno ("1x3" = temporada 1, capítulo 3). */
@@ -720,7 +742,7 @@ async function manejar({ request, env, params, waitUntil }) {
         const eps = epsDe(ya.episodios);
         if (!eps[k] && Object.keys(eps).length >= 3000) return json({ error: 'Esta serie ya tiene demasiados capítulos.' }, 400);
       }
-      await db.prepare("UPDATE publicados SET titulo = ?2, tipo = 'serie', episodios = json_set(episodios, ?3, ?4), version = COALESCE(?5, version) WHERE tmdb = ?1")
+      await db.prepare("UPDATE publicados SET titulo = ?2, tipo = 'serie', episodios = json_set(episodios, ?3, ?4), version = COALESCE(?5, version), proximamente = 0 WHERE tmdb = ?1")
         .bind(tmdb, titulo, '$."' + k + '"', link, version).run();       // cambia solo ese capítulo, de un solo golpe
       if (cuerpo.introdb !== undefined) await guardarIntroDbTitulo(db, tmdb, 'serie', titulo, cuerpo.introdb === true);
       const r = await db.prepare('SELECT episodios FROM publicados WHERE tmdb = ?1').bind(tmdb).first();
