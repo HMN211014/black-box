@@ -418,12 +418,19 @@ body.colmode #chero:not(.top){margin-top:0}
 .cc .q{position:absolute;left:16px;right:16px;bottom:16px;z-index:2;font-size:13px;color:#d1d1d6;text-shadow:0 1px 8px rgba(0,0,0,.6)}
 .cc .prog{position:absolute;left:0;right:0;bottom:0;height:5px;z-index:3;background:rgba(255,255,255,.3)}
 .cc .prog i{display:block;height:100%;background:#fff;border-radius:0 3px 3px 0}
-.cc .cx{position:absolute;top:10px;right:10px;width:30px;height:30px;border-radius:50%;z-index:3;display:grid;place-items:center;font-size:12px;line-height:1;background:rgba(0,0,0,.55);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);opacity:0;transition:opacity .2s}
-.cc:hover .cx,.cc:focus-visible .cx{opacity:1}
-@media(hover:none){.cc .cx{opacity:1}}
+.cc-wrap{position:relative;flex:0 0 clamp(170px,19vw,260px);aspect-ratio:2/3;margin-bottom:70px}
+.cc-wrap .card.cc{width:100%;height:100%;flex:none;aspect-ratio:auto;margin:0}
+.cc-wrap .cx{position:absolute;top:10px;right:10px;width:30px;height:30px;padding:0;border:0;border-radius:50%;z-index:4;display:grid;place-items:center;font:inherit;font-size:12px;line-height:1;color:#fff;background:rgba(0,0,0,.58);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);opacity:0;transition:opacity .2s;cursor:pointer}
+.cc-wrap:hover .cx,.cc-wrap:focus-within .cx{opacity:1}
+.cc-detail{position:absolute;right:10px;bottom:12px;z-index:4;display:flex;align-items:center;justify-content:center;gap:6px;height:32px;padding:0 10px;border:1px solid rgba(255,255,255,.22);border-radius:999px;color:#fff;background:rgba(18,18,22,.72);box-shadow:inset 0 1px 0 rgba(255,255,255,.24),0 4px 14px rgba(0,0,0,.32);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);font:inherit;font-size:11px;font-weight:650;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:background .2s,transform .2s}
+.cc-detail:hover,.cc-detail:focus-visible{background:rgba(255,255,255,.2);outline:2px solid rgba(255,255,255,.8);outline-offset:2px}
+.cc-detail:active{transform:scale(.94)}
+.cc-detail svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+@media(hover:none){.cc-wrap .cx{opacity:1}}
 @media(max-width:620px){
  .cc .t{left:14px;right:14px;bottom:34px}
  .cc .q{left:14px;right:14px;bottom:14px}
+ .cc-wrap{flex-basis:58vw;max-width:240px;margin-bottom:66px}
 }
 
 /* ---------- Transmitir a la TV ---------- */
@@ -3142,17 +3149,22 @@ function actualizarCont() {
   ctrack.innerHTML = '';
   lista.forEach(({ p, k, g, t, e }) => {
     const resto = quedan(g.d - g.t), nom = conEpisodios(p) ? p.titulo + ' · T' + t + ' E' + e : p.titulo;
+    const wrap = document.createElement('div'); wrap.className = 'cc-wrap';
     const b = document.createElement('button');
     b.className = 'card cc';
     b.setAttribute('aria-label', 'Continuar ' + nom + ', quedan ' + resto);
-    b.innerHTML = '<span class="t"></span><span class="q"></span><span class="shine"></span><span class="prog"><i></i></span><span class="cx" role="button" aria-label="Quitar de Continuar viendo">✕</span>';
+    b.innerHTML = '<span class="t"></span><span class="q"></span><span class="shine"></span><span class="prog"><i></i></span>';
     b.querySelector('.t').textContent = nom;
     b.querySelector('.q').textContent = 'Quedan ' + resto;
     b.querySelector('.prog i').style.width = Math.min(100, g.t / g.d * 100) + '%';
     poster(p, b);
     b.addEventListener('click', () => conEpisodios(p) ? reproducirEp(p, t, e) : reproducir(p));
-    b.querySelector('.cx').addEventListener('click', ev => { ev.stopPropagation(); quitarProg({ titulo: k }); actualizarCont(); });
-    ctrack.appendChild(b);
+    const ficha = document.createElement('button'); ficha.type = 'button'; ficha.className = 'cc-detail'; ficha.setAttribute('aria-label', 'Ver ficha de ' + p.titulo); ficha.title = 'Ver ficha';
+    ficha.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.01"/></svg><span>Ficha</span>';
+    ficha.addEventListener('click', ev => { ev.stopPropagation(); abrir(p, b); });
+    const quitar = document.createElement('button'); quitar.type = 'button'; quitar.className = 'cx'; quitar.setAttribute('aria-label', 'Quitar ' + p.titulo + ' de Continuar viendo'); quitar.textContent = '✕';
+    quitar.addEventListener('click', ev => { ev.stopPropagation(); quitarProg({ titulo: k }); actualizarCont(); });
+    wrap.append(b, ficha, quitar); ctrack.appendChild(wrap);
   });
   cont.hidden = !lista.length || !!bq.value;
   const ph = orden[idx];                                   // el botón del banner dice "Continuar" si ya la empezó
