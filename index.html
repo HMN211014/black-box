@@ -157,6 +157,11 @@ svg.st text{fill:currentColor;stroke:none}
 .seek::-moz-range-thumb{width:16px;height:16px;border-radius:50%;border:0;background:#fff;box-shadow:0 1px 6px rgba(0,0,0,.6)}
 .spin{position:absolute;left:50%;top:50%;width:54px;height:54px;margin:-27px 0 0 -27px;border:4px solid rgba(255,255,255,.25);border-top-color:#fff;border-radius:50%;animation:giro .9s linear infinite;opacity:0;pointer-events:none;transition:opacity .2s}
 #player.wait .spin,#player.ini .spin{opacity:1}
+#pbuf{position:absolute;left:50%;top:calc(50% + 42px);z-index:5;width:min(240px,70vw);transform:translateX(-50%);opacity:0;pointer-events:none;text-align:center;color:rgba(255,255,255,.9);font-size:13px;font-weight:600;text-shadow:0 1px 8px rgba(0,0,0,.8);transition:opacity .2s}
+#player.wait #pbuf,#player.ini #pbuf{opacity:1}
+#pbuf small{display:block;margin-top:4px;color:rgba(255,255,255,.68);font-size:11px;font-weight:500}
+#pbuf-line{height:3px;margin-top:9px;overflow:hidden;border-radius:99px;background:rgba(255,255,255,.25)}
+#pbuf-line i{display:block;width:0;height:100%;border-radius:inherit;background:#fff;transition:width .2s linear}
 /* Mientras arranca: video oculto (así no se ve el gris de Android) y solo el círculo de carga + el botón de atrás */
 #player.ini .pmid,#player.ini .pbot{visibility:hidden}
 @keyframes giro{to{transform:rotate(360deg)}}
@@ -1443,9 +1448,10 @@ html.en-pip #pcr{display:none}
 <footer class="end"><b>Black BOX</b><span>Tu colección de películas</span><small>Datos e imágenes de TMDB. Este producto usa la API de TMDB pero no está avalado ni certificado por TMDB.</small><button class="hapt-sw" id="hapt-sw" type="button" role="switch" aria-checked="true" hidden>Vibración al tocar: activada</button></footer>
 
 <div id="player" hidden>
-  <video id="pv" playsinline preload="metadata" poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"></video>
+  <video id="pv" playsinline preload="auto" poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"></video>
   <div id="pdrive"></div>
   <div class="spin"></div>
+  <div id="pbuf" role="status" aria-live="polite"><span id="pbuf-msg">Preparando video</span><small id="pbuf-detail">Cargando los primeros segundos…</small><div id="pbuf-line"><i id="pbuf-fill"></i></div></div>
   <div class="perr" id="per" hidden></div>
   <div class="ctl ptop">
     <button class="ib gl" id="pb" aria-label="Volver"><svg class="st i-back" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg><svg class="st i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
@@ -2518,6 +2524,18 @@ function showC() {
   if (!V.paused && !dragging && !pl.classList.contains('eps') && !ajustando) hideT = setTimeout(() => pl.classList.remove('c'), pl.classList.contains('eps') ? 99999 : 3000);
 }
 function hideC() { clearTimeout(hideT); pl.classList.remove('c'); }
+const BUFFER_META_S = 6;
+function bufferAhead() {
+  const t = V.currentTime || 0;
+  try { for (let i = 0; i < V.buffered.length; i++) { const a = V.buffered.start(i), b = V.buffered.end(i); if (t >= a - .25 && t <= b) return Math.max(0, b - t); } } catch (e) {}
+  return 0;
+}
+function pintarBuffer() {
+  const ahead = Math.min(BUFFER_META_S, bufferAhead()), pct = ahead / BUFFER_META_S * 100;
+  H('pbuf-msg').textContent = pl.classList.contains('wait') ? 'Cargando más video…' : 'Preparando video…';
+  H('pbuf-detail').textContent = ahead >= 1 ? Math.ceil(ahead) + ' segundos cargados' : 'Esperando datos del video';
+  H('pbuf-fill').style.width = pct + '%';
+}
 function sync() {
   const d = duracion(), c = dragging ? +ps.value : V.currentTime;
   if (!dragging) ps.value = V.currentTime;
@@ -2526,6 +2544,7 @@ function sync() {
   const p = d ? c / d * 100 : 0; let b = 0;
   try { if (d && V.buffered.length) b = V.buffered.end(V.buffered.length - 1) / d * 100; } catch (e) {}
   ps.style.setProperty('--p', p + '%'); ps.style.setProperty('--b', Math.max(p, b) + '%');
+  pintarBuffer();
 }
 function fallo() {
   H('per').textContent = 'No se pudo reproducir este video. Revisa que el enlace sea directo y que el archivo sea .mp4 (H.264/AAC) o .m3u8.';
@@ -2545,8 +2564,16 @@ function cargar(url) {
   if (/\.m3u8(\?|$)/i.test(url) && !V.canPlayType('application/vnd.apple.mpegurl')) {
     cargarHls().then(Hls => {
       if (!Hls.isSupported()) throw 0;
-      hls = new Hls(); hls.loadSource(url); hls.attachMedia(V);
-      hls.on(Hls.Events.ERROR, (_, d) => { if (d.fatal) fallo(); });
+      hls = new Hls({ maxBufferLength: 45, maxMaxBufferLength: 90, maxBufferSize: 75 * 1024 * 1024, backBufferLength: 30, maxBufferHole: .2, startFragPrefetch: true });
+      let reintentoRed = false, reintentoMedia = false;
+      hls.on(Hls.Events.ERROR, (_, d) => {
+        if (!d.fatal) { pintarBuffer(); return; }
+        if (d.type === Hls.ErrorTypes.NETWORK_ERROR && !reintentoRed) { reintentoRed = true; pl.classList.add('wait'); pintarBuffer(); hls.startLoad(); return; }
+        if (d.type === Hls.ErrorTypes.MEDIA_ERROR && !reintentoMedia) { reintentoMedia = true; pl.classList.add('wait'); pintarBuffer(); hls.recoverMediaError(); return; }
+        fallo();
+      });
+      hls.on(Hls.Events.FRAG_BUFFERED, () => { reintentoRed = false; pintarBuffer(); });
+      hls.loadSource(url); hls.attachMedia(V);
       V.play().catch(() => {});
     }).catch(fallo);
   } else { V.src = url; V.play().catch(() => {}); }
@@ -2564,6 +2591,8 @@ async function horizontal() {
 function iniciar(p, url, sinHist) {
   limpiarSugerencia();
   const id = driveId(url);
+  const net = navigator.connection;
+  V.preload = net && (net.saveData || /(^|-)2g$/.test(net.effectiveType || '')) ? 'metadata' : 'auto';
   intVib('reproducir');
   clearTimeout(preT); clearTimeout(preFin); if (preV) preFin = setTimeout(soltarPre, 20000);   // se deja bajar un rato más: el reproductor usa la misma conexión/caché
   if (!id) calentar(url);
@@ -2693,10 +2722,10 @@ V.addEventListener('ended', () => {
 });
 addEventListener('pagehide', () => guardar(true));
 document.addEventListener('visibilitychange', () => { if (document.hidden) guardar(true); });
-['loadeddata', 'playing', 'error'].forEach(n => V.addEventListener(n, () => pl.classList.remove('ini')));
-V.addEventListener('waiting', () => pl.classList.add('wait'));
+['playing', 'error'].forEach(n => V.addEventListener(n, () => pl.classList.remove('ini')));
+V.addEventListener('waiting', () => { pl.classList.add('wait'); pintarBuffer(); });
 V.addEventListener('playing', () => pl.classList.remove('wait'));
-V.addEventListener('canplay', () => pl.classList.remove('wait'));
+V.addEventListener('canplay', () => { pl.classList.remove('wait'); pintarBuffer(); });
 V.addEventListener('error', () => { if (!pl.hidden && V.getAttribute('src')) fallo(); });
 
 ps.addEventListener('input', () => { dragging = true; sync(); showC(); });
