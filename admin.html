@@ -155,6 +155,8 @@ html.en-admin-app body:not(.h) .nav button.on{background:#fff;color:#000}
   <p class="s">Aquí generas códigos de acceso y das días a una cuenta. Todo se protege con tu clave de administrador.</p>
   <div class="c">
     <label>Clave de administrador<input id="clave" type="password" autocomplete="off" placeholder="La que pusiste en ADMIN_CLAVE"></label>
+    <div class="row" style="margin-top:10px"><button class="g" id="clave-ver" type="button" aria-pressed="false">Mostrar</button><button id="clave-check" type="button">Comprobar clave</button></div>
+    <p class="m" id="clave-m" role="status" aria-live="polite" hidden></p>
   </div>
   <nav class="nav" id="nav" aria-label="Secciones">
     <button type="button" data-g="cuentas">Cuentas y códigos</button>
@@ -509,6 +511,26 @@ async function con(btn, id, fn) {
   try { await fn(); } catch (e) { msg(id, e.message, false); }
   btn.disabled = false;
 }
+function comprobarClave() {
+  const btn = $('clave-check');
+  return con(btn, 'clave-m', async () => {
+    if (!$('clave').value) throw new Error('Escribe la clave de administrador.');
+    await admin({ op: 'verificar_clave' });
+    msg('clave-m', 'La clave es correcta.', true);
+  });
+}
+$('clave-ver').onclick = () => {
+  const input = $('clave'), visible = input.type === 'password';
+  input.type = visible ? 'text' : 'password';
+  $('clave-ver').textContent = visible ? 'Ocultar' : 'Mostrar';
+  $('clave-ver').setAttribute('aria-pressed', String(visible));
+  input.focus();
+};
+$('clave-check').onclick = comprobarClave;
+$('clave').addEventListener('keydown', e => {
+  if (e.key === 'Enter') { e.preventDefault(); comprobarClave(); }
+});
+$('clave').addEventListener('input', () => msg('clave-m', '', true));
 const nombrePlan = p => ({ plus: 'Plus', pedidos: 'Películas por pedido' })[p] || 'Básico';
 const fecha = t => new Date(t).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' });
 /* ---- Efectos: deslizadores + vista previa ---- */

@@ -539,6 +539,8 @@ async function manejar({ request, env, params, waitUntil }) {
       return json({ error: 'Clave incorrecta.' }, 401);
     }
 
+    if (cuerpo.op === 'verificar_clave') return json({ ok: true, claveValida: true });
+
     /* Teléfonos del administrador que reciben el aviso de pedidos nuevos (app Black BOX Admin) */
     if (cuerpo.op === 'push_registrar') {
       const t = String(cuerpo.token || '').trim();
