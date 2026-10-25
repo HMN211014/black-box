@@ -2438,7 +2438,7 @@ let swipeFlag = false, ajustando = false, hideT, dragging = false, hls = null, f
 let tvModo = null, tvPeli = null, tvUrl = '', tvBloq = false;   // transmisión a TV: null | 'cast' | 'el' | 'dlna'
 let tvDev = null, dlSt = { estado: '', t: 0, d: 0, vol: -1 }, dlPoll = 0, dlFallos = 0, dlMudo = false, dlVolT = 0;
 let introDbOutro = null, introDbRun = 0;
-const introDbImdb = new Map(), introDbSegments = new Map();
+const introDbImdb = new Map(), introDbSegments = new Map(), skipDbSegments = new Map();
 let psuggestTimer = 0, psuggestRun = 0, psuggestShown = false, psuggestItem = null;
 function limpiarSugerencia() {
   clearTimeout(psuggestTimer); psuggestTimer = 0; psuggestRun++; psuggestShown = false; psuggestItem = null;
@@ -2491,14 +2491,23 @@ async function introDbPreparar(p) {
     if (!imdb || run !== introDbRun) return;
     const ep = p && p.serie ? `&season=${encodeURIComponent(p.t)}&episode=${encodeURIComponent(p.e)}` : '&is_movie=true';
     const sk = imdb + ep;
-    let seg = introDbSegments.get(sk);
-    if (seg === undefined) {
-      const data = await fetch(`https://api.introdb.app/segments?imdb_id=${encodeURIComponent(imdb)}${ep}`, { signal: AbortSignal.timeout(8000) }).then(r => r.json());
-      seg = data && data.outro ? Number(data.outro.start_sec) : null;
-      if (!Number.isFinite(seg) || seg < 0) seg = null;
-      introDbSegments.set(sk, seg);
+    let intro = introDbSegments.get(sk), skip = skipDbSegments.get(sk);
+    const consultas = [];
+    if (intro === undefined) consultas.push(fetch(`https://api.introdb.app/segments?imdb_id=${encodeURIComponent(imdb)}${ep}`, { signal: AbortSignal.timeout(8000) }).then(r => r.ok ? r.json() : null).then(data => {
+      intro = data && data.outro ? Number(data.outro.start_sec) : null;
+      if (!Number.isFinite(intro) || intro < 0) intro = null;
+      introDbSegments.set(sk, intro);
+    }).catch(() => { intro = null; introDbSegments.set(sk, null); }));
+    if (skip === undefined) {
+      const skipEp = p && p.serie ? `&season=${encodeURIComponent(p.t)}&episode=${encodeURIComponent(p.e)}` : '';
+      consultas.push(fetch(`https://api.skipdb.tv/api/segments?imdb_id=${encodeURIComponent(imdb)}${skipEp}`, { signal: AbortSignal.timeout(8000) }).then(r => r.ok ? r.json() : null).then(data => {
+        const ms = data && data.segments && data.segments.outro ? Number(data.segments.outro.start_ms) : null;
+        skip = Number.isFinite(ms) && ms >= 0 ? ms / 1000 : null;
+        skipDbSegments.set(sk, skip);
+      }).catch(() => { skip = null; skipDbSegments.set(sk, null); }));
     }
-    if (run === introDbRun) { introDbOutro = seg; introDbActualizar(); }
+    await Promise.all(consultas);
+    if (run === introDbRun) { introDbOutro = intro != null ? intro : skip; introDbActualizar(); }
   } catch (_) { if (run === introDbRun) { introDbOutro = null; H('pskip-credits').hidden = true; } }
 }
 function introDbActualizar() {

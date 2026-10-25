@@ -208,7 +208,7 @@ html.en-admin-app body:not(.h) .nav button.on{background:#fff;color:#000}
         <small id="s-info" style="color:#a1a1a6;font-size:13px"></small>
       </div></div>
       <label style="margin-top:12px">Audio / subtítulos<select id="s-version"><option value="latino" selected>Español latino</option><option value="subtitulada">Subtitulada</option></select></label>
-      <label class="ck" style="margin-top:12px"><input type="checkbox" id="s-introdb"> Activar Saltar créditos con IntroDB para este título</label>
+      <label class="ck" style="margin-top:12px"><input type="checkbox" id="s-introdb"> Activar marcas de créditos (IntroDB + SkipDB) para este título</label>
       <div class="sdup" id="s-dup" hidden></div>
       <div id="s-eps" hidden style="margin-top:14px">
         <label>Temporada<select id="s-temp"></select></label>
@@ -289,8 +289,8 @@ html.en-admin-app body:not(.h) .nav button.on{background:#fff;color:#000}
   </div>
 
   <div class="c" data-g="biblioteca" id="introdb-card">
-    <h2>Saltar créditos con IntroDB</h2>
-    <p class="s">Sincronizar activa IntroDB para todos los títulos registrados en la biblioteca; después puedes desactivar cada uno por separado. Al subir un título también puedes elegir si activarlo. Durante la reproducción, el botón de salto aparece cuando IntroDB tiene el dato de créditos.</p>
+    <h2>Saltar créditos: IntroDB + SkipDB</h2>
+    <p class="s">Sincronizar activa la consulta a IntroDB y SkipDB para los títulos registrados en la biblioteca; después puedes desactivar cada uno por separado. Al subir un título también puedes elegir si activarlo. Se usa SkipDB como respaldo cuando IntroDB no tiene una marca de créditos.</p>
     <div class="row"><button class="g" id="idb-sync" type="button">Sincronizar toda la biblioteca</button></div>
     <label style="margin-top:12px">Buscar película o serie en TMDB<input id="idb-q" type="search" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Nombre del título"></label>
     <div class="sr" id="idb-res"></div>
@@ -1101,7 +1101,7 @@ $('idb-q') && (async function iniciarIntroDbAdmin() {
     $('idb-q').value = ''; $('idb-res').replaceChildren(); pintar();
   }), r => items.some(x => Number(x.tmdb) === Number(r.id) && x.tipo === (r.media_type === 'tv' ? 'serie' : 'pelicula')) ? ['Activo', 'd'] : null);
   $('idb-sync').onclick = () => con($('idb-sync'), 'idb-m', async () => {
-    if (!confirm('¿Activar IntroDB para todas las películas y series registradas en la biblioteca? Podrás desactivar títulos individuales después.')) return;
+    if (!confirm('¿Activar la consulta a IntroDB y SkipDB para todas las películas y series registradas en la biblioteca? Podrás desactivar títulos individuales después.')) return;
     await introdbAdminLeer();
     const [base, pub] = await Promise.all([dIndice(), admin({ op: 'publicadas' })]);
     const catalogo = [...base, ...(pub.items || []).map(x => ({ ...x, link: x.link || '', eps: x.eps || 0 }))];
