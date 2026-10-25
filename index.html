@@ -276,6 +276,31 @@ svg.st text{fill:currentColor;stroke:none}
 .ctile>*{position:relative;z-index:1}
 @media(max-width:620px){.cols-sep{margin:0 20px}.cols-t{padding:0 20px;font-size:21px;letter-spacing:.28em;text-indent:.28em}#cols{grid-auto-columns:44vw;gap:12px;padding:10px 20px 4px;scroll-padding-inline:20px}.ctile{border-radius:18px}.ctile .wm{font-size:24px}}
 
+/* Exploración lateral para pantallas amplias */
+#explore-nav{display:none}
+.genre-mark{display:grid;place-items:center;width:34px;height:26px;flex:none;border-radius:8px;color:rgba(255,255,255,.82);font-size:9px;font-weight:750;letter-spacing:.12em;background:linear-gradient(135deg,rgba(255,255,255,.14),rgba(255,255,255,.035));border:1px solid rgba(255,255,255,.12)}
+.genre-tile{gap:7px}.genre-tile .genre-mark{width:auto;height:auto;background:none;border:0;border-radius:0;font-size:11px;letter-spacing:.32em;color:rgba(255,255,255,.72)}
+.genre-tile .wm{font-family:Georgia,'Times New Roman',serif;font-size:clamp(22px,2.5vw,30px);font-weight:400;letter-spacing:.015em;text-shadow:0 2px 12px rgba(0,0,0,.5)}
+@media(min-width:1100px){
+  body{padding-left:278px}
+  #explore-nav{position:fixed;z-index:55;left:18px;top:88px;bottom:20px;width:236px;display:flex;flex-direction:column;gap:18px;padding:20px 14px 18px;border-radius:24px;overflow:hidden;
+    background:linear-gradient(155deg,rgba(255,255,255,.105),rgba(255,255,255,.035) 48%,rgba(255,255,255,.055));border:1px solid rgba(255,255,255,.12);box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 18px 48px rgba(0,0,0,.32);backdrop-filter:blur(26px) saturate(1.45);-webkit-backdrop-filter:blur(26px) saturate(1.45)}
+  #explore-nav .side-brand{padding:2px 8px 8px;border-bottom:1px solid rgba(255,255,255,.1)}
+  #explore-nav .side-brand small{display:block;color:#a1a1a6;font-size:9px;font-weight:700;letter-spacing:.28em;text-transform:uppercase}
+  #explore-nav .side-brand strong{display:block;margin-top:5px;font-size:20px;font-weight:600;letter-spacing:-.035em}
+  #explore-nav .side-group{min-height:0;display:flex;flex-direction:column;gap:5px}
+  #explore-nav .side-label{margin:0 8px 3px;color:#92929a;font-size:9px;font-weight:750;letter-spacing:.22em;text-transform:uppercase}
+  #explore-nav .side-list{min-height:0;overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.2) transparent}
+  #explore-nav .side-item{display:flex;align-items:center;gap:10px;width:100%;min-height:37px;padding:6px 9px;border:0;border-radius:12px;background:transparent;color:rgba(255,255,255,.72);font:inherit;font-size:12px;font-weight:550;text-align:left;text-decoration:none;cursor:pointer;transition:background .18s,color .18s}
+  #explore-nav .side-item:hover,#explore-nav .side-item:focus-visible{background:rgba(255,255,255,.09);color:#fff;outline:none}
+  #explore-nav .side-item.on{background:rgba(255,255,255,.14);color:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,.12)}
+  #explore-nav .side-item .side-count{margin-left:auto;color:#8e8e96;font-size:10px;font-variant-numeric:tabular-nums}
+  #explore-nav .side-primary .side-item{min-height:39px;font-size:13px}
+  #explore-nav .side-group[hidden]{display:none}
+  #dock .dk[data-v]{display:none}
+  #dock .dsep{display:none}
+}
+
 #vista-col{--ca:#1f4fff;position:relative;isolation:isolate;padding-bottom:10px}
 #vista-col[hidden]{display:none}
 #vista-col::before{content:"";position:absolute;left:0;right:0;top:-70px;height:560px;z-index:-1;pointer-events:none;background:radial-gradient(60% 70% at 50% 0,var(--ca),transparent 72%);opacity:.5}
@@ -1214,6 +1239,18 @@ html.en-pip #pcr{display:none}
   <button type="button" class="dk" id="dk-buscar" aria-label="Buscar" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><span>Buscar</span></button>
   <button type="button" class="dk" id="ajustes" aria-label="Iniciar sesión"><i class="uic"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg></i><span id="aj-t">Iniciar sesión</span></button>
 </nav>
+<aside id="explore-nav" aria-label="Explorar biblioteca">
+  <div class="side-brand"><small>Black BOX</small><strong>Explorar</strong></div>
+  <section class="side-group side-primary"><h2 class="side-label">Secciones</h2><div class="side-list">
+    <button class="side-item on" type="button" data-view="inicio">Películas</button>
+    <button class="side-item" type="button" data-view="series">Series</button>
+    <button class="side-item" type="button" data-view="pedidos">Pedidos</button>
+    <button class="side-item" type="button" data-view="recientes">Recientes</button>
+  </div></section>
+  <section class="side-group" id="side-themes-group" hidden><h2 class="side-label">Destacadas</h2><div class="side-list" id="side-themes"></div></section>
+  <section class="side-group" id="side-categories-group" hidden><h2 class="side-label">Categorías</h2><div class="side-list" id="side-categories"></div></section>
+  <section class="side-group" id="side-genres-group" hidden><h2 class="side-label">Géneros</h2><div class="side-list" id="side-genres"></div></section>
+</aside>
 <div class="sb" id="bbox" role="search">
   <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
   <input id="bq" type="search" placeholder="Buscar" aria-label="Buscar películas y series" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search">
@@ -3130,6 +3167,10 @@ function marcarDock(v) {
     const on = b.dataset.v === v; b.classList.toggle('on', on);
     if (on) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
   });
+  document.querySelectorAll('#explore-nav [data-view]').forEach(b => {
+    const on = b.dataset.view === v; b.classList.toggle('on', on);
+    if (on) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
+  });
   if (window.posicionarVidrio) window.posicionarVidrio();
 }
 function ponerModo(m) {                              // el inicio sirve para Películas y para Series
@@ -3181,6 +3222,14 @@ function pintarRecientes() {
   H('rec-vacio').hidden = !!lista.length; H('rec-grid').hidden = !lista.length;
 }
 document.querySelectorAll('#dock .dk[data-v]').forEach(b => b.addEventListener('click', () => { if (window.posicionarVidrio) window.posicionarVidrio(b); cerrarBusqueda(); irA(b.dataset.v); }));
+document.querySelectorAll('#explore-nav [data-view]').forEach(b => b.addEventListener('click', () => { cerrarBusqueda(); irA(b.dataset.view); }));
+window.addEventListener('hashchange', () => {
+  const hash = location.hash || '';
+  document.querySelectorAll('#explore-nav a.side-item').forEach(a => {
+    const on = a.getAttribute('href') === hash; a.classList.toggle('on', on);
+    if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
+  });
+});
 /* Efectos ajustables desde admin > Efectos (rebote, velocidad, intensidad y desenfoque del cristal) */
 const EF = { rebote: 30, velocidad: 60, intensidad: 60, desenfoque: 3, agrandar: 12, estirar: 50, panel: 28 };
 { const ex = window.EFECTOS_EXTRA || {}; for (const k in EF) { const n = Number(ex[k]); if (ex[k] !== undefined && ex[k] !== '' && isFinite(n)) EF[k] = n; } }
@@ -4683,19 +4732,47 @@ const colDeGenero = g => {
     anuncio: { titulo: '', texto: '', imagen: '', enlace: '' }, auto: false, peliculas: [] };
 };
 const generoCol = id => { if (String(id).slice(0, 2) !== 'g-') return null; const g = generosLista().find(x => x.k === String(id).slice(2)); return g ? colDeGenero(g) : null; };
+const marcaGenero = nombre => {
+  const palabras = String(nombre || '').trim().split(/\s+/).filter(Boolean);
+  return palabras.length > 1 ? palabras.slice(0, 2).map(x => x[0]).join('').toLocaleUpperCase('es') : (palabras[0] || '').slice(0, 3).toLocaleUpperCase('es');
+};
+function pintarSideNav() {
+  const cats = H('side-categories'), gens = H('side-genres'), themes = H('side-themes');
+  if (!cats || !gens || !themes) return;
+  cats.replaceChildren(); gens.replaceChildren(); themes.replaceChildren();
+  const hash = location.hash || '';
+  const agregarEnlace = (box, href, texto, marca, count, id) => {
+    const a = el('a', 'side-item' + (hash === href ? ' on' : ''), ''); a.href = href;
+    if (marca) a.appendChild(el('span', 'genre-mark', marca));
+    a.appendChild(el('span', '', texto));
+    if (count != null) a.appendChild(el('span', 'side-count', String(count)));
+    if (hash === href) a.setAttribute('aria-current', 'page');
+    if (id) a.dataset.collection = id;
+    box.appendChild(a);
+  };
+  const colecciones = typeof COLECCIONES === 'undefined' ? [] : COLECCIONES;
+  colecciones.forEach(c => agregarEnlace(cats, '#/c/' + c.id, c.nombre, '', pelisDe(c).length, c.id));
+  const gs = generosLista();
+  gs.forEach(g => agregarEnlace(gens, '#/c/g-' + g.k, g.nombre, marcaGenero(g.nombre), g.n, 'g-' + g.k));
+  secLista().filter(s => (s.ubicacion || 'inicio') === 'inicio').forEach(s => agregarEnlace(themes, '#/s/' + s.id, s.nombre, '', null, s.id));
+  H('side-categories-group').hidden = !colecciones.length;
+  H('side-genres-group').hidden = !gs.length;
+  H('side-themes-group').hidden = !themes.children.length;
+}
 function pintarGenerosInicio() {
   const box = H('gens'), w = H('gen-w'), L = generosLista(); box.replaceChildren();
   L.forEach(g => {
     const c = colDeGenero(g), a = document.createElement('a'), n = g.n + (g.n === 1 ? ' película' : ' películas');
-    a.className = 'ctile t-liso'; a.href = '#/c/' + c.id; a.setAttribute('aria-label', g.nombre + ', ' + n);
+    a.className = 'ctile t-liso genre-tile'; a.href = '#/c/' + c.id; a.setAttribute('aria-label', g.nombre + ', ' + n);
     a.style.setProperty('--a', c.a); a.style.setProperty('--b', c.b); a.style.setProperty('--tx', '#ffffff');
-    a.append(el('span', 'wm', g.nombre), el('span', 'gc', n)); box.appendChild(a);
+    a.append(el('span', 'genre-mark', marcaGenero(g.nombre)), el('span', 'wm', g.nombre), el('span', 'gc', n)); box.appendChild(a);
   });
   w.hidden = modo === 'series' || !L.length;
 }
 function pintarTiles() {
   pintarGenerosInicio();
   try { pintarSecciones(); } catch (e) { console.error('[secciones]', e); }
+  pintarSideNav();
   const cols = H('cols'); cols.replaceChildren();
   if (typeof COLECCIONES === 'undefined' || !COLECCIONES.length) { cols.hidden = H('cols-w').hidden = true; return; }
   COLECCIONES.forEach(c => {
