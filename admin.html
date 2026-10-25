@@ -1124,7 +1124,9 @@ $('x-go').onclick = () => con($('x-go'), 'x-m', async () => {
     const d = document.createElement('div'); d.className = 'it';
     const tx = document.createElement('div'); tx.className = 'tx';
     const b = document.createElement('b'); b.textContent = x.titulo;
-    const sm = document.createElement('small'); sm.textContent = (x.tipo === 'serie' ? 'Serie' : 'Película') + (x.eps ? ' · ' + x.eps + ' capítulo(s) sueltos' : '') + ' · TMDB ' + x.tmdb;
+    const sm = document.createElement('small');
+    const detallePub = () => (x.tipo === 'serie' ? 'Serie' : 'Película') + (x.eps ? ' · ' + x.eps + ' capítulo(s) sueltos' : '') + ' · ' + (x.version === 'subtitulada' ? 'Subtitulada' : 'Español latino') + ' · TMDB ' + x.tmdb;
+    sm.textContent = detallePub();
     tx.append(b, sm);
     const q = document.createElement('button'); q.className = 'g'; q.type = 'button'; q.textContent = 'Quitar de la biblioteca';
     q.onclick = () => { if (!confirm('¿Quitar "' + x.titulo + '" de la biblioteca? Los clientes dejarán de verla.')) return; con(q, 'x-m', async () => { await admin({ op: 'despublicar', tmdb: x.tmdb, tipo: x.tipo }); d.remove(); }); };
@@ -1136,7 +1138,26 @@ $('x-go').onclick = () => con($('x-go'), 'x-m', async () => {
         alGuardar: link => { x.link = link; if (sePub.has(x.tmdb)) sePub.get(x.tmdb).link = link; cerrar(); msg('x-m', 'Enlace de "' + x.titulo + '" actualizado.', true); } });
       d.appendChild(form);
     };
-    d.append(tx, ed, q); box.appendChild(d);
+    const ve = document.createElement('button'); ve.className = 'g'; ve.type = 'button'; ve.textContent = 'Editar audio / subtítulos'; let vf = null;
+    ve.onclick = () => {
+      if (vf) { vf.remove(); vf = null; return; }
+      vf = document.createElement('div'); vf.className = 'sfe';
+      const tit = document.createElement('b'); tit.textContent = 'Versión de «' + x.titulo + '»';
+      const lab = document.createElement('label'); lab.textContent = 'Audio / subtítulos';
+      const sel = document.createElement('select');
+      [['latino', 'Español latino'], ['subtitulada', 'Subtitulada']].forEach(([v, n]) => { const o = document.createElement('option'); o.value = v; o.textContent = n; sel.appendChild(o); });
+      sel.value = x.version === 'subtitulada' ? 'subtitulada' : 'latino'; lab.appendChild(sel);
+      const row = document.createElement('div'); row.className = 'row';
+      const save = document.createElement('button'); save.type = 'button'; save.textContent = 'Guardar versión';
+      const cancel = document.createElement('button'); cancel.type = 'button'; cancel.className = 'g'; cancel.textContent = 'Cancelar'; cancel.onclick = () => { vf.remove(); vf = null; };
+      save.onclick = () => con(save, 'x-m', async () => {
+        const j = await admin({ op: 'version_titulo', tmdb: x.tmdb, version: sel.value });
+        x.version = j.version; sm.textContent = detallePub(); vf.remove(); vf = null;
+        msg('x-m', 'Versión de «' + x.titulo + '» actualizada.', true);
+      });
+      row.append(save, cancel); vf.append(tit, lab, row); d.appendChild(vf);
+    };
+    d.append(tx, ed, ve, q); box.appendChild(d);
   });
 });
 

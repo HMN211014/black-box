@@ -682,6 +682,17 @@ async function manejar({ request, env, params, waitUntil }) {
       return json({ items: r.results.map(i => ({ titulo: i.titulo, tmdb: i.tmdb, link: i.link, tipo: i.tipo, version: i.version === 'subtitulada' ? 'subtitulada' : 'latino', eps: Object.keys(epsDe(i.episodios)).length })) });
     }
 
+    if (cuerpo.op === 'version_titulo') {
+      await prepararCatalogo(db, kv);
+      const tmdb = Math.floor(Number(cuerpo.tmdb)) || 0, version = cuerpo.version;
+      if (!tmdb) return json({ error: 'Falta el código de TMDB.' }, 400);
+      if (version !== 'latino' && version !== 'subtitulada') return json({ error: 'Elige Español latino o Subtitulada.' }, 400);
+      const existe = await db.prepare('SELECT 1 AS x FROM publicados WHERE tmdb = ?1').bind(tmdb).first();
+      if (!existe) return json({ error: 'Ese título ya no está registrado en la biblioteca.' }, 404);
+      await db.prepare('UPDATE publicados SET version = ?2 WHERE tmdb = ?1').bind(tmdb, version).run();
+      return json({ tmdb, version });
+    }
+
     /* Capítulos sueltos de una serie: ver los guardados y guardar/actualizar uno ("1x3" = temporada 1, capítulo 3). */
     if (cuerpo.op === 'episodios') {
       await prepararCatalogo(db, kv);
