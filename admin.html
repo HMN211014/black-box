@@ -411,27 +411,38 @@ html.en-admin-app body:not(.h) .nav button.on{background:#fff;color:#000}
       .it-screen::after{content:"";position:absolute;inset:10% 14%;border:1px solid rgba(255,255,255,.24);border-radius:48% 48% 42% 42%;transform:rotate(-10deg) scale(.85);box-shadow:0 0 50px hsla(var(--it-hue,220),100%,72%,.25),inset 0 0 40px rgba(255,255,255,.08)}
       .it-screen .it-art-watermark{font-size:clamp(60px,16vw,112px)}
       .it-screen .it-art-copy{bottom:13%}
+      .it-anim-list{grid-column:1/-1;display:grid;gap:7px}
+      .it-anim-opt{display:flex;align-items:center;gap:12px;width:100%;min-height:62px;height:auto;padding:9px 12px;border:1px solid rgba(255,255,255,.09);border-radius:14px;background:rgba(255,255,255,.045);color:#fff;text-align:left}
+      .it-anim-opt.on{border-color:rgba(130,175,255,.7);background:rgba(70,110,190,.2)}
+      .it-anim-glyph{display:grid;place-items:center;width:40px;height:40px;flex:none;border-radius:12px;background:linear-gradient(145deg,rgba(255,255,255,.2),rgba(255,255,255,.06));box-shadow:inset 0 1px 0 rgba(255,255,255,.28);font-size:20px}
+      .it-anim-copy{min-width:0;flex:1}.it-anim-copy b{display:block;font-size:14px}.it-anim-copy small{display:block;margin-top:2px;color:rgba(255,255,255,.55);font-size:11px;font-weight:400}
+      .it-anim-check{opacity:0;color:#9dc2ff;font-size:18px}.it-anim-opt.on .it-anim-check{opacity:1}
+      .it-demo-target{position:absolute;z-index:2;left:50%;top:44%;transform:translate(-50%,-50%);display:grid;place-items:center;gap:8px;width:104px;height:118px;border:1px solid rgba(255,255,255,.36);border-radius:22px;background:linear-gradient(145deg,rgba(255,255,255,.22),rgba(255,255,255,.06));box-shadow:inset 0 1px 0 rgba(255,255,255,.45),0 12px 30px rgba(0,0,0,.4);backdrop-filter:blur(14px) saturate(1.6);-webkit-backdrop-filter:blur(14px) saturate(1.6);transform-origin:center}
+      .it-demo-symbol{font-size:42px;line-height:1;text-shadow:0 2px 18px hsla(var(--it-hue,220),100%,75%,.7)}
+      .it-demo-target small{font-size:9px;letter-spacing:.16em;color:rgba(255,255,255,.75)}
       .it-dots{display:flex;justify-content:center;gap:7px;margin:8px 0 16px}
       .it-dot{width:7px;min-width:7px;height:7px;padding:0;border-radius:50%;background:rgba(255,255,255,.28)}.it-dot.on{background:#fff;scale:1.25}
       .it-controls{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:14px;border:1px solid rgba(255,255,255,.1);border-radius:16px;background:rgba(255,255,255,.045)}
       .it-controls label{margin:0;font-size:12px;color:rgba(255,255,255,.65)}.it-controls select{height:42px;font-size:14px}
+      #it-target[hidden],#it-animation[hidden]{display:none}
       .it-speed{grid-column:1/-1}.it-speed input{height:auto;padding:0;margin-top:8px}
       .it-controls .it-p{grid-column:1/-1;width:100%}
       @media(max-width:520px){.it-c{grid-template-columns:1fr 1fr}.it-p{grid-column:1/-1}}
     </style>
     <p class="it-g">Gestos y toques</p>
-    <div class="it-carousel" aria-label="Carrusel de animaciones">
-      <button class="it-arrow" id="it-prev" type="button" aria-label="Animación anterior">‹</button>
+    <div class="it-carousel" aria-label="Carrusel de interacciones">
+      <button class="it-arrow" id="it-prev" type="button" aria-label="Interacción anterior">‹</button>
       <div class="it-track" id="it-track" aria-live="polite"></div>
-      <button class="it-arrow" id="it-next" type="button" aria-label="Animación siguiente">›</button>
+      <button class="it-arrow" id="it-next" type="button" aria-label="Interacción siguiente">›</button>
     </div>
-    <div class="it-dots" id="it-dots" aria-label="Elegir animación"></div>
+    <div class="it-dots" id="it-dots" aria-label="Elegir interacción"></div>
     <div class="it-controls">
-      <label>Interacción<select id="it-target"></select></label>
-      <label>Animación<select id="it-animation"></select></label>
+      <div class="it-anim-list" id="it-animation-list" role="listbox" aria-label="Animaciones"></div>
+      <select id="it-target" hidden aria-hidden="true" tabindex="-1"></select>
+      <select id="it-animation" hidden aria-hidden="true" tabindex="-1"></select>
       <label>Vibración<select id="it-vibration"></select></label>
       <label class="it-speed">Velocidad · <b id="it-speed-v">100%</b><small class="h">100% es la velocidad actual; más porcentaje hace la animación más rápida.</small><input id="it-speed" type="range" min="50" max="200" step="10" value="100" style="height:auto"></label>
-      <button class="g it-p" id="it-preview" type="button">Probar animación y vibración</button>
+      <button class="g it-p" id="it-preview" type="button">Probar interacción y vibración</button>
     </div>
     <p class="it-g">Solo vibración</p>
     <div id="it-vib"></div>
@@ -672,59 +683,81 @@ function itFila(cont, id, nombre, desc, conAnim) {
 }
 const itDraft = Object.fromEntries(IT_GESTOS.map(([id]) => [id, { a: 'ninguna', v: 'ninguna', speed: 100 }]));
 const itTrack = $('it-track'), itSlides = [], itDots = [];
-let itTarget = IT_GESTOS[0][0], itAnimIndex = 0, itScrollFrame = 0;
+let itTarget = IT_GESTOS[0][0], itGestureIndex = 0, itScrollFrame = 0;
 IT_GESTOS.forEach(([id, nombre, desc]) => {
   const o = document.createElement('option'); o.value = id; o.textContent = nombre; $('it-target').appendChild(o);
 });
 $('it-animation').innerHTML = itOpts(IT_ANIM, 'ninguna');
 $('it-vibration').innerHTML = itOpts(IT_VIB, 'ninguna');
 const IT_ANIM_DESC = { ninguna: 'Sin efecto visual', rebote: 'Se comprime y rebota', hundir: 'Se hunde y vuelve', pulso: 'Crece y regresa', sacudir: 'Se mueve de lado a lado', giro: 'Se inclina en ambos sentidos', brillo: 'Destella al tocar', onda: 'Expande un halo' };
+const IT_ANIM_GLYPH = { ninguna: '·', rebote: '↕', hundir: '↓', pulso: '◉', sacudir: '↔', giro: '↻', brillo: '✦', onda: '◎' };
+const itAnimOptions = [];
 IT_ANIM.forEach(([key, nombre]) => {
-  const slide = document.createElement('button'); slide.type = 'button'; slide.className = 'it-slide'; slide.dataset.anim = key;
-  slide.style.setProperty('--it-hue', String((IT_ANIM.findIndex(x => x[0] === key) * 47 + 205) % 360));
-  slide.setAttribute('aria-label', nombre + ': ' + (IT_ANIM_DESC[key] || ''));
-  slide.innerHTML = '<div class="it-poster it-art-motion"><span class="it-poster-mark">BLACK BOX ORIGINAL</span><b class="it-art-watermark">BB</b><span class="it-art-copy"><small>UNA NUEVA EXPERIENCIA</small><b>Elige tu<br>movimiento</b></span></div><strong>' + nombre + '</strong><small>' + (IT_ANIM_DESC[key] || '') + '</small>';
-  slide.addEventListener('click', () => itElegirAnim(key, true)); itTrack.appendChild(slide); itSlides.push(slide);
-  const dot = document.createElement('button'); dot.type = 'button'; dot.className = 'it-dot'; dot.setAttribute('aria-label', 'Elegir ' + nombre); dot.onclick = () => itElegirAnim(key, true); $('it-dots').appendChild(dot); itDots.push(dot);
+  const option = document.createElement('button'); option.type = 'button'; option.className = 'it-anim-opt'; option.dataset.anim = key; option.setAttribute('role', 'option'); option.setAttribute('aria-selected', 'false');
+  option.innerHTML = '<span class="it-anim-glyph" aria-hidden="true">' + (IT_ANIM_GLYPH[key] || '•') + '</span><span class="it-anim-copy"><b>' + nombre + '</b><small>' + (IT_ANIM_DESC[key] || '') + '</small></span><span class="it-anim-check" aria-hidden="true">✓</span>';
+  option.addEventListener('click', () => itElegirAnim(key, true)); $('it-animation-list').appendChild(option); itAnimOptions.push(option);
+});
+const IT_GESTO_DEMO = {
+  tarjeta: ['▧', 'TARJETA', 'Toca un póster'], principal: ['▶', 'ACCIÓN', 'Pulsa un botón'], dock: ['▰', 'NAVEGACIÓN', 'Cambia de sección'],
+  atras: ['‹', 'REGRESAR', 'Vuelve atrás'], cuenta: ['●', 'PERFIL', 'Abre tu cuenta'], menu: ['☰', 'MENÚ', 'Elige una opción'],
+  control: ['Ⅱ', 'REPRODUCTOR', 'Usa los controles'], episodio: ['▤', 'CAPÍTULO', 'Elige un episodio']
+};
+IT_GESTOS.forEach(([id, nombre, desc], index) => {
+  const demo = IT_GESTO_DEMO[id] || ['●', 'INTERACCIÓN', nombre];
+  const slide = document.createElement('button'); slide.type = 'button'; slide.className = 'it-slide'; slide.dataset.gesture = id;
+  slide.style.setProperty('--it-hue', String((index * 47 + 205) % 360));
+  slide.setAttribute('aria-label', nombre + ': ' + (desc || ''));
+  slide.innerHTML = '<div class="it-poster"><span class="it-poster-mark">BLACK BOX · EJEMPLO</span><b class="it-art-watermark">BB</b><span class="it-demo-target"><b class="it-demo-symbol">' + demo[0] + '</b><small>' + demo[1] + '</small></span><span class="it-art-copy"><small>PRUEBA DE INTERACCIÓN</small><b>' + demo[2] + '</b></span></div><strong>' + nombre + '</strong><small>' + (desc || '') + '</small>';
+  slide.addEventListener('click', () => itElegirInteraccion(id, true)); itTrack.appendChild(slide); itSlides.push(slide);
+  const dot = document.createElement('button'); dot.type = 'button'; dot.className = 'it-dot'; dot.setAttribute('aria-label', 'Elegir ' + nombre); dot.onclick = () => itElegirInteraccion(id, true); $('it-dots').appendChild(dot); itDots.push(dot);
 });
 function itGuardarBorrador() {
   if (!itTarget) return;
   itDraft[itTarget] = { a: $('it-animation').value || 'ninguna', v: $('it-vibration').value || 'ninguna', speed: Math.max(50, Math.min(200, Number($('it-speed').value) || 100)) };
 }
-function itProbarVisual(anim, speed) {
-  const slide = itSlides[IT_ANIM.findIndex(x => x[0] === anim)], demo = slide && slide.querySelector('.it-art-motion'), k = IT_KF[anim];
+function itProbarVisual(anim, speed, slide = itSlides[itGestureIndex]) {
+  const demo = slide && slide.querySelector('.it-demo-target'), k = IT_KF[anim];
   if (!demo || !k || !demo.animate) return;
   demo.getAnimations().forEach(a => a.cancel());
   demo.animate(k[0], { duration: Math.round(k[1] * 100 / Math.max(50, Math.min(200, Number(speed) || 100))), easing: 'cubic-bezier(.2,.8,.3,1)' });
 }
-function itElegirAnim(anim, desplazar) {
-  const i = Math.max(0, IT_ANIM.findIndex(x => x[0] === anim)), cambio = i !== itAnimIndex; itAnimIndex = i;
+function itElegirAnim(anim, probar) {
+  const key = IT_ANIM.some(x => x[0] === anim) ? anim : 'ninguna';
+  $('it-animation').value = key;
+  itAnimOptions.forEach(o => { const on = o.dataset.anim === key; o.classList.toggle('on', on); o.setAttribute('aria-selected', String(on)); });
+  itGuardarBorrador();
+  if (probar) itProbarVisual(key, $('it-speed').value);
+}
+function itElegirInteraccion(id, desplazar) {
+  const i = Math.max(0, IT_GESTOS.findIndex(x => x[0] === id));
+  if (itTarget !== IT_GESTOS[i][0]) itGuardarBorrador();
+  itGestureIndex = i; itTarget = IT_GESTOS[i][0]; $('it-target').value = itTarget;
   itSlides.forEach((s, n) => { s.classList.toggle('on', n === i); s.setAttribute('aria-current', n === i ? 'true' : 'false'); });
   itDots.forEach((d, n) => { d.classList.toggle('on', n === i); d.setAttribute('aria-pressed', String(n === i)); });
-  $('it-animation').value = IT_ANIM[i][0]; itGuardarBorrador();
-  if (cambio) itProbarVisual(IT_ANIM[i][0], $('it-speed').value);
+  itCargarControles();
   if (desplazar) {
     const r = itSlides[i].getBoundingClientRect(), t = itTrack.getBoundingClientRect();
     itTrack.scrollTo({ left: itTrack.scrollLeft + r.left - t.left - (t.width - r.width) / 2, behavior: 'smooth' });
   }
+  if (desplazar) itProbarVisual($('it-animation').value, $('it-speed').value, itSlides[i]);
 }
 function itCargarControles() {
   const x = itDraft[itTarget] || { a: 'ninguna', v: 'ninguna', speed: 100 };
   $('it-vibration').value = x.v || 'ninguna'; $('it-speed').value = Math.max(50, Math.min(200, Number(x.speed) || 100));
-  $('it-speed-v').textContent = $('it-speed').value + '%'; itElegirAnim(x.a || 'ninguna', true);
+  $('it-speed-v').textContent = $('it-speed').value + '%'; itElegirAnim(x.a || 'ninguna', false);
 }
-$('it-target').addEventListener('change', () => { itGuardarBorrador(); itTarget = $('it-target').value; itCargarControles(); });
+$('it-target').addEventListener('change', () => itElegirInteraccion($('it-target').value, false));
 $('it-animation').addEventListener('change', () => itElegirAnim($('it-animation').value, true));
 $('it-vibration').addEventListener('change', itGuardarBorrador);
 $('it-speed').addEventListener('input', () => { $('it-speed-v').textContent = $('it-speed').value + '%'; itGuardarBorrador(); });
-$('it-prev').onclick = () => itElegirAnim(IT_ANIM[Math.max(0, itAnimIndex - 1)][0], true);
-$('it-next').onclick = () => itElegirAnim(IT_ANIM[Math.min(IT_ANIM.length - 1, itAnimIndex + 1)][0], true);
+$('it-prev').onclick = () => itElegirInteraccion(IT_GESTOS[Math.max(0, itGestureIndex - 1)][0], true);
+$('it-next').onclick = () => itElegirInteraccion(IT_GESTOS[Math.min(IT_GESTOS.length - 1, itGestureIndex + 1)][0], true);
 itTrack.addEventListener('scroll', () => {
   cancelAnimationFrame(itScrollFrame); itScrollFrame = requestAnimationFrame(() => {
     const c = itTrack.getBoundingClientRect(), centro = c.left + c.width / 2;
     let mejor = 0, dist = Infinity;
     itSlides.forEach((s, i) => { const r = s.getBoundingClientRect(), d = Math.abs(r.left + r.width / 2 - centro); if (d < dist) { dist = d; mejor = i; } });
-    if (mejor !== itAnimIndex) itElegirAnim(IT_ANIM[mejor][0], false);
+    if (mejor !== itGestureIndex) itElegirInteraccion(IT_GESTOS[mejor][0], false);
   });
 });
 $('it-preview').onclick = () => {
@@ -733,7 +766,7 @@ $('it-preview').onclick = () => {
   itProbarVisual(anim, speed);
   const pattern = IT_VP[vib]; if (pattern && navigator.vibrate) navigator.vibrate(pattern);
 };
-itCargarControles();
+itCargarControles(); itElegirInteraccion(itTarget, false);
 const itTransDraft = Object.fromEntries(IT_TRANS.map(([id]) => [id, { style: 'auto', speed: 100 }]));
 const itTransTrack = $('it-trans-track'), itTransSlides = [], itTransDots = [];
 let itTransTarget = IT_TRANS[0][0], itTransIndex = 0, itTransScrollFrame = 0;
