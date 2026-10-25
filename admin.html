@@ -388,9 +388,9 @@ html.en-admin-app body:not(.h) .nav button.on{background:#fff;color:#000}
       .it-st{position:relative;height:84px;border-radius:14px;overflow:hidden;background:#000;margin-top:6px}
       .it-st i{position:absolute;inset:0;display:grid;place-items:center;font:700 15px/1 inherit;font-style:normal}
       .it-st .a{background:linear-gradient(135deg,#1d3f9c,#2b2b6b)}.it-st .b{background:linear-gradient(135deg,#8b2a6f,#d0563b);opacity:0}
-      .it-carousel{display:grid;grid-template-columns:40px minmax(0,1fr) 40px;gap:8px;align-items:center;margin:14px 0 8px}
+      .it-carousel{display:grid;grid-template-columns:40px minmax(0,1fr) 40px;gap:8px;align-items:center;min-height:560px;margin:14px 0 8px;overflow:visible}
       .it-arrow{height:42px;min-width:40px;padding:0;border-radius:50%;background:rgba(255,255,255,.12);color:#fff;font-size:24px}
-      .it-track{display:flex;align-items:flex-start;gap:22px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;padding:8px 14% 18px;overscroll-behavior-x:contain}
+      .it-track{display:flex;align-items:flex-start;gap:22px;height:auto;min-height:560px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;padding:16px 14% 28px;overscroll-behavior-x:contain}
       .it-track::-webkit-scrollbar{display:none}
       .it-slide{flex:0 0 min(58vw,280px);min-width:0;padding:0 0 8px;border:0;border-radius:0;background:none;color:#fff;text-align:left;scroll-snap-align:center;opacity:.58;scale:.94;display:block;transition:opacity .2s,scale .2s}
       .it-slide.on{opacity:1;scale:1}
