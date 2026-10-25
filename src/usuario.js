@@ -539,7 +539,10 @@ async function manejar({ request, env, params, waitUntil }) {
     try { if (db) { const r = await db.prepare("SELECT valor FROM meta WHERE clave = 'interacciones'").first(); if (r && r.valor) inter = JSON.parse(r.valor) || {}; } } catch (e) {}
     let introdb = [];
     try { if (db) { const r = await db.prepare("SELECT valor FROM meta WHERE clave = 'introdb'").first(); if (r && r.valor) introdb = JSON.parse(r.valor) || []; } } catch (e) {}
-    const js = 'window.PELICULAS_EXTRA=' + JSON.stringify(items).replace(/</g, '\\u003c') + ';window.COLECCIONES_EXTRA=' + JSON.stringify(cols).replace(/</g, '\\u003c') + ';window.SECCIONES_EXTRA=' + JSON.stringify(secs).replace(/</g, '\\u003c') + ';window.ACCESO_EXTRA=' + JSON.stringify(acc).replace(/</g, '\\u003c') + ';window.EFECTOS_EXTRA=' + JSON.stringify(efe).replace(/</g, '\\u003c') + ';window.INTERACCIONES_EXTRA=' + JSON.stringify(inter).replace(/</g, '\\u003c') + ';window.INTRODB_EXTRA=' + JSON.stringify(introdb).replace(/</g, '\\u003c') + ';';
+    let sug = {}, noti = {};
+    try { if (db) { const r = await db.prepare("SELECT valor FROM meta WHERE clave = 'sugerencia'").first(); if (r && r.valor) sug = JSON.parse(r.valor) || {}; } } catch (e) {}
+    try { if (db) { const r = await db.prepare("SELECT valor FROM meta WHERE clave = 'notificaciones'").first(); if (r && r.valor) noti = JSON.parse(r.valor) || {}; } } catch (e) {}
+    const js = 'window.PELICULAS_EXTRA=' + JSON.stringify(items).replace(/</g, '\\u003c') + ';window.COLECCIONES_EXTRA=' + JSON.stringify(cols).replace(/</g, '\\u003c') + ';window.SECCIONES_EXTRA=' + JSON.stringify(secs).replace(/</g, '\\u003c') + ';window.ACCESO_EXTRA=' + JSON.stringify(acc).replace(/</g, '\\u003c') + ';window.EFECTOS_EXTRA=' + JSON.stringify(efe).replace(/</g, '\\u003c') + ';window.INTERACCIONES_EXTRA=' + JSON.stringify(inter).replace(/</g, '\\u003c') + ';window.INTRODB_EXTRA=' + JSON.stringify(introdb).replace(/</g, '\\u003c') + ';window.SUGERENCIA_EXTRA=' + JSON.stringify(sug).replace(/</g, '\\u003c') + ';window.NOTIFICACIONES_EXTRA=' + JSON.stringify(noti).replace(/</g, '\\u003c') + ';';
     return new Response(js, { headers: { 'Content-Type': 'application/javascript; charset=utf-8', 'Cache-Control': 'public, max-age=30' } });
   }
 
@@ -818,6 +821,26 @@ async function manejar({ request, env, params, waitUntil }) {
       v.m.intensidad = isFinite(it) ? Math.max(10, Math.min(100, Math.round(it))) : 70;
       await db.prepare('CREATE TABLE IF NOT EXISTS meta (clave TEXT PRIMARY KEY, valor TEXT) WITHOUT ROWID').run();
       await db.prepare("INSERT INTO meta (clave, valor) VALUES ('interacciones', ?1) ON CONFLICT(clave) DO UPDATE SET valor = ?1").bind(JSON.stringify(v)).run();
+      return json({ ok: true });
+    }
+
+    if (cuerpo.op === 'sugerencia' || cuerpo.op === 'notificaciones') {
+      const clave = cuerpo.op;
+      let item = {};
+      try { const r = await db.prepare('SELECT valor FROM meta WHERE clave = ?1').bind(clave).first(); if (r && r.valor) item = JSON.parse(r.valor) || {}; } catch (e) {}
+      return json({ item });
+    }
+    if (cuerpo.op === 'guardar_sugerencia') {
+      const a = cuerpo.sugerencia || {}, n = (v, d) => Math.max(0, Math.min(100, Math.round(Number.isFinite(+v) ? +v : d)));
+      const v = { estilo: ['cristal', 'azul', 'claro'].includes(a.estilo) ? a.estilo : 'cristal', playX: n(a.playX, 4), playY: Math.max(55, Math.min(80, n(a.playY, 68))), cancelX: n(a.cancelX, 52), cancelY: Math.max(55, Math.min(80, n(a.cancelY, 68))) };
+      await db.prepare('CREATE TABLE IF NOT EXISTS meta (clave TEXT PRIMARY KEY, valor TEXT) WITHOUT ROWID').run();
+      await db.prepare("INSERT INTO meta (clave, valor) VALUES ('sugerencia', ?1) ON CONFLICT(clave) DO UPDATE SET valor = ?1").bind(JSON.stringify(v)).run();
+      return json({ ok: true });
+    }
+    if (cuerpo.op === 'guardar_notificaciones') {
+      const a = cuerpo.notificaciones || {}, v = { sonido: ['suave', 'sistema', 'silencio'].includes(a.sonido) ? a.sonido : 'suave', estilo: ['cristal', 'azul', 'claro'].includes(a.estilo) ? a.estilo : 'cristal' };
+      await db.prepare('CREATE TABLE IF NOT EXISTS meta (clave TEXT PRIMARY KEY, valor TEXT) WITHOUT ROWID').run();
+      await db.prepare("INSERT INTO meta (clave, valor) VALUES ('notificaciones', ?1) ON CONFLICT(clave) DO UPDATE SET valor = ?1").bind(JSON.stringify(v)).run();
       return json({ ok: true });
     }
 
