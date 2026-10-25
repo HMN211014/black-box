@@ -308,11 +308,14 @@ body.menu-open #explore-nav{visibility:visible;opacity:1;transform:translateX(0)
 #explore-nav .side-label{margin:0 8px 3px;color:#92929a;font-size:9px;font-weight:750;letter-spacing:.22em;text-transform:uppercase}
 #explore-nav .side-list{min-height:0;overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.2) transparent}
 #explore-nav .side-item{display:flex;align-items:center;gap:10px;width:100%;min-height:37px;padding:6px 9px;border:0;border-radius:12px;background:transparent;color:rgba(255,255,255,.72);font:inherit;font-size:12px;font-weight:550;text-align:left;text-decoration:none;cursor:pointer;transition:background .18s,color .18s}
+#explore-nav .side-item[hidden]{display:none}
 #explore-nav .side-item:hover,#explore-nav .side-item:focus-visible{background:rgba(255,255,255,.09);color:#fff;outline:none}
 #explore-nav .side-item.on{background:rgba(255,255,255,.14);color:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,.12)}
 #explore-nav .side-item .side-count{margin-left:auto;color:#8e8e96;font-size:10px;font-variant-numeric:tabular-nums}
 #explore-nav .side-primary .side-item{min-height:39px;font-size:13px}
 #explore-nav .side-group[hidden]{display:none}
+#explore-nav .side-more{align-self:flex-start;margin:2px 8px 0;padding:5px 0;border:0;background:none;color:rgba(255,255,255,.62);font:inherit;font-size:11px;font-weight:600;cursor:pointer}
+#explore-nav .side-more:hover,#explore-nav .side-more:focus-visible{color:#fff;text-decoration:underline;text-underline-offset:3px;outline:none}
 #nav-scrim{display:none;position:fixed;z-index:54;inset:0;border:0;background:rgba(0,0,0,.32);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px)}
 body.menu-open #nav-scrim{display:block}
 .menu-toggle{display:grid;place-items:center;flex:none;width:42px;height:42px;padding:0;border:1px solid rgba(255,255,255,.16);border-radius:14px;color:#fff;background:rgba(255,255,255,.09);box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 5px 16px rgba(0,0,0,.2);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);cursor:pointer;-webkit-tap-highlight-color:transparent;transition:background .18s,transform .18s}
@@ -1263,8 +1266,8 @@ html.en-pip #pcr{display:none}
 <button id="nav-scrim" type="button" aria-label="Cerrar menú"></button>
 <aside id="explore-nav" aria-label="Explorar biblioteca">
   <div class="side-brand"><small>Black BOX</small><strong>Explorar</strong></div>
-  <section class="side-group" id="side-categories-group" hidden><h2 class="side-label">Categorías</h2><div class="side-list" id="side-categories"></div></section>
-  <section class="side-group" id="side-genres-group" hidden><h2 class="side-label">Géneros</h2><div class="side-list" id="side-genres"></div></section>
+  <section class="side-group" id="side-categories-group" hidden><h2 class="side-label">Colecciones</h2><div class="side-list" id="side-categories"></div><button class="side-more" id="side-categories-more" type="button" hidden></button></section>
+  <section class="side-group" id="side-genres-group" hidden><h2 class="side-label">Géneros</h2><div class="side-list" id="side-genres"></div><button class="side-more" id="side-genres-more" type="button" hidden></button></section>
 </aside>
 <div class="sb" id="bbox" role="search">
   <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
@@ -4776,6 +4779,16 @@ function pintarSideNav() {
   colecciones.forEach(c => agregarEnlace(cats, '#/c/' + c.id, c.nombre, '', pelisDe(c).length, c.id));
   const gs = generosLista();
   gs.forEach(g => agregarEnlace(gens, '#/c/g-' + g.k, g.nombre, marcaGenero(g.nombre), g.n, 'g-' + g.k));
+  const limitar = (box, boton, limite) => {
+    const filas = [...box.children], expandido = boton.getAttribute('aria-expanded') === 'true';
+    boton.hidden = filas.length <= limite;
+    filas.forEach((fila, i) => { fila.hidden = !expandido && i >= limite; });
+    boton.setAttribute('aria-expanded', String(expandido));
+    boton.textContent = expandido ? 'Ver menos' : 'Ver todas (' + Math.max(0, filas.length - limite) + ')';
+    boton.onclick = () => { const abrir = boton.getAttribute('aria-expanded') !== 'true'; boton.setAttribute('aria-expanded', String(abrir)); filas.forEach((fila, i) => { fila.hidden = !abrir && i >= limite; }); boton.textContent = abrir ? 'Ver menos' : 'Ver todas (' + Math.max(0, filas.length - limite) + ')'; };
+  };
+  limitar(cats, H('side-categories-more'), 5);
+  limitar(gens, H('side-genres-more'), 5);
   H('side-categories-group').hidden = !colecciones.length;
   H('side-genres-group').hidden = !gs.length;
 }
