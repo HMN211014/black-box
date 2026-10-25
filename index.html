@@ -1276,6 +1276,10 @@ html.en-pip #pcr{display:none}
 .cfg-adjust label{display:block;margin:0 0 8px;color:#fff;font-size:16px;font-weight:500}
 .cfg-adjust input[type=range]{display:block;width:100%;height:30px;margin:0;padding:0;accent-color:#fff}
 .cfg-adjust small{display:block;margin-top:5px;color:rgba(255,255,255,.55);font-size:13px;line-height:1.4}
+.cfg-glass-preview{position:relative;isolation:isolate;display:flex;align-items:center;min-height:88px;margin:12px 0 8px;padding:14px;overflow:hidden;border-radius:16px;background:radial-gradient(ellipse at 18% 25%,#f18a5b 0,transparent 40%),radial-gradient(ellipse at 82% 70%,#6554e8 0,transparent 48%),linear-gradient(125deg,#155f75,#14213e 55%,#722e70)}
+.cfg-glass-surface{position:relative;isolation:isolate;display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:58px;padding:10px 14px;overflow:hidden;border:1px solid rgba(255,255,255,.26);border-radius:13px;background:linear-gradient(145deg,rgba(255,255,255,.19),rgba(255,255,255,.055));backdrop-filter:blur(var(--bb-glass-blur,18px)) saturate(var(--bb-glass-saturate,1.66)) brightness(var(--bb-glass-brightness,1.06));-webkit-backdrop-filter:blur(var(--bb-glass-blur,18px)) saturate(var(--bb-glass-saturate,1.66)) brightness(var(--bb-glass-brightness,1.06));box-shadow:inset 0 1px 0 rgba(255,255,255,.45),0 7px 18px rgba(0,0,0,.18)}
+.cfg-glass-surface::before{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;border-radius:inherit;background:linear-gradient(160deg,rgba(255,255,255,.35),transparent 58%);opacity:var(--bb-glass-rim,.68)}
+.cfg-glass-surface>*{position:relative;z-index:1}.cfg-glass-surface b{font-size:14px;font-weight:650}.cfg-glass-surface span{color:rgba(255,255,255,.78);font-size:12px}
 .cfg-sw{position:relative;flex:none;width:62px;height:38px;border-radius:999px;background:rgba(255,255,255,.2);transition:background .25s}
 .cfg-sw::after{content:"";position:absolute;top:3px;left:3px;width:32px;height:32px;border-radius:50%;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.35);transition:transform .3s cubic-bezier(.3,1.5,.5,1)}
 .cfg-fila.on .cfg-sw{background:#3478f6}.cfg-fila.on .cfg-sw::after{transform:translateX(24px)}
@@ -4539,7 +4543,10 @@ function cfgPreferenciasDispositivo(filas) {
   const ajuste = el('div', 'cfg-adjust'), lab = el('label', '', 'Intensidad de Liquid Glass · ' + Math.round(nivel) + '%'); lab.htmlFor = 'cuenta-glass';
   const rango = el('input'); rango.id = 'cuenta-glass'; rango.type = 'range'; rango.min = '0'; rango.max = '100'; rango.step = '1'; rango.value = String(nivel); rango.setAttribute('aria-label', 'Intensidad de Liquid Glass');
   rango.addEventListener('input', () => { const n = Number(rango.value); lab.textContent = 'Intensidad de Liquid Glass · ' + n + '%'; if (window.bbGlassSet) window.bbGlassSet(n); });
-  ajuste.append(lab, rango, el('small', '', 'Ajusta el efecto de cristal de la barra, los menús y los paneles. Solo se guarda en este dispositivo.'));
+  const preview = el('div', 'cfg-glass-preview'), muestra = el('div', 'cfg-glass-surface');
+  muestra.append(el('b', '', 'Black BOX'), el('span', '', 'Vista previa del cristal'));
+  preview.appendChild(muestra);
+  ajuste.append(lab, rango, preview, el('small', '', 'Ajusta el efecto de cristal de la barra, los menús y los paneles. El cambio se aplica al mover el deslizador y solo se guarda en este dispositivo.'));
   grupo.querySelector('.cfg-card').appendChild(ajuste);
   return grupo;
 }
