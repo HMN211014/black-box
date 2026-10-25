@@ -4766,19 +4766,18 @@ function pintarSideNav() {
   if (!cats || !gens) return;
   cats.replaceChildren(); gens.replaceChildren();
   const hash = location.hash || '';
-  const agregarEnlace = (box, href, texto, marca, count, id) => {
+  const agregarEnlace = (box, href, texto, marca, id) => {
     const a = el('a', 'side-item' + (hash === href ? ' on' : ''), ''); a.href = href;
     if (marca) a.appendChild(el('span', 'genre-mark', marca));
     a.appendChild(el('span', '', texto));
-    if (count != null) a.appendChild(el('span', 'side-count', String(count)));
     if (hash === href) a.setAttribute('aria-current', 'page');
     if (id) a.dataset.collection = id;
     box.appendChild(a);
   };
   const colecciones = typeof COLECCIONES === 'undefined' ? [] : COLECCIONES;
-  colecciones.forEach(c => agregarEnlace(cats, '#/c/' + c.id, c.nombre, '', pelisDe(c).length, c.id));
+  colecciones.forEach(c => agregarEnlace(cats, '#/c/' + c.id, c.nombre, '', c.id));
   const gs = generosLista();
-  gs.forEach(g => agregarEnlace(gens, '#/c/g-' + g.k, g.nombre, marcaGenero(g.nombre), g.n, 'g-' + g.k));
+  gs.forEach(g => agregarEnlace(gens, '#/c/g-' + g.k, g.nombre, marcaGenero(g.nombre), 'g-' + g.k));
   const limitar = (box, boton, limite) => {
     const filas = [...box.children], expandido = boton.getAttribute('aria-expanded') === 'true';
     boton.hidden = filas.length <= limite;
