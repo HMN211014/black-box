@@ -642,6 +642,19 @@ body.buscando .sb{transform:translate(-50%,0);opacity:1;pointer-events:auto}
 body.colmode .cback{z-index:70}
 #vista-busq{display:none;padding:clamp(88px,12vh,120px) 5vw calc(var(--dockh) + 120px);min-height:100svh}
 #vista-busq h3{font-size:22px;letter-spacing:-.02em;padding:0 0 2px}
+#bact-w{margin:0 0 24px}
+#bact-w[hidden]{display:none}
+#bact-list{display:grid;grid-auto-flow:column;grid-auto-columns:116px;gap:14px;overflow-x:auto;padding:14px 2px 10px;scrollbar-width:none;scroll-snap-type:x proximity}
+#bact-list::-webkit-scrollbar{display:none}
+.actor-card{display:flex;flex-direction:column;gap:8px;min-width:0;padding:0;border:0;background:none;color:#fff;text-align:left;font:inherit;cursor:pointer;scroll-snap-align:start;-webkit-tap-highlight-color:transparent}
+.actor-photo{position:relative;display:grid;place-items:center;overflow:hidden;aspect-ratio:3/4;border-radius:16px;background:linear-gradient(145deg,#34343a,#121214);box-shadow:0 8px 24px rgba(0,0,0,.35);transition:transform .22s,box-shadow .22s}
+.actor-card:hover .actor-photo,.actor-card:focus-visible .actor-photo{transform:translateY(-3px);box-shadow:0 12px 28px rgba(0,0,0,.45),0 0 0 1px rgba(255,255,255,.38)}
+.actor-card:disabled{cursor:default;opacity:1}
+.actor-photo img{width:100%;height:100%;object-fit:cover}
+.actor-photo .actor-initial{position:absolute;font-size:30px;font-weight:650;color:rgba(255,255,255,.48)}
+.actor-name{display:-webkit-box;overflow:hidden;color:rgba(255,255,255,.92);font-size:13px;font-weight:600;line-height:1.3;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.actor-known{overflow:hidden;color:#a1a1a6;font-size:11px;white-space:nowrap;text-overflow:ellipsis}
+.actor-search-msg{padding:12px 2px;color:#a1a1a6;font-size:14px}
 #vista-busq .grid{padding:18px 0 0}
 .sinres{padding:34px 4px;color:var(--muted);font-size:18px;text-align:center}
 .sinres[hidden]{display:none}
@@ -1314,7 +1327,7 @@ html.en-pip #pcr{display:none}
 </aside>
 <div class="sb" id="bbox" role="search">
   <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
-  <input id="bq" type="search" placeholder="Buscar" aria-label="Buscar películas y series" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search">
+  <input id="bq" type="search" placeholder="Buscar películas, series o actores" aria-label="Buscar películas, series o actores" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search">
   <button class="mic" id="bmic" type="button" aria-label="Buscar por voz"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
   <button class="x" id="bx" type="button" aria-label="Cerrar búsqueda"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
 </div>
@@ -1434,6 +1447,7 @@ html.en-pip #pcr{display:none}
 </section>
 
 <section id="vista-busq" aria-label="Resultados de búsqueda">
+  <div id="bact-w" hidden><h3>Actores</h3><div id="bact-list"></div></div>
   <h3 id="bt"></h3>
   <div class="grid" id="bres"></div>
   <p class="sinres" id="sinres" hidden></p>
@@ -3204,6 +3218,7 @@ function conQ(on) {
 }
 function filtrar() {
   const raw = bq.value, qn = norm(raw);
+  actorElegido = null; solicitarActores(raw);
   bbox.classList.toggle('lleno', !!raw);
   H('bx').setAttribute('aria-label', raw ? 'Borrar búsqueda' : 'Cerrar búsqueda');
   conQ(busq && !!qn);
@@ -3216,12 +3231,65 @@ function filtrar() {
   sinres.hidden = res.length > 0; sinres.textContent = 'No encontramos nada parecido a “' + raw.trim() + '”.';
   actualizarCont();
 }
+let actorTimer = 0, actorRun = 0, actorElegido = null;
+const actorBox = H('bact-w'), actorList = H('bact-list');
+function tarjetaActor(a, deshabilitado) {
+  const b = el('button', 'actor-card', ''); b.type = 'button'; b.disabled = !!deshabilitado; b.dataset.actor = a.id;
+  b.actorData = a;
+  const foto = el('span', 'actor-photo', '');
+  foto.appendChild(el('span', 'actor-initial', String(a.name || '?').split(/\s+/).slice(0, 2).map(x => x[0] || '').join('').toLocaleUpperCase('es')));
+  if (a.profile_path) { const img = el('img', '', ''); img.src = IMG + 'w185' + a.profile_path; img.alt = ''; img.loading = 'lazy'; img.onerror = () => img.remove(); foto.appendChild(img); }
+  b.appendChild(foto); b.appendChild(el('span', 'actor-name', a.name || 'Actor'));
+  if (a.known_for && a.known_for.length) b.appendChild(el('span', 'actor-known', a.known_for.map(x => x.title || x.name).filter(Boolean).slice(0, 2).join(' · ')));
+  return b;
+}
+function solicitarActores(q) {
+  clearTimeout(actorTimer); const run = ++actorRun, texto = String(q || '').trim();
+  actorElegido = null; actorList.replaceChildren(); actorBox.hidden = true;
+  if (texto.length < 2 || !TMDB_KEY || TMDB_KEY.startsWith('TU_')) return;
+  actorTimer = setTimeout(async () => {
+    if (run !== actorRun) return;
+    actorBox.hidden = false; actorList.replaceChildren(el('div', 'actor-search-msg', 'Buscando actores…'));
+    try {
+      const data = await fetch(`${TMDB}/search/person?api_key=${TMDB_KEY}&language=es-MX&include_adult=false&query=${encodeURIComponent(texto)}`, { signal: AbortSignal.timeout(8000) }).then(r => { if (!r.ok) throw Error('TMDB'); return r.json(); });
+      if (run !== actorRun || norm(bq.value) !== norm(texto)) return;
+      const actores = (data.results || []).filter(a => a.known_for_department === 'Acting' || a.profile_path).slice(0, 10);
+      actorList.replaceChildren(...actores.map(a => tarjetaActor(a, false)));
+      actorBox.hidden = !actores.length;
+      if (actores.length && !H('bres').children.length) sinres.hidden = true;
+    } catch (_) { if (run === actorRun) actorBox.hidden = true; }
+  }, 320);
+}
+actorList.addEventListener('click', async e => {
+  const btn = e.target.closest('button.actor-card'); if (!btn || btn.disabled) return;
+  const run = ++actorRun, q = bq.value, id = Number(btn.dataset.actor);
+  const actor = btn.actorData || { id, name: btn.querySelector('.actor-name')?.textContent || 'Actor', profile_path: null };
+  actorElegido = actor; clearTimeout(actorTimer); actorBox.hidden = false; actorList.replaceChildren(tarjetaActor(actor, true));
+  H('bt').textContent = 'Películas y series con ' + actor.name;
+  H('bres').replaceChildren(); sinres.hidden = false; sinres.textContent = 'Buscando títulos de ' + actor.name + '…';
+  try {
+    const data = await fetch(`${TMDB}/person/${id}/combined_credits?api_key=${TMDB_KEY}&language=es-MX`, { signal: AbortSignal.timeout(10000) }).then(r => { if (!r.ok) throw Error('TMDB'); return r.json(); });
+    if (run !== actorRun || q !== bq.value) return;
+    const catalogo = todas(), porId = new Map();
+    catalogo.forEach(p => { const idT = idTm(p), tipo = p.tipo === 'serie' ? 'tv' : 'movie'; if (idT) porId.set(tipo + ':' + idT, p); });
+    const vistos = new Set(), resultados = [];
+    (data.cast || []).slice().sort((a, b) => (b.popularity || 0) - (a.popularity || 0)).forEach(c => {
+      const p = porId.get((c.media_type || '') + ':' + Number(c.id));
+      if (p && !vistos.has(p)) { vistos.add(p); resultados.push(p); }
+    });
+    H('bres').replaceChildren(...resultados.map(p => crearTarjeta(p)));
+    sinres.hidden = resultados.length > 0; sinres.textContent = 'No encontramos películas o series de ' + actor.name + ' en la biblioteca.';
+  } catch (_) {
+    if (run === actorRun) { sinres.hidden = false; sinres.textContent = 'No se pudo cargar la filmografía de ' + actor.name + '. Inténtalo de nuevo.'; }
+  }
+});
 function abrirBusqueda() {
   busq = true; document.body.classList.add('buscando'); H('dk-buscar').setAttribute('aria-expanded', 'true');
   filtrar(); setTimeout(() => bq.focus(), 60);
 }
 function cerrarBusqueda() {
   if (!busq && !bq.value) return;
+  clearTimeout(actorTimer); actorRun++; actorElegido = null; actorBox.hidden = true;
   busq = false; bq.value = ''; if (reco) { try { reco.stop(); } catch (e) {} }
   document.body.classList.remove('buscando'); conQ(false); bbox.classList.remove('lleno'); bq.blur();
   H('dk-buscar').setAttribute('aria-expanded', 'false'); actualizarCont();
