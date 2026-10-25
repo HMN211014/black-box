@@ -2580,7 +2580,12 @@ function introDbActualizar() {
   const t = introDbOutro, d = duracion();
   H('pskip-credits').hidden = !(t != null && d > 0 && t < d - 2 && V.currentTime >= Math.max(0, t - 45));
   const inicioEstimado = t != null ? t : d - (actualEp ? Math.min(90, d * .15) : Math.min(300, d * .08));
-  if (d > 0 && inicioEstimado > 0 && V.currentTime >= inicioEstimado + 5) programarSugerencia(0);
+  const base = actualEp ? actualEp.serie : (actualP || tvPeli), tmdb = Number(base && (base.tmdbId || base.tmdb)) || 0;
+  const serie = !!actualEp || !!(base && base.tipo === 'serie');
+  const registrado = tmdb && (window.INTRODB_EXTRA || []).find(x => Number(x.tmdb) === tmdb && (x.tipo === 'serie') === serie);
+  const configurado = registrado && registrado.avisoSegundos != null ? registrado.avisoSegundos : (window.INTRODB_AVISO_EXTRA || {}).segundos;
+  const segundos = Number.isFinite(Number(configurado)) ? Math.max(-300, Math.min(600, Number(configurado))) : 5;
+  if (d > 0 && inicioEstimado > 0 && V.currentTime >= inicioEstimado + segundos) programarSugerencia(0);
 }
 H('pskip-credits').onclick = () => { if (introDbOutro == null) return; V.currentTime = Math.min(introDbOutro + .25, Math.max(0, duracion() - .5)); sync(); H('pskip-credits').hidden = true; };
 

@@ -26,8 +26,9 @@ async function guardarIntroDbTitulo(db, tmdb, tipo, titulo, activo) {
   const r = await db.prepare("SELECT valor FROM meta WHERE clave = 'introdb'").first();
   let items = []; try { if (r && r.valor) { const v = JSON.parse(r.valor); if (Array.isArray(v)) items = v; } } catch (e) {}
   const k = Number(tmdb), esSerie = tipo === 'serie';
+  const existente = items.find(x => Number(x.tmdb) === k && (x.tipo === 'serie') === esSerie);
   items = items.filter(x => !(Number(x.tmdb) === k && (x.tipo === 'serie') === esSerie));
-  if (activo) items.push({ tmdb: k, tipo: esSerie ? 'serie' : 'pelicula', titulo: String(titulo || '').trim().slice(0, 200) });
+  if (activo) items.push({ tmdb: k, tipo: esSerie ? 'serie' : 'pelicula', titulo: String(titulo || '').trim().slice(0, 200), ...(existente && existente.avisoSegundos != null ? { avisoSegundos: existente.avisoSegundos } : {}) });
   await db.prepare('CREATE TABLE IF NOT EXISTS meta (clave TEXT PRIMARY KEY, valor TEXT) WITHOUT ROWID').run();
   await db.prepare("INSERT INTO meta (clave, valor) VALUES ('introdb', ?1) ON CONFLICT(clave) DO UPDATE SET valor = ?1").bind(JSON.stringify(items)).run();
 }
@@ -542,9 +543,11 @@ async function manejar({ request, env, params, waitUntil }) {
     try { if (db) { const r = await db.prepare("SELECT valor FROM meta WHERE clave = 'interacciones'").first(); if (r && r.valor) inter = JSON.parse(r.valor) || {}; } } catch (e) {}
     let introdb = [];
     try { if (db) { const r = await db.prepare("SELECT valor FROM meta WHERE clave = 'introdb'").first(); if (r && r.valor) introdb = JSON.parse(r.valor) || []; } } catch (e) {}
+    let introdbAviso = { segundos: 5 };
+    try { if (db) { const r = await db.prepare("SELECT valor FROM meta WHERE clave = 'introdb_aviso'").first(); if (r && r.valor) { const v = JSON.parse(r.valor); const n = Number(v && v.segundos); if (Number.isInteger(n)) introdbAviso.segundos = Math.max(-300, Math.min(600, n)); } } } catch (e) {}
     let sug = {};
     try { if (db) { const r = await db.prepare("SELECT valor FROM meta WHERE clave = 'sugerencia'").first(); if (r && r.valor) sug = JSON.parse(r.valor) || {}; } } catch (e) {}
-    const js = 'window.PELICULAS_EXTRA=' + JSON.stringify(items).replace(/</g, '\\u003c') + ';window.COLECCIONES_EXTRA=' + JSON.stringify(cols).replace(/</g, '\\u003c') + ';window.SECCIONES_EXTRA=' + JSON.stringify(secs).replace(/</g, '\\u003c') + ';window.ACCESO_EXTRA=' + JSON.stringify(acc).replace(/</g, '\\u003c') + ';window.EFECTOS_EXTRA=' + JSON.stringify(efe).replace(/</g, '\\u003c') + ';window.INTERACCIONES_EXTRA=' + JSON.stringify(inter).replace(/</g, '\\u003c') + ';window.INTRODB_EXTRA=' + JSON.stringify(introdb).replace(/</g, '\\u003c') + ';window.SUGERENCIA_EXTRA=' + JSON.stringify(sug).replace(/</g, '\\u003c') + ';';
+    const js = 'window.PELICULAS_EXTRA=' + JSON.stringify(items).replace(/</g, '\\u003c') + ';window.COLECCIONES_EXTRA=' + JSON.stringify(cols).replace(/</g, '\\u003c') + ';window.SECCIONES_EXTRA=' + JSON.stringify(secs).replace(/</g, '\\u003c') + ';window.ACCESO_EXTRA=' + JSON.stringify(acc).replace(/</g, '\\u003c') + ';window.EFECTOS_EXTRA=' + JSON.stringify(efe).replace(/</g, '\\u003c') + ';window.INTERACCIONES_EXTRA=' + JSON.stringify(inter).replace(/</g, '\\u003c') + ';window.INTRODB_EXTRA=' + JSON.stringify(introdb).replace(/</g, '\\u003c') + ';window.INTRODB_AVISO_EXTRA=' + JSON.stringify(introdbAviso) + ';window.SUGERENCIA_EXTRA=' + JSON.stringify(sug).replace(/</g, '\\u003c') + ';';
     return new Response(js, { headers: { 'Content-Type': 'application/javascript; charset=utf-8', 'Cache-Control': 'public, max-age=30' } });
   }
 
@@ -563,7 +566,9 @@ async function manejar({ request, env, params, waitUntil }) {
     if (cuerpo.op === 'introdb') {
       let items = [];
       try { const r = await db.prepare("SELECT valor FROM meta WHERE clave = 'introdb'").first(); if (r && r.valor) items = JSON.parse(r.valor) || []; } catch (e) {}
-      return json({ items });
+      let avisoSegundos = 5;
+      try { const r = await db.prepare("SELECT valor FROM meta WHERE clave = 'introdb_aviso'").first(); if (r && r.valor) { const v = JSON.parse(r.valor), n = Number(v && v.segundos); if (Number.isInteger(n)) avisoSegundos = Math.max(-300, Math.min(600, n)); } } catch (e) {}
+      return json({ items, avisoSegundos });
     }
     if (cuerpo.op === 'guardar_introdb') {
       const src = Array.isArray(cuerpo.items) ? cuerpo.items : [];
@@ -571,11 +576,21 @@ async function manejar({ request, env, params, waitUntil }) {
       for (const x of src.slice(0, 3000)) {
         const tmdb = Math.floor(Number(x && x.tmdb)), tipo = x && x.tipo === 'serie' ? 'serie' : 'pelicula';
         const titulo = String(x && x.titulo || '').trim().slice(0, 200), k = tipo + ':' + tmdb;
-        if (tmdb > 0 && titulo && !vistos.has(k)) { vistos.add(k); items.push({ tmdb, tipo, titulo }); }
+        const avisoSegundos = x && x.avisoSegundos != null && x.avisoSegundos !== '' ? Number(x.avisoSegundos) : null;
+        if (tmdb > 0 && titulo && !vistos.has(k)) { vistos.add(k); items.push({ tmdb, tipo, titulo, ...(Number.isInteger(avisoSegundos) ? { avisoSegundos: Math.max(-300, Math.min(600, avisoSegundos)) } : {}) }); }
       }
       await db.prepare('CREATE TABLE IF NOT EXISTS meta (clave TEXT PRIMARY KEY, valor TEXT) WITHOUT ROWID').run();
       await db.prepare("INSERT INTO meta (clave, valor) VALUES ('introdb', ?1) ON CONFLICT(clave) DO UPDATE SET valor = ?1").bind(JSON.stringify(items)).run();
-      return json({ items });
+      let avisoSegundos = 5;
+      if (cuerpo.avisoSegundos == null) {
+        try { const r = await db.prepare("SELECT valor FROM meta WHERE clave = 'introdb_aviso'").first(); if (r && r.valor) { const v = JSON.parse(r.valor), n = Number(v && v.segundos); if (Number.isInteger(n)) avisoSegundos = Math.max(-300, Math.min(600, n)); } } catch (e) {}
+      } else {
+        const avisoEntrada = Number(cuerpo.avisoSegundos);
+        if (!Number.isInteger(avisoEntrada) || avisoEntrada < -300 || avisoEntrada > 600) return json({ error: 'El tiempo general debe ser un entero entre -300 y 600 segundos.' }, 400);
+        avisoSegundos = avisoEntrada;
+      }
+      await db.prepare("INSERT INTO meta (clave, valor) VALUES ('introdb_aviso', ?1) ON CONFLICT(clave) DO UPDATE SET valor = ?1").bind(JSON.stringify({ segundos: avisoSegundos })).run();
+      return json({ items, avisoSegundos });
     }
 
     /* Teléfonos del administrador que reciben el aviso de pedidos nuevos (app Black BOX Admin) */

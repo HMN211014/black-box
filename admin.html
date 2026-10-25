@@ -297,6 +297,7 @@ html.en-admin-app body:not(.h) .nav button.on{background:#fff;color:#000}
   <div class="c" data-g="biblioteca" id="introdb-card">
     <h2>Saltar créditos: IntroDB + SkipDB</h2>
     <p class="s">Sincronizar activa la consulta a IntroDB y SkipDB para los títulos registrados en la biblioteca; después puedes desactivar cada uno por separado. Al subir un título también puedes elegir si activarlo. Se usa SkipDB como respaldo cuando IntroDB no tiene una marca de créditos.</p>
+    <div class="f" style="grid-template-columns:minmax(0,1fr) auto;align-items:end;margin:12px 0"><label>Tiempo de la ventana (segundos)<small class="h">Respecto al inicio estimado de créditos: negativo = antes, positivo = después. Máximo 300 s antes y 600 s después.</small><input id="idb-aviso" type="number" min="-300" max="600" step="1" value="5"></label><button class="g" id="idb-aviso-save" type="button">Guardar tiempo general</button></div>
     <div class="row"><button class="g" id="idb-sync" type="button">Sincronizar toda la biblioteca</button></div>
     <label style="margin-top:12px">Buscar película o serie en TMDB<input id="idb-q" type="search" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Nombre del título"></label>
     <div class="sr" id="idb-res"></div>
@@ -1115,12 +1116,14 @@ $('p-go').onclick = () => con($('p-go'), 'p-m', async () => {
 });
 
 /* ---- películas publicadas desde el panel ---- */
-let introdbAdminItems = [], introdbAdminCargado = false, introdbAdminCarga = null;
+let introdbAdminItems = [], introdbAdminCargado = false, introdbAdminCarga = null, introdbAdminAviso = 5;
 function introdbAdminLeer() {
   if (introdbAdminCargado) return Promise.resolve(introdbAdminItems);
   if (introdbAdminCarga) return introdbAdminCarga;
   introdbAdminCarga = admin({ op: 'introdb' }).then(j => {
-    introdbAdminItems = j.items || []; introdbAdminCargado = true; return introdbAdminItems;
+    introdbAdminItems = j.items || []; introdbAdminAviso = Number.isFinite(Number(j.avisoSegundos)) ? Number(j.avisoSegundos) : 5;
+    if ($('idb-aviso')) $('idb-aviso').value = introdbAdminAviso;
+    introdbAdminCargado = true; return introdbAdminItems;
   }).finally(() => { introdbAdminCarga = null; });
   return introdbAdminCarga;
 }
@@ -1130,11 +1133,12 @@ function introdbAdminCache(items) {
 }
 function introdbAdminCacheTitulo(tmdb, tipo, titulo, activo) {
   const k = tipo + ':' + Number(tmdb), next = introdbAdminItems.filter(x => x.tipo + ':' + Number(x.tmdb) !== k);
-  if (activo) next.push({ tmdb: Number(tmdb), tipo, titulo });
+  const existente = introdbAdminItems.find(x => x.tipo + ':' + Number(x.tmdb) === k);
+  if (activo) next.push({ tmdb: Number(tmdb), tipo, titulo, ...(existente && existente.avisoSegundos != null ? { avisoSegundos: existente.avisoSegundos } : {}) });
   introdbAdminCache(next);
 }
 async function introdbAdminGuardar(items) {
-  const j = await admin({ op: 'guardar_introdb', items });
+  const j = await admin({ op: 'guardar_introdb', items, avisoSegundos: introdbAdminAviso });
   introdbAdminCache(j.items || items); return introdbAdminItems;
 }
 $('idb-q') && (async function iniciarIntroDbAdmin() {
@@ -1150,9 +1154,14 @@ $('idb-q') && (async function iniciarIntroDbAdmin() {
       const b = document.createElement('b'); b.textContent = x.titulo;
       const sm = document.createElement('small'); sm.textContent = (x.tipo === 'serie' ? 'Serie' : 'Película') + ' · TMDB ' + x.tmdb;
       tx.append(b, sm);
+      const ajustes = document.createElement('div'); ajustes.style.cssText = 'display:flex;gap:6px;align-items:center;flex-wrap:wrap';
+      const tiempo = document.createElement('input'); tiempo.type = 'number'; tiempo.min = '-300'; tiempo.max = '600'; tiempo.step = '1'; tiempo.placeholder = 'General'; tiempo.value = x.avisoSegundos == null ? '' : x.avisoSegundos; tiempo.setAttribute('aria-label', 'Tiempo de ventana para ' + x.titulo); tiempo.style.width = '105px';
+      const guardar = document.createElement('button'); guardar.className = 'g'; guardar.type = 'button'; guardar.textContent = 'Guardar tiempo';
+      guardar.onclick = () => con(guardar, 'idb-m', async () => { const raw = tiempo.value.trim(); if (raw && (!Number.isInteger(Number(raw)) || Number(raw) < -300 || Number(raw) > 600)) throw new Error('Usa segundos enteros entre -300 y 600.'); const next = introdbAdminItems.map((it, k) => k !== i ? it : ({ ...it, ...(raw ? { avisoSegundos: Number(raw) } : {}) })); if (!raw) { const it = next[i]; delete it.avisoSegundos; } await introdbAdminGuardar(next); pintar(); msg('idb-m', 'Tiempo guardado para ' + x.titulo + '.', true); });
+      ajustes.append(tiempo, guardar);
       const rm = document.createElement('button'); rm.className = 'g'; rm.type = 'button'; rm.textContent = 'Desactivar';
       rm.onclick = () => con(rm, 'idb-m', async () => { const next = introdbAdminItems.filter((_, k) => k !== i); await introdbAdminGuardar(next); pintar(); });
-      d.append(tx, rm); box.appendChild(d);
+      d.append(tx, ajustes, rm); box.appendChild(d);
     });
   }
   window.addEventListener('introdb-cambio', () => { items = introdbAdminItems; pintar(); });
@@ -1180,6 +1189,13 @@ $('idb-q') && (async function iniciarIntroDbAdmin() {
     msg('idb-m', 'Sincronización lista: ' + (introdbAdminItems.length - antes) + ' título(s) agregado(s); ' + introdbAdminItems.length + ' habilitado(s) en total.', true);
   });
 })();
+$('idb-aviso-save') && ($('idb-aviso-save').onclick = () => con($('idb-aviso-save'), 'idb-m', async () => {
+  const raw = Number($('idb-aviso').value);
+  if (!Number.isInteger(raw) || raw < -300 || raw > 600) throw new Error('Usa segundos enteros entre -300 y 600.');
+  introdbAdminAviso = raw;
+  await introdbAdminGuardar(introdbAdminItems);
+  msg('idb-m', 'Tiempo general guardado. Se aplica al catálogo actual y a los títulos nuevos.', true);
+}));
 
 $('x-go').onclick = () => con($('x-go'), 'x-m', async () => {
   const j = await admin({ op: 'publicadas' });
