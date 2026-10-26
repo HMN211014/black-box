@@ -31,6 +31,14 @@ CREATE TABLE IF NOT EXISTS codigos (
   usado_fecha INTEGER
 ) WITHOUT ROWID;
 
+-- Ubicación aproximada del canje; se guarda país/ciudad, nunca la IP.
+CREATE TABLE IF NOT EXISTS codigos_canje_info (
+  codigo   TEXT PRIMARY KEY,
+  pais     TEXT,
+  ciudad   TEXT,
+  canjeado INTEGER NOT NULL
+) WITHOUT ROWID;
+
 CREATE TABLE IF NOT EXISTS lista (
   correo  TEXT NOT NULL,
   titulo  TEXT NOT NULL,

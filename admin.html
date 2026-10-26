@@ -612,7 +612,7 @@ html.en-admin-app body:not(.h) .nav button.on{background:#fff;color:#000}
     <h2>Todos los códigos</h2>
     <button class="g" id="l-go" type="button">Actualizar lista</button>
     <p class="m" id="l-m" hidden></p>
-    <div class="tw"><table id="l-t" hidden><thead><tr><th>Código</th><th>Plan</th><th>Días / películas</th><th>Estado</th></tr></thead><tbody></tbody></table></div>
+    <div class="tw"><table id="l-t" hidden><thead><tr><th>Código</th><th>Plan</th><th>Días / películas</th><th>Estado</th><th>Ubicación del canje</th></tr></thead><tbody></tbody></table></div>
   </div>
 
   <div class="c w" data-g="sugerencia">
@@ -1049,7 +1049,13 @@ $('l-go').onclick = () => con($('l-go'), 'l-m', async () => {
     const e = document.createElement('td'), t = document.createElement('span');
     t.className = 'tag ' + (c.usado ? 'u' : 'd'); t.textContent = c.usado ? 'Usado' : 'Disponible'; e.appendChild(t);
     if (c.usado) { const s = document.createElement('div'); s.className = 's'; s.style.cssText = 'color:#a1a1a6;font-size:12px;margin-top:3px'; s.textContent = c.usado.por + ' · ' + fecha(c.usado.fecha); e.appendChild(s); }
-    tr.append(k, p, d, e); tb.appendChild(tr);
+    const loc = document.createElement('td');
+    if (c.usado) {
+      const u = c.usado.ubicacion || {};
+      const partes = [u.ciudad, u.pais ? (new Intl.DisplayNames(['es'], { type: 'region' }).of(u.pais) || u.pais) : ''].filter(Boolean);
+      loc.textContent = partes.join(', ') || 'No disponible (canje anterior)';
+    } else loc.textContent = '—';
+    tr.append(k, p, d, e, loc); tb.appendChild(tr);
   });
   $('l-t').hidden = !j.codigos.length;
   msg('l-m', j.codigos.length ? '' : 'Todavía no hay códigos.', true);

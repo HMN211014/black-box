@@ -469,13 +469,23 @@ async function manejar({ request, env, params, waitUntil }) {
     const codigo = normalizarCodigo(cuerpo.codigo);
     const c = codigo ? await db.prepare('SELECT plan, dias, peliculas, usado_por FROM codigos WHERE codigo = ?1').bind(codigo).first() : null;
     // el UPDATE solo funciona si el código sigue sin usar: dos canjes a la vez no pueden gastarlo dos veces
+    const canjeFecha = Date.now();
     const tomado = c && !c.usado_por
-      ? await db.prepare('UPDATE codigos SET usado_por = ?1, usado_fecha = ?2 WHERE codigo = ?3 AND usado_por IS NULL').bind(correo, Date.now(), codigo).run()
+      ? await db.prepare('UPDATE codigos SET usado_por = ?1, usado_fecha = ?2 WHERE codigo = ?3 AND usado_por IS NULL').bind(correo, canjeFecha, codigo).run()
       : null;
     if (!tomado || !tomado.meta || tomado.meta.changes !== 1) {
       await sumarIntento(db, kFallos, 900);
       return json({ error: 'Código no válido o ya usado.' }, 400);
     }
+    const cf = request.cf || {};
+    const paisBruto = String(cf.country || request.headers.get('CF-IPCountry') || '').trim().toUpperCase();
+    const pais = /^[A-Z]{2}$/.test(paisBruto) ? paisBruto : null;
+    const ciudad = String(cf.city || '').trim().slice(0, 80) || null;
+    try {
+      await db.prepare('CREATE TABLE IF NOT EXISTS codigos_canje_info (codigo TEXT PRIMARY KEY, pais TEXT, ciudad TEXT, canjeado INTEGER NOT NULL) WITHOUT ROWID').run();
+      await db.prepare('INSERT INTO codigos_canje_info (codigo, pais, ciudad, canjeado) VALUES (?1, ?2, ?3, ?4) ON CONFLICT(codigo) DO UPDATE SET pais = ?2, ciudad = ?3, canjeado = ?4')
+        .bind(codigo, pais, ciudad, canjeFecha).run();
+    } catch (e) { console.error('[canje] No se pudo guardar la ubicación aproximada.', e && e.message); }
     const esVale = c.plan === 'pedidos' && Number(c.peliculas) > 0;      // los códigos de plan "pedidos" por días siguen funcionando
     const acceso = esVale ? await ajustarVales(db, correo, Math.floor(c.peliculas)) : await sumarDias(db, correo, c.dias, c.plan);
     if (fallos) await borrarIntentos(db, kFallos);
@@ -669,11 +679,12 @@ async function manejar({ request, env, params, waitUntil }) {
     }
 
     if (cuerpo.op === 'listar') {
-      const r = await db.prepare('SELECT codigo, plan, dias, peliculas, creado, usado_por, usado_fecha FROM codigos ORDER BY creado DESC LIMIT 2000').all();
+      await db.prepare('CREATE TABLE IF NOT EXISTS codigos_canje_info (codigo TEXT PRIMARY KEY, pais TEXT, ciudad TEXT, canjeado INTEGER NOT NULL) WITHOUT ROWID').run();
+      const r = await db.prepare('SELECT c.codigo, c.plan, c.dias, c.peliculas, c.creado, c.usado_por, c.usado_fecha, u.pais AS pais_canje, u.ciudad AS ciudad_canje FROM codigos c LEFT JOIN codigos_canje_info u ON u.codigo = c.codigo ORDER BY c.creado DESC LIMIT 2000').all();
       return json({ codigos: r.results.map(k => ({
         codigo: k.codigo, plan: k.plan, creado: k.creado,
         ...(k.dias != null ? { dias: k.dias } : {}), ...(k.peliculas != null ? { peliculas: k.peliculas } : {}),
-        usado: k.usado_por ? { por: k.usado_por, fecha: k.usado_fecha } : null,
+        usado: k.usado_por ? { por: k.usado_por, fecha: k.usado_fecha, ubicacion: { pais: k.pais_canje || '', ciudad: k.ciudad_canje || '' } } : null,
       })) });
     }
 
