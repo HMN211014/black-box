@@ -579,10 +579,7 @@ async function manejar({ request, env, params, waitUntil }) {
   /* ---- Administración ---- */
   if (accion === 'admin' && esPost) {
     if (!env.ADMIN_CLAVE) return json({ error: 'Falta configurar ADMIN_CLAVE en Cloudflare.' }, 503);
-    const kIp = 'af:' + (request.headers.get('CF-Connecting-IP') || 'x');
-    if ((await intentosDe(db, kIp)) >= 10) return json({ error: 'Demasiados intentos. Espera unos minutos.' }, 429);
     if (!(await mismaClave(String(cuerpo.clave || ''), String(env.ADMIN_CLAVE)))) {
-      await sumarIntento(db, kIp, 900);
       return json({ error: 'Clave incorrecta.' }, 401);
     }
 
