@@ -4158,7 +4158,6 @@ function sinAcceso(p, ep) { if (accesoActivo() && !U.correo && U.servicio === tr
 /* ---------- Perfiles (solo en la app): cada perfil tiene su nombre, su avatar y su propio "Continuar viendo" / capítulos vistos.
    El perfil activo vive en bbprog/bbsvis (así todo lo demás sigue igual); los demás se guardan aparte en bbpd:<id>. Se sincronizan con la cuenta. ---------- */
 const PERF_MAX = 5;
-let perfPreguntado = false;                              // la pantalla «¿Quién está viendo?» sale una vez por sesión de la app
 const PERF_AV = ['🦊', '🐼', '🐯', '🦁', '🐙', '🦄', '🐸', '🐵', '👾', '🚀', '🎬', '🍿'];
 const PERF_COL = ['#ff5a5f', '#ff9f0a', '#30d158', '#32ade6', '#5e5ce6', '#bf5af2', '#ff6bb5', '#8e8e93'];
 const perfNuevo = () => ({ lista: [{ id: 'p1', nombre: 'Principal', av: '🦊', c: 3, f: 0 }], activo: 'p1', del: [] });
@@ -4171,7 +4170,7 @@ const perfPonerStash = (id, d) => { try { localStorage.setItem('bbpd:' + id, JSO
 const perfTodos = () => { const pp = {}; PERF.lista.forEach(p => { pp[p.id] = p.id === PERF.activo ? { prog: leerProg(), vis: leerVistos() } : perfStash(p.id); }); return pp; };
 function perfLimpiar() {                                    // al cerrar sesión: el siguiente que use el dispositivo empieza limpio
   try { Object.keys(localStorage).filter(k => k.startsWith('bbpd:') || k === 'bbperf').forEach(k => localStorage.removeItem(k)); } catch (e) {}
-  PERF = perfNuevo(); perfPreguntado = false; perfBtn();
+  PERF = perfNuevo(); perfBtn();
 }
 function perfAvatar(p, t) {
   const a = el('span', 'pav', p.av || '🦊'); a.style.setProperty('--t', (t || 34) + 'px');
@@ -4244,8 +4243,6 @@ const uSubir = async () => {
 async function uBajar() {                               // al entrar: junta lo de este dispositivo con lo de la cuenta y lo guarda en ambos lados
   const j = await api('usuario/datos');
   if (j && j.datos) { uAplicar(uFusionar(uLocal(), { prog: j.datos.prog || {}, vis: j.datos.vis || {}, perf: j.datos.perf, pp: j.datos.pp })); await uSubir(); }
-  perfElegir();
-  perfQuien();
 }
 window.bbSync = () => { if (!U.correo || uPush) return; uPush = setTimeout(() => { uPush = 0; uSubir().catch(() => {}); }, 60000); };   // como máximo 1 guardado por minuto (antes: tras cada cambio)
 document.addEventListener('visibilitychange', () => {   // al salir de la página no se pierde el último avance
@@ -4493,11 +4490,9 @@ function uVistaAjustesPerfil() {
 
 function perfQuien(forzar) { perfElegir(forzar); }          // la pantalla «¿Quién está viendo?» es perfElegir (más abajo)
 
-/* ---- «¿Quién está viendo?» (como Netflix): al abrir la app con varios perfiles ---- */
-function perfElegir(forzar) {
-  if (!perfOn() || (perfPreguntado && !forzar)) return;
-  perfPreguntado = true;
-  if (PERF.lista.length < 2 && !forzar) return;
+/* ---- Selector «¿Quién está viendo?»: solo se abre por una acción explícita del usuario. ---- */
+function perfElegir() {
+  if (!perfOn()) return;
   document.querySelector('.qv')?.remove();
   const ov = el('div', 'qv'), t = el('h1', '', '¿Quién está viendo?'), grid = el('div', 'qv-g');
   let editar = false;
