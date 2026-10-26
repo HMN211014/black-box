@@ -627,6 +627,21 @@ async function manejar({ request, env, params, waitUntil }) {
       const n = await avisarAdmins(env, { titulo: 'Prueba de Black BOX Admin', texto: 'Si ves esto, los avisos de pedidos nuevos funcionan.', datos: { tipo: 'prueba' } });
       return json(n ? { ok: true, enviados: n } : { error: 'Todavía no hay ningún teléfono registrado. Abre la app, escribe la clave y toca «Activar avisos».' }, n ? 200 : 404);
     }
+    if (cuerpo.op === 'push_usuario_probar') {
+      if (!env.FCM_SERVICE_ACCOUNT) return json({ error: 'Falta configurar FCM_SERVICE_ACCOUNT en Cloudflare.' }, 503);
+      const correo = String(cuerpo.correo || '').trim().toLowerCase();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) return json({ error: 'Escribe un correo válido para la cuenta de Black BOX.' }, 400);
+      await asegurarPush(db);
+      const dispositivos = await db.prepare('SELECT COUNT(*) AS total FROM dispositivos WHERE correo = ?1').bind(correo).first();
+      if (!dispositivos || !dispositivos.total) return json({ error: 'Esa cuenta no tiene ningún dispositivo Black BOX registrado. Inicia sesión en la app y activa las notificaciones.' }, 404);
+      const clavePrueba = 'push-admin-prueba:' + correo;
+      if (await intentosDe(db, clavePrueba)) return json({ error: 'Espera un minuto antes de volver a enviar otra prueba a esta cuenta.' }, 429);
+      await sumarIntento(db, clavePrueba, 60);
+      const resultado = await avisarUsuario(env, correo, { titulo: 'Notificación de prueba', texto: 'Esta prueba fue enviada desde el panel de administración de Black BOX.', datos: { tipo: 'prueba' } });
+      if (resultado.error === 'sin_configuracion') return json({ error: 'No se pudo conectar con el servicio de notificaciones.' }, 503);
+      if (!resultado.enviados) return json({ error: 'FCM no pudo entregar la prueba. Revisa Workers Logs para el error [push].' }, 502);
+      return json({ ok: true, enviados: resultado.enviados, fallidos: resultado.fallidos });
+    }
 
     const plan = PLANES_OK.includes(cuerpo.plan) ? cuerpo.plan : 'basico';
     const dias = Math.floor(Number(cuerpo.dias));

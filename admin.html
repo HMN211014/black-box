@@ -112,7 +112,7 @@ label small.h{display:block;color:#a1a1a6;font-weight:400;font-size:12px;margin-
 .pnxt-copy{position:absolute;left:18px;top:18px;right:18px;pointer-events:none}.pnxt-copy small{display:block;color:#c4c8d2;font-size:12px;margin-bottom:8px}.pnxt-copy b{font-size:18px}
 .pnxt-btn{position:absolute;width:44%;height:42px;min-width:0;padding:0 6px;border-radius:12px;touch-action:none;cursor:grab}.pnxt-btn[data-k="play"]{background:#fff;color:#111}.pnxt-btn[data-k="cancel"]{background:rgba(255,255,255,.17);color:#fff}
 .pnxt-guide{max-width:460px;margin:12px auto;text-align:center;color:#a1a1a6;font-size:12px}
-/* ---- Vista horizontal: menú a la izquierda y una sección a la vez (en vertical todo sigue apilado como antes) ---- */
+/* ---- Vista horizontal: navegación superior y una sección a la vez ---- */
 .side{display:grid;gap:18px;align-content:start}
 .side .c label{margin-bottom:0}
 label[hidden]{display:none}
@@ -122,22 +122,24 @@ label[hidden]{display:none}
 .nav button:hover{background:rgba(255,255,255,.07)}
 .nav button.on{background:rgba(255,255,255,.15);color:#fff}
 body.h{padding:18px 22px 40px}
-body.h main{max-width:1320px;grid-template-columns:260px minmax(0,1fr);gap:22px;align-items:start}
-body.h .side{position:sticky;top:18px;max-height:calc(100vh - 36px);overflow-y:auto;gap:14px;scrollbar-width:thin}
-body.h .nav{display:grid;gap:4px}
+body.h main{max-width:1320px;grid-template-columns:minmax(0,1fr);gap:14px;align-items:start}
+body.h .side{position:static;max-height:none;overflow:visible;gap:14px}
+body.h .nav{display:flex;gap:6px;position:sticky;top:0;z-index:40;overflow-x:auto;padding:8px;margin:0 -8px;background:rgba(11,11,15,.92);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid rgba(255,255,255,.1);scrollbar-width:none}
+body.h .nav::-webkit-scrollbar{display:none}
+body.h .nav button{flex:none;width:auto;height:40px;padding:0 14px;white-space:nowrap;text-align:center;justify-content:center}
 body.h .pan{grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}
 body.h .pan>.c{display:none}
 body.h .pan>.c.on{display:block}
 body.h .pan>.c.on.w{grid-column:1/-1}
 @media(max-height:520px){
   body.h{padding:10px 14px 24px}
-  body.h main{grid-template-columns:210px minmax(0,1fr);gap:14px}
-  body.h .side{top:10px;max-height:calc(100vh - 20px);gap:10px}
+  body.h main{grid-template-columns:minmax(0,1fr);gap:10px}
+  body.h .side{gap:10px}
   body.h h1{font-size:20px}
   body.h .side>p.s{display:none}
   body.h .side .c{padding:12px;border-radius:16px}
   body.h .side .c label{margin-bottom:0}
-  body.h .nav button{height:38px;font-size:14px}
+  body.h .nav button{height:36px;padding:0 12px;font-size:14px}
   body.h .pan>.c{padding:16px}
 }
 @media(max-width:900px){body.h .pan{grid-template-columns:minmax(0,1fr)}}
@@ -182,19 +184,19 @@ html.en-admin-app body:not(.h) .nav button.on{background:#fff;color:#000}
     <div class="row" style="margin-top:10px"><button class="g" id="clave-ver" type="button" aria-pressed="false">Mostrar</button><button id="clave-check" type="button">Comprobar clave</button></div>
     <p class="m" id="clave-m" role="status" aria-live="polite" hidden></p>
   </div>
-  <nav class="nav" id="nav" aria-label="Secciones">
-    <button type="button" data-g="cuentas">Cuentas y códigos</button>
-    <button type="button" data-g="biblioteca">Biblioteca</button>
-    <button type="button" data-g="collage">Collage</button>
-    <button type="button" data-g="pedidos">Pedidos</button>
-    <button type="button" data-g="colecciones">Colecciones</button>
-    <button type="button" data-g="secciones">Secciones temáticas</button>
-    <button type="button" data-g="acceso">Pantalla de acceso</button>
-    <button type="button" data-g="efectos">Efectos</button>
-    <button type="button" data-g="interacciones">Interacciones</button>
-    <button type="button" data-g="sugerencia">Sugerencia</button>
-  </nav>
 </aside>
+<nav class="nav" id="nav" aria-label="Secciones">
+  <button type="button" data-g="cuentas">Cuentas y códigos</button>
+  <button type="button" data-g="biblioteca">Biblioteca</button>
+  <button type="button" data-g="collage">Collage</button>
+  <button type="button" data-g="pedidos">Pedidos</button>
+  <button type="button" data-g="colecciones">Colecciones</button>
+  <button type="button" data-g="secciones">Secciones temáticas</button>
+  <button type="button" data-g="acceso">Pantalla de acceso</button>
+  <button type="button" data-g="efectos">Efectos</button>
+  <button type="button" data-g="interacciones">Interacciones</button>
+  <button type="button" data-g="sugerencia">Sugerencia</button>
+</nav>
 <div class="pan">
 
   <div class="c" data-g="cuentas">
@@ -265,6 +267,15 @@ html.en-admin-app body:not(.h) .nav button.on{background:#fff;color:#000}
       <b>Avisos de pedidos nuevos</b>
       <p class="s" id="np-est" style="margin:6px 0 10px"></p>
       <div class="row"><button id="np-act" type="button">Activar avisos</button><button class="g" id="np-prueba" type="button">Enviar prueba</button></div>
+    </div>
+    <div style="margin-top:14px;padding:12px;border-radius:14px;background:rgba(255,255,255,.06)">
+      <b>Probar notificación en Black BOX</b>
+      <p class="s" style="margin:6px 0 10px">Envía un aviso al dispositivo Black BOX registrado con este correo. Úsalo para probar la notificación con la app en segundo plano.</p>
+      <div class="row" style="align-items:end">
+        <label style="flex:1;min-width:220px;margin:0">Correo de la cuenta<input id="push-test-correo" type="email" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="cuenta@correo.com"></label>
+        <button class="g" id="push-test-enviar" type="button">Enviar prueba</button>
+      </div>
+      <p class="m" id="push-test-m" hidden></p>
     </div>
     <p class="s" style="margin-top:10px">Pega el enlace del video y toca <b>Publicar y agregar a su cuenta</b>: la película aparece en la biblioteca y en la lista del cliente, sin tocar <b>index.html</b>. En una serie pega el enlace con <b>{t}</b> y <b>{e}</b> (temporada y capítulo), por ejemplo <b>https://…/T{t}/E{e}.mp4</b>.</p>
     <p class="m" id="p-m" hidden></p>
@@ -1153,6 +1164,12 @@ $('p-go').onclick = () => con($('p-go'), 'p-m', async () => {
     box.appendChild(d);
   });
   msg('p-m', j.pedidos.filter(x => x.estado === 'pendiente').length + ' pendiente(s).', true);
+});
+$('push-test-enviar').onclick = () => con($('push-test-enviar'), 'push-test-m', async () => {
+  const correo = $('push-test-correo').value.trim();
+  if (!correo) throw new Error('Escribe el correo de la cuenta que tiene instalada Black BOX.');
+  const r = await admin({ op: 'push_usuario_probar', correo });
+  msg('push-test-m', r.fallidos ? `Enviado a ${r.enviados} dispositivo(s); falló en ${r.fallidos}.` : `Notificación enviada a ${r.enviados} dispositivo(s) de ${correo}.`, true);
 });
 
 /* ---- películas publicadas desde el panel ---- */
