@@ -4400,7 +4400,7 @@ function uVistaCuenta() {
 /* ---- Opciones de reproducción (se guardan en este dispositivo) ---- */
 const opcLeer = () => { try { return JSON.parse(localStorage.getItem('bbopc')) || {}; } catch (e) { return {}; } };
 const opcGet = (k, def) => { const v = opcLeer()[k]; return v === undefined ? def : v; };
-function opcSet(k, v) { const o = opcLeer(); o[k] = v; try { localStorage.setItem('bbopc', JSON.stringify(o)); } catch (e) {} document.dispatchEvent(new CustomEvent('bb-opciones')); }
+function opcSet(k, v) { const o = opcLeer(); o[k] = v; try { localStorage.setItem('bbopc', JSON.stringify(o)); } catch (e) {} document.dispatchEvent(new CustomEvent('bb-opciones', { detail: { clave: k, valor: v } })); }
 function filaOpcion(titulo, desc, clave, def, svg) {
   const f = el('button', 'opc-fila'); f.type = 'button'; f.setAttribute('role', 'switch');
   const ic = el('span', 'opc-ic'); ic.innerHTML = svg;
@@ -4568,7 +4568,8 @@ function cfgPreferenciasDispositivo(filas) {
   const pushTitulo = push.querySelector('b'), pushInfo = push.querySelector('small');
   const pintarPush = estado => {
     push.disabled = false;
-    if (!estado || estado.receive === 'unavailable') { pushTitulo.textContent = 'Notificaciones en la app'; pushInfo.textContent = 'Esta función está disponible en la app instalada.'; push.disabled = true; }
+    if (!opcGet('notiPush', true)) { pushTitulo.textContent = 'Notificaciones desactivadas'; pushInfo.textContent = 'Actívalas con el interruptor de la sección Notificaciones.'; }
+    else if (!estado || estado.receive === 'unavailable') { pushTitulo.textContent = 'Notificaciones en la app'; pushInfo.textContent = 'Esta función está disponible en la app instalada.'; push.disabled = true; }
     else if (estado.receive === 'granted') { pushTitulo.textContent = estado.registrado ? 'Actualizar notificaciones' : 'Activar notificaciones'; pushInfo.textContent = estado.registrado ? 'Las notificaciones están activas en este dispositivo.' : 'Permiso concedido. Toca para registrar este dispositivo.'; }
     else if (estado.receive === 'denied') { pushTitulo.textContent = 'Permitir notificaciones'; pushInfo.textContent = 'El permiso está bloqueado. Actívalo en Ajustes de Android > Apps > Black BOX > Notificaciones.'; }
     else if (estado.receive === 'no-session') { pushTitulo.textContent = 'Inicia sesión para activar'; pushInfo.textContent = 'Vincula este dispositivo a tu cuenta para recibir avisos de tus pedidos.'; push.disabled = true; }
@@ -4577,6 +4578,7 @@ function cfgPreferenciasDispositivo(filas) {
   };
   window.bbCuentaPushActualizar = pintarPush;
   push.onclick = async () => {
+    if (!opcGet('notiPush', true)) { opcSet('notiPush', true); pushTitulo.textContent = 'Activando notificaciones…'; pushInfo.textContent = 'Se solicitará el permiso en este dispositivo.'; return; }
     if (!window.bbPushActivar) { pintarPush({ receive: 'unavailable' }); return; }
     push.disabled = true; pushTitulo.textContent = 'Solicitando permiso…';
     try {
@@ -4673,7 +4675,8 @@ function cfgNotificaciones() {
   prueba.append(el('b', '', 'Black BOX'), el('span', '', 'Tu pedido está listo'));
   const muestra = cfgGrupo('VISTA PREVIA', []); muestra.querySelector('.cfg-card').append(prueba);
   const probar = cfgFila({ titulo: 'Probar sonido', azul: true, onclick: () => { if (window.bbPushProbarSonido) window.bbPushProbarSonido(); } });
-  return [opciones('notiSonido', [['suave','Suave','Tono de Black BOX'],['sistema','Sistema','Sonido predeterminado del dispositivo'],['silencio','Silencio','Sin sonido ni vibración']]), opciones('notiEstilo', [['cristal','Cristal','Aviso oscuro con efecto de cristal'],['azul','Azul','Aviso con acento azul'],['claro','Claro','Aviso claro de alto contraste']]), muestra, cfgGrupo(null, [probar], 'El estilo cambia los avisos que aparecen dentro de Black BOX. El sonido se aplica a las notificaciones push de este dispositivo.')];
+  const push = cfgFila({ titulo: 'Notificaciones de pedidos', sub: 'Activa o desactiva los avisos en este dispositivo.', toggle: { k: 'notiPush', def: true } });
+  return [cfgGrupo('AVISOS DE PEDIDOS', [push], 'Si las desactivas, Black BOX dejará de recibir notificaciones push en este dispositivo.'), opciones('notiSonido', [['suave','Suave','Tono de Black BOX'],['sistema','Sistema','Sonido predeterminado del dispositivo'],['silencio','Silencio','Sin sonido ni vibración']]), opciones('notiEstilo', [['cristal','Cristal','Aviso oscuro con efecto de cristal'],['azul','Azul','Aviso con acento azul'],['claro','Claro','Aviso claro de alto contraste']]), muestra, cfgGrupo(null, [probar], 'El estilo cambia los avisos que aparecen dentro de Black BOX. El sonido se aplica a las notificaciones push de este dispositivo.')];
 }
 const CFG_PAGS = { main: ['Configuración', cfgMain], perfil: ['Perfil', cfgPerfil], cuenta: ['Cuenta', cfgCuenta], aspecto: ['Relación de aspecto', cfgAspecto], notificaciones: ['Notificaciones', cfgNotificaciones] };
 function cfgPagina(clave) {

@@ -109,6 +109,7 @@
   const post = (ruta, cuerpo) => fetch('/api/usuario/' + ruta, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cuerpo) }).catch(() => {});
   const guardado = () => { try { return localStorage.getItem('bb_push_token') || ''; } catch (e) { return ''; } };
   const preferencias = () => { try { return JSON.parse(localStorage.getItem('bbopc') || '{}'); } catch (_) { return {}; } };
+  const pushActivo = () => preferencias().notiPush !== false;
   const sonidoActual = () => ['suave','sistema','silencio'].includes(preferencias().notiSonido) ? preferencias().notiSonido : 'suave';
   async function crearCanales() {
     if (!PN) return;
@@ -155,25 +156,48 @@
     return registrarPush();
   };
   function actualizarPushUI() { if (typeof window.bbCuentaPushActualizar === 'function') estadoPush().then(window.bbCuentaPushActualizar); }
+  async function desactivarPush() {
+    const token = guardado();
+    if (token && window.bbCorreo) await post('pushquitar', { token });
+    if (PN) await sinError(() => PN.unregister());
+    try { localStorage.removeItem('bb_push_token'); } catch (_) {}
+    actualizarPushUI();
+  }
+  async function sincronizarPush() {
+    if (!pushActivo()) { await desactivarPush(); return; }
+    if (!window.bbCorreo) return;
+    await crearCanales();
+    const token = guardado();
+    if (token) registrarEnServidor(token);
+    else registrarPush().then(actualizarPushUI);
+  }
   if (PN) {
     const registrarEnServidor = (token) => post('push', { token, plataforma: cap.getPlatform ? cap.getPlatform() : 'android', sonido: sonidoActual() });
-    PN.addListener('registration', (t) => { try { localStorage.setItem('bb_push_token', t.value); } catch (e) {} registrarEnServidor(t.value); actualizarPushUI(); });
+    PN.addListener('registration', (t) => {
+      if (!pushActivo()) { post('pushquitar', { token: t.value }); sinError(() => PN.unregister()); return; }
+      try { localStorage.setItem('bb_push_token', t.value); } catch (e) {} registrarEnServidor(t.value); actualizarPushUI();
+    });
     PN.addListener('registrationError', (e) => console.warn('push error', JSON.stringify(e)));
     PN.addListener('pushNotificationReceived', (n) => {              // con la app abierta Android no muestra nada solo: lo mostramos aquí
+      if (!pushActivo()) return;
       aviso(n.title, n.body);
       if (window.bbPedidoListo) window.bbPedidoListo();
     });
     PN.addListener('pushNotificationActionPerformed', (a) => {       // tocaron la notificación
+      if (!pushActivo()) return;
       const d = (a.notification && a.notification.data) || {};
       if (d.tipo === 'pedido_listo') { if (location.hash !== '#/pedidos') location.hash = '#/pedidos'; if (window.bbPedidoListo) window.bbPedidoListo(); }
     });
     let sesion = '';
     const cambio = (correo) => {
-      if (correo && correo !== sesion) { sesion = correo; registrarPush().then(actualizarPushUI); }
+      if (correo && correo !== sesion) { sesion = correo; if (pushActivo()) registrarPush().then(actualizarPushUI); else desactivarPush(); }
       else if (!correo && sesion) { sesion = ''; const t = guardado(); if (t) post('pushquitar', { token: t }); sinError(() => PN.unregister()); try { localStorage.removeItem('bb_push_token'); } catch (e) {} actualizarPushUI(); }
     };
     document.addEventListener('bb-sesion', (e) => cambio(e.detail && e.detail.correo));
-    document.addEventListener('bb-opciones', () => { crearCanales(); const token = guardado(); if (token && window.bbCorreo) registrarEnServidor(token); });
+    document.addEventListener('bb-opciones', (e) => {
+      if (e.detail && e.detail.clave === 'notiPush') sincronizarPush();
+      else if (e.detail && e.detail.clave === 'notiSonido') { const token = guardado(); if (token && window.bbCorreo) registrarEnServidor(token); }
+    });
     if (window.bbCorreo) cambio(window.bbCorreo);                    // la sesión ya estaba abierta antes de que cargara este archivo
   }
 })();
