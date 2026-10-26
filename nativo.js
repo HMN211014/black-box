@@ -178,9 +178,13 @@
       try { localStorage.setItem('bb_push_token', t.value); } catch (e) {} registrarEnServidor(t.value); actualizarPushUI();
     });
     PN.addListener('registrationError', (e) => console.warn('push error', JSON.stringify(e)));
-    PN.addListener('pushNotificationReceived', (n) => {              // con la app abierta Android no muestra nada solo: lo mostramos aquí
+    PN.addListener('pushNotificationReceived', (n) => {              // Android no presenta el push automáticamente con la app abierta
       if (!pushActivo()) return;
-      aviso(n.title, n.body);
+      const data = n.data || {}, titulo = n.title || 'Black BOX', texto = n.body || '';
+      if (P.Notificacion && typeof P.Notificacion.mostrar === 'function') {
+        P.Notificacion.mostrar({ titulo, texto, poster: data.poster || '', canal: 'pedidos_' + sonidoActual() })
+          .catch(() => aviso(titulo, texto));
+      } else aviso(titulo, texto);
       if (window.bbPedidoListo) window.bbPedidoListo();
     });
     PN.addListener('pushNotificationActionPerformed', (a) => {       // tocaron la notificación

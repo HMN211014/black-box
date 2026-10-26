@@ -50,13 +50,14 @@ export async function avisarUsuario(env, correo, { titulo, texto, datos = {} }) 
     const acceso = await tokenGoogle(sa);
     const url = 'https://fcm.googleapis.com/v1/projects/' + sa.project_id + '/messages:send';
     const data = Object.fromEntries(Object.entries(datos).map(([k, v]) => [k, String(v)]));   // FCM solo acepta textos
+    const imagen = /^https:\/\/image\.tmdb\.org\/t\/p\/w\d+\/[\w.-]{1,80}$/.test(String(datos.poster || '')) ? datos.poster : '';
     let enviados = 0, fallidos = 0;
     for (const { token, sonido } of filas) {
       const canal = ['suave', 'sistema', 'silencio'].includes(sonido) ? 'pedidos_' + sonido : 'pedidos_suave';
       const r = await fetch(url, {
         method: 'POST', headers: { Authorization: 'Bearer ' + acceso, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: { token, notification: { title: titulo, body: texto }, data,
-          android: { priority: 'HIGH', notification: { channel_id: canal } } } })
+        body: JSON.stringify({ message: { token, notification: { title: titulo, body: texto, ...(imagen ? { image: imagen } : {}) }, data,
+          android: { priority: 'HIGH', notification: { channel_id: canal, ...(imagen ? { image: imagen } : {}) } } } })
       });
       if (r.ok) enviados++; else fallidos++;
       if (!r.ok) {

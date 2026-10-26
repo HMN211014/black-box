@@ -143,9 +143,9 @@ async function asignarLista(db, correo, titulo, tmdb, pedidoId, avisar) {
     await db.prepare('INSERT OR IGNORE INTO lista (correo, titulo, tmdb, fecha) VALUES (?1, ?2, ?3, ?4)').bind(correo, titulo, tmdb || null, Date.now()).run();
   }
   if (pedidoId) {
-    const antes = await db.prepare('SELECT estado, titulo FROM pedidos WHERE id = ?1 AND correo = ?2').bind(String(pedidoId), correo).first();
+    const antes = await db.prepare('SELECT estado, titulo, poster FROM pedidos WHERE id = ?1 AND correo = ?2').bind(String(pedidoId), correo).first();
     await db.prepare("UPDATE pedidos SET estado = 'listo', listo = ?1 WHERE id = ?2 AND correo = ?3").bind(Date.now(), String(pedidoId), correo).run();
-    if (avisar && antes && antes.estado === 'pendiente') avisar(correo, antes.titulo || titulo);      // push: solicitud aprobada (solo al resolverla)
+    if (avisar && antes && antes.estado === 'pendiente') avisar(correo, antes.titulo || titulo, antes.poster); // push: solicitud aprobada (solo al resolverla)
   }
   return { ok: true, lista: await listaDe(db, correo) };
 }
@@ -310,8 +310,10 @@ const datosSec = t => { try { const o = JSON.parse(t); return o && typeof o === 
 
 async function manejar({ request, env, params, waitUntil }) {
   const db = env.DB;
-  const avisarAprobado = (correo, titulo) => {
-    const p = avisarUsuario(env, correo, { titulo: 'Pedido aprobado', texto: 'Tu solicitud de «' + titulo + '» fue aprobada y ya está disponible en tu cuenta.', datos: { tipo: 'pedido_aprobado', titulo } });
+  const posterDePedido = poster => /^\/[\w.-]{1,60}$/.test(String(poster || '')) ? 'https://image.tmdb.org/t/p/w500' + poster : '';
+  const avisarAprobado = (correo, titulo, poster) => {
+    const imagen = posterDePedido(poster);
+    const p = avisarUsuario(env, correo, { titulo: 'Pedido aprobado', texto: 'Tu solicitud de «' + titulo + '» fue aprobada y ya está disponible en tu cuenta.', datos: { tipo: 'pedido_aprobado', titulo, ...(imagen ? { poster: imagen } : {}) } });
     if (waitUntil) waitUntil(p);
   };
   const kv = env.USUARIOS;          // KV viejo: solo se LEE una vez para copiar a D1 las películas que ya estaban publicadas
@@ -956,7 +958,7 @@ async function manejar({ request, env, params, waitUntil }) {
     }
 
     if (cuerpo.op === 'rechazar') {
-      const q = await db.prepare('SELECT id, correo, titulo, estado, vale FROM pedidos WHERE id = ?1').bind(String(cuerpo.pedido || '')).first();
+      const q = await db.prepare('SELECT id, correo, titulo, poster, estado, vale FROM pedidos WHERE id = ?1').bind(String(cuerpo.pedido || '')).first();
       if (!q) return json({ error: 'Ese pedido ya no existe.' }, 404);
       const pasos = [db.prepare("UPDATE pedidos SET estado = 'rechazado', vale = 0 WHERE id = ?1").bind(q.id)];
       if (q.estado === 'pendiente' && q.vale) pasos.push(db.prepare('UPDATE usuarios SET vales = vales + 1, canje = 1 WHERE correo = ?1').bind(q.correo));   // pedido rechazado: se le devuelve la película
@@ -965,7 +967,8 @@ async function manejar({ request, env, params, waitUntil }) {
         const texto = q.vale
           ? 'Tu solicitud de «' + q.titulo + '» fue rechazada. El vale usado se devolvió a tu cuenta.'
           : 'Tu solicitud de «' + q.titulo + '» fue rechazada.';
-        const p = avisarUsuario(env, q.correo, { titulo: 'Pedido rechazado', texto, datos: { tipo: 'pedido_rechazado', titulo: q.titulo, valeDevuelto: !!q.vale } });
+        const imagen = posterDePedido(q.poster);
+        const p = avisarUsuario(env, q.correo, { titulo: 'Pedido rechazado', texto, datos: { tipo: 'pedido_rechazado', titulo: q.titulo, valeDevuelto: !!q.vale, ...(imagen ? { poster: imagen } : {}) } });
         if (waitUntil) waitUntil(p);
       }
       return json({ ok: true });
