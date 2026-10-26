@@ -4314,6 +4314,13 @@ function seccionOpciones() {
 
 /* ---- Menú de perfiles (como el de Apple TV) y pantalla "Ajustes del perfil" ---- */
 function cerrarMenuPerfil() { const o = document.querySelector('.pmenu-ov'); if (o) { o.classList.remove('on'); setTimeout(() => o.remove(), 260); } }
+function uVistaOfertas() {
+  const w = el('div', 'ua pf-aj');
+  w.append(el('h2', '', 'Ofertas'));
+  const mensaje = el('p', 'ssub'); mensaje.textContent = 'Aquí podrás consultar y canjear ofertas próximamente.';
+  w.append(mensaje);
+  return w;
+}
 function abrirMenuPerfil() {
   cerrarMenuPerfil();
   const ov = el('div', 'pmenu-ov'), m = el('div', 'pmenu vg-rim');
@@ -4327,9 +4334,9 @@ function abrirMenuPerfil() {
   const aj = el('button', 'pm-fila'); aj.type = 'button';
   const ic = el('span', 'pm-ic'); ic.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><circle cx="12" cy="9.5" r="3.2"/><path d="M5.8 18.6c1.4-2.4 3.7-3.6 6.2-3.6s4.8 1.2 6.2 3.6"/></svg>';
   aj.append(ic, el('span', 'pm-n', 'Ajustes del perfil')); aj.onclick = () => { cerrarMenuPerfil(); abrirAjustes(); };
-  const cam = el('button', 'pm-fila'); cam.type = 'button'; const ic2 = el('span', 'pm-ic'); ic2.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h11l-3-3M17 17H6l3 3"/></svg>';
-  cam.append(ic2, el('span', 'pm-n', 'Cambiar de perfil')); cam.onclick = () => { cerrarMenuPerfil(); perfQuien(true); };
-  if (PERF.lista.length > 1) m.append(cam);
+  const ofertas = el('button', 'pm-fila'); ofertas.type = 'button'; const icOfertas = el('span', 'pm-ic'); icOfertas.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m20.6 13.4-8.6 8.6L2 12l8.6-8.6L21 3l-.4 10.4Z"/><circle cx="15.5" cy="8.5" r="1.2"/></svg>';
+  ofertas.append(icOfertas, el('span', 'pm-n', 'Ofertas')); ofertas.onclick = () => { cerrarMenuPerfil(); hoja([uVistaOfertas()]); };
+  m.append(ofertas);
   m.append(aj); ov.append(m); document.body.append(ov);
   const r = H('ajustes').getBoundingClientRect(), abajo = r.top > innerHeight / 2;           // debajo del botón (arriba a la derecha) o encima si el botón está abajo
   m.style.right = Math.max(10, innerWidth - r.right) + 'px';
