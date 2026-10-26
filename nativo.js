@@ -104,7 +104,7 @@
     canGoBack ? history.back() : P.App.exitApp();
   });
 
-  // ---- Notificaciones push: aviso cuando tu pedido está listo (requiere Firebase, ver LEEME-PUSH.md) ----
+  // ---- Notificaciones push: avisos cuando una solicitud se aprueba o rechaza ----
   const PN = P.PushNotifications;
   const post = (ruta, cuerpo) => fetch('/api/usuario/' + ruta, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cuerpo) }).catch(() => {});
   const guardado = () => { try { return localStorage.getItem('bb_push_token') || ''; } catch (e) { return ''; } };
@@ -186,7 +186,7 @@
     PN.addListener('pushNotificationActionPerformed', (a) => {       // tocaron la notificación
       if (!pushActivo()) return;
       const d = (a.notification && a.notification.data) || {};
-      if (d.tipo === 'pedido_listo') { if (location.hash !== '#/pedidos') location.hash = '#/pedidos'; if (window.bbPedidoListo) window.bbPedidoListo(); }
+      if (['pedido_listo', 'pedido_aprobado', 'pedido_rechazado'].includes(d.tipo)) { if (location.hash !== '#/pedidos') location.hash = '#/pedidos'; if (window.bbPedidoListo) window.bbPedidoListo(); }
     });
     let sesion = '';
     const cambio = (correo) => {
