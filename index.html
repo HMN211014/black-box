@@ -4676,7 +4676,19 @@ function cfgNotificaciones() {
   const muestra = cfgGrupo('VISTA PREVIA', []); muestra.querySelector('.cfg-card').append(prueba);
   const probar = cfgFila({ titulo: 'Probar sonido', azul: true, onclick: () => { if (window.bbPushProbarSonido) window.bbPushProbarSonido(); } });
   const push = cfgFila({ titulo: 'Notificaciones de pedidos', sub: 'Activa o desactiva los avisos en este dispositivo.', toggle: { k: 'notiPush', def: true } });
-  return [cfgGrupo('AVISOS DE PEDIDOS', [push], 'Si las desactivas, Black BOX dejará de recibir notificaciones push en este dispositivo.'), opciones('notiSonido', [['suave','Suave','Tono de Black BOX'],['sistema','Sistema','Sonido predeterminado del dispositivo'],['silencio','Silencio','Sin sonido ni vibración']]), opciones('notiEstilo', [['cristal','Cristal','Aviso oscuro con efecto de cristal'],['azul','Azul','Aviso con acento azul'],['claro','Claro','Aviso claro de alto contraste']]), muestra, cfgGrupo(null, [probar], 'El estilo cambia los avisos que aparecen dentro de Black BOX. El sonido se aplica a las notificaciones push de este dispositivo.')];
+  const enviarPrueba = cfgFila({ titulo: 'Enviar notificación de prueba', sub: 'Envía un mensaje a los dispositivos vinculados a tu cuenta.', azul: true });
+  const pruebaInfo = enviarPrueba.querySelector('small');
+  enviarPrueba.onclick = async () => {
+    if (!opcGet('notiPush', true)) { pruebaInfo.textContent = 'Activa primero el interruptor de notificaciones.'; return; }
+    enviarPrueba.disabled = true; pruebaInfo.textContent = 'Enviando a los dispositivos de tu cuenta…';
+    try {
+      const r = await api('usuario/pushprueba', {});
+      if (r.error) throw new Error(r.error);
+      pruebaInfo.textContent = r.fallidos ? 'Enviado a ' + r.enviados + ' dispositivo(s); falló en ' + r.fallidos + '.' : 'Notificación enviada a ' + r.enviados + ' dispositivo(s).';
+    } catch (e) { pruebaInfo.textContent = e.message || 'No se pudo enviar la prueba.'; }
+    setTimeout(() => { enviarPrueba.disabled = false; pruebaInfo.textContent = 'Envía un mensaje a los dispositivos vinculados a tu cuenta.'; }, 6000);
+  };
+  return [cfgGrupo('AVISOS DE PEDIDOS', [push, enviarPrueba], 'Si desactivas las notificaciones, Black BOX dejará de recibir avisos en este dispositivo.'), opciones('notiSonido', [['suave','Suave','Tono de Black BOX'],['sistema','Sistema','Sonido predeterminado del dispositivo'],['silencio','Silencio','Sin sonido ni vibración']]), opciones('notiEstilo', [['cristal','Cristal','Aviso oscuro con efecto de cristal'],['azul','Azul','Aviso con acento azul'],['claro','Claro','Aviso claro de alto contraste']]), muestra, cfgGrupo(null, [probar], 'El estilo cambia los avisos que aparecen dentro de Black BOX. El sonido se aplica a las notificaciones push de este dispositivo.')];
 }
 const CFG_PAGS = { main: ['Configuración', cfgMain], perfil: ['Perfil', cfgPerfil], cuenta: ['Cuenta', cfgCuenta], aspecto: ['Relación de aspecto', cfgAspecto], notificaciones: ['Notificaciones', cfgNotificaciones] };
 function cfgPagina(clave) {

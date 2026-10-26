@@ -393,6 +393,21 @@ async function manejar({ request, env, params, waitUntil }) {
     await db.prepare('DELETE FROM dispositivos_preferencias WHERE token = ?1').bind(String(cuerpo.token || '')).run();
     return json({ ok: true });
   }
+  if (accion === 'pushprueba' && esPost) {
+    const correo = await correoDeSesion(request, db);
+    if (!correo) return json({ error: 'Inicia sesión en Black BOX para enviar una prueba.' }, 401);
+    if (!env.FCM_SERVICE_ACCOUNT) return json({ error: 'El servicio de notificaciones todavía no está configurado.' }, 503);
+    await asegurarPush(db);
+    const dispositivos = await db.prepare('SELECT COUNT(*) AS total FROM dispositivos WHERE correo = ?1').bind(correo).first();
+    if (!dispositivos || !dispositivos.total) return json({ error: 'No hay dispositivos de Black BOX registrados en esta cuenta. Activa las notificaciones primero.' }, 409);
+    const clavePrueba = 'push-test:' + correo;
+    if (await intentosDe(db, clavePrueba)) return json({ error: 'Espera un minuto antes de volver a enviar otra prueba.' }, 429);
+    await sumarIntento(db, clavePrueba, 60);
+    const resultado = await avisarUsuario(env, correo, { titulo: 'Notificación de prueba', texto: 'Las notificaciones de Black BOX funcionan en este dispositivo.', datos: { tipo: 'prueba' } });
+    if (resultado.error === 'sin_configuracion') return json({ error: 'No se pudo conectar con el servicio de notificaciones.' }, 503);
+    if (!resultado.enviados) return json({ error: 'No se pudo enviar la notificación de prueba.' }, 502);
+    return json({ ok: true, enviados: resultado.enviados, fallidos: resultado.fallidos });
+  }
 
   /* ---- Cerrar sesión ---- */
   if (accion === 'salir' && esPost) {

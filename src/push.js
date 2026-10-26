@@ -42,14 +42,15 @@ export async function tokenGoogle(sa) {
 /* Envía una notificación a todos los teléfonos de una cuenta. Nunca lanza error hacia afuera. */
 export async function avisarUsuario(env, correo, { titulo, texto, datos = {} }) {
   try {
-    if (!env.FCM_SERVICE_ACCOUNT || !env.DB) return;                       // sin configurar: simplemente no avisa
-    let sa; try { sa = JSON.parse(env.FCM_SERVICE_ACCOUNT); } catch (e) { console.error('[push] FCM_SERVICE_ACCOUNT no es un JSON válido'); return; }
+    if (!env.FCM_SERVICE_ACCOUNT || !env.DB) return { enviados: 0, fallidos: 0, error: 'sin_configuracion' };
+    let sa; try { sa = JSON.parse(env.FCM_SERVICE_ACCOUNT); } catch (e) { console.error('[push] FCM_SERVICE_ACCOUNT no es un JSON válido'); return { enviados: 0, fallidos: 0, error: 'sin_configuracion' }; }
     await asegurarPush(env.DB);
     const filas = (await env.DB.prepare("SELECT d.token, COALESCE(p.sonido, 'suave') AS sonido FROM dispositivos d LEFT JOIN dispositivos_preferencias p ON p.token = d.token WHERE d.correo = ?1").bind(correo).all()).results;
-    if (!filas.length) return;
+    if (!filas.length) return { enviados: 0, fallidos: 0, error: 'sin_dispositivos' };
     const acceso = await tokenGoogle(sa);
     const url = 'https://fcm.googleapis.com/v1/projects/' + sa.project_id + '/messages:send';
     const data = Object.fromEntries(Object.entries(datos).map(([k, v]) => [k, String(v)]));   // FCM solo acepta textos
+    let enviados = 0, fallidos = 0;
     for (const { token, sonido } of filas) {
       const canal = ['suave', 'sistema', 'silencio'].includes(sonido) ? 'pedidos_' + sonido : 'pedidos_suave';
       const r = await fetch(url, {
@@ -57,13 +58,15 @@ export async function avisarUsuario(env, correo, { titulo, texto, datos = {} }) 
         body: JSON.stringify({ message: { token, notification: { title: titulo, body: texto }, data,
           android: { priority: 'HIGH', notification: { channel_id: canal } } } })
       });
+      if (r.ok) enviados++; else fallidos++;
       if (!r.ok) {
         const t = await r.text();
         console.error('[push] FCM', r.status, t.slice(0, 300));
         if (/UNREGISTERED|NOT_FOUND|not a valid FCM registration token/i.test(t)) await env.DB.prepare('DELETE FROM dispositivos WHERE token = ?1').bind(token).run();   // el teléfono ya no existe
       }
     }
-  } catch (e) { console.error('[push]', String((e && e.message) || e)); }
+    return { enviados, fallidos };
+  } catch (e) { console.error('[push]', String((e && e.message) || e)); return { enviados: 0, fallidos: 1, error: 'fallo_envio' }; }
 }
 
 /* ---------- Avisos al administrador (app Black BOX Admin): pedidos nuevos ---------- */
