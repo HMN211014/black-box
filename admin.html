@@ -30,6 +30,7 @@ td.k{font-family:ui-monospace,Menlo,Consolas,monospace;white-space:nowrap}
 .tag{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:600}
 .tag.d{background:rgba(48,209,88,.18);color:#8ee6a4}.tag.u{background:rgba(255,255,255,.12);color:#c7c7cc}
 .row{display:flex;gap:10px;flex-wrap:wrap}
+.lp{margin:12px 0 4px;align-items:center}.plg{display:none!important}
 .tw{overflow-x:auto}
 .it{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:10px 0;border-top:1px solid rgba(255,255,255,.1)}
 .it .tx{min-width:0;flex:1}.it b{display:block;font-size:15px;word-break:break-word}.it small{color:#a1a1a6;font-size:12px}
@@ -1450,6 +1451,36 @@ $('r2-hoy-go').onclick = () => con($('r2-hoy-go'), 'r2-hoy-m', async () => {
   msg('r2-hoy-m', (n ? 'Hoy se agregaron ' + n + ' archivo(s).' : 'Hoy todavía no se ha agregado ningún video.') + r2Cuando(j) + r2Parcial(j), !j.parcial);
   $('r2-hoy-go').textContent = 'Actualizar agregados de hoy';
 });
+
+/* ---- Biblioteca: comprimir o cerrar las listas una vez revisados los datos ---- */
+function listaPlegable(id, alCerrar) {
+  const lista = $(id); if (!lista || !lista.parentNode) return;
+  const barra = document.createElement('div'); barra.className = 'row lp'; barra.hidden = true;
+  const comprimir = document.createElement('button'), cerrar = document.createElement('button'), estado = document.createElement('small');
+  [comprimir, cerrar].forEach(b => { b.type = 'button'; b.className = 'g'; b.style.cssText = 'height:38px;font-size:14px'; });
+  cerrar.textContent = 'Cerrar lista'; estado.style.cssText = 'color:#a1a1a6;font-size:13px';
+  if (alCerrar === null) cerrar.hidden = true;       // listas que se dibujan solas: solo se pueden comprimir
+  barra.append(comprimir, cerrar, estado);
+  lista.parentNode.insertBefore(barra, lista);
+  let comprimida = false;
+  const pintar = () => { lista.classList.toggle('plg', comprimida); comprimir.textContent = comprimida ? 'Expandir lista' : 'Comprimir lista'; estado.textContent = comprimida ? 'Lista comprimida' : ''; };
+  const revisar = nuevos => {
+    if (nuevos) comprimida = false;            // si la lista se vuelve a dibujar, se muestra completa
+    const hay = lista.childElementCount > 0 && !lista.hidden;
+    barra.hidden = !hay; if (!hay) comprimida = false;
+    pintar();
+  };
+  comprimir.onclick = () => { comprimida = !comprimida; pintar(); };
+  cerrar.onclick = () => { lista.replaceChildren(); if (alCerrar) alCerrar(); revisar(false); };
+  new MutationObserver(r => revisar(r.some(x => x.addedNodes.length > 0))).observe(lista, { childList: true, attributes: true, attributeFilter: ['hidden'] });
+  pintar();
+}
+listaPlegable('x-lista', () => msg('x-m', '', true));
+listaPlegable('d-lista', () => msg('d-m', '', true));
+listaPlegable('l-out', () => { lConsulta++; lElegido = null; $('l-out').hidden = true; $('l-copy-box').hidden = true; msg('l-m', '', true); });
+listaPlegable('r2-out', () => msg('r2-m', '', true));
+listaPlegable('r2-hoy-out', () => { msg('r2-hoy-m', '', true); $('r2-hoy-go').textContent = 'Ver agregados de hoy'; });
+listaPlegable('idb-list', null);
 
 /* ---- colecciones del inicio ---- */
 const COL_FUENTES = { impact: "Impact,'Arial Narrow Bold','Helvetica Neue',sans-serif", avenir: "'Avenir Next','Helvetica Neue',Arial,sans-serif", helvetica: "'Helvetica Neue',Arial,sans-serif", georgia: "Georgia,'Times New Roman',serif", courier: "'Courier New',Courier,monospace" };
