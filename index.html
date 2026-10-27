@@ -24,6 +24,11 @@ header p{color:var(--muted);font-size:17px}
 .hero::after{content:"";position:absolute;inset:0;background:linear-gradient(0deg,rgba(0,0,0,.72) 0,rgba(0,0,0,.48) 20%,rgba(0,0,0,.2) 48%,transparent 76%),linear-gradient(90deg,rgba(0,0,0,.5),transparent 34%,transparent 72%,rgba(0,0,0,.28))}
 .hcopy{position:absolute;left:clamp(22px,4vw,56px);right:clamp(22px,4vw,56px);bottom:clamp(26px,5vw,56px);z-index:1;max-width:620px;transition:opacity .18s,transform .18s}
 .hero.out .hcopy{opacity:0;transform:translateY(8px)}
+/* Banner principal: se desliza con el dedo (el scroll vertical sigue libre) o arrastrando con el mouse */
+#hero{touch-action:pan-y;cursor:grab;-webkit-user-select:none;user-select:none}
+#hero button{cursor:pointer}
+#hero.arr{cursor:grabbing}
+#hero.arr .hcopy{transition:none;transform:translateX(var(--dx,0px));opacity:var(--op,1)}
 .hmeta{color:#d1d1d6;font-size:15px}
 .hcopy h2{font-size:clamp(34px,6vw,68px);letter-spacing:-.035em;line-height:1;margin:8px 0 12px}
 .hd{font-size:clamp(15px,1.6vw,18px);line-height:1.45;color:#ececf0;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;max-width:52ch}
@@ -2405,8 +2410,47 @@ function mostrar(i) {
 function auto() {
   clearInterval(timer);
   if (reduce || orden.length < 2) return;
-  timer = setInterval(() => { if (!dlg.open && pl.hidden && !document.hidden && !vistas.inicio.hidden && !document.body.classList.contains('con-q')) mostrar((idx + 1) % orden.length); }, 9000);
+  timer = setInterval(() => { if (!dlg.open && pl.hidden && !document.hidden && !vistas.inicio.hidden && !document.body.classList.contains('con-q') && !hero.classList.contains('arr')) mostrar((idx + 1) % orden.length); }, 9000);
 }
+/* Deslizar el banner: con el dedo o arrastrando con el mouse. Izquierda = siguiente, derecha = anterior. */
+(function () {
+  const UMBRAL = 56, RAPIDO = 24;            // px para cambiar de título; px mínimos si el gesto es rápido (menos de 280 ms)
+  let g = null, noClic = false;
+  const cambiar = dir => { const n = orden.length; if (n < 2) return; mostrar((idx + dir + n) % n); auto(); };
+  const soltar = e => {
+    if (!g || e.pointerId !== g.id) return;
+    const r = g; g = null;
+    if (!r.arr) return;
+    try { hero.releasePointerCapture(r.id); } catch (_) {}
+    hero.classList.remove('arr'); hero.style.removeProperty('--dx'); hero.style.removeProperty('--op');
+    noClic = true;                            // lo que se arrastró no cuenta como clic en un botón
+    if (e.type !== 'pointerup') return;
+    const dx = e.clientX - r.x0, dt = performance.now() - r.t0;
+    if (Math.abs(dx) >= UMBRAL || (Math.abs(dx) >= RAPIDO && dt < 280)) cambiar(dx < 0 ? 1 : -1);
+  };
+  hero.addEventListener('pointerdown', e => {
+    noClic = false;
+    if (!e.isPrimary || (e.pointerType === 'mouse' && e.button !== 0) || orden.length < 2) return;
+    g = { id: e.pointerId, x0: e.clientX, y0: e.clientY, t0: performance.now(), arr: false };
+  });
+  hero.addEventListener('pointermove', e => {
+    if (!g || e.pointerId !== g.id) return;
+    if (e.pointerType === 'mouse' && !(e.buttons & 1)) { soltar({ pointerId: g.id, type: 'pointercancel' }); return; }   // soltó el botón fuera de la ventana
+    const dx = e.clientX - g.x0, dy = e.clientY - g.y0;
+    if (!g.arr) {
+      if (Math.abs(dx) < 8) { if (Math.abs(dy) > 12) g = null; return; }
+      if (Math.abs(dy) > Math.abs(dx)) { g = null; return; }              // gesto vertical: es para desplazar la página
+      g.arr = true; hero.classList.add('arr');
+      try { hero.setPointerCapture(e.pointerId); } catch (_) {}
+      const s = window.getSelection && getSelection(); if (s && s.removeAllRanges) s.removeAllRanges();
+    }
+    if (!reduce) { hero.style.setProperty('--dx', Math.max(-140, Math.min(140, dx * .55)) + 'px'); hero.style.setProperty('--op', String(1 - Math.min(.6, Math.abs(dx) / 420))); }
+  });
+  hero.addEventListener('pointerup', soltar);
+  hero.addEventListener('pointercancel', soltar);
+  hero.addEventListener('click', e => { if (noClic) { e.preventDefault(); e.stopPropagation(); noClic = false; } }, true);
+  hero.addEventListener('dragstart', e => e.preventDefault());           // que el mouse no arrastre el logo como imagen
+})();
 /* (el banner se arma más abajo, cuando ya se sabe el año de cada película) */
 
 /* ---------- Reproductor propio (subpágina estilo Disney+) ---------- */
