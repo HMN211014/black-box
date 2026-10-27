@@ -21,6 +21,56 @@ const b64 = buf => { let s = ''; new Uint8Array(buf).forEach(c => (s += String.f
 const deb64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
 const b64url = buf => b64(buf).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 const limpiarCorreo = x => String(x || '').trim().toLowerCase();
+const normalizarNombreR2 = x => String(x || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
+const esVideoR2 = x => /\.(mp4|mkv|m3u8|webm|m4v|mov|avi|ts|mpd)$/i.test(String(x || ''));
+const R2_INDEX_KV = 'blackbox:r2-media-index:v1';
+
+async function buscarArchivosR2(env, request, consulta, actualizar) {
+  if (!env.DATOS) throw new Error('El binding DATOS de R2 no está conectado a este Worker.');
+  const ahora = Date.now();
+  let indice = null;
+  if (!actualizar && env.USUARIOS) {
+    try {
+      const guardado = await env.USUARIOS.get(R2_INDEX_KV);
+      const dato = guardado ? JSON.parse(guardado) : null;
+      if (dato && Array.isArray(dato.items) && ahora - dato.actualizado < 300000) indice = dato;
+    } catch (e) {}
+  }
+  if (!indice) {
+    const items = []; let cursor = null, paginas = 0, parcial = false;
+    do {
+      const pagina = await env.DATOS.list(cursor ? { cursor, limit: 1000 } : { limit: 1000 });
+      for (const objeto of pagina.objects || []) {
+        if (esVideoR2(objeto.key)) items.push({ key: objeto.key, size: Number(objeto.size) || 0 });
+      }
+      paginas++;
+      cursor = pagina.truncated ? pagina.cursor : null;
+      if (cursor && paginas >= 20) parcial = true;
+    } while (cursor && paginas < 20);
+    indice = { items, actualizado: ahora, parcial };
+    if (env.USUARIOS) {
+      try { await env.USUARIOS.put(R2_INDEX_KV, JSON.stringify(indice), { expirationTtl: 300 }); } catch (e) {}
+    }
+  }
+
+  let base = String(env.R2_PUBLIC_BASE || '').trim();
+  if (base && !base.endsWith('/')) base += '/';
+  if (!base) {
+    const assets = await env.ASSETS.fetch(new Request(new URL('/index.html', request.url)));
+    const html = await assets.text();
+    const encontrado = html.match(/https:\/\/pub-[a-z0-9-]+\.r2\.dev\//i);
+    if (encontrado) base = encontrado[0];
+  }
+  if (!base) throw new Error('No pude identificar el dominio público de R2 para construir los enlaces.');
+
+  const q = normalizarNombreR2(consulta);
+  if (q.length < 2) throw new Error('Escribe al menos dos caracteres para buscar en R2.');
+  const items = indice.items.filter(x => normalizarNombreR2(x.key).includes(q))
+    .sort((a, b) => normalizarNombreR2(a.key).indexOf(q) - normalizarNombreR2(b.key).indexOf(q) || a.key.length - b.key.length)
+    .slice(0, 50)
+    .map(x => ({ nombre: x.key.split('/').pop(), key: x.key, size: x.size, url: base + x.key.split('/').map(encodeURIComponent).join('/') }));
+  return { items, actualizado: indice.actualizado, parcial: !!indice.parcial };
+}
 
 async function guardarIntroDbTitulo(db, tmdb, tipo, titulo, activo) {
   const r = await db.prepare("SELECT valor FROM meta WHERE clave = 'introdb'").first();
@@ -741,6 +791,11 @@ async function manejar({ request, env, params, waitUntil }) {
       await prepararCatalogo(db, kv);
       const r = await db.prepare('SELECT titulo, tmdb, link, tipo, episodios, version, proximamente FROM publicados ORDER BY creado DESC').all();
       return json({ items: r.results.map(i => ({ titulo: i.titulo, tmdb: i.tmdb, link: i.link, tipo: i.tipo, version: i.version === 'subtitulada' ? 'subtitulada' : 'latino', proximamente: !!i.proximamente, eps: Object.keys(epsDe(i.episodios)).length })) });
+    }
+
+    if (cuerpo.op === 'r2_buscar') {
+      try { return json(await buscarArchivosR2(env, request, cuerpo.q, cuerpo.actualizar === true)); }
+      catch (e) { return json({ error: e && e.message ? e.message : 'No se pudieron consultar los archivos de R2.' }, 400); }
     }
 
     if (cuerpo.op === 'version_titulo') {

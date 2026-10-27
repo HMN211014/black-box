@@ -326,6 +326,18 @@ html.en-admin-app body:not(.h) .nav button.on{background:#fff;color:#000}
       <p class="s">Al copiar, se incluirán el título, el texto adicional y el enlace, cada uno en una línea.</p>
     </div>
     <div id="l-out" hidden></div>
+    <div style="border-top:1px solid rgba(255,255,255,.12);margin-top:20px;padding-top:16px">
+      <h3>Buscar archivos en R2</h3>
+      <p class="s">Busca por el nombre del archivo en el bucket conectado. Los resultados muestran el enlace público listo para copiar.</p>
+      <div class="f" style="grid-template-columns:minmax(0,1fr) auto auto;align-items:end">
+        <label>Nombre del archivo<input id="r2-q" type="search" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Ej.: Spider-Man o nombre de la película"></label>
+        <button class="g" id="r2-go" type="button">Buscar</button>
+        <button class="g" id="r2-refresh" type="button">Actualizar archivos</button>
+      </div>
+      <label style="margin-top:10px">Condiciones o texto adicional (opcional)<textarea class="ta" id="r2-cond" rows="3" maxlength="500" placeholder="Ej.: audio latino · 1080p · disponible hasta…"></textarea></label>
+      <p class="m" id="r2-m" hidden></p>
+      <div id="r2-out"></div>
+    </div>
   </div>
 
   <div class="c" data-g="biblioteca" id="introdb-card">
@@ -1388,6 +1400,37 @@ buscadorTmdb('l-q', 'l-res', 'l-m', async r => {
     out.hidden = true; msg('l-m', (e && e.message) || 'No se pudo consultar el enlace guardado.', false);
   }
 });
+
+/* ---- búsqueda de archivos de video en el bucket R2 ---- */
+async function r2Buscar(actualizar) {
+  const q = $('r2-q').value.trim(), out = $('r2-out'), buscar = $('r2-go'), refrescar = $('r2-refresh');
+  if (!q) { msg('r2-m', 'Escribe el nombre o una parte del nombre del archivo.', false); return; }
+  buscar.disabled = true; refrescar.disabled = true; out.replaceChildren();
+  msg('r2-m', actualizar ? 'Actualizando la lista de archivos de R2…' : 'Buscando en R2…', true);
+  try {
+    const j = await admin({ op: 'r2_buscar', q, actualizar });
+    (j.items || []).forEach(x => {
+      const fila = document.createElement('div'); fila.className = 'it';
+      const tx = document.createElement('div'); tx.className = 'tx';
+      const nombre = document.createElement('b'); nombre.textContent = x.nombre;
+      const ruta = document.createElement('small'); ruta.textContent = x.key + ' · ' + (x.size ? (x.size / 1048576).toFixed(1) + ' MB' : 'tamaño desconocido'); ruta.style.wordBreak = 'break-all';
+      tx.append(nombre, ruta);
+      const editar = document.createElement('label'); editar.textContent = 'Texto del título al copiar';
+      const titulo = document.createElement('input'); titulo.type = 'text'; titulo.maxLength = 200; titulo.autocomplete = 'off'; titulo.value = x.nombre.replace(/\.[^.]+$/, '');
+      editar.appendChild(titulo);
+      const cp = document.createElement('button'); cp.type = 'button'; cp.className = 'g'; cp.textContent = 'Copiar título + enlace';
+      cp.onclick = () => copiar([titulo.value.trim(), $('r2-cond').value.trim(), x.url].filter(Boolean).join('\n'), cp, 'Copiar título + enlace');
+      fila.append(tx, editar, cp); out.appendChild(fila);
+    });
+    const cuando = j.actualizado ? ' · Lista actualizada ' + new Date(j.actualizado).toLocaleString('es-MX') : '';
+    const avisoParcial = j.parcial ? ' Solo se revisaron los primeros 20,000 archivos; puedes actualizar e intentar con otra parte del nombre.' : '';
+    msg('r2-m', j.items && j.items.length ? 'Encontré ' + j.items.length + ' coincidencia(s).' + cuando + avisoParcial : 'No encontré archivos con ese nombre.' + cuando + avisoParcial, !j.parcial);
+  } catch (e) { msg('r2-m', (e && e.message) || 'No se pudo buscar en el bucket R2.', false); }
+  finally { buscar.disabled = false; refrescar.disabled = false; }
+}
+$('r2-go').onclick = () => r2Buscar(false);
+$('r2-refresh').onclick = () => r2Buscar(true);
+$('r2-q').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); r2Buscar(false); } });
 
 /* ---- colecciones del inicio ---- */
 const COL_FUENTES = { impact: "Impact,'Arial Narrow Bold','Helvetica Neue',sans-serif", avenir: "'Avenir Next','Helvetica Neue',Arial,sans-serif", helvetica: "'Helvetica Neue',Arial,sans-serif", georgia: "Georgia,'Times New Roman',serif", courier: "'Courier New',Courier,monospace" };
