@@ -23,7 +23,8 @@ const b64url = buf => b64(buf).replace(/\+/g, '-').replace(/\//g, '_').replace(/
 const limpiarCorreo = x => String(x || '').trim().toLowerCase();
 const normalizarNombreR2 = x => String(x || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
 const esVideoR2 = x => /\.(mp4|mkv|m3u8|webm|m4v|mov|avi|ts|mpd)$/i.test(String(x || ''));
-const R2_INDEX_KV = 'blackbox:r2-media-index:v1';
+const R2_INDEX_KV = 'blackbox:r2-media-index:v2';        // v2: cada archivo guarda su fecha de subida
+const R2_RECIENTES = 30;
 
 async function buscarArchivosR2(env, request, consulta, actualizar) {
   if (!env.DATOS) throw new Error('El binding DATOS de R2 no está conectado a este Worker.');
@@ -41,7 +42,7 @@ async function buscarArchivosR2(env, request, consulta, actualizar) {
     do {
       const pagina = await env.DATOS.list(cursor ? { cursor, limit: 1000 } : { limit: 1000 });
       for (const objeto of pagina.objects || []) {
-        if (esVideoR2(objeto.key)) items.push({ key: objeto.key, size: Number(objeto.size) || 0 });
+        if (esVideoR2(objeto.key)) items.push({ key: objeto.key, size: Number(objeto.size) || 0, subido: objeto.uploaded ? new Date(objeto.uploaded).getTime() || 0 : 0 });
       }
       paginas++;
       cursor = pagina.truncated ? pagina.cursor : null;
@@ -64,12 +65,17 @@ async function buscarArchivosR2(env, request, consulta, actualizar) {
   if (!base) throw new Error('No pude identificar el dominio público de R2 para construir los enlaces.');
 
   const q = normalizarNombreR2(consulta);
+  const aItem = x => ({ nombre: x.key.split('/').pop(), key: x.key, size: x.size, subido: x.subido || 0, url: base + x.key.split('/').map(encodeURIComponent).join('/') });
+  if (!q) {      // sin texto de búsqueda: los archivos más recientes, también los que están dentro de carpetas
+    const items = indice.items.slice().sort((a, b) => (b.subido || 0) - (a.subido || 0)).slice(0, R2_RECIENTES).map(aItem);
+    return { items, recientes: true, actualizado: indice.actualizado, parcial: !!indice.parcial };
+  }
   if (q.length < 2) throw new Error('Escribe al menos dos caracteres para buscar en R2.');
   const items = indice.items.filter(x => normalizarNombreR2(x.key).includes(q))
     .sort((a, b) => normalizarNombreR2(a.key).indexOf(q) - normalizarNombreR2(b.key).indexOf(q) || a.key.length - b.key.length)
     .slice(0, 50)
-    .map(x => ({ nombre: x.key.split('/').pop(), key: x.key, size: x.size, url: base + x.key.split('/').map(encodeURIComponent).join('/') }));
-  return { items, actualizado: indice.actualizado, parcial: !!indice.parcial };
+    .map(aItem);
+  return { items, recientes: false, actualizado: indice.actualizado, parcial: !!indice.parcial };
 }
 
 async function guardarIntroDbTitulo(db, tmdb, tipo, titulo, activo) {
