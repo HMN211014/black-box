@@ -320,6 +320,11 @@ html.en-admin-app body:not(.h) .nav button.on{background:#fff;color:#000}
     <label style="margin-top:12px">Buscar en TMDB<input id="l-q" type="search" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Nombre de la película o serie"></label>
     <div class="sr" id="l-res"></div>
     <p class="m" id="l-m" hidden></p>
+    <div id="l-copy-box" hidden>
+      <label style="margin-top:12px">Texto del título al copiar<input id="l-copy-title" type="text" maxlength="200" autocomplete="off" placeholder="Título de la película o serie"></label>
+      <label style="margin-top:10px">Condiciones o texto adicional (opcional)<textarea class="ta" id="l-copy-cond" rows="3" maxlength="500" placeholder="Ej.: audio latino · 1080p · disponible hasta…"></textarea></label>
+      <p class="s">Al copiar, se incluirán el título, el texto adicional y el enlace, cada uno en una línea.</p>
+    </div>
     <div id="l-out" hidden></div>
   </div>
 
@@ -1313,16 +1318,20 @@ $('x-go').onclick = () => con($('x-go'), 'x-m', async () => {
 /* ---- consultar enlaces de títulos registrados desde el panel ---- */
 let lElegido = null, lConsulta = 0;
 $('l-q').addEventListener('input', () => {
-  lConsulta++; lElegido = null; $('l-out').replaceChildren(); $('l-out').hidden = true;
+  lConsulta++; lElegido = null; $('l-out').replaceChildren(); $('l-out').hidden = true; $('l-copy-box').hidden = true;
 });
-function lFila(enunciado, url) {
+function lFila(enunciado, url, sufijoTitulo = '') {
   const d = document.createElement('div'); d.className = 'it';
   const tx = document.createElement('div'); tx.className = 'tx';
   const b = document.createElement('b'); b.textContent = enunciado;
   const sm = document.createElement('small'); sm.textContent = url; sm.style.wordBreak = 'break-all';
   tx.append(b, sm);
-  const cp = document.createElement('button'); cp.type = 'button'; cp.className = 'g'; cp.textContent = 'Copiar enlace';
-  cp.onclick = () => copiar(url, cp, 'Copiar enlace');
+  const cp = document.createElement('button'); cp.type = 'button'; cp.className = 'g'; cp.textContent = 'Copiar título + enlace';
+  cp.onclick = () => {
+    const titulo = [$('l-copy-title').value.trim(), sufijoTitulo].filter(Boolean).join(' · ');
+    const condicion = $('l-copy-cond').value.trim();
+    copiar([titulo, condicion, url].filter(Boolean).join('\n'), cp, 'Copiar título + enlace');
+  };
   d.append(tx, cp); return d;
 }
 buscadorTmdb('l-q', 'l-res', 'l-m', async r => {
@@ -1338,6 +1347,9 @@ buscadorTmdb('l-q', 'l-res', 'l-m', async r => {
       msg('l-m', '“' + (r.title || r.name || 'Este título') + '” no está publicado desde el panel de administración.', false);
       return;
     }
+    $('l-copy-title').value = item.titulo || '';
+    $('l-copy-cond').value = '';
+    $('l-copy-box').hidden = false;
     const head = document.createElement('p'); head.className = 's';
     head.textContent = item.titulo + ' · ' + (item.tipo === 'serie' ? 'Serie' : 'Película') + ' · TMDB ' + item.tmdb;
     out.appendChild(head);
@@ -1357,17 +1369,18 @@ buscadorTmdb('l-q', 'l-res', 'l-m', async r => {
           if (!det.open || det.dataset.loaded) return;
           keys.forEach(k => {
             const m = k.match(/^(\d+)x(\d+)$/);
-            det.appendChild(lFila(m ? 'Temporada ' + m[1] + ' · Episodio ' + m[2] : k, eps[k]));
+            const nombreEp = m ? 'Temporada ' + m[1] + ' · Episodio ' + m[2] : k;
+            det.appendChild(lFila(nombreEp, eps[k], nombreEp));
           });
           det.dataset.loaded = '1';
         });
         out.appendChild(det);
       }
       if (!item.link && !keys.length) {
-        out.hidden = true; msg('l-m', 'La serie está registrada, pero todavía no tiene enlaces guardados.', false); return;
+        out.hidden = true; $('l-copy-box').hidden = true; msg('l-m', 'La serie está registrada, pero todavía no tiene enlaces guardados.', false); return;
       }
     } else if (!item.link) {
-      out.hidden = true; msg('l-m', 'La película está registrada, pero no tiene un enlace guardado.', false); return;
+      out.hidden = true; $('l-copy-box').hidden = true; msg('l-m', 'La película está registrada, pero no tiene un enlace guardado.', false); return;
     }
     msg('l-m', '', true);
   } catch (e) {
