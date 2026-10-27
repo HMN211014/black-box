@@ -24,9 +24,9 @@ const limpiarCorreo = x => String(x || '').trim().toLowerCase();
 const normalizarNombreR2 = x => String(x || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
 const esVideoR2 = x => /\.(mp4|mkv|m3u8|webm|m4v|mov|avi|ts|mpd)$/i.test(String(x || ''));
 const R2_INDEX_KV = 'blackbox:r2-media-index:v2';        // v2: cada archivo guarda su fecha de subida
-const R2_RECIENTES = 30;
+const R2_MAX_HOY = 200;
 
-async function buscarArchivosR2(env, request, consulta, actualizar) {
+async function buscarArchivosR2(env, request, consulta, actualizar, desde) {
   if (!env.DATOS) throw new Error('El binding DATOS de R2 no está conectado a este Worker.');
   const ahora = Date.now();
   let indice = null;
@@ -66,16 +66,16 @@ async function buscarArchivosR2(env, request, consulta, actualizar) {
 
   const q = normalizarNombreR2(consulta);
   const aItem = x => ({ nombre: x.key.split('/').pop(), key: x.key, size: x.size, subido: x.subido || 0, url: base + x.key.split('/').map(encodeURIComponent).join('/') });
-  if (!q) {      // sin texto de búsqueda: los archivos más recientes, también los que están dentro de carpetas
-    const items = indice.items.slice().sort((a, b) => (b.subido || 0) - (a.subido || 0)).slice(0, R2_RECIENTES).map(aItem);
-    return { items, recientes: true, actualizado: indice.actualizado, parcial: !!indice.parcial };
+  if (desde > 0) {      // archivos agregados desde esa hora (el panel manda el inicio del día), también los de dentro de carpetas
+    const items = indice.items.filter(x => (x.subido || 0) >= desde).sort((a, b) => (b.subido || 0) - (a.subido || 0)).slice(0, R2_MAX_HOY).map(aItem);
+    return { items, hoy: true, actualizado: indice.actualizado, parcial: !!indice.parcial };
   }
   if (q.length < 2) throw new Error('Escribe al menos dos caracteres para buscar en R2.');
   const items = indice.items.filter(x => normalizarNombreR2(x.key).includes(q))
     .sort((a, b) => normalizarNombreR2(a.key).indexOf(q) - normalizarNombreR2(b.key).indexOf(q) || a.key.length - b.key.length)
     .slice(0, 50)
     .map(aItem);
-  return { items, recientes: false, actualizado: indice.actualizado, parcial: !!indice.parcial };
+  return { items, hoy: false, actualizado: indice.actualizado, parcial: !!indice.parcial };
 }
 
 async function guardarIntroDbTitulo(db, tmdb, tipo, titulo, activo) {
@@ -800,7 +800,7 @@ async function manejar({ request, env, params, waitUntil }) {
     }
 
     if (cuerpo.op === 'r2_buscar') {
-      try { return json(await buscarArchivosR2(env, request, cuerpo.q, cuerpo.actualizar === true)); }
+      try { return json(await buscarArchivosR2(env, request, cuerpo.q, cuerpo.actualizar === true, Math.floor(Number(cuerpo.desde)) || 0)); }
       catch (e) { return json({ error: e && e.message ? e.message : 'No se pudieron consultar los archivos de R2.' }, 400); }
     }
 

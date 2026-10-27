@@ -330,14 +330,22 @@ html.en-admin-app body:not(.h) .nav button.on{background:#fff;color:#000}
 
   <div class="c" data-g="biblioteca" id="r2-card">
     <h2>Buscar archivos en R2</h2>
-    <p class="s">Al verificar la clave se muestran los archivos más recientes del bucket, incluidos los que se agregaron dentro de carpetas. Para otro archivo, búscalo por nombre. Cada uno solo permite copiar su enlace.</p>
+    <p class="s">Busca por el nombre del archivo en el bucket conectado, incluidas las carpetas. Cada resultado solo permite copiar su enlace.</p>
     <div class="f" style="grid-template-columns:minmax(0,1fr) auto auto;align-items:end;margin-top:12px">
-      <label>Nombre del archivo<input id="r2-q" type="search" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Déjalo vacío para ver los recientes"></label>
+      <label>Nombre del archivo<input id="r2-q" type="search" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Ej.: Spider-Man o nombre de la película"></label>
       <button class="g" id="r2-go" type="button">Buscar</button>
       <button class="g" id="r2-refresh" type="button">Actualizar archivos</button>
     </div>
     <p class="m" id="r2-m" hidden></p>
     <div id="r2-out"></div>
+  </div>
+
+  <div class="c" data-g="biblioteca" id="r2-hoy-card">
+    <h2>Agregados hoy a R2</h2>
+    <p class="s">Muestra los videos que se subieron al bucket hoy, también los que están dentro de carpetas. Cada uno solo permite copiar su enlace.</p>
+    <div class="row"><button class="g" id="r2-hoy-go" type="button">Ver agregados de hoy</button></div>
+    <p class="m" id="r2-hoy-m" hidden></p>
+    <div id="r2-hoy-out"></div>
   </div>
 
   <div class="c" data-g="biblioteca" id="introdb-card">
@@ -681,7 +689,6 @@ function comprobarClave() {
       try { await window.bbAdminCargarInteracciones(); }
       catch (e) { msg('it-m', 'La clave es correcta, pero no se pudieron cargar los últimos cambios: ' + e.message, false); }
     }
-    if (!$('r2-q').value.trim()) r2Buscar(false);       // muestra los archivos recientes de R2 (sus errores los muestra la propia tarjeta)
   });
 }
 $('clave-ver').onclick = () => {
@@ -1403,35 +1410,46 @@ buscadorTmdb('l-q', 'l-res', 'l-m', async r => {
 });
 
 /* ---- búsqueda de archivos de video en el bucket R2 ---- */
+function r2Fila(x) {
+  const fila = document.createElement('div'); fila.className = 'it';
+  const tx = document.createElement('div'); tx.className = 'tx';
+  const nombre = document.createElement('b'); nombre.textContent = x.nombre;
+  const carpeta = x.key.includes('/') ? x.key.slice(0, x.key.lastIndexOf('/')) + ' · ' : '';
+  const subido = x.subido ? new Date(x.subido).toLocaleString('es-MX', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) + ' · ' : '';
+  const detalle = document.createElement('small'); detalle.textContent = carpeta + subido + (x.size ? (x.size / 1048576).toFixed(1) + ' MB' : 'tamaño desconocido'); detalle.style.wordBreak = 'break-all';
+  tx.append(nombre, detalle);
+  const cp = document.createElement('button'); cp.type = 'button'; cp.className = 'g'; cp.textContent = 'Copiar enlace';
+  cp.onclick = () => copiar(x.url, cp, 'Copiar enlace');
+  fila.append(tx, cp); return fila;
+}
+const r2Cuando = j => j.actualizado ? ' · Lista actualizada ' + new Date(j.actualizado).toLocaleString('es-MX') : '';
+const r2Parcial = j => j.parcial ? ' Solo se revisaron los primeros 20,000 archivos, así que puede faltar alguno.' : '';
 async function r2Buscar(actualizar) {
   const q = $('r2-q').value.trim(), out = $('r2-out'), buscar = $('r2-go'), refrescar = $('r2-refresh');
-  if (q && q.length < 2) { msg('r2-m', 'Escribe al menos dos caracteres, o déjalo vacío para ver los más recientes.', false); return; }
+  if (!q) { msg('r2-m', 'Escribe el nombre o una parte del nombre del archivo.', false); return; }
   buscar.disabled = true; refrescar.disabled = true; out.replaceChildren();
-  msg('r2-m', actualizar ? 'Actualizando la lista de archivos de R2…' : (q ? 'Buscando en R2…' : 'Cargando los archivos más recientes…'), true);
+  msg('r2-m', actualizar ? 'Actualizando la lista de archivos de R2…' : 'Buscando en R2…', true);
   try {
     const j = await admin({ op: 'r2_buscar', q, actualizar });
-    (j.items || []).forEach(x => {
-      const fila = document.createElement('div'); fila.className = 'it';
-      const tx = document.createElement('div'); tx.className = 'tx';
-      const nombre = document.createElement('b'); nombre.textContent = x.nombre;
-      const carpeta = x.key.includes('/') ? x.key.slice(0, x.key.lastIndexOf('/')) + ' · ' : '';
-      const subido = x.subido ? new Date(x.subido).toLocaleString('es-MX', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' · ' : '';
-      const detalle = document.createElement('small'); detalle.textContent = carpeta + subido + (x.size ? (x.size / 1048576).toFixed(1) + ' MB' : 'tamaño desconocido'); detalle.style.wordBreak = 'break-all';
-      tx.append(nombre, detalle);
-      const cp = document.createElement('button'); cp.type = 'button'; cp.className = 'g'; cp.textContent = 'Copiar enlace';
-      cp.onclick = () => copiar(x.url, cp, 'Copiar enlace');
-      fila.append(tx, cp); out.appendChild(fila);
-    });
-    const cuando = j.actualizado ? ' · Lista actualizada ' + new Date(j.actualizado).toLocaleString('es-MX') : '';
-    const avisoParcial = j.parcial ? ' Solo se revisaron los primeros 20,000 archivos, así que puede faltar alguno reciente.' : '';
-    const n = j.items ? j.items.length : 0;
-    msg('r2-m', n ? (j.recientes ? 'Los ' + n + ' archivos más recientes.' : 'Encontré ' + n + ' coincidencia(s).') + cuando + avisoParcial : (j.recientes ? 'No encontré videos en el bucket.' : 'No encontré archivos con ese nombre.') + cuando + avisoParcial, !j.parcial);
+    (j.items || []).forEach(x => out.appendChild(r2Fila(x)));
+    msg('r2-m', (j.items && j.items.length ? 'Encontré ' + j.items.length + ' coincidencia(s).' : 'No encontré archivos con ese nombre.') + r2Cuando(j) + r2Parcial(j), !j.parcial);
   } catch (e) { msg('r2-m', (e && e.message) || 'No se pudo buscar en el bucket R2.', false); }
   finally { buscar.disabled = false; refrescar.disabled = false; }
 }
 $('r2-go').onclick = () => r2Buscar(false);
 $('r2-refresh').onclick = () => r2Buscar(true);
 $('r2-q').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); r2Buscar(false); } });
+
+/* ---- archivos agregados hoy al bucket R2 (se consultan al pulsar el botón) ---- */
+$('r2-hoy-go').onclick = () => con($('r2-hoy-go'), 'r2-hoy-m', async () => {
+  const out = $('r2-hoy-out'), inicio = new Date(); inicio.setHours(0, 0, 0, 0);       // medianoche de hoy en la hora de este dispositivo
+  out.replaceChildren(); msg('r2-hoy-m', 'Consultando los archivos de hoy…', true);
+  const j = await admin({ op: 'r2_buscar', q: '', actualizar: true, desde: inicio.getTime() });
+  (j.items || []).forEach(x => out.appendChild(r2Fila(x)));
+  const n = j.items ? j.items.length : 0;
+  msg('r2-hoy-m', (n ? 'Hoy se agregaron ' + n + ' archivo(s).' : 'Hoy todavía no se ha agregado ningún video.') + r2Cuando(j) + r2Parcial(j), !j.parcial);
+  $('r2-hoy-go').textContent = 'Actualizar agregados de hoy';
+});
 
 /* ---- colecciones del inicio ---- */
 const COL_FUENTES = { impact: "Impact,'Arial Narrow Bold','Helvetica Neue',sans-serif", avenir: "'Avenir Next','Helvetica Neue',Arial,sans-serif", helvetica: "'Helvetica Neue',Arial,sans-serif", georgia: "Georgia,'Times New Roman',serif", courier: "'Courier New',Courier,monospace" };
