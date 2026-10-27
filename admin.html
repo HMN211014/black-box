@@ -31,6 +31,7 @@ td.k{font-family:ui-monospace,Menlo,Consolas,monospace;white-space:nowrap}
 .tag.d{background:rgba(48,209,88,.18);color:#8ee6a4}.tag.u{background:rgba(255,255,255,.12);color:#c7c7cc}
 .row{display:flex;gap:10px;flex-wrap:wrap}
 .lp{margin:12px 0 4px;align-items:center}.plg{display:none!important}
+.it.v{flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:8px}.it.v .tx{flex:none;width:100%}
 .tw{overflow-x:auto}
 .it{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:10px 0;border-top:1px solid rgba(255,255,255,.1)}
 .it .tx{min-width:0;flex:1}.it b{display:block;font-size:15px;word-break:break-word}.it small{color:#a1a1a6;font-size:12px}
@@ -1412,15 +1413,15 @@ buscadorTmdb('l-q', 'l-res', 'l-m', async r => {
 
 /* ---- búsqueda de archivos de video en el bucket R2 ---- */
 function r2Fila(x) {
-  const fila = document.createElement('div'); fila.className = 'it';
+  const fila = document.createElement('div'); fila.className = 'it v';
   const tx = document.createElement('div'); tx.className = 'tx';
   const nombre = document.createElement('b'); nombre.textContent = x.nombre;
   const carpeta = x.key.includes('/') ? x.key.slice(0, x.key.lastIndexOf('/')) + ' · ' : '';
   const subido = x.subido ? new Date(x.subido).toLocaleString('es-MX', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) + ' · ' : '';
   const detalle = document.createElement('small'); detalle.textContent = carpeta + subido + (x.size ? (x.size / 1048576).toFixed(1) + ' MB' : 'tamaño desconocido'); detalle.style.wordBreak = 'break-all';
   tx.append(nombre, detalle);
-  const cp = document.createElement('button'); cp.type = 'button'; cp.className = 'g'; cp.textContent = 'Copiar enlace';
-  cp.onclick = () => copiar(x.url, cp, 'Copiar enlace');
+  const cp = document.createElement('button'); cp.type = 'button'; cp.className = 'g'; cp.textContent = 'Copiar solo el enlace'; cp.style.cssText = 'height:40px;font-size:14px';
+  cp.onclick = () => copiar(x.url, cp, 'Copiar solo el enlace');       // solo el enlace, sin el nombre (el nombre se copia desde "Consultar enlace registrado")
   fila.append(tx, cp); return fila;
 }
 const r2Cuando = j => j.actualizado ? ' · Lista actualizada ' + new Date(j.actualizado).toLocaleString('es-MX') : '';
