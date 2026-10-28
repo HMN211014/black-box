@@ -32,6 +32,22 @@ td.k{font-family:ui-monospace,Menlo,Consolas,monospace;white-space:nowrap}
 .row{display:flex;gap:10px;flex-wrap:wrap}
 .lp{margin:12px 0 4px;align-items:center}.plg{display:none!important}
 .it.v{flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:8px}.it.v .tx{flex:none;width:100%}
+/* Banner principal: carrusel de pósters editable */
+.bn-car{display:flex;gap:12px;overflow-x:auto;padding:10px 2px 14px;scroll-snap-type:x proximity;scrollbar-width:thin;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
+.bn-p{flex:none;width:132px;scroll-snap-align:start;display:flex;flex-direction:column;gap:6px;transition:opacity .15s}
+.bn-p .im{position:relative;aspect-ratio:2/3;border-radius:12px;overflow:hidden;background:#26262c;box-shadow:0 0 0 1px rgba(255,255,255,.08)}
+.bn-p .im img{width:100%;height:100%;object-fit:cover;display:block;-webkit-user-drag:none}
+.bn-p .n{position:absolute;top:6px;left:6px;min-width:24px;height:24px;padding:0 7px;border-radius:12px;background:rgba(0,0,0,.72);font-size:13px;font-weight:700;display:grid;place-items:center}
+.bn-p .px{position:absolute;bottom:6px;left:6px;padding:2px 8px;border-radius:99px;background:rgba(255,159,10,.9);color:#000;font-size:11px;font-weight:700}
+.bn-p b{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:13px;line-height:1.25;min-height:2.5em;word-break:break-word}
+.bn-p small{color:#a1a1a6;font-size:11px}
+.bn-p .ac{display:flex;gap:6px;margin-top:2px}
+.bn-p .ac button,.bn-p .add{height:36px;min-width:0;padding:0;font-size:16px;border-radius:10px}
+.bn-p .ac button{flex:1}.bn-p .add{font-size:14px;width:100%}
+.bn-p .ac button:disabled{opacity:.3}
+.bn-p.arr{opacity:.35}.bn-p.sobre .im{box-shadow:0 0 0 3px #0a84ff}
+.bn-vacio{padding:26px 8px}
+@media(hover:hover){.bn-p[draggable=true]{cursor:grab}}
 .tw{overflow-x:auto}
 .it{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:10px 0;border-top:1px solid rgba(255,255,255,.1)}
 .it .tx{min-width:0;flex:1}.it b{display:block;font-size:15px;word-break:break-word}.it small{color:#a1a1a6;font-size:12px}
@@ -187,6 +203,7 @@ html.en-admin-app body:not(.h) .nav button.on{background:#fff;color:#000}
   <nav class="nav" id="nav" aria-label="Secciones">
     <button type="button" data-g="cuentas">Cuentas y códigos</button>
     <button type="button" data-g="biblioteca">Biblioteca</button>
+    <button type="button" data-g="banner">Banner principal</button>
     <button type="button" data-g="collage">Collage</button>
     <button type="button" data-g="pedidos">Pedidos</button>
     <button type="button" data-g="colecciones">Colecciones</button>
@@ -359,6 +376,24 @@ html.en-admin-app body:not(.h) .nav button.on{background:#fff;color:#000}
     <div class="sr" id="idb-res"></div>
     <p class="m" id="idb-m" hidden></p>
     <div id="idb-list"></div>
+  </div>
+
+  <div class="c w" data-g="banner" id="bn-card">
+    <h2>Banner principal</h2>
+    <p class="s">Elige qué títulos salen en el banner del inicio y en qué orden. Si la lista queda vacía, el banner vuelve a elegirse al azar como antes. Máximo 12 títulos.</p>
+    <h3 style="margin-top:16px">En el banner <small id="bn-cnt" style="color:#a1a1a6;font-weight:400"></small></h3>
+    <div class="bn-car" id="bn-car" aria-label="Títulos del banner"></div>
+    <p class="s">Reordena con ‹ › (o arrastrando un póster con el mouse) y quita con ✕. Los cambios se aplican al sitio cuando pulsas <b>Guardar banner</b>.</p>
+    <p class="m" id="bn-m" role="status" aria-live="polite" hidden></p>
+    <div class="row" style="margin-top:10px"><button id="bn-save" type="button" disabled>Guardar banner</button><button class="g" id="bn-reset" type="button">Vaciar (volver al azar)</button></div>
+
+    <div style="border-top:1px solid rgba(255,255,255,.12);margin-top:20px;padding-top:16px">
+      <h3>Agregar títulos</h3>
+      <div class="row" style="margin-top:8px"><button class="g" id="bn-rec-go" type="button">Ver títulos recientes</button></div>
+      <div class="bn-car" id="bn-rec" aria-label="Títulos recientes"></div>
+      <label style="margin-top:12px">Agregar manualmente (buscar en TMDB)<input id="bn-q" type="search" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Nombre de la película o serie"></label>
+      <div class="sr" id="bn-res"></div>
+    </div>
   </div>
 
   <div class="c w" data-g="colecciones" id="col-card">
@@ -691,6 +726,7 @@ function comprobarClave() {
       try { await window.bbAdminCargarInteracciones(); }
       catch (e) { msg('it-m', 'La clave es correcta, pero no se pudieron cargar los últimos cambios: ' + e.message, false); }
     }
+    if (!bnCargado || !bnSucio()) { try { await bnCargar(); } catch (e) { msg('bn-m', 'La clave es correcta, pero no se pudo cargar el banner: ' + e.message, false); } }       // sin pisar cambios que aún no se guardan
   });
 }
 $('clave-ver').onclick = () => {
@@ -1482,6 +1518,110 @@ listaPlegable('l-out', () => { lConsulta++; lElegido = null; $('l-out').hidden =
 listaPlegable('r2-out', () => msg('r2-m', '', true));
 listaPlegable('r2-hoy-out', () => { msg('r2-hoy-m', '', true); $('r2-hoy-go').textContent = 'Ver agregados de hoy'; });
 listaPlegable('idb-list', null);
+
+/* ---- Banner principal: carrusel editable (orden, quitar, títulos recientes y agregar a mano) ---- */
+let bnItems = [], bnGuardado = '[]', bnMax = 12, bnCargado = false, bnPub = null, bnArr = -1;
+const bnPosters = new Map();
+const bnLimpio = () => bnItems.map(x => ({ tmdb: x.tmdb, tipo: x.tipo, titulo: x.titulo, poster: x.poster || '' }));
+const bnSucio = () => JSON.stringify(bnLimpio()) !== bnGuardado;
+const bnTiene = (tipo, tmdb) => bnItems.some(x => x.tipo === tipo && x.tmdb === Number(tmdb));
+async function bnPoster(tipo, tmdb) {                 // póster de TMDB (se guarda en memoria para no pedirlo dos veces)
+  const k = tipo + ':' + tmdb; if (bnPosters.has(k)) return bnPosters.get(k);
+  let p = '';
+  try { const j = await fetch(`${TMDB}/${tipo === 'serie' ? 'tv' : 'movie'}/${tmdb}?api_key=${TMDB_KEY}&language=es-MX`, { signal: AbortSignal.timeout(8000) }).then(r => r.json()); p = j.poster_path || ''; } catch (e) {}
+  bnPosters.set(k, p); return p;
+}
+function bnImagen(x) {                                // contenedor del póster; si el título no trae póster guardado lo busca en TMDB
+  const im = document.createElement('div'); im.className = 'im';
+  const poner = p => { if (!p) return; const g = new Image(); g.alt = ''; g.draggable = false; g.loading = 'lazy'; g.src = IMG + 'w185' + p; g.onerror = () => g.remove(); im.prepend(g); };
+  if (x.poster) poner(x.poster); else bnPoster(x.tipo, x.tmdb).then(poner);
+  return im;
+}
+function bnBoton(txt, etiqueta, fn, off) {
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'g'; b.textContent = txt; b.setAttribute('aria-label', etiqueta); b.title = etiqueta; b.disabled = !!off; b.onclick = fn; return b;
+}
+function bnMover(de, a) {
+  if (de === a || a < 0 || a >= bnItems.length || de < 0 || de >= bnItems.length) return;
+  const [x] = bnItems.splice(de, 1); bnItems.splice(a, 0, x);
+  bnPintar(); msg('bn-m', '', true);
+  const t = $('bn-car').children[a]; if (t && t.scrollIntoView) t.scrollIntoView({ inline: 'nearest', block: 'nearest', behavior: 'smooth' });
+}
+function bnQuitar(i) { const [x] = bnItems.splice(i, 1); bnPintar(); msg('bn-m', '«' + (x.titulo || 'Título') + '» salió de la lista. Pulsa Guardar banner para aplicarlo.', true); }
+function bnTarjeta(x, i) {                            // póster del banner, con su número y los botones para moverlo o quitarlo
+  const d = document.createElement('div'); d.className = 'bn-p'; d.draggable = true;
+  const im = bnImagen(x), n = document.createElement('span'); n.className = 'n'; n.textContent = String(i + 1); im.appendChild(n);
+  const t = document.createElement('b'); t.textContent = x.titulo || ('TMDB ' + x.tmdb);
+  const s = document.createElement('small'); s.textContent = x.tipo === 'serie' ? 'Serie' : 'Película';
+  const ac = document.createElement('div'); ac.className = 'ac';
+  ac.append(bnBoton('‹', 'Mover a la izquierda', () => bnMover(i, i - 1), i === 0), bnBoton('✕', 'Quitar del banner', () => bnQuitar(i)), bnBoton('›', 'Mover a la derecha', () => bnMover(i, i + 1), i === bnItems.length - 1));
+  d.append(im, t, s, ac);
+  d.addEventListener('dragstart', e => { bnArr = i; d.classList.add('arr'); try { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', String(i)); } catch (_) {} });
+  d.addEventListener('dragend', () => { bnArr = -1; d.classList.remove('arr'); document.querySelectorAll('#bn-car .sobre').forEach(z => z.classList.remove('sobre')); });
+  d.addEventListener('dragover', e => { if (bnArr < 0) return; e.preventDefault(); d.classList.add('sobre'); });
+  d.addEventListener('dragleave', () => d.classList.remove('sobre'));
+  d.addEventListener('drop', e => { e.preventDefault(); const de = bnArr; bnArr = -1; if (de >= 0 && de !== i) bnMover(de, i); });
+  return d;
+}
+function bnPintar() {
+  const car = $('bn-car'); car.replaceChildren();
+  if (!bnItems.length) { const v = document.createElement('p'); v.className = 's bn-vacio'; v.textContent = bnCargado ? 'Sin títulos elegidos: el banner del inicio se arma al azar. Agrega títulos abajo para fijarlos.' : 'Verifica tu clave de administrador (arriba) para cargar el banner actual.'; car.appendChild(v); }
+  bnItems.forEach((x, i) => car.appendChild(bnTarjeta(x, i)));
+  const sucio = bnSucio();
+  $('bn-cnt').textContent = '· ' + bnItems.length + ' de ' + bnMax + (sucio ? ' · cambios sin guardar' : '');
+  $('bn-save').disabled = !sucio || !bnCargado; $('bn-reset').disabled = !bnItems.length;
+  document.querySelectorAll('#bn-rec .bn-p').forEach(c => { const b = c.querySelector('.add'); if (b) { const ya = bnTiene(c.dataset.tipo, c.dataset.tmdb); b.disabled = ya; b.textContent = ya ? 'En el banner ✓' : 'Agregar'; } });
+}
+async function bnAgregar(x) {                         // x: { tmdb, tipo, titulo, poster }
+  if (!bnCargado) { msg('bn-m', 'Verifica tu clave de administrador (arriba) para cargar el banner actual antes de editarlo.', false); return false; }
+  x = { tmdb: Number(x.tmdb), tipo: x.tipo === 'serie' ? 'serie' : 'pelicula', titulo: String(x.titulo || '').slice(0, 200), poster: x.poster || '' };
+  if (bnTiene(x.tipo, x.tmdb)) { msg('bn-m', '«' + x.titulo + '» ya está en el banner.', true); return false; }
+  if (bnItems.length >= bnMax) { msg('bn-m', 'El banner admite hasta ' + bnMax + ' títulos. Quita alguno para agregar otro.', false); return false; }
+  if (!x.poster) x.poster = await bnPoster(x.tipo, x.tmdb);
+  bnItems.push(x); bnPintar();
+  const car = $('bn-car'); if (car.lastElementChild && car.lastElementChild.scrollIntoView) car.lastElementChild.scrollIntoView({ inline: 'nearest', block: 'nearest', behavior: 'smooth' });
+  let aviso = '';
+  try { if (!bnPub) bnPub = (await admin({ op: 'publicadas' })).items || []; if (!bnPub.some(p => Number(p.tmdb) === x.tmdb && (p.tipo === 'serie') === (x.tipo === 'serie'))) aviso = ' Ojo: no está publicado desde el panel; si tampoco está en la lista de index.html, el sitio lo omitirá.'; } catch (e) {}
+  msg('bn-m', '«' + x.titulo + '» quedó en la posición ' + bnItems.length + '. Pulsa Guardar banner para aplicarlo.' + aviso, !aviso);
+  return true;
+}
+async function bnCargar() {
+  const j = await admin({ op: 'banner' });
+  bnMax = Number(j.max) || 12; bnItems = (j.items || []).map(x => ({ ...x })); bnGuardado = JSON.stringify(bnLimpio()); bnCargado = true; bnPintar();
+}
+$('bn-save').onclick = async () => {
+  if (!bnCargado) { msg('bn-m', 'Verifica tu clave de administrador para cargar el banner actual antes de guardar.', false); return; }
+  $('bn-save').disabled = true; msg('bn-m', 'Guardando…', true);
+  try {
+    const j = await admin({ op: 'guardar_banner', items: bnLimpio() });
+    bnItems = (j.items || []).map(x => ({ ...x })); bnGuardado = JSON.stringify(bnLimpio());
+    msg('bn-m', bnItems.length ? 'Banner guardado: el inicio mostrará estos ' + bnItems.length + ' título(s) en este orden. Puede tardar hasta un minuto en verse.' : 'Guardado: el banner vuelve a elegirse al azar.', true);
+  } catch (e) { msg('bn-m', (e && e.message) || 'No se pudo guardar el banner.', false); }
+  bnPintar();
+};
+$('bn-reset').onclick = () => { bnItems = []; bnPintar(); msg('bn-m', 'Lista vacía. Pulsa Guardar banner para que el inicio vuelva a elegir al azar.', true); };
+$('bn-rec-go').onclick = () => con($('bn-rec-go'), 'bn-m', async () => {
+  if (!bnCargado) await bnCargar();
+  const box = $('bn-rec'); box.replaceChildren(); msg('bn-m', 'Consultando los títulos recientes…', true);
+  const j = await admin({ op: 'publicadas' }); bnPub = j.items || [];
+  const lista = bnPub.slice(0, 20);
+  lista.forEach(x => {
+    const tipo = x.tipo === 'serie' ? 'serie' : 'pelicula', t = { tmdb: Number(x.tmdb), tipo, titulo: x.titulo || '', poster: '' };
+    const d = document.createElement('div'); d.className = 'bn-p'; d.dataset.tipo = tipo; d.dataset.tmdb = String(t.tmdb);
+    const im = bnImagen(t); if (x.proximamente) { const px = document.createElement('span'); px.className = 'px'; px.textContent = 'Próximamente'; im.appendChild(px); }
+    const nm = document.createElement('b'); nm.textContent = t.titulo || ('TMDB ' + t.tmdb);
+    const sm = document.createElement('small'); sm.textContent = tipo === 'serie' ? 'Serie' : 'Película';
+    const add = document.createElement('button'); add.type = 'button'; add.className = 'g add'; add.textContent = 'Agregar';
+    add.onclick = () => bnAgregar(t);
+    d.append(im, nm, sm, add); box.appendChild(d);
+  });
+  bnPintar();
+  msg('bn-m', lista.length ? 'Los ' + lista.length + ' títulos publicados más recientemente desde el panel. Toca Agregar para ponerlos en el banner.' : 'Todavía no hay títulos publicados desde el panel.', true);
+  $('bn-rec-go').textContent = 'Actualizar títulos recientes';
+});
+listaPlegable('bn-rec', () => { msg('bn-m', '', true); $('bn-rec-go').textContent = 'Ver títulos recientes'; });
+buscadorTmdb('bn-q', 'bn-res', 'bn-m', r => bnAgregar({ tmdb: r.id, tipo: r.media_type === 'tv' ? 'serie' : 'pelicula', titulo: r.title || r.name || '', poster: r.poster_path || '' }),
+  r => bnTiene(r.media_type === 'tv' ? 'serie' : 'pelicula', r.id) ? ['En el banner', 'd'] : null);
+bnPintar();
 
 /* ---- colecciones del inicio ---- */
 const COL_FUENTES = { impact: "Impact,'Arial Narrow Bold','Helvetica Neue',sans-serif", avenir: "'Avenir Next','Helvetica Neue',Arial,sans-serif", helvetica: "'Helvetica Neue',Arial,sans-serif", georgia: "Georgia,'Times New Roman',serif", courier: "'Courier New',Courier,monospace" };

@@ -2333,7 +2333,20 @@ function conTransicion(fn, o = {}) {
 const BANNER_N = 9;
 let orden = [], idx = 0, timer;
 const azar = a => { a = [...a]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+function bannerDelPanel() {                         // títulos que el administrador eligió para el banner, en su orden (solo los de la sección que se ve)
+  const cfg = Array.isArray(window.BANNER_EXTRA) ? window.BANNER_EXTRA : [];
+  if (!cfg.length) return [];
+  const id = p => Number(p.tmdbId || p.tmdb) || 0, serie = p => p.tipo === 'serie';       // (idTm se define más abajo, aún no existe aquí)
+  const out = [];
+  cfg.forEach(c => {
+    const p = L().find(x => id(x) === Number(c.tmdb) && serie(x) === (c.tipo === 'serie'));
+    if (p && !out.includes(p)) out.push(p);
+  });
+  return out.slice(0, 12);
+}
 function elegirBanner() {
+  const delPanel = bannerDelPanel();
+  if (delPanel.length) return delPanel;             // lista elegida en el panel; si no hay ninguna para esta sección, sigue el azar de abajo
   const out = [];
   const llenar = lista => azar(lista).forEach(p => { if (out.length < BANNER_N && !out.includes(p)) out.push(p); });
   llenar(L().filter(p => +p.anio === ANIO_ACTUAL));

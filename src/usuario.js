@@ -25,6 +25,21 @@ const normalizarNombreR2 = x => String(x || '').normalize('NFD').replace(/[\u030
 const esVideoR2 = x => /\.(mp4|mkv|m3u8|webm|m4v|mov|avi|ts|mpd)$/i.test(String(x || ''));
 const R2_INDEX_KV = 'blackbox:r2-media-index:v2';        // v2: cada archivo guarda su fecha de subida
 const R2_MAX_HOY = 200;
+const BANNER_MAX = 12;
+
+/* Banner principal elegido desde el panel: lista ordenada de { tmdb, tipo, titulo, poster }. Vacía = el banner sigue siendo al azar. */
+function limpiarBanner(lista) {
+  const out = [], vistos = new Set();
+  (Array.isArray(lista) ? lista : []).forEach(x => {
+    if (!x || out.length >= BANNER_MAX) return;
+    const tmdb = Math.floor(Number(x.tmdb)) || 0, tipo = x.tipo === 'serie' ? 'serie' : 'pelicula', k = tipo + ':' + tmdb;
+    if (tmdb <= 0 || vistos.has(k)) return;
+    vistos.add(k);
+    const poster = /^\/[A-Za-z0-9._-]{1,120}$/.test(String(x.poster || '')) ? String(x.poster) : '';
+    out.push({ tmdb, tipo, titulo: String(x.titulo || '').trim().slice(0, 200), poster });
+  });
+  return out;
+}
 
 async function buscarArchivosR2(env, request, consulta, actualizar, desde) {
   if (!env.DATOS) throw new Error('El binding DATOS de R2 no está conectado a este Worker.');
@@ -630,7 +645,9 @@ async function manejar({ request, env, params, waitUntil }) {
     try { if (db) { const r = await db.prepare("SELECT valor FROM meta WHERE clave = 'introdb_aviso'").first(); if (r && r.valor) { const v = JSON.parse(r.valor); const n = Number(v && v.segundos); if (Number.isInteger(n)) introdbAviso.segundos = Math.max(-300, Math.min(600, n)); } } } catch (e) {}
     let sug = {};
     try { if (db) { const r = await db.prepare("SELECT valor FROM meta WHERE clave = 'sugerencia'").first(); if (r && r.valor) sug = JSON.parse(r.valor) || {}; } } catch (e) {}
-    const js = 'window.PELICULAS_EXTRA=' + JSON.stringify(items).replace(/</g, '\\u003c') + ';window.COLECCIONES_EXTRA=' + JSON.stringify(cols).replace(/</g, '\\u003c') + ';window.SECCIONES_EXTRA=' + JSON.stringify(secs).replace(/</g, '\\u003c') + ';window.ACCESO_EXTRA=' + JSON.stringify(acc).replace(/</g, '\\u003c') + ';window.EFECTOS_EXTRA=' + JSON.stringify(efe).replace(/</g, '\\u003c') + ';window.INTERACCIONES_EXTRA=' + JSON.stringify(inter).replace(/</g, '\\u003c') + ';window.INTRODB_EXTRA=' + JSON.stringify(introdb).replace(/</g, '\\u003c') + ';window.INTRODB_AVISO_EXTRA=' + JSON.stringify(introdbAviso) + ';window.SUGERENCIA_EXTRA=' + JSON.stringify(sug).replace(/</g, '\\u003c') + ';';
+    let ban = [];
+    try { if (db) { const r = await db.prepare("SELECT valor FROM meta WHERE clave = 'banner'").first(); if (r && r.valor) ban = limpiarBanner(JSON.parse(r.valor)); } } catch (e) {}
+    const js ='window.PELICULAS_EXTRA=' + JSON.stringify(items).replace(/</g, '\\u003c') + ';window.COLECCIONES_EXTRA=' + JSON.stringify(cols).replace(/</g, '\\u003c') + ';window.SECCIONES_EXTRA=' + JSON.stringify(secs).replace(/</g, '\\u003c') + ';window.ACCESO_EXTRA=' + JSON.stringify(acc).replace(/</g, '\\u003c') + ';window.EFECTOS_EXTRA=' + JSON.stringify(efe).replace(/</g, '\\u003c') + ';window.INTERACCIONES_EXTRA=' + JSON.stringify(inter).replace(/</g, '\\u003c') + ';window.INTRODB_EXTRA=' + JSON.stringify(introdb).replace(/</g, '\\u003c') + ';window.INTRODB_AVISO_EXTRA=' + JSON.stringify(introdbAviso) + ';window.SUGERENCIA_EXTRA=' + JSON.stringify(sug).replace(/</g, '\\u003c') + ';window.BANNER_EXTRA=' + JSON.stringify(ban).replace(/</g, '\\u003c') + ';';
     return new Response(js, { headers: { 'Content-Type': 'application/javascript; charset=utf-8', 'Cache-Control': 'public, max-age=30' } });
   }
 
@@ -954,6 +971,18 @@ async function manejar({ request, env, params, waitUntil }) {
       await db.prepare('CREATE TABLE IF NOT EXISTS meta (clave TEXT PRIMARY KEY, valor TEXT) WITHOUT ROWID').run();
       await db.prepare("INSERT INTO meta (clave, valor) VALUES ('sugerencia', ?1) ON CONFLICT(clave) DO UPDATE SET valor = ?1").bind(JSON.stringify(v)).run();
       return json({ ok: true });
+    }
+
+    if (cuerpo.op === 'banner') {
+      let items = [];
+      try { const r = await db.prepare("SELECT valor FROM meta WHERE clave = 'banner'").first(); if (r && r.valor) items = limpiarBanner(JSON.parse(r.valor)); } catch (e) {}
+      return json({ items, max: BANNER_MAX });
+    }
+    if (cuerpo.op === 'guardar_banner') {
+      const items = limpiarBanner(cuerpo.items);
+      await db.prepare('CREATE TABLE IF NOT EXISTS meta (clave TEXT PRIMARY KEY, valor TEXT) WITHOUT ROWID').run();
+      await db.prepare("INSERT INTO meta (clave, valor) VALUES ('banner', ?1) ON CONFLICT(clave) DO UPDATE SET valor = ?1").bind(JSON.stringify(items)).run();
+      return json({ ok: true, items });
     }
 
     if (cuerpo.op === 'colecciones') {
