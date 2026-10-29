@@ -510,6 +510,18 @@ html.en-admin-app body:not(.h) .nav button.on{background:#fff;color:#000}
     <h2>Anuncios del plan Gratis</h2>
     <p class="s">Las cuentas con plan <b>Gratis</b> ven estos anuncios en el inicio de la app (los otros planes nunca los ven). Con el interruptor apagado o sin anuncios, el plan Gratis se ve sin publicidad. Las imágenes y los enlaces deben empezar con https://</p>
     <label class="ck"><input type="checkbox" id="an-on"> Mostrar anuncios a las cuentas con plan Gratis</label>
+
+    <h3 style="margin:18px 0 6px;font-size:17px">Anuncios de Google</h3>
+    <p class="s">Opcional. En la web se usa <b>AdSense</b> y dentro de la app <b>AdMob</b> (banner abajo; la app necesita el plugin de AdMob, mira <b>LEEME-ANUNCIOS.md</b>). Si Google no puede mostrar algo en ese dispositivo, salen tus anuncios propios de abajo. Con «anuncios de prueba» nunca se muestran anuncios reales.</p>
+    <label class="ck"><input type="checkbox" id="an-g-on"> Usar anuncios de Google</label>
+    <label class="ck"><input type="checkbox" id="an-g-test" checked> Solo anuncios de prueba (déjalo activado hasta que Google apruebe tu sitio y tu app)</label>
+    <label>AdSense · ID de editor (web)<small class="h">Empieza con ca-pub- y tiene 16 números.</small><input id="an-g-cli" maxlength="40" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="ca-pub-1234567890123456"></label>
+    <label>AdSense · bloque de anuncios (web)<small class="h">El número del bloque (data-ad-slot).</small><input id="an-g-slot" maxlength="24" inputmode="numeric" autocomplete="off" placeholder="1234567890"></label>
+    <label>AdMob · banner (app)<small class="h">Formato ca-app-pub-…/…</small><input id="an-g-ban" maxlength="60" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="ca-app-pub-1234567890123456/1234567890"></label>
+    <label>AdMob · pantalla completa (app, opcional)<small class="h">Todavía no se muestra en ninguna pantalla; queda guardado para cuando se conecte.</small><input id="an-g-int" maxlength="60" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="ca-app-pub-1234567890123456/1234567890"></label>
+    <p class="s">Google pide dos archivos en tu sitio; ya se generan solos con los IDs de arriba: <b>/ads.txt</b> y <b>/app-ads.txt</b>.</p>
+
+    <h3 style="margin:18px 0 6px;font-size:17px">Anuncios propios</h3>
     <div id="an-lista" style="margin-top:14px"></div>
     <div class="row" style="margin-top:12px"><button class="g" id="an-add" type="button">Agregar anuncio</button></div>
     <div class="row" style="margin-top:16px"><button id="an-go" type="button">Guardar</button><button class="g" id="an-cargar" type="button">Cargar los actuales</button></div>
@@ -1131,16 +1143,25 @@ function anPintar() {
   $('an-add').disabled = anItems.length >= AN_MAX;
 }
 $('an-add').onclick = () => { anItems = anLeerCampos(); if (anItems.length >= AN_MAX) return; anItems.push({ id: 'a' + Date.now().toString(36).slice(-6), activo: true }); anPintar(); };
+function anPonerGoogle(g) {
+  g = g || {};
+  $('an-g-on').checked = !!g.activo; $('an-g-test').checked = g.pruebas !== false;
+  $('an-g-cli').value = g.adsenseCliente || ''; $('an-g-slot').value = g.adsenseSlot || '';
+  $('an-g-ban').value = g.admobBanner || ''; $('an-g-int').value = g.admobIntersticial || '';
+}
+function anLeerGoogle() {
+  return { activo: $('an-g-on').checked, pruebas: $('an-g-test').checked, adsenseCliente: $('an-g-cli').value, adsenseSlot: $('an-g-slot').value, admobBanner: $('an-g-ban').value, admobIntersticial: $('an-g-int').value };
+}
 async function anCargar() {
   const j = await admin({ op: 'anuncios' });
-  $('an-on').checked = !!j.activo; anItems = j.items || []; anPintar();
+  $('an-on').checked = !!j.activo; anItems = j.items || []; anPintar(); anPonerGoogle(j.google);
 }
 anPintar();
 $('an-cargar').onclick = () => con($('an-cargar'), 'an-m', async () => { await anCargar(); msg('an-m', 'Se cargó lo que está guardado.', true); });
 $('an-go').onclick = () => con($('an-go'), 'an-m', async () => {
-  const j = await admin({ op: 'guardar_anuncios', activo: $('an-on').checked, items: anLeerCampos() });
-  $('an-on').checked = !!j.activo; anItems = j.items || []; anPintar();
-  msg('an-m', 'Guardado (' + anItems.length + (anItems.length === 1 ? ' anuncio' : ' anuncios') + '). En la app se actualiza en menos de un minuto.', true);
+  const j = await admin({ op: 'guardar_anuncios', activo: $('an-on').checked, items: anLeerCampos(), google: anLeerGoogle() });
+  $('an-on').checked = !!j.activo; anItems = j.items || []; anPintar(); anPonerGoogle(j.google);
+  msg('an-m', 'Guardado (' + anItems.length + (anItems.length === 1 ? ' anuncio propio' : ' anuncios propios') + (j.google && j.google.activo ? ', anuncios de Google ' + (j.google.pruebas ? 'en modo de prueba' : 'reales') : '') + '). En la app se actualiza en menos de un minuto. Si algún ID de Google no tiene el formato correcto, se borra al guardar.', true);
 });
 
 function campoPlan(selId, diasL, pelL) { const f = () => { const v = $(selId).value; $(diasL).hidden = v === 'pedidos' || PLANES_SIN_VENCE.includes(v); $(pelL).hidden = v !== 'pedidos'; }; $(selId).addEventListener('change', f); f(); }

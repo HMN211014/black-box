@@ -60,7 +60,32 @@ function limpiarAnuncios(v) {
     ids.add(id);
     items.push({ id, titulo, texto, imagen, enlace, boton, activo: x.activo !== false });
   });
-  return { activo: o.activo === true, items };
+  return { activo: o.activo === true, items, google: limpiarGoogle(o.google) };
+}
+
+/* Anuncios de Google (preparados, se activan desde el panel): AdSense en la web y AdMob dentro de la app.
+   Los identificadores son públicos (van dentro de la página/app); aquí solo se validan para que no se guarde basura.
+   "pruebas" (activado por defecto) usa anuncios de prueba: así nunca se hacen clics reales en tus propios anuncios. */
+const GOOGLE_PRUEBA = { banner: 'ca-app-pub-3940256099942544/6300978111', intersticial: 'ca-app-pub-3940256099942544/1033173712' };
+function limpiarGoogle(v) {
+  const o = v && typeof v === 'object' && !Array.isArray(v) ? v : {};
+  const f = (x, re) => { const t = String(x || '').trim(); return re.test(t) ? t : ''; };
+  return {
+    activo: o.activo === true,
+    pruebas: o.pruebas !== false,
+    adsenseCliente: f(o.adsenseCliente, /^ca-pub-\d{10,20}$/),            // AdSense (web): ca-pub-1234567890123456
+    adsenseSlot: f(o.adsenseSlot, /^\d{6,20}$/),                           // AdSense (web): número del bloque de anuncios
+    admobBanner: f(o.admobBanner, /^ca-app-pub-\d{16}\/\d{6,12}$/),        // AdMob (app): ca-app-pub-1234567890123456/1234567890
+    admobIntersticial: f(o.admobIntersticial, /^ca-app-pub-\d{16}\/\d{6,12}$/),
+  };
+}
+/* Contenido de /ads.txt y /app-ads.txt: Google lo exige para pagar y para evitar anuncios falsos. Sale solo de los identificadores guardados. */
+function adsTxtDe(g) {
+  const pubs = new Set();
+  if (g.adsenseCliente) pubs.add(g.adsenseCliente.replace(/^ca-/, ''));
+  [g.admobBanner, g.admobIntersticial].forEach(u => { const m = /^ca-app-(pub-\d{16})\//.exec(u || ''); if (m) pubs.add(m[1]); });
+  pubs.delete('pub-3940256099942544');                                    // el editor de los anuncios de prueba de Google no cuenta
+  return [...pubs].map(p => 'google.com, ' + p + ', DIRECT, f08c47fec0942fa0').join('\n') + (pubs.size ? '\n' : '');
 }
 
 async function buscarArchivosR2(env, request, consulta, actualizar, desde) {
@@ -649,6 +674,14 @@ async function manejar({ request, env, params, waitUntil }) {
     return json({ pedido: ped, ...(porVales ? { vales } : {}) });
   }
 
+  /* ---- ads.txt y app-ads.txt (los pide Google para los anuncios) ---- */
+  if (accion === 'adstxt' && request.method === 'GET') {
+    let g = limpiarGoogle({});
+    try { const r = await db.prepare("SELECT valor FROM meta WHERE clave = 'anuncios'").first(); if (r && r.valor) g = limpiarAnuncios(JSON.parse(r.valor)).google; } catch (e) {}
+    const t = adsTxtDe(g);
+    return new Response(t || '# Sin anuncios de Google configurados.\n', { headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'public, max-age=300' } });
+  }
+
   /* ---- Películas publicadas desde el panel (D1) ---- */
   if (accion === 'extras' && request.method === 'GET') {
     let items = [];
@@ -677,9 +710,9 @@ async function manejar({ request, env, params, waitUntil }) {
     try { if (db) { const r = await db.prepare("SELECT valor FROM meta WHERE clave = 'sugerencia'").first(); if (r && r.valor) sug = JSON.parse(r.valor) || {}; } } catch (e) {}
     let ban = [];
     try { if (db) { const r = await db.prepare("SELECT valor FROM meta WHERE clave = 'banner'").first(); if (r && r.valor) ban = limpiarBanner(JSON.parse(r.valor)); } } catch (e) {}
-    let anun = { activo: false, items: [] };
+    let anun = limpiarAnuncios({});
     try { if (db) { const r = await db.prepare("SELECT valor FROM meta WHERE clave = 'anuncios'").first(); if (r && r.valor) anun = limpiarAnuncios(JSON.parse(r.valor)); } } catch (e) {}
-    anun = { activo: anun.activo, items: anun.items.filter(x => x.activo) };
+    anun = { activo: anun.activo, items: anun.items.filter(x => x.activo), google: anun.google };
     const js ='window.ANUNCIOS_EXTRA=' + JSON.stringify(anun).replace(/</g, '\\u003c') + ';window.PELICULAS_EXTRA=' + JSON.stringify(items).replace(/</g, '\\u003c') + ';window.COLECCIONES_EXTRA=' + JSON.stringify(cols).replace(/</g, '\\u003c') + ';window.SECCIONES_EXTRA=' + JSON.stringify(secs).replace(/</g, '\\u003c') + ';window.ACCESO_EXTRA=' + JSON.stringify(acc).replace(/</g, '\\u003c') + ';window.EFECTOS_EXTRA=' + JSON.stringify(efe).replace(/</g, '\\u003c') + ';window.INTERACCIONES_EXTRA=' + JSON.stringify(inter).replace(/</g, '\\u003c') + ';window.INTRODB_EXTRA=' + JSON.stringify(introdb).replace(/</g, '\\u003c') + ';window.INTRODB_AVISO_EXTRA=' + JSON.stringify(introdbAviso) + ';window.SUGERENCIA_EXTRA=' + JSON.stringify(sug).replace(/</g, '\\u003c') + ';window.BANNER_EXTRA=' + JSON.stringify(ban).replace(/</g, '\\u003c') + ';';
     return new Response(js, { headers: { 'Content-Type': 'application/javascript; charset=utf-8', 'Cache-Control': 'public, max-age=30' } });
   }
@@ -1021,12 +1054,12 @@ async function manejar({ request, env, params, waitUntil }) {
     }
 
     if (cuerpo.op === 'anuncios') {
-      let v = { activo: false, items: [] };
+      let v = limpiarAnuncios({});
       try { const r = await db.prepare("SELECT valor FROM meta WHERE clave = 'anuncios'").first(); if (r && r.valor) v = limpiarAnuncios(JSON.parse(r.valor)); } catch (e) {}
-      return json({ ...v, max: ANUNCIOS_MAX });
+      return json({ ...v, max: ANUNCIOS_MAX, prueba: GOOGLE_PRUEBA });
     }
     if (cuerpo.op === 'guardar_anuncios') {
-      const v = limpiarAnuncios({ activo: cuerpo.activo, items: cuerpo.items });
+      const v = limpiarAnuncios({ activo: cuerpo.activo, items: cuerpo.items, google: cuerpo.google });
       await db.prepare('CREATE TABLE IF NOT EXISTS meta (clave TEXT PRIMARY KEY, valor TEXT) WITHOUT ROWID').run();
       await db.prepare("INSERT INTO meta (clave, valor) VALUES ('anuncios', ?1) ON CONFLICT(clave) DO UPDATE SET valor = ?1").bind(JSON.stringify(v)).run();
       return json({ ok: true, ...v });

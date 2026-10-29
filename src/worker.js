@@ -13,6 +13,10 @@ export default {
         return await onRequest({ request, env, params: { accion: 'admin' }, waitUntil: p => ctx.waitUntil(p) });
       }
 
+      if (url.pathname === '/ads.txt' || url.pathname === '/app-ads.txt') {      // los genera el servidor con los identificadores de Google del panel
+        return await onRequest({ request, env, params: { accion: 'adstxt' }, waitUntil: p => ctx.waitUntil(p) });
+      }
+
       if (url.pathname === '/api/catalogo') {
         return new Response("/* Catálogo externo no configurado */", { 
           headers: { 'Content-Type': 'application/javascript; charset=utf-8' } 
