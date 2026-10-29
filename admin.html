@@ -130,7 +130,7 @@ label small.h{display:block;color:#a1a1a6;font-weight:400;font-size:12px;margin-
 .pnxt-copy{position:absolute;left:18px;top:18px;right:18px;pointer-events:none}.pnxt-copy small{display:block;color:#c4c8d2;font-size:12px;margin-bottom:8px}.pnxt-copy b{font-size:18px}
 .pnxt-btn{position:absolute;width:44%;height:42px;min-width:0;padding:0 6px;border-radius:12px;touch-action:none;cursor:grab}.pnxt-btn[data-k="play"]{background:#fff;color:#111}.pnxt-btn[data-k="cancel"]{background:rgba(255,255,255,.17);color:#fff}
 .pnxt-guide{max-width:460px;margin:12px auto;text-align:center;color:#a1a1a6;font-size:12px}
-/* ---- Vista horizontal: menú a la izquierda y una sección a la vez (en vertical todo sigue apilado como antes) ---- */
+/* ---- Vista horizontal: menú a la izquierda y una sección a la vez (en vertical: barra de secciones abajo, más abajo en este archivo) ---- */
 .side{display:grid;gap:18px;align-content:start}
 .side .c label{margin-bottom:0}
 label[hidden]{display:none}
@@ -159,16 +159,16 @@ body.h .pan>.c.on.w{grid-column:1/-1}
   body.h .pan>.c{padding:16px}
 }
 @media(max-width:900px){body.h .pan{grid-template-columns:minmax(0,1fr)}}
-/* ---- app Black BOX Admin (Android): una sección a la vez y barra de secciones abajo ---- */
-html.en-admin-app body:not(.h){padding:calc(env(safe-area-inset-top,0px) + 14px) 12px calc(env(safe-area-inset-bottom,0px) + 86px)}
-html.en-admin-app body:not(.h) .side>p.s{display:none}
-html.en-admin-app body:not(.h) .pan>.c{display:none}
-html.en-admin-app body:not(.h) .pan>.c.on{display:block}
-html.en-admin-app body:not(.h) .nav{display:flex;gap:8px;position:fixed;left:0;right:0;bottom:0;z-index:50;overflow-x:auto;padding:10px 12px calc(env(safe-area-inset-bottom,0px) + 10px);
+/* ---- Vista vertical (teléfono, navegador y app Black BOX Admin): una sección a la vez y barra de secciones abajo ---- */
+body:not(.h){padding:calc(env(safe-area-inset-top,0px) + 14px) 12px calc(env(safe-area-inset-bottom,0px) + 86px)}
+body:not(.h) .side>p.s{display:none}
+body:not(.h) .pan>.c{display:none}
+body:not(.h) .pan>.c.on{display:block}
+body:not(.h) .nav{display:flex;gap:8px;position:fixed;left:0;right:0;bottom:0;z-index:50;overflow-x:auto;padding:10px 12px calc(env(safe-area-inset-bottom,0px) + 10px);
   background:rgba(14,14,18,.88);backdrop-filter:blur(18px) saturate(1.6);-webkit-backdrop-filter:blur(18px) saturate(1.6);border-top:1px solid rgba(255,255,255,.12);scrollbar-width:none}
-html.en-admin-app body:not(.h) .nav::-webkit-scrollbar{display:none}
-html.en-admin-app body:not(.h) .nav button{flex:none;width:auto;height:40px;padding:0 16px;border-radius:999px;background:rgba(255,255,255,.09);white-space:nowrap;font-size:14px;justify-content:center}
-html.en-admin-app body:not(.h) .nav button.on{background:#fff;color:#000}
+body:not(.h) .nav::-webkit-scrollbar{display:none}
+body:not(.h) .nav button{flex:none;width:auto;height:40px;padding:0 16px;border-radius:999px;background:rgba(255,255,255,.09);white-space:nowrap;font-size:14px;justify-content:center}
+body:not(.h) .nav button.on{background:#fff;color:#000}
 /* ---- creador de collage vertical ---- */
 .cg-layout{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(260px,.9fr);gap:20px;align-items:start}
 .cg-controls{display:flex;gap:8px;align-items:end;flex-wrap:wrap}.cg-controls label{flex:1;min-width:180px;margin:0}
@@ -220,7 +220,7 @@ html.en-admin-app body:not(.h) .nav button.on{background:#fff;color:#000}
   <div class="c" data-g="cuentas">
     <h2>Generar códigos</h2>
     <div class="f">
-      <label>Plan<select id="g-plan"><option value="gratis">Gratis (con anuncios, sin vencimiento)</option><option value="basico">Básico</option><option value="plus">Plus</option><option value="pedidos">Películas por pedido</option><option value="distribuidor">Distribuidores (como Plus, sin vencimiento)</option></select></label>
+      <label>Plan<select id="g-plan"><option value="gratis">Gratis (con anuncios)</option><option value="basico">Básico</option><option value="plus">Plus</option><option value="pedidos">Películas por pedido</option><option value="distribuidor">Distribuidores (sin vencimiento)</option></select></label>
       <label id="g-dias-l">Días de acceso<input id="g-dias" type="number" min="1" max="3650" value="30" inputmode="numeric"></label>
       <label id="g-pel-l" hidden>Películas por código<input id="g-pel" type="number" min="1" max="20" value="1" inputmode="numeric"></label>
       <label>Cantidad<input id="g-cant" type="number" min="1" max="50" value="5" inputmode="numeric"></label>
@@ -235,7 +235,7 @@ html.en-admin-app body:not(.h) .nav button.on{background:#fff;color:#000}
     <h2>Dar días a una cuenta</h2>
     <div class="f">
       <label>Correo<input id="c-correo" type="email" autocapitalize="off" placeholder="cliente@correo.com"></label>
-      <label>Plan<select id="c-plan"><option value="gratis">Gratis (con anuncios, sin vencimiento)</option><option value="basico">Básico</option><option value="plus">Plus</option><option value="pedidos">Películas por pedido</option><option value="distribuidor">Distribuidores (como Plus, sin vencimiento)</option></select></label>
+      <label>Plan<select id="c-plan"><option value="gratis">Gratis (con anuncios)</option><option value="basico">Básico</option><option value="plus">Plus</option><option value="pedidos">Películas por pedido</option><option value="distribuidor">Distribuidores (sin vencimiento)</option></select></label>
       <label id="c-dias-l">Días<input id="c-dias" type="number" min="1" max="3650" value="30" inputmode="numeric"></label>
       <label id="c-pel-l" hidden>Películas<input id="c-pel" type="number" min="1" max="50" value="1" inputmode="numeric"></label>
     </div>
@@ -723,8 +723,8 @@ const $ = id => document.getElementById(id);
   const mq = window.matchMedia('(orientation: landscape) and (min-width: 700px)'), botones = [...document.querySelectorAll('#nav button')], tarjetas = [...document.querySelectorAll('.pan > .c')];
   let activo = 'cuentas';
   try { const g = localStorage.getItem('bbAdminTab'); if (botones.some(b => b.dataset.g === g)) activo = g; } catch (e) {}
-  function pintar() { botones.forEach(b => b.classList.toggle('on', b.dataset.g === activo)); tarjetas.forEach(c => c.classList.toggle('on', c.dataset.g === activo)); }
-  function modo() { document.body.classList.toggle('h', mq.matches); }
+  function pintar() { botones.forEach(b => b.classList.toggle('on', b.dataset.g === activo)); tarjetas.forEach(c => c.classList.toggle('on', c.dataset.g === activo)); const on = botones.find(b => b.dataset.g === activo); if (on && on.scrollIntoView && !document.body.classList.contains('h')) try { on.scrollIntoView({ inline: 'center', block: 'nearest' }); } catch (e) {} }
+  function modo() { document.body.classList.toggle('h', mq.matches); pintar(); }
   botones.forEach(b => b.addEventListener('click', () => { activo = b.dataset.g; try { localStorage.setItem('bbAdminTab', activo); } catch (e) {} pintar(); window.scrollTo(0, 0); }));
   if (mq.addEventListener) mq.addEventListener('change', modo); else if (mq.addListener) mq.addListener(modo);
   pintar(); modo();
