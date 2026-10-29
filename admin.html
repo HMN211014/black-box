@@ -209,6 +209,7 @@ html.en-admin-app body:not(.h) .nav button.on{background:#fff;color:#000}
     <button type="button" data-g="colecciones">Colecciones</button>
     <button type="button" data-g="secciones">Secciones temáticas</button>
     <button type="button" data-g="acceso">Pantalla de acceso</button>
+    <button type="button" data-g="anuncios">Anuncios (plan Gratis)</button>
     <button type="button" data-g="efectos">Efectos</button>
     <button type="button" data-g="interacciones">Interacciones</button>
     <button type="button" data-g="sugerencia">Sugerencia</button>
@@ -219,7 +220,7 @@ html.en-admin-app body:not(.h) .nav button.on{background:#fff;color:#000}
   <div class="c" data-g="cuentas">
     <h2>Generar códigos</h2>
     <div class="f">
-      <label>Plan<select id="g-plan"><option value="basico">Básico</option><option value="plus">Plus</option><option value="pedidos">Películas por pedido</option></select></label>
+      <label>Plan<select id="g-plan"><option value="gratis">Gratis (con anuncios, sin vencimiento)</option><option value="basico">Básico</option><option value="plus">Plus</option><option value="pedidos">Películas por pedido</option><option value="distribuidor">Distribuidores (como Plus, sin vencimiento)</option></select></label>
       <label id="g-dias-l">Días de acceso<input id="g-dias" type="number" min="1" max="3650" value="30" inputmode="numeric"></label>
       <label id="g-pel-l" hidden>Películas por código<input id="g-pel" type="number" min="1" max="20" value="1" inputmode="numeric"></label>
       <label>Cantidad<input id="g-cant" type="number" min="1" max="50" value="5" inputmode="numeric"></label>
@@ -234,7 +235,7 @@ html.en-admin-app body:not(.h) .nav button.on{background:#fff;color:#000}
     <h2>Dar días a una cuenta</h2>
     <div class="f">
       <label>Correo<input id="c-correo" type="email" autocapitalize="off" placeholder="cliente@correo.com"></label>
-      <label>Plan<select id="c-plan"><option value="basico">Básico</option><option value="plus">Plus</option><option value="pedidos">Películas por pedido</option></select></label>
+      <label>Plan<select id="c-plan"><option value="gratis">Gratis (con anuncios, sin vencimiento)</option><option value="basico">Básico</option><option value="plus">Plus</option><option value="pedidos">Películas por pedido</option><option value="distribuidor">Distribuidores (como Plus, sin vencimiento)</option></select></label>
       <label id="c-dias-l">Días<input id="c-dias" type="number" min="1" max="3650" value="30" inputmode="numeric"></label>
       <label id="c-pel-l" hidden>Películas<input id="c-pel" type="number" min="1" max="50" value="1" inputmode="numeric"></label>
     </div>
@@ -505,6 +506,17 @@ html.en-admin-app body:not(.h) .nav button.on{background:#fff;color:#000}
   </div>
 
 
+  <div class="c w" data-g="anuncios">
+    <h2>Anuncios del plan Gratis</h2>
+    <p class="s">Las cuentas con plan <b>Gratis</b> ven estos anuncios en el inicio de la app (los otros planes nunca los ven). Con el interruptor apagado o sin anuncios, el plan Gratis se ve sin publicidad. Las imágenes y los enlaces deben empezar con https://</p>
+    <label class="ck"><input type="checkbox" id="an-on"> Mostrar anuncios a las cuentas con plan Gratis</label>
+    <div id="an-lista" style="margin-top:14px"></div>
+    <div class="row" style="margin-top:12px"><button class="g" id="an-add" type="button">Agregar anuncio</button></div>
+    <div class="row" style="margin-top:16px"><button id="an-go" type="button">Guardar</button><button class="g" id="an-cargar" type="button">Cargar los actuales</button></div>
+    <p class="m" id="an-m" hidden></p>
+  </div>
+
+
   <div class="c w" data-g="interacciones">
     <h2>Animaciones, transiciones y vibraciones</h2>
     <p class="s">Asigna a cada gesto o interacción de la app una animación y una vibración, y elige cómo cambian las pantallas. «Ninguna» deja el comportamiento de siempre. Los cambios se guardan automáticamente al terminar de ajustar cada control. Toca <b>Probar</b> para verlo (la vibración se siente al abrir esta página en tu teléfono).</p>
@@ -741,7 +753,8 @@ $('clave').addEventListener('keydown', e => {
   if (e.key === 'Enter') { e.preventDefault(); comprobarClave(); }
 });
 $('clave').addEventListener('input', () => msg('clave-m', '', true));
-const nombrePlan = p => ({ plus: 'Plus', pedidos: 'Películas por pedido' })[p] || 'Básico';
+const nombrePlan = p => ({ gratis: 'Gratis', plus: 'Plus', pedidos: 'Películas por pedido', distribuidor: 'Distribuidores' })[p] || 'Básico';
+const PLANES_SIN_VENCE = ['gratis', 'distribuidor'];
 const fecha = t => new Date(t).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' });
 /* ---- Efectos: deslizadores + vista previa ---- */
 const EF_FAB = { rebote: 30, velocidad: 60, intensidad: 60, brilloFondo: 58, desenfoque: 3, agrandar: 12, estirar: 50, panel: 28 };
@@ -1084,12 +1097,58 @@ $('ac-go').onclick = () => con($('ac-go'), 'ac-m', async () => {
   msg('ac-m', 'Guardado. En la app se actualiza en menos de un minuto.', true);
 });
 
-function campoPlan(selId, diasL, pelL) { const f = () => { const v = $(selId).value === 'pedidos'; $(diasL).hidden = v; $(pelL).hidden = !v; }; $(selId).addEventListener('change', f); f(); }
+/* ---- Anuncios del plan Gratis ---- */
+const AN_MAX = 10;
+let anItems = [];
+function anLeerCampos() {
+  return [...$('an-lista').querySelectorAll('.an-it')].map(d => ({
+    id: d.dataset.id, activo: d.querySelector('[data-k="activo"]').checked,
+    titulo: d.querySelector('[data-k="titulo"]').value, texto: d.querySelector('[data-k="texto"]').value,
+    imagen: d.querySelector('[data-k="imagen"]').value, enlace: d.querySelector('[data-k="enlace"]').value, boton: d.querySelector('[data-k="boton"]').value,
+  }));
+}
+function anPintar() {
+  const box = $('an-lista'); box.replaceChildren();
+  if (!anItems.length) { const p = document.createElement('p'); p.className = 'm'; p.textContent = 'Todavía no hay anuncios. Toca «Agregar anuncio».'; box.appendChild(p); }
+  anItems.forEach((x, i) => {
+    const d = document.createElement('div'); d.className = 'an-it'; d.dataset.id = x.id || 'a' + (i + 1);
+    d.style.cssText = 'padding:14px;margin-bottom:12px;border-radius:16px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12)';
+    const campo = (k, etiqueta, valor, max, ph) => {
+      const l = document.createElement('label'); l.textContent = etiqueta;
+      const inp = document.createElement('input'); inp.dataset.k = k; inp.value = valor || ''; inp.maxLength = max; inp.autocomplete = 'off'; inp.autocapitalize = 'off'; inp.spellcheck = false; if (ph) inp.placeholder = ph;
+      l.appendChild(inp); return l;
+    };
+    const ck = document.createElement('label'); ck.className = 'ck';
+    const cb = document.createElement('input'); cb.type = 'checkbox'; cb.dataset.k = 'activo'; cb.checked = x.activo !== false;
+    ck.append(cb, document.createTextNode(' Anuncio ' + (i + 1) + ' activo'));
+    const q = document.createElement('button'); q.className = 'g'; q.type = 'button'; q.textContent = 'Quitar este anuncio'; q.style.marginTop = '10px';
+    q.onclick = () => { anItems = anLeerCampos(); anItems.splice(i, 1); anPintar(); };
+    d.append(ck, campo('titulo', 'Título', x.titulo, 80, 'Ej. Promoción de la semana'), campo('texto', 'Texto', x.texto, 160, 'Una frase corta'),
+      campo('imagen', 'Imagen (enlace https://)', x.imagen, 1500, 'https://…/anuncio.jpg'), campo('enlace', 'Enlace al tocar (https://)', x.enlace, 1500, 'https://…'),
+      campo('boton', 'Texto del botón', x.boton, 24, 'Ver más'), q);
+    box.appendChild(d);
+  });
+  $('an-add').disabled = anItems.length >= AN_MAX;
+}
+$('an-add').onclick = () => { anItems = anLeerCampos(); if (anItems.length >= AN_MAX) return; anItems.push({ id: 'a' + Date.now().toString(36).slice(-6), activo: true }); anPintar(); };
+async function anCargar() {
+  const j = await admin({ op: 'anuncios' });
+  $('an-on').checked = !!j.activo; anItems = j.items || []; anPintar();
+}
+anPintar();
+$('an-cargar').onclick = () => con($('an-cargar'), 'an-m', async () => { await anCargar(); msg('an-m', 'Se cargó lo que está guardado.', true); });
+$('an-go').onclick = () => con($('an-go'), 'an-m', async () => {
+  const j = await admin({ op: 'guardar_anuncios', activo: $('an-on').checked, items: anLeerCampos() });
+  $('an-on').checked = !!j.activo; anItems = j.items || []; anPintar();
+  msg('an-m', 'Guardado (' + anItems.length + (anItems.length === 1 ? ' anuncio' : ' anuncios') + '). En la app se actualiza en menos de un minuto.', true);
+});
+
+function campoPlan(selId, diasL, pelL) { const f = () => { const v = $(selId).value; $(diasL).hidden = v === 'pedidos' || PLANES_SIN_VENCE.includes(v); $(pelL).hidden = v !== 'pedidos'; }; $(selId).addEventListener('change', f); f(); }
 campoPlan('g-plan', 'g-dias-l', 'g-pel-l'); campoPlan('c-plan', 'c-dias-l', 'c-pel-l');
 $('g-go').onclick = () => con($('g-go'), 'g-m', async () => {
   const j = await admin({ op: 'generar', plan: $('g-plan').value, dias: $('g-dias').value, peliculas: $('g-pel').value, cantidad: $('g-cant').value });
   $('g-out').value = j.codigos.join('\n'); $('g-out').hidden = false; $('g-acc').hidden = false;
-  msg('g-m', j.codigos.length + ' código(s) ' + (j.plan === 'pedidos' ? 'válidos por ' + j.peliculas + ' película(s) cada uno' : 'de ' + j.dias + ' días') + ', plan ' + nombrePlan(j.plan) + '. Cada uno se puede usar una sola vez.', true);
+  msg('g-m', j.codigos.length + ' código(s) ' + (j.plan === 'pedidos' ? 'válidos por ' + j.peliculas + ' película(s) cada uno' : j.sinVence ? 'sin vencimiento' : 'de ' + j.dias + ' días') + ', plan ' + nombrePlan(j.plan) + '. Cada uno se puede usar una sola vez.', true);
 });
 $('g-cp').onclick = async () => {
   const t = $('g-out').value;
@@ -1099,7 +1158,7 @@ $('g-cp').onclick = async () => {
 $('c-go').onclick = () => con($('c-go'), 'c-m', async () => {
   const j = await admin({ op: 'conceder', correo: $('c-correo').value, plan: $('c-plan').value, dias: $('c-dias').value, peliculas: $('c-pel').value });
   if ($('c-plan').value === 'pedidos') { msg('c-m', j.correo + ': ahora tiene ' + j.acceso.vales + ' película(s) por canjear.', true); return; }
-  msg('c-m', j.correo + ': plan ' + nombrePlan(j.acceso.plan) + ', vence el ' + fecha(j.acceso.vence) + '.', true);
+  msg('c-m', j.correo + ': plan ' + nombrePlan(j.acceso.plan) + (j.acceso.sinVence ? ', sin vencimiento.' : ', vence el ' + fecha(j.acceso.vence) + '.'), true);
 });
 $('l-go').onclick = () => con($('l-go'), 'l-m', async () => {
   const j = await admin({ op: 'listar' });
@@ -1108,7 +1167,7 @@ $('l-go').onclick = () => con($('l-go'), 'l-m', async () => {
     const tr = document.createElement('tr');
     const k = document.createElement('td'); k.className = 'k'; k.textContent = c.codigo;
     const p = document.createElement('td'); p.textContent = nombrePlan(c.plan);
-    const d = document.createElement('td'); d.textContent = c.plan === 'pedidos' && c.peliculas ? c.peliculas + (c.peliculas === 1 ? ' película' : ' películas') : c.dias;
+    const d = document.createElement('td'); d.textContent = c.plan === 'pedidos' && c.peliculas ? c.peliculas + (c.peliculas === 1 ? ' película' : ' películas') : PLANES_SIN_VENCE.includes(c.plan) ? 'Sin vencimiento' : c.dias;
     const e = document.createElement('td'), t = document.createElement('span');
     t.className = 'tag ' + (c.usado ? 'u' : 'd'); t.textContent = c.usado ? 'Usado' : 'Disponible'; e.appendChild(t);
     if (c.usado) { const s = document.createElement('div'); s.className = 's'; s.style.cssText = 'color:#a1a1a6;font-size:12px;margin-top:3px'; s.textContent = c.usado.por + ' · ' + fecha(c.usado.fecha); e.appendChild(s); }
@@ -1143,7 +1202,7 @@ function filaLista(correo, l, donde) {
 }
 $('a-ver').onclick = () => con($('a-ver'), 'a-m', async () => {
   const j = await admin({ op: 'cuenta', correo: $('a-correo').value });
-  msg('a-m', 'Plan ' + nombrePlan(j.acceso.plan) + (j.acceso.vence ? (j.acceso.activo ? ', vence el ' : ', venció el ') + fecha(j.acceso.vence) : ', sin acceso') + '.', true);
+  msg('a-m', 'Plan ' + nombrePlan(j.acceso.plan) + (j.acceso.sinVence ? ', sin vencimiento' : j.acceso.vence ? (j.acceso.activo ? ', vence el ' : ', venció el ') + fecha(j.acceso.vence) : ', sin acceso') + '.', true);
   filaLista(j.correo, j.lista, 'a-lista');
 });
 let aElegido = null;

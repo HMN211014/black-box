@@ -950,6 +950,18 @@ html.acceso-app #acceso,#acceso.on{display:flex}
 .ua-canje button{flex:none;width:auto;padding:0 18px;height:52px;border:0;border-radius:16px;background:#fff;color:#000;font:inherit;font-size:16px;font-weight:600;cursor:pointer}
 .ua-canje button:disabled{opacity:.6}
 
+/* ---------- Anuncios del plan Gratis (inicio) ---------- */
+#anun{margin:14px 16px 4px}
+#anun[hidden]{display:none}
+.an-card{position:relative;display:flex;align-items:center;gap:14px;padding:12px;border-radius:20px;background:linear-gradient(180deg,rgba(60,60,66,.7),rgba(26,26,30,.85));border:1px solid rgba(255,255,255,.14);color:inherit;text-decoration:none;overflow:hidden}
+.an-card img{flex:none;width:112px;height:63px;object-fit:cover;border-radius:12px;background:#000}
+.an-card .an-tx{min-width:0;display:grid;gap:3px}
+.an-card .an-tx b{font-size:16px;letter-spacing:-.01em}
+.an-card .an-tx span{color:#c7c7cc;font-size:14px;line-height:1.3}
+.an-card .an-bt{flex:none;margin-left:auto;padding:8px 14px;border-radius:999px;background:#fff;color:#000;font-size:14px;font-weight:600}
+.an-tag{position:absolute;top:6px;right:10px;font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:#8e8e93}
+@media(max-width:600px){.an-card img{width:84px;height:48px}.an-card .an-bt{display:none}}
+
 /* ---------- Pedidos con búsqueda en TMDB y candado de la biblioteca ---------- */
 #vista-ped{display:block;place-items:unset}
 .pedw{max-width:1100px;margin:0 auto}
@@ -1302,6 +1314,7 @@ html.en-pip #pcr{display:none}
   <div class="dots" id="dots"></div>
 </section>
 </div>
+<aside id="anun" hidden aria-label="Publicidad"></aside>
 <div id="vacio" hidden><b>Pronto habrá series aquí</b>Todavía no se agrega ninguna.</div>
 <div id="cols-w"><div class="cols-sep" aria-hidden="true"></div><h3 class="cols-t">Colecciones</h3><div id="cols" aria-label="Colecciones"></div></div>
 <div id="gen-w" hidden><div class="cols-sep" aria-hidden="true"></div><h3 class="cols-t">Géneros</h3><div id="gens" aria-label="Géneros"></div></div>
@@ -4051,12 +4064,16 @@ const PANTALLA_ACCESO = 'app';        // 'app' = pantalla de inicio de sesión a
 const ACCESO_POR_CUENTA = true;       // false = no se pide cuenta ni tiempo para ver (todo como antes)
 const CONTACTO_URL = '';              // enlace para pedir un código (por ejemplo WhatsApp: https://wa.me/52XXXXXXXXXX). Vacío = no se muestra el botón
 const PLANES = [
+  { id: 'gratis', nombre: 'Gratis', precio: 'Gratis', etiqueta: '',
+    items: ['Acceso al catálogo disponible', 'Sin fecha de vencimiento', 'Puede incluir anuncios'] },
   { id: 'basico', nombre: 'Básico', precio: 'Próximamente', etiqueta: '',
     items: ['Acceso a todo el catálogo disponible', 'Tu progreso guardado en tu cuenta'] },
   { id: 'plus', nombre: 'Plus', precio: 'Próximamente', etiqueta: 'Incluye pedidos',
     items: ['Todo lo del plan Básico', 'Solicita películas específicas'] },
   { id: 'pedidos', nombre: 'Películas por pedido', precio: 'Acorde a tu proveedor', etiqueta: '',
-    items: ['Canjeas un código válido por una película', 'La buscas en Pedidos y la solicitas', 'Se agrega a tu cuenta para verla'] }
+    items: ['Canjeas un código válido por una película', 'La buscas en Pedidos y la solicitas', 'Se agrega a tu cuenta para verla'] },
+  { id: 'distribuidor', nombre: 'Distribuidores', precio: 'Para distribuidores', etiqueta: 'Sin vencimiento',
+    items: ['Todo lo del plan Plus', 'Tu tiempo de acceso nunca se acaba', 'Solicita películas específicas'] }
 ];
 const uVigente = () => !!(U.acceso && U.acceso.vence > Date.now());
 const porVales = () => ACCESO_POR_CUENTA && U.servicio === true && !!U.acceso && U.acceso.canje === true && !uVigente();   // plan "Películas por pedido": cada código es un vale por una película
@@ -4071,7 +4088,28 @@ function marcarCandados() {
   tarjetasG.forEach((bs, p) => bs.forEach(b => b.classList.toggle('lk', !!window.bbCand(p))));
 }
 window.bbPedidoListo = () => { uBajar().catch(() => {}); try { if (!vistas.ped.hidden) pintarPedidos(); } catch (e) {} };   // llega un push con la app abierta: se actualiza la lista
-function uPlan() { marcarCandados(); if (!vistas.ped.hidden) pintarPedidos(); }     // se llama cada vez que cambia el plan o la lista de la cuenta
+/* Anuncios: solo para cuentas con plan Gratis y solo si el admin los activó (admin > Anuncios). */
+let anunTimer = 0, anunIdx = 0;
+function pintarAnuncio() {
+  const w = H('anun'); if (!w) return;
+  clearInterval(anunTimer); anunTimer = 0;
+  const cfg = window.ANUNCIOS_EXTRA || {}, lista = Array.isArray(cfg.items) ? cfg.items.filter(x => x && (x.titulo || x.imagen)) : [];
+  const ver = ACCESO_POR_CUENTA && U.servicio === true && !!U.correo && !!U.acceso && U.acceso.plan === 'gratis' && cfg.activo === true && lista.length > 0;
+  if (!ver) { w.hidden = true; w.replaceChildren(); return; }
+  const pintar = () => {
+    const x = lista[anunIdx % lista.length];
+    const c = el(x.enlace ? 'a' : 'div', 'an-card');
+    if (x.enlace) { c.href = x.enlace; c.target = '_blank'; c.rel = 'noopener sponsored'; }
+    if (x.imagen) { const im = el('img'); im.src = x.imagen; im.alt = ''; im.loading = 'lazy'; im.referrerPolicy = 'no-referrer'; c.appendChild(im); }
+    const tx = el('div', 'an-tx'); if (x.titulo) tx.appendChild(el('b', '', x.titulo)); if (x.texto) tx.appendChild(el('span', '', x.texto)); c.appendChild(tx);
+    if (x.enlace) c.appendChild(el('span', 'an-bt', x.boton || 'Ver más'));
+    c.appendChild(el('span', 'an-tag', 'Publicidad'));
+    w.replaceChildren(c); w.hidden = false;
+  };
+  anunIdx = Math.floor(Math.random() * lista.length); pintar();
+  if (lista.length > 1) anunTimer = setInterval(() => { anunIdx++; pintar(); }, 10000);
+}
+function uPlan() { marcarCandados(); pintarAnuncio(); if (!vistas.ped.hidden) pintarPedidos(); }     // se llama cada vez que cambia el plan o la lista de la cuenta
 const uDias = () => Math.max(0, Math.ceil((U.acceso.vence - Date.now()) / 86400000));
 const uPlanNombre = id => (PLANES.find(x => x.id === id) || {}).nombre || 'Básico';
 const uFechaLarga = t => new Date(t).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' });
@@ -4088,7 +4126,7 @@ function abrirPlanes(motivo, p, ep) {      // motivo: 'sinsesion' | 'vencido' | 
   const x = el('button', 'pl-x', '✕'); x.type = 'button'; x.setAttribute('aria-label', 'Cerrar'); x.onclick = cerrarPlanes;
   const top = el('div', 'pl-top'); top.append(el('h2', '', T[0]), el('p', 'ssub', T[1]), x);
   const cards = motivo === 'nolista' ? [] : PLANES.map(pl => {
-    const c = el('div', 'pl-card' + (pl.id === 'plus' ? ' plus' : ''));
+    const c = el('div', 'pl-card' + (pl.id === 'plus' || pl.id === 'distribuidor' ? ' plus' : ''));
     if (pl.etiqueta) c.appendChild(el('span', 'pl-tag', pl.etiqueta));
     c.appendChild(el('h3', '', pl.nombre));
     if (pl.precio) c.appendChild(el('div', 'pl-precio', pl.precio));
@@ -4300,6 +4338,7 @@ function uEstadoTexto() {                               // [titulo, detalle, vig
   if (porVales()) { const n = U.acceso.vales | 0; return ['Películas por pedido · ' + (n === 1 ? 'te queda 1 película' : n ? 'te quedan ' + n + ' películas' : 'sin películas por canjear'), n ? 'Elige cuál quieres en la sección Pedidos.' : 'Canjea otro código para pedir otra película.', true]; }
   if (!U.acceso || !U.acceso.vence) return ['Sin acceso activo', 'Canjea un código para empezar a ver el contenido.', false];
   if (!uVigente()) return ['Tu acceso terminó', 'Venció el ' + uFechaLarga(U.acceso.vence) + '. Canjea un código para seguir viendo.', false];
+  if (U.acceso.sinVence) return ['Plan ' + uPlanNombre(U.acceso.plan), 'Sin fecha de vencimiento.', true];
   const d = uDias();
   return ['Plan ' + uPlanNombre(U.acceso.plan) + ' · ' + (d === 1 ? 'te queda 1 día' : 'te quedan ' + d + ' días'), 'Vence el ' + uFechaLarga(U.acceso.vence) + '.', true];
 }
@@ -4698,7 +4737,7 @@ async function pintarPedidos() {
   if (!U.correo) return bloque('Inicia sesión para pedir', 'Con tu cuenta puedes pedir las películas y series que quieras ver.', 'Iniciar sesión', abrirAjustes);
   if (!porVales()) {
     if (!uVigente()) return bloque(U.acceso && U.acceso.vence ? 'Tu acceso terminó' : 'Tu cuenta aún no tiene acceso', 'Canjea un código para poder hacer pedidos. Con el plan Películas por pedido, cada código vale por una película.', 'Canjear un código', abrirAjustes);
-    if (!['plus', 'pedidos'].includes(U.acceso.plan)) return bloque('Tu plan no incluye pedidos', 'Los pedidos están en los planes Plus y Películas por pedido.', 'Ver planes', () => abrirPlanes(null));
+    if (!['plus', 'pedidos', 'distribuidor'].includes(U.acceso.plan)) return bloque('Tu plan no incluye pedidos', 'Los pedidos están en los planes Plus, Distribuidores y Películas por pedido.', 'Ver planes', () => abrirPlanes(null));
   }
 
   const cab = el('h2', '', 'Pedidos');

@@ -9,8 +9,11 @@ const enc = new TextEncoder();
 const SESION_DIAS = 30;
 const PRUEBA_DIAS = 0;
 const DIA = 86400000;
-const PLANES_OK = ['basico', 'plus', 'pedidos'];
-const PLANES_CON_PEDIDOS = ['plus', 'pedidos'];
+const PLANES_OK = ['gratis', 'basico', 'plus', 'pedidos', 'distribuidor'];
+const PLANES_CON_PEDIDOS = ['plus', 'pedidos', 'distribuidor'];
+const PLANES_SIN_VENCE = ['gratis', 'distribuidor'];          // planes cuyo tiempo nunca se acaba (no usan días)
+const SIN_FIN = 4102444800000;                                // 1 de enero de 2100: fecha "infinita" que se guarda en vence
+const ANUNCIOS_MAX = 10;
 const LETRAS = '23456789ABCDEFGHJKMNPQRSTUVWXYZ';
 
 const json = (o, status = 200, extra = {}) => new Response(JSON.stringify(o), {
@@ -39,6 +42,25 @@ function limpiarBanner(lista) {
     out.push({ tmdb, tipo, titulo: String(x.titulo || '').trim().slice(0, 200), poster });
   });
   return out;
+}
+
+/* Anuncios del plan Gratis, elegidos desde el panel: { activo, items: [{ id, titulo, texto, imagen, enlace, boton }] }.
+   Solo se muestran a las cuentas con plan Gratis. Si "activo" está apagado o no hay anuncios, el plan Gratis se ve sin publicidad. */
+function limpiarAnuncios(v) {
+  const o = v && typeof v === 'object' && !Array.isArray(v) ? v : {};
+  const url = x => { const s = String(x || '').trim(); return /^https:\/\/\S{4,1500}$/.test(s) ? s : ''; };
+  const items = [], ids = new Set();
+  (Array.isArray(o.items) ? o.items : []).forEach((x, i) => {
+    if (!x || typeof x !== 'object' || items.length >= ANUNCIOS_MAX) return;
+    const titulo = String(x.titulo || '').trim().slice(0, 80), texto = String(x.texto || '').trim().slice(0, 160);
+    const imagen = url(x.imagen), enlace = url(x.enlace), boton = String(x.boton || '').trim().slice(0, 24);
+    if (!titulo && !imagen) return;
+    let id = String(x.id || '').replace(/[^\w-]/g, '').slice(0, 16) || 'a' + (i + 1);
+    while (ids.has(id)) id += 'x';
+    ids.add(id);
+    items.push({ id, titulo, texto, imagen, enlace, boton, activo: x.activo !== false });
+  });
+  return { activo: o.activo === true, items };
 }
 
 async function buscarArchivosR2(env, request, consulta, actualizar, desde) {
@@ -124,16 +146,24 @@ const cookieSesion = (token, dias) =>
 /* ---- Acceso (días de plan y vales de películas) ---- */
 async function accesoDe(db, correo) {
   const a = await db.prepare('SELECT vence, plan, vales, canje FROM usuarios WHERE correo = ?1').bind(correo).first();
-  const vence = a ? a.vence : 0;
+  const plan = (a && a.plan) || null;
+  const sinVence = PLANES_SIN_VENCE.includes(plan);               // gratis y distribuidor: siempre activos, sin fecha de fin
+  const vence = sinVence ? SIN_FIN : (a ? a.vence : 0);
   // vales = películas por canjear (plan "Películas por pedido"); canje = la cuenta usa vales en vez de días
-  return { vence, plan: (a && a.plan) || null, activo: vence > Date.now(), vales: a ? a.vales | 0 : 0, canje: !!(a && a.canje) };
+  return { vence, plan, activo: sinVence || vence > Date.now(), sinVence, vales: a ? a.vales | 0 : 0, canje: !!(a && a.canje) };
 }
 async function sumarDias(db, correo, dias, plan) {
   const antes = await accesoDe(db, correo);
-  const base = Math.max(Date.now(), antes.vence);
-  const rango = { pedidos: 0, basico: 1, plus: 2 };
+  const rango = { pedidos: 0, gratis: 1, basico: 2, plus: 3, distribuidor: 4 };
   const nuevo = PLANES_OK.includes(plan) ? plan : 'basico';
   const nuevoPlan = antes.activo && (rango[antes.plan] ?? 0) > rango[nuevo] ? antes.plan : nuevo;
+  if (PLANES_SIN_VENCE.includes(nuevoPlan)) {                     // plan sin vencimiento: no se suman días, el tiempo nunca se acaba
+    await db.prepare('UPDATE usuarios SET vence = ?1, plan = ?2 WHERE correo = ?3').bind(SIN_FIN, nuevoPlan, correo).run();
+    return accesoDe(db, correo);
+  }
+  if (!(dias > 0)) return antes;                                  // código/concesión sin días (plan sin vencimiento menor al que ya tiene): no cambia nada
+  // si venía de un plan sin vencimiento, los días cuentan desde hoy (no desde el año 2100)
+  const base = antes.sinVence ? Date.now() : Math.max(Date.now(), antes.vence);
   await db.prepare('UPDATE usuarios SET vence = ?1, plan = ?2 WHERE correo = ?3').bind(base + dias * DIA, nuevoPlan, correo).run();
   return accesoDe(db, correo);
 }
@@ -159,7 +189,7 @@ async function crearSesion(db, correo) {
   const token = b64url(crypto.getRandomValues(new Uint8Array(32)));
   const ahora = Date.now();
   const acceso = await accesoDe(db, correo);
-  const limite = acceso.plan === 'plus' ? 3 : 1;
+  const limite = ['plus', 'distribuidor'].includes(acceso.plan) ? 3 : 1;
   await db.batch([
     db.prepare('INSERT INTO sesiones (token, correo, creado, expira) VALUES (?1, ?2, ?3, ?4)').bind(token, correo, ahora, ahora + SESION_DIAS * DIA),
     // deja solo las sesiones más recientes (según el plan) y borra las vencidas de esta cuenta
@@ -647,7 +677,10 @@ async function manejar({ request, env, params, waitUntil }) {
     try { if (db) { const r = await db.prepare("SELECT valor FROM meta WHERE clave = 'sugerencia'").first(); if (r && r.valor) sug = JSON.parse(r.valor) || {}; } } catch (e) {}
     let ban = [];
     try { if (db) { const r = await db.prepare("SELECT valor FROM meta WHERE clave = 'banner'").first(); if (r && r.valor) ban = limpiarBanner(JSON.parse(r.valor)); } } catch (e) {}
-    const js ='window.PELICULAS_EXTRA=' + JSON.stringify(items).replace(/</g, '\\u003c') + ';window.COLECCIONES_EXTRA=' + JSON.stringify(cols).replace(/</g, '\\u003c') + ';window.SECCIONES_EXTRA=' + JSON.stringify(secs).replace(/</g, '\\u003c') + ';window.ACCESO_EXTRA=' + JSON.stringify(acc).replace(/</g, '\\u003c') + ';window.EFECTOS_EXTRA=' + JSON.stringify(efe).replace(/</g, '\\u003c') + ';window.INTERACCIONES_EXTRA=' + JSON.stringify(inter).replace(/</g, '\\u003c') + ';window.INTRODB_EXTRA=' + JSON.stringify(introdb).replace(/</g, '\\u003c') + ';window.INTRODB_AVISO_EXTRA=' + JSON.stringify(introdbAviso) + ';window.SUGERENCIA_EXTRA=' + JSON.stringify(sug).replace(/</g, '\\u003c') + ';window.BANNER_EXTRA=' + JSON.stringify(ban).replace(/</g, '\\u003c') + ';';
+    let anun = { activo: false, items: [] };
+    try { if (db) { const r = await db.prepare("SELECT valor FROM meta WHERE clave = 'anuncios'").first(); if (r && r.valor) anun = limpiarAnuncios(JSON.parse(r.valor)); } } catch (e) {}
+    anun = { activo: anun.activo, items: anun.items.filter(x => x.activo) };
+    const js ='window.ANUNCIOS_EXTRA=' + JSON.stringify(anun).replace(/</g, '\\u003c') + ';window.PELICULAS_EXTRA=' + JSON.stringify(items).replace(/</g, '\\u003c') + ';window.COLECCIONES_EXTRA=' + JSON.stringify(cols).replace(/</g, '\\u003c') + ';window.SECCIONES_EXTRA=' + JSON.stringify(secs).replace(/</g, '\\u003c') + ';window.ACCESO_EXTRA=' + JSON.stringify(acc).replace(/</g, '\\u003c') + ';window.EFECTOS_EXTRA=' + JSON.stringify(efe).replace(/</g, '\\u003c') + ';window.INTERACCIONES_EXTRA=' + JSON.stringify(inter).replace(/</g, '\\u003c') + ';window.INTRODB_EXTRA=' + JSON.stringify(introdb).replace(/</g, '\\u003c') + ';window.INTRODB_AVISO_EXTRA=' + JSON.stringify(introdbAviso) + ';window.SUGERENCIA_EXTRA=' + JSON.stringify(sug).replace(/</g, '\\u003c') + ';window.BANNER_EXTRA=' + JSON.stringify(ban).replace(/</g, '\\u003c') + ';';
     return new Response(js, { headers: { 'Content-Type': 'application/javascript; charset=utf-8', 'Cache-Control': 'public, max-age=30' } });
   }
 
@@ -732,8 +765,9 @@ async function manejar({ request, env, params, waitUntil }) {
     if (cuerpo.op === 'generar') {
       const cantidad = Math.floor(Number(cuerpo.cantidad));
       const vale = plan === 'pedidos';                       // plan "Películas por pedido": el código vale por N películas, no por días
+      const sinVence = PLANES_SIN_VENCE.includes(plan);      // gratis y distribuidor: el código activa el plan sin fecha de fin
       if (vale && !(peliculas >= 1 && peliculas <= 20)) return json({ error: 'Las películas por código deben ser entre 1 y 20.' }, 400);
-      if (!vale && !(dias >= 1 && dias <= 3650)) return json({ error: 'Los días deben ser entre 1 y 3650.' }, 400);
+      if (!vale && !sinVence && !(dias >= 1 && dias <= 3650)) return json({ error: 'Los días deben ser entre 1 y 3650.' }, 400);
       if (!(cantidad >= 1 && cantidad <= 50)) return json({ error: 'La cantidad debe ser entre 1 y 50.' }, 400);
       const creado = Date.now();
       let codigos = [];
@@ -742,12 +776,12 @@ async function manejar({ request, env, params, waitUntil }) {
         while (nuevos.size < cantidad) nuevos.add(nuevoCodigo());
         try {
           await db.batch([...nuevos].map(cod => db.prepare('INSERT INTO codigos (codigo, plan, dias, peliculas, creado) VALUES (?1, ?2, ?3, ?4, ?5)')
-            .bind(cod, plan, vale ? null : dias, vale ? peliculas : null, creado)));
+            .bind(cod, plan, vale || sinVence ? null : dias, vale ? peliculas : null, creado)));
           codigos = [...nuevos];
         } catch (e) { if (!/unique|constraint/i.test(String(e && e.message))) throw e; }   // choque de códigos (casi imposible): se reintenta
       }
       if (!codigos.length) return json({ error: 'No se pudieron generar los códigos. Inténtalo de nuevo.' }, 500);
-      return json(vale ? { codigos, plan, peliculas } : { codigos, dias, plan });
+      return json(vale ? { codigos, plan, peliculas } : sinVence ? { codigos, plan, sinVence: true } : { codigos, dias, plan });
     }
 
     if (cuerpo.op === 'listar') {
@@ -763,8 +797,9 @@ async function manejar({ request, env, params, waitUntil }) {
     if (cuerpo.op === 'conceder') {
       const correo = limpiarCorreo(cuerpo.correo);
       const vale = plan === 'pedidos' && cuerpo.peliculas !== undefined && cuerpo.peliculas !== '';
+      const sinVence = PLANES_SIN_VENCE.includes(plan);      // gratis y distribuidor no usan días
       if (vale && !(peliculas >= 1 && peliculas <= 50)) return json({ error: 'Las películas deben ser entre 1 y 50.' }, 400);
-      if (!vale && !(dias >= 1 && dias <= 3650)) return json({ error: 'Los días deben ser entre 1 y 3650.' }, 400);
+      if (!vale && !sinVence && !(dias >= 1 && dias <= 3650)) return json({ error: 'Los días deben ser entre 1 y 3650.' }, 400);
       if (!correo || !(await db.prepare('SELECT 1 AS x FROM usuarios WHERE correo = ?1').bind(correo).first())) return json({ error: 'Ese correo no tiene cuenta.' }, 404);
       return json({ correo, acceso: vale ? await ajustarVales(db, correo, peliculas) : await sumarDias(db, correo, dias, plan) });
     }
@@ -983,6 +1018,18 @@ async function manejar({ request, env, params, waitUntil }) {
       await db.prepare('CREATE TABLE IF NOT EXISTS meta (clave TEXT PRIMARY KEY, valor TEXT) WITHOUT ROWID').run();
       await db.prepare("INSERT INTO meta (clave, valor) VALUES ('banner', ?1) ON CONFLICT(clave) DO UPDATE SET valor = ?1").bind(JSON.stringify(items)).run();
       return json({ ok: true, items });
+    }
+
+    if (cuerpo.op === 'anuncios') {
+      let v = { activo: false, items: [] };
+      try { const r = await db.prepare("SELECT valor FROM meta WHERE clave = 'anuncios'").first(); if (r && r.valor) v = limpiarAnuncios(JSON.parse(r.valor)); } catch (e) {}
+      return json({ ...v, max: ANUNCIOS_MAX });
+    }
+    if (cuerpo.op === 'guardar_anuncios') {
+      const v = limpiarAnuncios({ activo: cuerpo.activo, items: cuerpo.items });
+      await db.prepare('CREATE TABLE IF NOT EXISTS meta (clave TEXT PRIMARY KEY, valor TEXT) WITHOUT ROWID').run();
+      await db.prepare("INSERT INTO meta (clave, valor) VALUES ('anuncios', ?1) ON CONFLICT(clave) DO UPDATE SET valor = ?1").bind(JSON.stringify(v)).run();
+      return json({ ok: true, ...v });
     }
 
     if (cuerpo.op === 'colecciones') {

@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS usuarios (
   hash    TEXT NOT NULL,
   creado  INTEGER NOT NULL,
   vence   INTEGER NOT NULL DEFAULT 0,     -- hasta cuándo tiene plan por días (milisegundos)
-  plan    TEXT,                           -- basico | plus | pedidos
+  plan    TEXT,                           -- gratis | basico | plus | pedidos | distribuidor (gratis y distribuidor guardan vence = 4102444800000, sin fecha de fin)
   vales   INTEGER NOT NULL DEFAULT 0,     -- películas por canjear (plan "Películas por pedido")
   canje   INTEGER NOT NULL DEFAULT 0
 ) WITHOUT ROWID;
