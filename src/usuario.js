@@ -232,10 +232,17 @@ function tokenDe(request) {
   const m = (request.headers.get('Cookie') || '').match(/(?:^|;\s*)bb_sesion=([\w-]+)/);
   return m ? m[1] : null;
 }
+/* Cuentas bloqueadas desde el panel (lista de códigos). La tabla se crea sola la primera vez; ejecutar algo en D1 no hace falta. */
+let bloqueosListo = null;
+function asegurarBloqueos(db) {
+  if (!bloqueosListo) bloqueosListo = db.prepare('CREATE TABLE IF NOT EXISTS usuarios_bloqueados (correo TEXT PRIMARY KEY, fecha INTEGER NOT NULL) WITHOUT ROWID').run().catch(e => { bloqueosListo = null; throw e; });
+  return bloqueosListo;
+}
 async function correoDeSesion(request, db) {
   const t = tokenDe(request);
   if (!t) return null;
-  const r = await db.prepare('SELECT correo FROM sesiones WHERE token = ?1 AND expira > ?2').bind(t, Date.now()).first();
+  await asegurarBloqueos(db);       // una cuenta bloqueada deja de tener sesión válida en todo (cuenta, progreso, pedidos, códigos…)
+  const r = await db.prepare('SELECT s.correo FROM sesiones s WHERE s.token = ?1 AND s.expira > ?2 AND NOT EXISTS (SELECT 1 FROM usuarios_bloqueados b WHERE b.correo = s.correo)').bind(t, Date.now()).first();
   return r ? r.correo : null;
 }
 
@@ -497,6 +504,8 @@ async function manejar({ request, env, params, waitUntil }) {
       return json({ error: 'Correo o contraseña incorrectos.' }, 401);
     }
     if (fallos) await borrarIntentos(db, kFallos);
+    await asegurarBloqueos(db);
+    if (await db.prepare('SELECT 1 AS x FROM usuarios_bloqueados WHERE correo = ?1').bind(correo).first()) return json({ error: 'Esta cuenta está bloqueada. Comunícate con el administrador.' }, 403);
     const token = await crearSesion(db, correo);
     return json({ correo, ...(await estadoDe(db, correo)) }, 200, { 'Set-Cookie': cookieSesion(token, SESION_DIAS) });
   }
@@ -819,11 +828,12 @@ async function manejar({ request, env, params, waitUntil }) {
 
     if (cuerpo.op === 'listar') {
       await db.prepare('CREATE TABLE IF NOT EXISTS codigos_canje_info (codigo TEXT PRIMARY KEY, pais TEXT, ciudad TEXT, canjeado INTEGER NOT NULL) WITHOUT ROWID').run();
-      const r = await db.prepare('SELECT c.codigo, c.plan, c.dias, c.peliculas, c.creado, c.usado_por, c.usado_fecha, u.pais AS pais_canje, u.ciudad AS ciudad_canje FROM codigos c LEFT JOIN codigos_canje_info u ON u.codigo = c.codigo ORDER BY c.creado DESC LIMIT 2000').all();
+      await asegurarBloqueos(db);
+      const r = await db.prepare('SELECT c.codigo, c.plan, c.dias, c.peliculas, c.creado, c.usado_por, c.usado_fecha, u.pais AS pais_canje, u.ciudad AS ciudad_canje, (SELECT 1 FROM usuarios x WHERE x.correo = c.usado_por) AS existe, (SELECT 1 FROM usuarios_bloqueados b WHERE b.correo = c.usado_por) AS bloqueado FROM codigos c LEFT JOIN codigos_canje_info u ON u.codigo = c.codigo ORDER BY c.creado DESC LIMIT 2000').all();
       return json({ codigos: r.results.map(k => ({
         codigo: k.codigo, plan: k.plan, creado: k.creado,
         ...(k.dias != null ? { dias: k.dias } : {}), ...(k.peliculas != null ? { peliculas: k.peliculas } : {}),
-        usado: k.usado_por ? { por: k.usado_por, fecha: k.usado_fecha, ubicacion: { pais: k.pais_canje || '', ciudad: k.ciudad_canje || '' } } : null,
+        usado: k.usado_por ? { por: k.usado_por, fecha: k.usado_fecha, existe: !!k.existe, bloqueado: !!k.bloqueado, ubicacion: { pais: k.pais_canje || '', ciudad: k.ciudad_canje || '' } } : null,
       })) });
     }
 
@@ -840,6 +850,38 @@ async function manejar({ request, env, params, waitUntil }) {
     if (cuerpo.op === 'pedidos') {
       const r = await db.prepare("SELECT * FROM pedidos ORDER BY CASE estado WHEN 'pendiente' THEN 0 WHEN 'listo' THEN 1 ELSE 2 END, creado DESC LIMIT 300").all();
       return json({ pedidos: r.results.map(filaPedido) });
+    }
+
+    /* Bloquear / desbloquear / eliminar la cuenta de quien canjeó un código (botones en la lista de códigos) */
+    if (cuerpo.op === 'bloquear_usuario' || cuerpo.op === 'eliminar_usuario') {
+      const correo = limpiarCorreo(cuerpo.correo);
+      if (!correo || !(await db.prepare('SELECT 1 AS x FROM usuarios WHERE correo = ?1').bind(correo).first())) return json({ error: 'Ese correo ya no tiene cuenta.' }, 404);
+      await asegurarBloqueos(db);
+
+      if (cuerpo.op === 'bloquear_usuario') {
+        if (cuerpo.bloquear === false) {
+          await db.prepare('DELETE FROM usuarios_bloqueados WHERE correo = ?1').bind(correo).run();
+          return json({ ok: true, correo, bloqueado: false });
+        }
+        await db.batch([
+          db.prepare('INSERT OR REPLACE INTO usuarios_bloqueados (correo, fecha) VALUES (?1, ?2)').bind(correo, Date.now()),
+          db.prepare('DELETE FROM sesiones WHERE correo = ?1').bind(correo),       // se le cierra la sesión en todos sus dispositivos
+        ]);
+        try { await asegurarPush(db); await db.prepare('DELETE FROM dispositivos_preferencias WHERE token IN (SELECT token FROM dispositivos WHERE correo = ?1)').bind(correo).run(); await db.prepare('DELETE FROM dispositivos WHERE correo = ?1').bind(correo).run(); } catch (e) {}   // sin avisos al teléfono
+        return json({ ok: true, correo, bloqueado: true });
+      }
+
+      /* Eliminar: se borra la cuenta y todo lo suyo (sesiones, lista, pedidos, progreso, teléfonos). Los códigos canjeados se conservan como historial. */
+      await db.batch([
+        db.prepare('DELETE FROM sesiones WHERE correo = ?1').bind(correo),
+        db.prepare('DELETE FROM lista WHERE correo = ?1').bind(correo),
+        db.prepare('DELETE FROM pedidos WHERE correo = ?1').bind(correo),
+        db.prepare('DELETE FROM usuarios_bloqueados WHERE correo = ?1').bind(correo),
+        db.prepare('DELETE FROM usuarios WHERE correo = ?1').bind(correo),
+      ]);
+      try { await asegurarPush(db); await db.prepare('DELETE FROM dispositivos_preferencias WHERE token IN (SELECT token FROM dispositivos WHERE correo = ?1)').bind(correo).run(); await db.prepare('DELETE FROM dispositivos WHERE correo = ?1').bind(correo).run(); } catch (e) {}
+      try { if (env.DATOS) await env.DATOS.delete(claveDatos(correo)); else await db.prepare('DELETE FROM datos WHERE correo = ?1').bind(correo).run(); } catch (e) {}
+      return json({ ok: true, correo, eliminado: true });
     }
 
     if (cuerpo.op === 'cuenta') {

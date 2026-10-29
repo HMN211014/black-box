@@ -698,6 +698,8 @@ html.en-admin-app body:not(.h) .nav button.on{background:#fff;color:#000}
     <h2>Todos los códigos</h2>
     <button class="g" id="l-go" type="button">Actualizar lista</button>
     <p class="m" id="l-m" hidden></p>
+    <p class="s">En los códigos ya canjeados puedes <b>bloquear</b> o <b>eliminar</b> a quien lo usó. Bloquear le cierra la sesión y no lo deja volver a entrar hasta que lo desbloquees. Eliminar borra su cuenta, lista, pedidos y progreso (no se puede deshacer).</p>
+    <p class="m" id="l-um" hidden></p>
     <div class="tw"><table id="l-t" hidden><thead><tr><th>Código</th><th>Plan</th><th>Días / películas</th><th>Estado</th><th>Ubicación del canje</th></tr></thead><tbody></tbody></table></div>
   </div>
 
@@ -1191,7 +1193,27 @@ $('l-go').onclick = () => con($('l-go'), 'l-m', async () => {
     const d = document.createElement('td'); d.textContent = c.plan === 'pedidos' && c.peliculas ? c.peliculas + (c.peliculas === 1 ? ' película' : ' películas') : PLANES_SIN_VENCE.includes(c.plan) ? 'Sin vencimiento' : c.dias;
     const e = document.createElement('td'), t = document.createElement('span');
     t.className = 'tag ' + (c.usado ? 'u' : 'd'); t.textContent = c.usado ? 'Usado' : 'Disponible'; e.appendChild(t);
-    if (c.usado) { const s = document.createElement('div'); s.className = 's'; s.style.cssText = 'color:#a1a1a6;font-size:12px;margin-top:3px'; s.textContent = c.usado.por + ' · ' + fecha(c.usado.fecha); e.appendChild(s); }
+    if (c.usado) {
+      const s = document.createElement('div'); s.className = 's'; s.style.cssText = 'color:#a1a1a6;font-size:12px;margin-top:3px'; s.textContent = c.usado.por + ' · ' + fecha(c.usado.fecha); e.appendChild(s);
+      const acc = document.createElement('div'); acc.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px';
+      if (!c.usado.existe) {
+        const x = document.createElement('span'); x.style.cssText = 'color:#a1a1a6;font-size:12px'; x.textContent = 'Cuenta eliminada'; acc.appendChild(x);
+      } else {
+        if (c.usado.bloqueado) { const b = document.createElement('span'); b.className = 'tag u'; b.textContent = 'Bloqueado'; acc.appendChild(b); }
+        const mini = (txt, fn) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'g'; b.textContent = txt; b.style.cssText = 'height:32px;padding:0 12px;font-size:13px'; b.onclick = () => con(b, 'l-um', async () => { if (await fn()) $('l-go').click(); }); acc.appendChild(b); };
+        mini(c.usado.bloqueado ? 'Desbloquear' : 'Bloquear', async () => {
+          if (!c.usado.bloqueado && !confirm('¿Bloquear a ' + c.usado.por + '?\n\nSe le cierra la sesión y no podrá entrar hasta que lo desbloquees.')) return false;
+          await admin({ op: 'bloquear_usuario', correo: c.usado.por, bloquear: !c.usado.bloqueado });
+          msg('l-um', c.usado.por + (c.usado.bloqueado ? ': desbloqueado.' : ': bloqueado.'), true); return true;
+        });
+        mini('Eliminar', async () => {
+          if (!confirm('¿Eliminar la cuenta de ' + c.usado.por + '?\n\nSe borran su lista, pedidos y progreso. No se puede deshacer.')) return false;
+          await admin({ op: 'eliminar_usuario', correo: c.usado.por });
+          msg('l-um', c.usado.por + ': cuenta eliminada.', true); return true;
+        });
+      }
+      e.appendChild(acc);
+    }
     const loc = document.createElement('td');
     if (c.usado) {
       const u = c.usado.ubicacion || {};

@@ -116,3 +116,9 @@ CREATE TABLE IF NOT EXISTS dispositivos (
   creado     INTEGER NOT NULL
 ) WITHOUT ROWID;
 CREATE INDEX IF NOT EXISTS dispositivos_correo ON dispositivos (correo);
+
+-- Cuentas bloqueadas desde el panel de admin (lista de códigos). El Worker también la crea solo la primera vez, así que ejecutar esto es opcional.
+CREATE TABLE IF NOT EXISTS usuarios_bloqueados (
+  correo TEXT PRIMARY KEY,
+  fecha  INTEGER NOT NULL
+) WITHOUT ROWID;
