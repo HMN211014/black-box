@@ -1018,20 +1018,25 @@ html.acceso-app #acceso,#acceso.on{display:flex}
 .hback{background:var(--vidrio);backdrop-filter:blur(18px) saturate(2);-webkit-backdrop-filter:blur(18px) saturate(2);border:1px solid var(--vidrio-borde);box-shadow:var(--vidrio-brillo),0 4px 14px rgba(0,0,0,.35)}
 /* Barra superior en horizontal: estilo Apple TV, oscura y sin cristal líquido (sección activa en pastilla gris clara) */
 @media(min-width:821px){
-  html body #dock,html body .sb{background:rgba(0,0,0,.52);backdrop-filter:blur(20px) saturate(1.2);-webkit-backdrop-filter:blur(20px) saturate(1.2);border:1px solid rgba(255,255,255,.09);border-radius:22px;box-shadow:0 10px 30px rgba(0,0,0,.4)}
+  html body #dock,html body .sb{background:rgba(0,0,0,.52);backdrop-filter:blur(20px) saturate(1.2);-webkit-backdrop-filter:blur(20px) saturate(1.2);border:1px solid rgba(255,255,255,.09);border-radius:999px;box-shadow:0 10px 30px rgba(0,0,0,.4)}
   html body #dock::before{display:none}
   html body #dock,html body .sb,html body>#ajustes{height:58px}
   /* más grande y más ancha: ocupa el espacio entre el logo y el botón de cuenta, y las secciones se reparten a lo largo */
-  html body #dock{width:clamp(440px,calc(100vw - 520px),820px);padding:6px;gap:4px;justify-content:space-between}
-  html body #dock .dk{flex:1 1 auto;justify-content:center;height:46px;padding:0 clamp(10px,1.6vw,26px);border-radius:16px;font-size:clamp(14px,1.7vw,17px);font-weight:500;letter-spacing:0;color:rgba(255,255,255,.88);text-shadow:none}
+  html body #dock{width:clamp(440px,calc(100vw - 300px),820px);padding:6px;gap:4px;justify-content:space-between}
+  html body #dock .dk{flex:1 1 auto;justify-content:center;height:46px;padding:0 clamp(10px,1.6vw,26px);border-radius:999px;font-size:clamp(14px,1.7vw,17px);font-weight:500;letter-spacing:0;color:rgba(255,255,255,.88);text-shadow:none}
   html body #dock .dk svg{filter:none}
   html body #dock .dk[data-v] svg{display:none}
   html body #dock .dk:not(.on):hover{background:rgba(255,255,255,.1)}
   html body #dock .dk.on{background:rgba(224,224,228,.95);color:#111}
   html body #dock #dk-buscar{flex:none;padding:0 18px}
   html body #dock #dk-buscar svg{width:22px;height:22px}
-  html body .dsep{display:none}
+  html body .dsep{display:block;flex:none;height:24px;margin:0 6px}
   html body #top{padding-top:28px}
+  /* logo y cuenta solo con icono, sin letras */
+  html body .brand b{display:none}
+  html body>#ajustes{width:58px;padding:0;gap:0;border-radius:50%;justify-content:center}
+  html body>#ajustes span{display:none}
+  html body>#ajustes svg{width:24px;height:24px}
 }
 /* Móvil o tablet acostados: la barra, el logo y el botón de cuenta bajan un poco para no chocar con la barra de notificaciones. El banner (póster) no se mueve. */
 @media(orientation:landscape) and (pointer:coarse){
