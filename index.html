@@ -1051,17 +1051,21 @@ html.acceso-app #acceso,#acceso.on{display:flex}
   html body #dock,html body .sb,html body>#ajustes{top:calc(env(safe-area-inset-top,0px) + 26px)}
 }
 /* Banner principal en horizontal: el póster baja para que la barra superior no lo tape. Arriba queda una franja con el mismo póster desenfocado que se funde con el póster nítido. */
-.hblur{display:none}
+.hblur,.hblurb{display:none}
 @media(orientation:landscape){
   #hero{--hbar:56px;
     --hfade-b:linear-gradient(180deg,#000 0,#000 calc(var(--hbar) + 30px),rgba(0,0,0,.88) calc(var(--hbar) + 70px),rgba(0,0,0,.66) calc(var(--hbar) + 110px),rgba(0,0,0,.42) calc(var(--hbar) + 145px),rgba(0,0,0,.2) calc(var(--hbar) + 180px),rgba(0,0,0,.06) calc(var(--hbar) + 205px),transparent calc(var(--hbar) + 230px));
     --hpos:center 22%;
+    --hfade-bb:linear-gradient(180deg,transparent 0,transparent 55%,rgba(0,0,0,.12) 65%,rgba(0,0,0,.35) 75%,rgba(0,0,0,.65) 85%,rgba(0,0,0,.9) 95%,#000 100%);
     --hfade-p:linear-gradient(180deg,transparent 0,rgba(0,0,0,.06) 4%,rgba(0,0,0,.2) 9%,rgba(0,0,0,.42) 14%,rgba(0,0,0,.66) 19%,rgba(0,0,0,.88) 25%,#000 32%,#000 48%,rgba(0,0,0,.86) 63%,rgba(0,0,0,.38) 82%,transparent 100%)}
   #hero::before{inset:var(--hbar) 0 calc(var(--hbar) * -1) 0;-webkit-mask-image:var(--hfade-p);mask-image:var(--hfade-p)}
   #hero video{top:var(--hbar);height:100%;-webkit-mask-image:var(--hfade-p);mask-image:var(--hfade-p)}
   #hero .hblur{display:block;position:absolute;inset:-30px;z-index:-1;pointer-events:none;filter:blur(16px) brightness(.75);-webkit-mask-image:var(--hfade-b);mask-image:var(--hfade-b)}
   #hero .hblur::before,#hero .hblur::after{content:"";position:absolute;left:0;right:0;top:calc(var(--hbar) + 30px);bottom:calc(30px - var(--hbar));background:var(--img,none) var(--hpos)/cover}
   #hero .hblur::after{transform:scaleY(-1);transform-origin:50% 0}
+  /* parte inferior: cuando el póster se va acabando, una copia desenfocada se mezcla poco a poco para que no se note dónde termina (conserva la nitidez del resto) */
+  #hero .hblurb{display:block;position:absolute;inset:-30px;z-index:-1;pointer-events:none;filter:blur(14px) brightness(.9);-webkit-mask-image:var(--hfade-bb);mask-image:var(--hfade-bb)}
+  #hero .hblurb::before{content:"";position:absolute;left:0;right:0;top:calc(var(--hbar) + 30px);bottom:calc(30px - var(--hbar));background:var(--img,none) var(--hpos)/cover;-webkit-mask-image:var(--hfade-p);mask-image:var(--hfade-p)}
 }
 @media(orientation:landscape) and (pointer:coarse){
   #hero{--hbar:calc(env(safe-area-inset-top,0px) + 72px)}
@@ -1367,6 +1371,7 @@ html.en-pip #pcr{display:none}
 <section class="hero" id="hero" aria-label="Destacadas">
   <video id="hv" muted playsinline loop hidden></video>
   <i class="hblur" aria-hidden="true"></i>
+  <i class="hblurb" aria-hidden="true"></i>
   <div class="hcopy">
     <img class="hlogo" id="hlogo" alt="" hidden>
     <h2 id="ht"></h2>
