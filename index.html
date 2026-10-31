@@ -1032,6 +1032,17 @@ html.acceso-app #acceso,#acceso.on{display:flex}
   html body>#ajustes{padding:0 16px;font-size:14px;font-weight:500;color:rgba(255,255,255,.88);text-shadow:none}
   html body>#ajustes:hover{background:rgba(44,44,48,.9)}
 }
+/* Móvil o tablet acostados: la barra, el logo y el botón de cuenta bajan un poco para no chocar con la barra de notificaciones. El banner (póster) no se mueve. */
+@media(orientation:landscape) and (pointer:coarse){
+  html body #top{padding-top:calc(env(safe-area-inset-top,0px) + 34px)}
+  html body>#ajustes{top:calc(env(safe-area-inset-top,0px) + 34px)}
+  html body #top .cred{top:calc(env(safe-area-inset-top,0px) + 32px)}
+  html body.colmode .cback{top:calc(env(safe-area-inset-top,0px) + 27px)}
+}
+@media(min-width:821px) and (orientation:landscape) and (pointer:coarse){
+  html body #top{padding-top:calc(env(safe-area-inset-top,0px) + 36px)}
+  html body #dock,html body .sb,html body>#ajustes{top:calc(env(safe-area-inset-top,0px) + 34px)}
+}
 /* Nivel personal de Liquid Glass, ajustable desde Cuenta */
 #dock,.sb,body>#ajustes,.pmenu,#dkglass,.dkfondo{backdrop-filter:blur(var(--bb-glass-blur,18px)) saturate(var(--bb-glass-saturate,1.66)) brightness(var(--bb-glass-brightness,1.06));-webkit-backdrop-filter:blur(var(--bb-glass-blur,18px)) saturate(var(--bb-glass-saturate,1.66)) brightness(var(--bb-glass-brightness,1.06))}
 .vg-rim::before,#dock::before,#dkglass::before,#acceso .ac-card::before,#acceso .ac-exp::before{opacity:var(--bb-glass-rim,.68)}
