@@ -682,8 +682,8 @@ body.detmode #top::before{display:none}
 
 /* ---- Computadora: la barra va arriba a la derecha ---- */
 @media(min-width:821px){
-  #dock{left:auto;right:clamp(20px,3vw,48px);top:20px;bottom:auto;transform:none;width:auto;height:52px;padding:5px;justify-content:flex-start;gap:2px}
-  body.buscando #dock{transform:translateY(-160%)}
+  #dock{left:50%;right:auto;top:20px;bottom:auto;transform:translateX(-50%);width:auto;height:52px;padding:5px;justify-content:flex-start;gap:2px}
+  body.buscando #dock{transform:translate(-50%,-160%)}
   .dk{flex:none;flex-direction:row;height:42px;padding:0 20px;font-size:15px;gap:8px}
   .dk svg{display:none;width:18px;height:18px}
   .dk.on{background:#fff;color:#000}
@@ -695,9 +695,19 @@ body.detmode #top::before{display:none}
   #ajustes svg{display:block;width:20px;height:20px}
   #ajustes span{white-space:nowrap}
   .dsep{height:22px;margin:0 4px}
-  .sb{left:auto;right:clamp(20px,3vw,48px);top:20px;bottom:auto;transform:translateY(-190%);width:min(560px,calc(100vw - 40px));height:52px}
-  body.buscando .sb{transform:none}
+  .sb{left:50%;right:auto;top:20px;bottom:auto;transform:translate(-50%,-190%);width:min(560px,calc(100vw - 40px));height:52px}
+  body.buscando .sb{transform:translateX(-50%)}
   #top{padding-top:22px}
+  /* botón de cuenta: separado de la barra, en la esquina superior derecha */
+  body>#ajustes{position:fixed;z-index:58;top:20px;right:clamp(20px,3vw,48px);height:52px;flex:none;padding:0 18px;border-radius:999px;color:#fff;
+    background:var(--vidrio);backdrop-filter:blur(22px) saturate(2.1) brightness(1.06);-webkit-backdrop-filter:blur(22px) saturate(2.1) brightness(1.06);
+    border:1px solid var(--vidrio-borde);box-shadow:var(--vidrio-brillo),0 6px 18px rgba(0,0,0,.4);
+    transition:transform .3s cubic-bezier(.34,1.3,.64,1),opacity .2s;view-transition-name:cuenta}
+  body>#ajustes span{white-space:nowrap}
+  body>#ajustes:active{transform:scale(.96)}
+  body.buscando>#ajustes{opacity:0;pointer-events:none}
+  ::view-transition-group(cuenta){animation:none}
+  ::view-transition-old(cuenta){display:none}
 }
 
 /* ---- Interruptor de vibración (pie de página, solo en pantallas táctiles) ---- */
@@ -4858,12 +4868,10 @@ async function pintarPedidos() {
 
 function abrirAjustes() { if (accesoActivo() && !U.correo && U.servicio === true) { mostrarAcceso(); return; } if (perfOn()) { abrirConfig(); return; } hoja(U.correo ? uVistaPerfil() : uVistaAcceso()); }
 H('ajustes').addEventListener('click', () => { if (perfOn()) abrirMenuPerfil(); else abrirAjustes(); });
-/* En pantalla vertical (la barra va abajo) el botón de cuenta se separa y queda arriba a la derecha, solo con el icono. En computadora vuelve a la barra. */
+/* El botón de cuenta va siempre separado de la barra, arriba a la derecha: solo con el icono en vertical y con el nombre en horizontal. */
 (() => {
-  const mq = matchMedia('(max-width:820px)'), dock = H('dock'), b = H('ajustes');
-  const ubicar = () => { if (mq.matches) { if (b.parentNode !== document.body) document.body.appendChild(b); } else if (b.parentNode !== dock) dock.appendChild(b); };
-  if (mq.addEventListener) mq.addEventListener('change', ubicar); else mq.addListener(ubicar);
-  ubicar();
+  const b = H('ajustes');
+  if (b.parentNode !== document.body) document.body.appendChild(b);
 })();
 (async () => {                                          // si ya había una sesión abierta en este navegador, se retoma sola
   try {
