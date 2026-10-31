@@ -1031,7 +1031,8 @@ html.acceso-app #acceso,#acceso.on{display:flex}
   html body #dock #dk-buscar{flex:none;padding:0 18px}
   html body #dock #dk-buscar svg{width:22px;height:22px}
   html body .dsep{display:block;flex:none;height:24px;margin:0 6px}
-  html body #top{padding-top:28px}
+  html body #top{padding-top:20px}
+  html body #dock,html body .sb,html body>#ajustes{top:12px}
   /* logo y cuenta solo con icono, sin letras */
   html body .brand b{display:none}
   html body>#ajustes{width:58px;padding:0;gap:0;border-radius:50%;justify-content:center}
@@ -1040,14 +1041,14 @@ html.acceso-app #acceso,#acceso.on{display:flex}
 }
 /* Móvil o tablet acostados: la barra, el logo y el botón de cuenta bajan un poco para no chocar con la barra de notificaciones. El banner (póster) no se mueve. */
 @media(orientation:landscape) and (pointer:coarse){
-  html body #top{padding-top:calc(env(safe-area-inset-top,0px) + 34px)}
-  html body>#ajustes{top:calc(env(safe-area-inset-top,0px) + 34px)}
-  html body #top .cred{top:calc(env(safe-area-inset-top,0px) + 32px)}
-  html body.colmode .cback{top:calc(env(safe-area-inset-top,0px) + 27px)}
+  html body #top{padding-top:calc(env(safe-area-inset-top,0px) + 26px)}
+  html body>#ajustes{top:calc(env(safe-area-inset-top,0px) + 26px)}
+  html body #top .cred{top:calc(env(safe-area-inset-top,0px) + 24px)}
+  html body.colmode .cback{top:calc(env(safe-area-inset-top,0px) + 19px)}
 }
 @media(min-width:821px) and (orientation:landscape) and (pointer:coarse){
-  html body #top{padding-top:calc(env(safe-area-inset-top,0px) + 42px)}
-  html body #dock,html body .sb,html body>#ajustes{top:calc(env(safe-area-inset-top,0px) + 34px)}
+  html body #top{padding-top:calc(env(safe-area-inset-top,0px) + 34px)}
+  html body #dock,html body .sb,html body>#ajustes{top:calc(env(safe-area-inset-top,0px) + 26px)}
 }
 /* Nivel personal de Liquid Glass, ajustable desde Cuenta */
 #dock,.sb,body>#ajustes,.pmenu,#dkglass,.dkfondo{backdrop-filter:blur(var(--bb-glass-blur,18px)) saturate(var(--bb-glass-saturate,1.66)) brightness(var(--bb-glass-brightness,1.06));-webkit-backdrop-filter:blur(var(--bb-glass-blur,18px)) saturate(var(--bb-glass-saturate,1.66)) brightness(var(--bb-glass-brightness,1.06))}
