@@ -1056,7 +1056,8 @@ html.acceso-app #acceso,#acceso.on{display:flex}
   #herowrap{--hbar:56px;
     --hfade-b:linear-gradient(180deg,#000 0,#000 calc(var(--hbar) + 30px),rgba(0,0,0,.88) calc(var(--hbar) + 70px),rgba(0,0,0,.66) calc(var(--hbar) + 110px),rgba(0,0,0,.42) calc(var(--hbar) + 145px),rgba(0,0,0,.2) calc(var(--hbar) + 180px),rgba(0,0,0,.06) calc(var(--hbar) + 205px),transparent calc(var(--hbar) + 230px));
     --hpos:center 22%;
-    --hfade-x:linear-gradient(180deg,transparent calc(100% - var(--hbar) - 200px),rgba(0,0,0,.03) calc(100% - var(--hbar) - 150px),rgba(0,0,0,.09) calc(100% - var(--hbar) - 100px),rgba(0,0,0,.18) calc(100% - var(--hbar) - 50px),rgba(0,0,0,.3) calc(100% - var(--hbar)),transparent calc(100% - var(--hbar) + 1px));
+    --hfade-x:linear-gradient(180deg,transparent calc(100% - var(--hbar) - 200px),rgba(0,0,0,.03) calc(100% - var(--hbar) - 150px),rgba(0,0,0,.08) calc(100% - var(--hbar) - 110px),rgba(0,0,0,.15) calc(100% - var(--hbar) - 80px),rgba(0,0,0,.27) calc(100% - var(--hbar) - 50px),rgba(0,0,0,.46) calc(100% - var(--hbar) - 25px),rgba(0,0,0,.68) calc(100% - var(--hbar) - 12px),#000 calc(100% - var(--hbar)),#000 calc(100% - var(--hbar) + 40px),transparent calc(100% - var(--hbar) + 41px));
+    --hext-o:.1;
     --hfade-bb:linear-gradient(180deg,transparent 0,transparent 55%,rgba(0,0,0,.12) 65%,rgba(0,0,0,.35) 75%,rgba(0,0,0,.65) 85%,rgba(0,0,0,.9) 95%,#000 100%);
     --hfade-p:linear-gradient(180deg,transparent 0,rgba(0,0,0,.06) 4%,rgba(0,0,0,.2) 9%,rgba(0,0,0,.42) 14%,rgba(0,0,0,.66) 19%,rgba(0,0,0,.88) 25%,#000 32%,#000 48%,rgba(0,0,0,.86) 63%,rgba(0,0,0,.38) 82%,transparent 100%)}
   #hero::before{inset:var(--hbar) 0 calc(var(--hbar) * -1) 0;-webkit-mask-image:var(--hfade-p);mask-image:var(--hfade-p)}
@@ -1070,8 +1071,9 @@ html.acceso-app #acceso,#acceso.on{display:flex}
 }
 @media(orientation:landscape){
   /* continuación hacia Colecciones: por debajo del banner, el póster sigue como reflejo desenfocado que se apaga poco a poco. Se mezcla con "lighten" para no oscurecer lo que haya debajo. */
-  #herowrap .hext{display:block;position:absolute;left:0;right:0;top:0;height:100%;z-index:1;pointer-events:none;mix-blend-mode:lighten;filter:blur(14px) brightness(.5);-webkit-clip-path:inset(100% 0 -200px 0);clip-path:inset(100% 0 -200px 0)}
-  #herowrap .hext::before{content:"";position:absolute;left:0;right:0;top:var(--hbar);height:100%;background:var(--img,none) var(--hpos)/cover;transform:scaleY(-1);transform-origin:50% calc(100% - var(--hbar));-webkit-mask-image:var(--hfade-x);mask-image:var(--hfade-x)}
+  #herowrap{overflow-x:clip}
+  #herowrap .hext{display:block;position:absolute;left:-40px;right:-40px;top:0;height:100%;z-index:1;pointer-events:none;mix-blend-mode:lighten;opacity:var(--hext-o);filter:blur(14px);-webkit-clip-path:inset(100% 0 -200px 0);clip-path:inset(100% 0 -200px 0)}
+  #herowrap .hext::before{content:"";position:absolute;left:0;right:0;top:var(--hbar);height:100%;background:linear-gradient(90deg,rgba(0,0,0,.48),transparent 36%,transparent 74%,rgba(0,0,0,.24)),var(--img,none) var(--hpos)/cover;transform:scaleY(-1);transform-origin:50% calc(100% - var(--hbar));-webkit-mask-image:var(--hfade-x);mask-image:var(--hfade-x)}
 }
 @media(orientation:landscape) and (pointer:coarse){
   #herowrap{--hbar:calc(env(safe-area-inset-top,0px) + 72px)}
