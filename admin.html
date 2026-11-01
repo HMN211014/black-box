@@ -254,6 +254,7 @@ body:not(.h) .nav button.on{background:#fff;color:#000}
         <small id="s-info" style="color:#a1a1a6;font-size:13px"></small>
       </div></div>
       <label style="margin-top:12px">Audio / subtítulos<select id="s-version"><option value="latino" selected>Español latino</option><option value="subtitulada">Subtitulada</option></select></label>
+      <label class="ck" style="margin-top:12px"><input type="checkbox" id="s-cam"> Es calidad CAM (grabada en cine): mostrar una etiqueta «CAM» sobre el póster</label>
       <label class="ck" style="margin-top:12px"><input type="checkbox" id="s-introdb"> Activar marcas de créditos (IntroDB + SkipDB) para este título</label>
       <div class="sdup" id="s-dup" hidden></div>
       <div id="s-eps" hidden style="margin-top:14px">
@@ -1660,7 +1661,7 @@ $('x-go').onclick = () => con($('x-go'), 'x-m', async () => {
     const tx = document.createElement('div'); tx.className = 'tx';
     const b = document.createElement('b'); b.textContent = x.titulo;
     const sm = document.createElement('small');
-    const detallePub = () => (x.tipo === 'serie' ? 'Serie' : 'Película') + (x.eps ? ' · ' + x.eps + ' capítulo(s) sueltos' : '') + ' · ' + (x.proximamente ? 'Próximamente' : (x.version === 'subtitulada' ? 'Subtitulada' : 'Español latino')) + ' · TMDB ' + x.tmdb;
+    const detallePub = () => (x.tipo === 'serie' ? 'Serie' : 'Película') + (x.eps ? ' · ' + x.eps + ' capítulo(s) sueltos' : '') + ' · ' + (x.proximamente ? 'Próximamente' : (x.version === 'subtitulada' ? 'Subtitulada' : 'Español latino')) + (x.cam ? ' · CAM' : '') + ' · TMDB ' + x.tmdb;
     sm.textContent = detallePub();
     tx.append(b, sm);
     const q = document.createElement('button'); q.className = 'g'; q.type = 'button'; q.textContent = 'Quitar de la biblioteca';
@@ -1673,24 +1674,27 @@ $('x-go').onclick = () => con($('x-go'), 'x-m', async () => {
         alGuardar: link => { x.link = link; if (sePub.has(x.tmdb)) sePub.get(x.tmdb).link = link; cerrar(); msg('x-m', 'Enlace de "' + x.titulo + '" actualizado.', true); } });
       d.appendChild(form);
     };
-    const ve = document.createElement('button'); ve.className = 'g'; ve.type = 'button'; ve.textContent = 'Editar audio / subtítulos'; let vf = null;
+    const ve = document.createElement('button'); ve.className = 'g'; ve.type = 'button'; ve.textContent = 'Editar audio / CAM'; let vf = null;
     ve.onclick = () => {
       if (vf) { vf.remove(); vf = null; return; }
       vf = document.createElement('div'); vf.className = 'sfe';
-      const tit = document.createElement('b'); tit.textContent = 'Versión de «' + x.titulo + '»';
+      const tit = document.createElement('b'); tit.textContent = 'Audio y calidad de «' + x.titulo + '»';
       const lab = document.createElement('label'); lab.textContent = 'Audio / subtítulos';
       const sel = document.createElement('select');
       [['latino', 'Español latino'], ['subtitulada', 'Subtitulada']].forEach(([v, n]) => { const o = document.createElement('option'); o.value = v; o.textContent = n; sel.appendChild(o); });
       sel.value = x.version === 'subtitulada' ? 'subtitulada' : 'latino'; lab.appendChild(sel);
+      const camL = document.createElement('label'); camL.className = 'ck'; camL.style.marginTop = '10px';
+      const camC = document.createElement('input'); camC.type = 'checkbox'; camC.checked = !!x.cam;
+      camL.append(camC, document.createTextNode(' Es calidad CAM (grabada en cine): mostrar «CAM» sobre el póster'));
       const row = document.createElement('div'); row.className = 'row';
-      const save = document.createElement('button'); save.type = 'button'; save.textContent = 'Guardar versión';
+      const save = document.createElement('button'); save.type = 'button'; save.textContent = 'Guardar';
       const cancel = document.createElement('button'); cancel.type = 'button'; cancel.className = 'g'; cancel.textContent = 'Cancelar'; cancel.onclick = () => { vf.remove(); vf = null; };
       save.onclick = () => con(save, 'x-m', async () => {
-        const j = await admin({ op: 'version_titulo', tmdb: x.tmdb, version: sel.value });
-        x.version = j.version; sm.textContent = detallePub(); vf.remove(); vf = null;
-        msg('x-m', 'Versión de «' + x.titulo + '» actualizada.', true);
+        const j = await admin({ op: 'version_titulo', tmdb: x.tmdb, version: sel.value, cam: camC.checked });
+        x.version = j.version; x.cam = !!j.cam; sm.textContent = detallePub(); vf.remove(); vf = null;
+        msg('x-m', '«' + x.titulo + '» actualizada.', true);
       });
-      row.append(save, cancel); vf.append(tit, lab, row); d.appendChild(vf);
+      row.append(save, cancel); vf.append(tit, lab, camL, row); d.appendChild(vf);
     };
     const px = document.createElement('button'); px.className = 'g'; px.type = 'button'; px.textContent = x.proximamente ? 'Publicar ahora' : 'Marcar Próximamente';
     px.onclick = () => con(px, 'x-m', async () => {
@@ -2434,7 +2438,7 @@ sePoner(null);
 const TMDB_KEY = '28e735f7aea07e37f38a95d346bcdd7f', TMDB = 'https://api.themoviedb.org/3', IMG = 'https://image.tmdb.org/t/p/';
 let sElegido = null, sTemps = [], sEps = {}, sCache = {}, sDupOk = true, sDupTxt = '';   // sEps: capítulos ya publicados de la serie elegida ("1x3" → enlace)
 const sTipo = () => sElegido && sElegido.media_type === 'tv' ? 'serie' : 'pelicula';
-function sLimpiar() { sElegido = null; sTemps = []; sEps = {}; sCache = {}; sDupOk = true; $('s-dup').hidden = true; $('s-sel').hidden = true; $('s-introdb').checked = false; $('s-introdb').disabled = false; }
+function sLimpiar() { sElegido = null; sTemps = []; sEps = {}; sCache = {}; sDupOk = true; $('s-dup').hidden = true; $('s-sel').hidden = true; $('s-introdb').checked = false; $('s-introdb').disabled = false; $('s-cam').checked = false; }
 /* Buscador de TMDB reutilizable: escribe en inpId, pinta los resultados en resId y llama a alElegir(resultado) */
 function buscadorTmdb(inpId, resId, msgId, alElegir, marca) {
   let timer = null, n = 0;
@@ -2471,6 +2475,7 @@ function sElegir(r) {
   const serie = r.media_type === 'tv';
   const pub = (window.PELICULAS_EXTRA || []).find(x => Number(x.tmdb) === Number(r.id) && (x.tipo === 'serie') === serie);
   $('s-version').value = pub && pub.version === 'subtitulada' ? 'subtitulada' : 'latino';
+  $('s-cam').checked = !!(pub && pub.cam);
   $('s-introdb').checked = false; $('s-introdb').disabled = true;
   introdbAdminLeer().then(items => { if (sElegido === r) { $('s-introdb').checked = items.some(x => Number(x.tmdb) === Number(r.id) && x.tipo === (serie ? 'serie' : 'pelicula')); $('s-introdb').disabled = false; } }).catch(() => { if (sElegido === r) $('s-introdb').disabled = false; });
   $('s-img').src = r.poster_path ? IMG + 'w185' + r.poster_path : '';
@@ -2592,8 +2597,8 @@ $('s-go').onclick = () => con($('s-go'), 's-m', async () => {
   const serie = sTipo() === 'serie';
   if (link && serie && !/\{(e|ee)\}/.test(link)) throw new Error('En una serie el enlace debe llevar {e} (capítulo) y {t} (temporada). Usa los botones de arriba.');
   const j = link
-    ? await admin({ op: 'publicar', titulo, tmdb: sElegido.id, tipo: sTipo(), link, version: $('s-version').value, introdb: $('s-introdb').checked })
-    : await admin({ op: 'actualizar_publicacion', titulo, tmdb: sElegido.id, tipo: sTipo(), version: $('s-version').value, introdb: $('s-introdb').checked });
+    ? await admin({ op: 'publicar', titulo, tmdb: sElegido.id, tipo: sTipo(), link, version: $('s-version').value, cam: $('s-cam').checked, introdb: $('s-introdb').checked })
+    : await admin({ op: 'actualizar_publicacion', titulo, tmdb: sElegido.id, tipo: sTipo(), version: $('s-version').value, cam: $('s-cam').checked, introdb: $('s-introdb').checked });
   introdbAdminCacheTitulo(sElegido.id, sTipo(), titulo, $('s-introdb').checked);
   msg('s-m', (j.actualizada || !link ? 'Actualizada sin cambiar el enlace: ' : 'Publicada: ') + titulo + '. En menos de un minuto aparece en la biblioteca.', true);
   sLimpiar();
