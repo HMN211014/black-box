@@ -3429,9 +3429,9 @@ bq.addEventListener('keydown', e => {
 });
 H('bx').onclick = () => { if (bq.value) { bq.value = ''; filtrar(); bq.focus(); } else cerrarBusqueda(); };
 if (window.visualViewport) {                                      // en iPhone la píldora sube sobre el teclado
-  const vv = visualViewport; let kbUlt = '0px', kbRaf = 0;
+  const vv = visualViewport; let kbUlt = '0px', kbRaf = 0, dedo = false, kbTimer = 0;
   const kb = () => {
-    if (kbRaf) return;
+    if (kbRaf || dedo) return;                                    // con el dedo puesto la barra no se mueve: si no, el toque se pierde
     kbRaf = requestAnimationFrame(() => {
       kbRaf = 0;
       let v = '0px';
@@ -3440,7 +3440,13 @@ if (window.visualViewport) {                                      // en iPhone l
     });
   };
   vv.addEventListener('resize', kb); vv.addEventListener('scroll', kb);
+  /* Mientras se está tocando la pantalla con la búsqueda abierta, la barra se queda quieta y se acomoda al soltar. */
+  addEventListener('pointerdown', () => { if (!document.body.classList.contains('buscando')) return; dedo = true; clearTimeout(kbTimer); }, { capture: true, passive: true });
+  const suelta = () => { if (!dedo) return; clearTimeout(kbTimer); kbTimer = setTimeout(() => { dedo = false; kb(); }, 350); };
+  addEventListener('pointerup', suelta, { capture: true, passive: true }); addEventListener('pointercancel', suelta, { capture: true, passive: true });
 }
+/* Los botones de la barra de búsqueda no le quitan el foco al campo: el teclado no se cierra ni la barra salta al tocarlos (el clic sigue funcionando). */
+H('bbox').querySelectorAll('button').forEach(b => b.addEventListener('mousedown', e => e.preventDefault()));
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition, mic = H('bmic');
 if (!SR) mic.hidden = true;
 else mic.onclick = () => {                                        // búsqueda por voz
