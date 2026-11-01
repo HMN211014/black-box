@@ -950,6 +950,16 @@ html.acceso-app #acceso,#acceso.on{display:flex}
 .pl-acc .sbtn{text-align:center;text-decoration:none;display:grid;place-items:center}
 .pl-acc .sbtn+.sbtn{margin-top:0}
 .pl-link{border:0;background:none;color:#c7c7cc;font:inherit;font-size:14px;text-decoration:underline;cursor:pointer;padding:4px}
+.pp-sheet{position:fixed;inset:0;z-index:63;display:grid;place-items:center;padding:calc(env(safe-area-inset-top,0px) + 18px) 16px calc(env(safe-area-inset-bottom,0px) + 18px);background:rgba(0,0,0,.55);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);overflow-y:auto;overscroll-behavior:contain}
+.pp-sheet[hidden]{display:none}
+.pp-box{width:min(100%,400px);display:grid;gap:12px;text-align:center;padding:30px 22px 22px;border-radius:30px;background:linear-gradient(180deg,rgba(60,60,66,.9),rgba(26,26,30,.96));border:1px solid rgba(130,170,255,.5);backdrop-filter:blur(30px) saturate(1.6);-webkit-backdrop-filter:blur(30px) saturate(1.6);box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 0 0 1px rgba(130,170,255,.2),0 30px 90px rgba(40,90,255,.3);animation:sube .35s cubic-bezier(.2,.9,.3,1)}
+.pp-box .pl-tag{position:static;transform:none;justify-self:center}
+.pp-box h2{font-size:24px;letter-spacing:-.03em}
+.pp-box p{color:#d1d1d6;font-size:15px;line-height:1.4}
+.pp-box ol{list-style:none;counter-reset:pp;display:grid;gap:10px;margin:2px 0;padding:14px;border-radius:18px;background:rgba(255,255,255,.07);text-align:left}
+.pp-box li{counter-increment:pp;display:flex;gap:10px;color:#e5e5ea;font-size:14.5px;line-height:1.35}
+.pp-box li::before{content:counter(pp);flex:none;width:22px;height:22px;border-radius:50%;background:#fff;color:#000;font-size:12px;font-weight:700;display:grid;place-items:center}
+.pp-box .sbtn{text-align:center;text-decoration:none;display:grid;place-items:center}
 @media(max-width:900px){.pl-wrap{width:min(100%,460px);grid-template-columns:1fr;gap:22px}.pl-top{padding:0 40px}}
 .ua-estado{padding:14px 16px;margin:4px 0 16px;border-radius:16px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12)}
 .ua-estado b{display:block;font-size:17px}
@@ -1483,6 +1493,7 @@ html.en-pip #pcr{display:none}
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><filter id="bbLente" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB"><feTurbulence type="fractalNoise" baseFrequency="0.011 0.035" numOctaves="2" seed="7" result="n"><animate attributeName="baseFrequency" dur="9s" values="0.011 0.035;0.017 0.046;0.011 0.035" repeatCount="indefinite"/></feTurbulence><feDisplacementMap in="SourceGraphic" in2="n" scale="46" xChannelSelector="R" yChannelSelector="B"/></filter></svg>
 <div id="acceso" class="esperando" aria-label="Iniciar sesión"><div class="ac-top"><div class="ac-w" id="ac-w"></div></div><div class="ac-bot"><button type="button" class="ac-exp" id="ac-exp">Explorar</button></div></div>
 <div class="plsheet" id="planes" hidden role="dialog" aria-modal="true" aria-label="Planes de suscripción"><div class="pl-wrap" id="pl-wrap"></div></div>
+<div class="pp-sheet" id="pedplus" hidden role="dialog" aria-modal="true" aria-label="Pedidos con el plan Plus"><div class="pp-box" id="pp-box"></div></div>
 <section id="vista-rec" hidden aria-label="Recientes">
   <h3 class="rt">Recientes</h3>
   <p class="rsub">Las últimas películas que se subieron.</p>
@@ -3545,6 +3556,7 @@ function irA(v, desdeRuta) {                         // v: inicio | series | ped
     if (!vistas.inicio.hidden) { ponerModo(v === 'series' ? 'series' : 'peliculas'); auto(); }
     marcarDock(v);
     if (v === 'recientes') pintarRecientes();
+    if (v !== 'pedidos') cerrarPedPlus(); else pedAvisado = false;
     if (v === 'pedidos') pintarPedidos();
     const y = volverY; volverY = null;
     scrollTo(0, y || 0);
@@ -4811,7 +4823,23 @@ function cerrarConfig(ya) {
 document.addEventListener('bb-atras', e => { if (cfgEl) { e.preventDefault(); cfgAtras(); } });
 
 /* ---------- Pedidos: se busca por nombre en TMDB y se pide; el administrador lo cumple y se agrega a la lista de la cuenta ---------- */
-let pedBusq = 0, pedTimer = 0;
+let pedBusq = 0, pedTimer = 0, pedAvisado = false;
+const pedPermitido = () => porVales() || (uVigente() && ['plus', 'pedidos', 'distribuidor'].includes(U.acceso.plan));
+function cerrarPedPlus() { H('pedplus').hidden = true; }
+function abrirPedPlus() {                 // ventana flotante al entrar a Pedidos con una cuenta sin Plus ni canje por película
+  const tag = el('span', 'pl-tag', 'Incluye pedidos');
+  const actual = uVigente() ? 'Tu plan actual es ' + uPlanNombre(U.acceso.plan) + ', que no incluye pedidos.' : 'Tu cuenta todavía no tiene un plan con pedidos.';
+  const pasos = el('ol'); ['Consigue un código del plan Plus con tu proveedor.', 'Toca tu cuenta (icono de usuario) y elige Canjear un código.', 'Vuelve a Pedidos y pide las películas que quieras.'].forEach(t => pasos.appendChild(el('li', '', t)));
+  const canje = el('button', 'sbtn', 'Canjear un código'); canje.type = 'button';
+  canje.onclick = () => { cerrarPedPlus(); abrirAjustes(); };
+  const nodo = [tag, el('h2', '', 'Actualiza a Plus para pedir'), el('p', '', actual + ' Con Plus puedes solicitar las películas que no estén en la biblioteca. También puedes canjear un código por una película con el plan Películas por pedido.'), pasos, canje];
+  if (CONTACTO_URL) { const a = el('a', 'sbtn sec', 'Pedir mi código'); a.href = CONTACTO_URL; a.target = '_blank'; a.rel = 'noopener'; nodo.push(a); }
+  const no = el('button', 'pl-link', 'Ahora no'); no.type = 'button'; no.onclick = cerrarPedPlus; nodo.push(no);
+  H('pp-box').replaceChildren(...nodo);
+  H('pedplus').hidden = false;
+}
+H('pedplus').addEventListener('click', e => { if (e.target === H('pedplus')) cerrarPedPlus(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !H('pedplus').hidden) cerrarPedPlus(); });
 async function pintarPedidos() {
   const w = H('pedw');
   const bloque = (h, t, boton, fn) => {
@@ -4823,9 +4851,11 @@ async function pintarPedidos() {
   };
   if (U.servicio !== true) return bloque('Pedidos', 'Muy pronto podrás pedir aquí las películas y series que todavía no estén en Black BOX.');
   if (!U.correo) return bloque('Inicia sesión para pedir', 'Con tu cuenta puedes pedir las películas y series que quieras ver.', 'Iniciar sesión', abrirAjustes);
+  if (pedPermitido()) cerrarPedPlus();
+  else if (!pedAvisado && !vistas.ped.hidden) { pedAvisado = true; abrirPedPlus(); }
   if (!porVales()) {
     if (!uVigente()) return bloque(U.acceso && U.acceso.vence ? 'Tu acceso terminó' : 'Tu cuenta aún no tiene acceso', 'Canjea un código para poder hacer pedidos. Con el plan Películas por pedido, cada código vale por una película.', 'Canjear un código', abrirAjustes);
-    if (!['plus', 'pedidos', 'distribuidor'].includes(U.acceso.plan)) return bloque('Tu plan no incluye pedidos', 'Los pedidos están en los planes Plus, Distribuidores y Películas por pedido.', 'Ver planes', () => abrirPlanes(null));
+    if (!['plus', 'pedidos', 'distribuidor'].includes(U.acceso.plan)) return bloque('Tu plan no incluye pedidos', 'Los pedidos están en los planes Plus, Distribuidores y Películas por pedido.', 'Ver cómo actualizar', abrirPedPlus);
   }
 
   const cab = el('h2', '', 'Pedidos');
