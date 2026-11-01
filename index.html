@@ -1359,7 +1359,7 @@ html.en-pip #pcr{display:none}
 (function () {
   try {
     var d = new Date(), hoy = d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
-    if (localStorage.getItem('bb_intro') === hoy) document.documentElement.classList.add('sin-intro');
+    if (localStorage.getItem('bb_intro') === hoy || /[?&]bbpreview=1\b/.test(location.search)) document.documentElement.classList.add('sin-intro');
   } catch (e) {}
 })();
 </script>
@@ -3584,6 +3584,71 @@ function pintarRecientes() {
   H('rec-vacio').hidden = !!lista.length; H('rec-grid').hidden = !lista.length;
 }
 document.querySelectorAll('#dock .dk[data-v]').forEach(b => b.addEventListener('click', () => { if (window.posicionarVidrio) window.posicionarVidrio(b); cerrarBusqueda(); irA(b.dataset.v); }));
+/* ---------- Ajustes del banner principal (admin > Banner principal): dos versiones, h = horizontal y v = vertical.
+   Solo se aplica lo que se cambió en el editor; lo demás queda con el diseño de siempre. ---------- */
+(function () {
+  const st = document.createElement('style'); st.id = 'bb-banner-ajustes'; document.head.appendChild(st);
+  const AL = { izq: 'flex-start', centro: 'center', der: 'flex-end' }, TA = { izq: 'left', centro: 'center', der: 'right' };
+  const clamp1 = x => Math.max(0, Math.min(1, x)).toFixed(3);
+  function version(o, h) {
+    if (!o || typeof o !== 'object') return '';
+    const g = k => (typeof o[k] === 'number' && isFinite(o[k])) ? o[k] : null, V = [], R = [], P = 'html body #hero';
+    if (h) {
+      if (g('barra') !== null) V.push('--hbar:' + g('barra') + 'px');
+      if (g('mezclaArriba') !== null) {
+        const f = (g('mezclaArriba') - 30) / 115, offs = [52, 74, 94, 114, 130, 145], alf = [.88, .66, .42, .2, .06, 0];
+        V.push('--hfade-b:linear-gradient(180deg,#000 0,#000 calc(var(--hbar) + 30px),' + offs.map((d, i) => 'rgba(0,0,0,' + alf[i] + ') calc(var(--hbar) + ' + (30 + (d - 30) * f).toFixed(1) + 'px)').join(',') + ')');
+      }
+      if (g('blurArriba') !== null || g('brilloArriba') !== null) R.push(P + ' .hblur{filter:blur(' + (g('blurArriba') ?? 6) + 'px) brightness(' + ((g('brilloArriba') ?? 88) / 100) + ')}');
+      if (g('blurAbajo') !== null || g('brilloAbajo') !== null) R.push(P + ' .hblurb{filter:blur(' + (g('blurAbajo') ?? 14) + 'px) brightness(' + ((g('brilloAbajo') ?? 90) / 100) + ')}');
+      if (g('reflejo') !== null) V.push('--hext-o:' + (g('reflejo') / 100));
+    }
+    if (g('alto') !== null) R.push(P + '{height:' + g('alto') + 'vh;height:' + g('alto') + 'svh}');
+    if (g('posX') !== null) R.push(P + '::before{background-position-x:' + g('posX') + '%}');
+    if (g('posY') !== null) R.push(P + '::before{background-position-y:' + g('posY') + '%}');
+    if (g('posX') !== null || g('posY') !== null) {
+      const x = g('posX') ?? 50, y = g('posY') ?? (h ? 22 : 0);
+      V.push('--hpos:' + x + '% ' + y + '%');
+      R.push(P + ' video{object-position:' + x + '% ' + (g('posY') ?? 50) + '%}');
+    }
+    if (g('oscuroArriba') !== null || g('oscuroAbajo') !== null || g('oscuroLados') !== null) {
+      const t = (g('oscuroArriba') ?? 100) / 100, b = (g('oscuroAbajo') ?? 100) / 100, l = (g('oscuroLados') ?? 100) / 100, a = (x, k) => 'rgba(0,0,0,' + clamp1(x * k) + ')';
+      R.push(P + '::after{background:' + (h
+        ? 'linear-gradient(180deg,' + a(.42, t) + ' 0,transparent 24%),linear-gradient(0deg,' + a(.72, b) + ' 0,' + a(.48, b) + ' 20%,' + a(.18, b) + ' 48%,transparent 76%),linear-gradient(90deg,' + a(.48, l) + ',transparent 36%,transparent 74%,' + a(.24, l) + ')'
+        : 'linear-gradient(180deg,' + a(.42, t) + ' 0,transparent 22%),linear-gradient(0deg,' + a(.68, b) + ' 0,' + a(.46, b) + ' 20%,' + a(.16, b) + ' 48%,transparent 76%),linear-gradient(90deg,' + a(.26, l) + ',transparent 34%,transparent 66%,' + a(.2, l) + ')') + '}');
+    }
+    const C = [];
+    if (g('textoAbajo') !== null) C.push('bottom:' + (h ? g('textoAbajo') + 'px' : 'calc(var(--dockh) + ' + g('textoAbajo') + 'px + env(safe-area-inset-bottom,0px))'));
+    if (g('textoLado') !== null) C.push('left:' + g('textoLado') + 'px', 'right:' + g('textoLado') + 'px');
+    if (g('textoAncho') !== null) C.push('max-width:' + (g('textoAncho') > 0 ? g('textoAncho') + 'px' : 'none'));
+    if (TA[o.textoAlin]) {
+      const m = o.textoAlin;
+      C.push('display:flex', 'flex-direction:column', 'align-items:' + AL[m], 'text-align:' + TA[m], 'margin-left:' + (m === 'izq' ? '0' : 'auto'), 'margin-right:' + (m === 'der' ? '0' : 'auto'));
+      R.push(P + ' .hact,' + P + ' .hmeta{justify-content:' + AL[m] + '}', P + ' .hd{text-align:' + TA[m] + '}', P + ' .hlogo{object-position:' + TA[m] + ' bottom}');
+    }
+    if (C.length) R.push(P + ' .hcopy{' + C.join(';') + '}');
+    if (g('titulo') !== null) R.push(P + ' .hcopy h2{font-size:calc(clamp(34px,6vw,68px) * ' + (g('titulo') / 100) + ')}');
+    if (g('logoAlto') !== null) R.push(P + ' .hlogo{max-height:' + g('logoAlto') + 'px}');
+    if (g('botonesArriba') !== null) R.push(P + ' .hact{margin-top:' + g('botonesArriba') + 'px}');
+    if (g('botonesSep') !== null) R.push(P + ' .hact{gap:' + g('botonesSep') + 'px}');
+    const D = [];
+    if (g('puntosAbajo') !== null) D.push('bottom:' + (h ? g('puntosAbajo') + 'px' : 'calc(var(--dockh) + ' + g('puntosAbajo') + 'px + env(safe-area-inset-bottom,0px))'));
+    if (TA[o.puntosLado]) { const m = o.puntosLado, e = h ? 24 : 20; D.push(m === 'izq' ? 'left:' + e + 'px;right:auto;transform:none' : m === 'der' ? 'right:' + e + 'px;left:auto;transform:none' : 'left:50%;right:auto;transform:translateX(-50%)'); }
+    if (D.length) R.push(P + ' .dots{' + D.join(';') + '}');
+    return (V.length ? 'html body #herowrap{' + V.join(';') + '}\n' : '') + R.join('\n');
+  }
+  function poner(c) {
+    c = c && typeof c === 'object' ? c : {};
+    const h = version(c.h, true), v = version(c.v, false);
+    st.textContent = (h ? '@media(orientation:landscape){\n' + h + '\n}\n' : '') + (v ? '@media(orientation:portrait){\n' + v + '\n}' : '');
+  }
+  window.bbBannerAjustes = poner;
+  poner(window.BANNER_AJUSTES);
+  addEventListener('message', e => {           // vista previa del editor del admin (misma página, dentro de un marco)
+    if (e.origin !== location.origin || e.source !== parent || !e.data || e.data.t !== 'bb-banner') return;
+    poner(e.data.cfg);
+  });
+})();
 /* Efectos ajustables desde admin > Efectos (rebote, velocidad, intensidad y desenfoque del cristal) */
 const EF = { rebote: 30, velocidad: 60, intensidad: 60, brilloFondo: 58, desenfoque: 3, agrandar: 12, estirar: 50, panel: 28 };
 { const ex = window.EFECTOS_EXTRA || {}; for (const k in EF) { const n = Number(ex[k]); if (ex[k] !== undefined && ex[k] !== '' && isFinite(n)) EF[k] = n; } }

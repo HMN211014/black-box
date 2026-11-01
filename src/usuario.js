@@ -316,6 +316,26 @@ async function guardarDatos(env, correo, texto) {
    Antes estaba en KV (x:catalogo) y se agotaban las escrituras diarias: lo que haya en KV se copia solo, una vez, y después ya no se toca. ---- */
 const tipoDe = i => i.tipo === 'serie' || i.episodios || /\{(t|e|tt|ee)\}/.test(String(i.link || '')) ? 'serie' : 'pelicula';   // solo para lo que venía de KV sin "tipo"
 const epsDe = t => { try { const o = JSON.parse(t || '{}'); return o && typeof o === 'object' ? o : {}; } catch (e) { return {}; } };
+/* Ajustes del banner principal. Rango [mín, máx] para números; listas para opciones. Lo que no esté aquí se descarta. */
+const BAN_NUM = {
+  barra: [0, 200], alto: [40, 100], posX: [0, 100], posY: [0, 100],
+  blurArriba: [0, 40], brilloArriba: [30, 130], mezclaArriba: [40, 400],
+  blurAbajo: [0, 40], brilloAbajo: [30, 130], reflejo: [0, 40],
+  oscuroArriba: [0, 150], oscuroAbajo: [0, 150], oscuroLados: [0, 150],
+  textoAbajo: [0, 400], textoLado: [0, 200], textoAncho: [0, 1000], titulo: [50, 200], logoAlto: [0, 400],
+  botonesArriba: [0, 100], botonesSep: [0, 60], puntosAbajo: [0, 300]
+};
+const BAN_OPC = { textoAlin: ['izq', 'centro', 'der'], puntosLado: ['izq', 'centro', 'der'] };
+function limpiarBannerAjustes(o) {
+  const out = {};
+  for (const ver of ['h', 'v']) {
+    const src = o && typeof o === 'object' && o[ver] && typeof o[ver] === 'object' ? o[ver] : {}, dst = {};
+    for (const k in BAN_NUM) { const n = Number(src[k]); if (src[k] !== undefined && src[k] !== null && src[k] !== '' && isFinite(n)) dst[k] = Math.max(BAN_NUM[k][0], Math.min(BAN_NUM[k][1], Math.round(n))); }
+    for (const k in BAN_OPC) if (BAN_OPC[k].includes(src[k])) dst[k] = src[k];
+    out[ver] = dst;
+  }
+  return out;
+}
 const totalPublicados = async db => (await db.prepare('SELECT COUNT(*) AS n FROM publicados').first()).n;
 let catListo = null;      // promesa: tablas creadas y copia desde KV hecha (una vez por instancia del Worker)
 function prepararCatalogo(db, kv) {
@@ -717,12 +737,14 @@ async function manejar({ request, env, params, waitUntil }) {
     try { if (db) { const r = await db.prepare("SELECT valor FROM meta WHERE clave = 'introdb_aviso'").first(); if (r && r.valor) { const v = JSON.parse(r.valor); const n = Number(v && v.segundos); if (Number.isInteger(n)) introdbAviso.segundos = Math.max(-300, Math.min(600, n)); } } } catch (e) {}
     let sug = {};
     try { if (db) { const r = await db.prepare("SELECT valor FROM meta WHERE clave = 'sugerencia'").first(); if (r && r.valor) sug = JSON.parse(r.valor) || {}; } } catch (e) {}
+    let banAj = { h: {}, v: {} };
+    try { if (db) { const r = await db.prepare("SELECT valor FROM meta WHERE clave = 'banner_ajustes'").first(); if (r && r.valor) banAj = limpiarBannerAjustes(JSON.parse(r.valor)); } } catch (e) {}
     let ban = [];
     try { if (db) { const r = await db.prepare("SELECT valor FROM meta WHERE clave = 'banner'").first(); if (r && r.valor) ban = limpiarBanner(JSON.parse(r.valor)); } } catch (e) {}
     let anun = limpiarAnuncios({});
     try { if (db) { const r = await db.prepare("SELECT valor FROM meta WHERE clave = 'anuncios'").first(); if (r && r.valor) anun = limpiarAnuncios(JSON.parse(r.valor)); } } catch (e) {}
     anun = { activo: anun.activo, items: anun.items.filter(x => x.activo), google: anun.google };
-    const js ='window.ANUNCIOS_EXTRA=' + JSON.stringify(anun).replace(/</g, '\\u003c') + ';window.PELICULAS_EXTRA=' + JSON.stringify(items).replace(/</g, '\\u003c') + ';window.COLECCIONES_EXTRA=' + JSON.stringify(cols).replace(/</g, '\\u003c') + ';window.SECCIONES_EXTRA=' + JSON.stringify(secs).replace(/</g, '\\u003c') + ';window.ACCESO_EXTRA=' + JSON.stringify(acc).replace(/</g, '\\u003c') + ';window.EFECTOS_EXTRA=' + JSON.stringify(efe).replace(/</g, '\\u003c') + ';window.INTERACCIONES_EXTRA=' + JSON.stringify(inter).replace(/</g, '\\u003c') + ';window.INTRODB_EXTRA=' + JSON.stringify(introdb).replace(/</g, '\\u003c') + ';window.INTRODB_AVISO_EXTRA=' + JSON.stringify(introdbAviso) + ';window.SUGERENCIA_EXTRA=' + JSON.stringify(sug).replace(/</g, '\\u003c') + ';window.BANNER_EXTRA=' + JSON.stringify(ban).replace(/</g, '\\u003c') + ';';
+    const js ='window.ANUNCIOS_EXTRA=' + JSON.stringify(anun).replace(/</g, '\\u003c') + ';window.PELICULAS_EXTRA=' + JSON.stringify(items).replace(/</g, '\\u003c') + ';window.COLECCIONES_EXTRA=' + JSON.stringify(cols).replace(/</g, '\\u003c') + ';window.SECCIONES_EXTRA=' + JSON.stringify(secs).replace(/</g, '\\u003c') + ';window.ACCESO_EXTRA=' + JSON.stringify(acc).replace(/</g, '\\u003c') + ';window.EFECTOS_EXTRA=' + JSON.stringify(efe).replace(/</g, '\\u003c') + ';window.INTERACCIONES_EXTRA=' + JSON.stringify(inter).replace(/</g, '\\u003c') + ';window.INTRODB_EXTRA=' + JSON.stringify(introdb).replace(/</g, '\\u003c') + ';window.INTRODB_AVISO_EXTRA=' + JSON.stringify(introdbAviso) + ';window.SUGERENCIA_EXTRA=' + JSON.stringify(sug).replace(/</g, '\\u003c') + ';window.BANNER_EXTRA=' + JSON.stringify(ban).replace(/</g, '\\u003c') + ';window.BANNER_AJUSTES=' + JSON.stringify(banAj) + ';';
     return new Response(js, { headers: { 'Content-Type': 'application/javascript; charset=utf-8', 'Cache-Control': 'public, max-age=30' } });
   }
 
@@ -1020,6 +1042,19 @@ async function manejar({ request, env, params, waitUntil }) {
       const v = { titulo: t(a.titulo, 60), subtitulo: t(a.subtitulo, 240), canje: t(a.canje, 300), explorar: t(a.explorar, 30), logo, brillo: isFinite(br) && a.brillo !== '' && a.brillo != null ? Math.max(0, Math.min(100, Math.round(br))) : 60 };
       await db.prepare('CREATE TABLE IF NOT EXISTS meta (clave TEXT PRIMARY KEY, valor TEXT) WITHOUT ROWID').run();
       await db.prepare("INSERT INTO meta (clave, valor) VALUES ('acceso', ?1) ON CONFLICT(clave) DO UPDATE SET valor = ?1").bind(JSON.stringify(v)).run();
+      return json({ ok: true });
+    }
+
+    /* Ajustes del banner principal: dos versiones (h = horizontal, v = vertical). Solo se guardan los valores que se cambiaron; lo demás queda como estaba. */
+    if (cuerpo.op === 'banner_ajustes') {
+      let v = {};
+      try { const r = await db.prepare("SELECT valor FROM meta WHERE clave = 'banner_ajustes'").first(); if (r && r.valor) v = limpiarBannerAjustes(JSON.parse(r.valor)); } catch (e) {}
+      return json({ item: v });
+    }
+    if (cuerpo.op === 'guardar_banner_ajustes') {
+      const v = limpiarBannerAjustes(cuerpo.ajustes);
+      await db.prepare('CREATE TABLE IF NOT EXISTS meta (clave TEXT PRIMARY KEY, valor TEXT) WITHOUT ROWID').run();
+      await db.prepare("INSERT INTO meta (clave, valor) VALUES ('banner_ajustes', ?1) ON CONFLICT(clave) DO UPDATE SET valor = ?1").bind(JSON.stringify(v)).run();
       return json({ ok: true });
     }
 

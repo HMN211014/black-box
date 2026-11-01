@@ -405,6 +405,32 @@ body:not(.h) .nav button.on{background:#fff;color:#000}
     </div>
   </div>
 
+  <div class="c w" data-g="banner" id="bp-card">
+    <h2>Posición y efectos del banner</h2>
+    <p class="s">Mueve los controles y mira el resultado en la vista previa (es la app de verdad). Hay <b>dos versiones</b>: horizontal y vertical, cada una con sus propios ajustes. Solo se guarda lo que muevas; lo demás queda como está. Toca <b>↺</b> en un control para devolverlo a como estaba.</p>
+    <style>
+      .bp-seg{display:flex;gap:8px;margin:14px 0 10px}
+      .bp-seg button{flex:1}
+      .bp-seg button.on{background:#fff;color:#000}
+      .bp-wrap{position:relative;width:100%;overflow:hidden;border-radius:16px;background:#000;border:1px solid rgba(255,255,255,.16)}
+      .bp-wrap iframe{position:absolute;left:0;top:0;border:0;transform-origin:0 0;background:#000}
+      .bp-g{margin-top:20px;font-size:15px;color:#fff;letter-spacing:-.01em}
+      .bp-c{margin-top:12px}
+      .bp-t{display:flex;align-items:center;gap:8px;font-size:14px;color:#e5e5ea}
+      .bp-t span{flex:1;min-width:0}
+      .bp-t b{min-width:64px;text-align:right;font-variant-numeric:tabular-nums}
+      .bp-t b.x{color:#8e8e93;font-weight:500}
+      .bp-t button{width:30px;height:30px;padding:0;border-radius:50%;font-size:15px;line-height:1}
+      .bp-c input[type=range]{width:100%;height:auto;padding:0;margin-top:6px}
+      .bp-c select{margin-top:6px}
+    </style>
+    <div class="bp-seg" id="bp-seg"><button class="g on" type="button" data-v="h">Horizontal</button><button class="g" type="button" data-v="v">Vertical</button></div>
+    <div class="bp-wrap" id="bp-wrap"><iframe id="bp-fr" title="Vista previa del banner" loading="lazy"></iframe></div>
+    <div id="bp-ctl"></div>
+    <p class="m" id="bp-m" role="status" aria-live="polite" hidden></p>
+    <div class="row" style="margin-top:14px"><button id="bp-save" type="button">Guardar ajustes</button><button class="g" id="bp-load" type="button">Cargar lo guardado</button><button class="g" id="bp-reset" type="button">Quitar todo de esta versión</button></div>
+  </div>
+
   <div class="c w" data-g="colecciones" id="col-card">
     <h2>Colecciones</h2>
     <p class="s">Crea y edita cuadros como Marvel o Nolan. Toca <b>Ver colecciones</b> para ver también las de <b>colecciones.js</b> y editarlas: el panel guarda una versión que las reemplaza y el archivo no se toca (puedes <b>restaurar la original</b> cuando quieras).</p>
@@ -760,6 +786,7 @@ function comprobarClave() {
       try { await window.bbAdminCargarInteracciones(); }
       catch (e) { msg('it-m', 'La clave es correcta, pero no se pudieron cargar los últimos cambios: ' + e.message, false); }
     }
+    if (!bpSucio) { try { await bpCargar(); } catch (e) { msg('bp-m', 'La clave es correcta, pero no se pudieron cargar los ajustes del banner: ' + e.message, false); } }
     if (!bnCargado || !bnSucio()) { try { await bnCargar(); } catch (e) { msg('bn-m', 'La clave es correcta, pero no se pudo cargar el banner: ' + e.message, false); } }       // sin pisar cambios que aún no se guardan
   });
 }
@@ -826,6 +853,112 @@ function efPoner(o) { efSliders.forEach(s => { const v = o && (s.dataset.ef === 
 $('ef-reset').onclick = () => { efPoner({}); msg('ef-m', 'Se pusieron los valores de fábrica. Falta guardar.', true); };
 $('ef-cargar').onclick = () => con($('ef-cargar'), 'ef-m', async () => { efPoner((await admin({ op: 'efectos' })).item || {}); msg('ef-m', 'Se cargó lo que está guardado.', true); });
 $('ef-go').onclick = () => con($('ef-go'), 'ef-m', async () => { await admin({ op: 'guardar_efectos', efectos: efLeer() }); msg('ef-m', 'Guardado. En la app se actualiza en menos de un minuto.', true); });
+/* ---- Editor del banner principal: dos versiones (h = horizontal, v = vertical) con vista previa en vivo ---- */
+const BP_DEF = [
+  ['Póster', [
+    ['alto', 'Altura del banner (% de la pantalla)', 40, 100, 90, '%'],
+    ['posX', 'Encuadre horizontal del póster', 0, 100, 50, '%'],
+    ['posY', 'Encuadre vertical del póster', 0, 100, { h: 22, v: 0 }, '%'],
+    ['barra', 'Separación de arriba (el póster baja para que la barra no lo tape)', 0, 200, 56, 'px', 'h']
+  ]],
+  ['Texto y botones', [
+    ['textoAlin', 'Alineación del texto y los botones', 'opc', { h: 'izq', v: 'centro' }],
+    ['textoAbajo', 'Distancia desde abajo', 0, 400, { h: 112, v: 56 }, 'px'],
+    ['textoLado', 'Margen a los lados', 0, 200, { h: 72, v: 20 }, 'px'],
+    ['textoAncho', 'Ancho máximo del texto (0 = sin límite)', 0, 1000, { h: 680, v: 0 }, 'px'],
+    ['titulo', 'Tamaño del título', 50, 200, 100, '%'],
+    ['logoAlto', 'Altura máxima del logo del título', 0, 400, { h: 160, v: 130 }, 'px'],
+    ['botonesArriba', 'Espacio sobre los botones', 0, 100, { h: 20, v: 18 }, 'px'],
+    ['botonesSep', 'Separación entre botones', 0, 60, 12, 'px']
+  ]],
+  ['Puntos del carrusel', [
+    ['puntosAbajo', 'Distancia desde abajo', 0, 300, { h: 28, v: 30 }, 'px'],
+    ['puntosLado', 'Lado donde van', 'opc', { h: 'der', v: 'centro' }]
+  ]],
+  ['Sombras (oscurecen el póster para que se lea el texto)', [
+    ['oscuroArriba', 'Arriba', 0, 150, 100, '%'],
+    ['oscuroAbajo', 'Abajo', 0, 150, 100, '%'],
+    ['oscuroLados', 'Lados', 0, 150, 100, '%']
+  ]],
+  ['Desenfoque y mezcla (solo horizontal)', [
+    ['blurArriba', 'Desenfoque de la franja de arriba', 0, 40, 6, 'px', 'h'],
+    ['brilloArriba', 'Brillo de la franja de arriba', 30, 130, 88, '%', 'h'],
+    ['mezclaArriba', 'Hasta dónde baja la mezcla de arriba', 40, 400, 145, 'px', 'h'],
+    ['blurAbajo', 'Desenfoque del borde de abajo', 0, 40, 14, 'px', 'h'],
+    ['brilloAbajo', 'Brillo del borde de abajo', 30, 130, 90, '%', 'h'],
+    ['reflejo', 'Reflejo hacia Colecciones', 0, 40, 10, '%', 'h']
+  ]]
+];
+const BP_OPC = [['', 'Como estaba'], ['izq', 'Izquierda'], ['centro', 'Centro'], ['der', 'Derecha']];
+const BP_TAM = { h: [960, 540], v: [390, 780] };
+let bpVer = 'h', bpCfg = { h: {}, v: {} }, bpSucio = false;
+const bpValDef = (d, v) => (d && typeof d === 'object') ? d[v] : d;
+function bpEnviar() {
+  const fr = $('bp-fr'); if (!fr.contentWindow) return;
+  try { fr.contentWindow.postMessage({ t: 'bb-banner', cfg: bpCfg }, location.origin); } catch (e) {}
+}
+function bpAjustarMarco() {
+  const w = $('bp-wrap'), fr = $('bp-fr'), [fw, fh] = BP_TAM[bpVer], k = Math.min(1, w.clientWidth / fw);
+  fr.style.width = fw + 'px'; fr.style.height = fh + 'px'; fr.style.transform = 'scale(' + k + ')';
+  w.style.height = Math.round(fh * k) + 'px';
+}
+function bpControles() {
+  const box = $('bp-ctl'); box.replaceChildren();
+  BP_DEF.forEach(([titulo, lista]) => {
+    const items = lista.filter(c => !c[c.length - 1] || c[c.length - 1] !== 'h' || bpVer === 'h');
+    if (!items.length) return;
+    const h = document.createElement('h3'); h.className = 'bp-g'; h.textContent = titulo; box.appendChild(h);
+    items.forEach(c => {
+      const k = c[0], cfg = bpCfg[bpVer], w = document.createElement('div'); w.className = 'bp-c';
+      const t = document.createElement('div'); t.className = 'bp-t';
+      const nm = document.createElement('span'); nm.textContent = c[1];
+      const val = document.createElement('b');
+      const rs = document.createElement('button'); rs.type = 'button'; rs.className = 'g'; rs.textContent = '↺'; rs.title = 'Volver a como estaba'; rs.setAttribute('aria-label', 'Volver a como estaba: ' + c[1]);
+      t.append(nm, val, rs); w.appendChild(t);
+      let ctl;
+      const pintar = () => {
+        const puesto = cfg[k] !== undefined;
+        val.className = puesto ? '' : 'x';
+        if (c[2] === 'opc') { val.textContent = puesto ? (BP_OPC.find(o => o[0] === cfg[k]) || [0, ''])[1] : 'sin cambios'; ctl.value = puesto ? cfg[k] : ''; }
+        else { val.textContent = puesto ? cfg[k] + c[5] : 'sin cambios'; ctl.value = puesto ? cfg[k] : bpValDef(c[4], bpVer); }
+        rs.disabled = !puesto;
+      };
+      if (c[2] === 'opc') {
+        ctl = document.createElement('select');
+        BP_OPC.forEach(([v, n]) => { const o = document.createElement('option'); o.value = v; o.textContent = n; ctl.appendChild(o); });
+        ctl.onchange = () => { if (ctl.value) cfg[k] = ctl.value; else delete cfg[k]; bpSucio = true; pintar(); bpEnviar(); };
+      } else {
+        ctl = document.createElement('input'); ctl.type = 'range'; ctl.min = c[2]; ctl.max = c[3]; ctl.step = 1;
+        ctl.oninput = () => { cfg[k] = +ctl.value; bpSucio = true; pintar(); bpEnviar(); };
+      }
+      rs.onclick = () => { delete cfg[k]; bpSucio = true; pintar(); bpEnviar(); };
+      w.appendChild(ctl); box.appendChild(w); pintar();
+    });
+  });
+}
+function bpVersion(v) {
+  bpVer = v;
+  document.querySelectorAll('#bp-seg button').forEach(b => b.classList.toggle('on', b.dataset.v === v));
+  bpAjustarMarco(); bpControles(); setTimeout(bpEnviar, 150);
+}
+document.querySelectorAll('#bp-seg button').forEach(b => b.onclick = () => bpVersion(b.dataset.v));
+(function () {
+  const fr = $('bp-fr'); let iniciado = false;
+  const iniciar = () => { if (iniciado) return; iniciado = true; fr.src = '/index.html?bbpreview=1'; };
+  fr.addEventListener('load', () => { bpEnviar(); setTimeout(bpEnviar, 600); setTimeout(bpEnviar, 1800); });      // la app tarda un momento en estar lista
+  if ('IntersectionObserver' in window) { new IntersectionObserver(es => { if (es.some(e => e.isIntersecting)) iniciar(); }, { rootMargin: '200px' }).observe($('bp-wrap')); } else iniciar();
+  if ('ResizeObserver' in window) new ResizeObserver(bpAjustarMarco).observe($('bp-wrap')); else addEventListener('resize', bpAjustarMarco);
+  bpAjustarMarco(); bpControles();
+})();
+async function bpCargar() {
+  const j = await admin({ op: 'banner_ajustes' }), it = j.item || {};
+  bpCfg = { h: Object.assign({}, it.h), v: Object.assign({}, it.v) }; bpSucio = false;
+  bpControles(); bpEnviar();
+}
+window.bpCargar = bpCargar; window.bpEsSucio = () => bpSucio;
+$('bp-load').onclick = () => con($('bp-load'), 'bp-m', async () => { await bpCargar(); msg('bp-m', 'Se cargó lo que está guardado.', true); });
+$('bp-reset').onclick = () => { bpCfg[bpVer] = {}; bpSucio = true; bpControles(); bpEnviar(); msg('bp-m', 'Se quitaron los ajustes de la versión ' + (bpVer === 'h' ? 'horizontal' : 'vertical') + ' (todo como estaba). Falta guardar.', true); };
+$('bp-save').onclick = () => con($('bp-save'), 'bp-m', async () => { await admin({ op: 'guardar_banner_ajustes', ajustes: bpCfg }); bpSucio = false; msg('bp-m', 'Guardado. En la app se actualiza en menos de un minuto.', true); });
 /* ---- Interacciones: animación + vibración por gesto, estilo de transición por cambio de pantalla ---- */
 const IT_ANIM = [['ninguna', 'Ninguna'], ['rebote', 'Rebote'], ['hundir', 'Hundir'], ['pulso', 'Pulso'], ['sacudir', 'Sacudir'], ['giro', 'Giro'], ['brillo', 'Destello'], ['onda', 'Onda']];
 const IT_VIB = [['ninguna', 'Ninguna'], ['suave', 'Suave'], ['medio', 'Media'], ['fuerte', 'Fuerte'], ['doble', 'Doble toque'], ['triple', 'Triple toque'], ['largo', 'Larga'], ['tic', 'Tic (muy corta)', 'Motor háptico · Android 10+'], ['clic', 'Clic (mecánico)', 'Motor háptico · Android 10+'], ['pesado', 'Golpe pesado', 'Motor háptico · Android 10+'], ['latido', 'Latido', 'Motor háptico · Android 10+'], ['rampa', 'Rampa (crece)', 'Motor háptico · Android 10+'], ['textura', 'Textura (superficie)', 'Motor háptico · Android 10+'],
