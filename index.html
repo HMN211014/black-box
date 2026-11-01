@@ -4461,6 +4461,7 @@ function decidirAcceso() {                                  // con sesión (o si
   if (!accesoActivo() || U.correo || U.servicio !== true || explorando) ocultarAcceso(); else mostrarAcceso();
 }
 H('ac-exp').onclick = () => { explorando = true; ocultarAcceso(); };
+H('ac-exp').addEventListener('mousedown', e => e.preventDefault());          // igual: tocar Explorar no cierra el teclado antes de tiempo
 function uVistaAcceso(pant) {
   const w = el('div', 'ua');
   w.innerHTML = (pant ? '' : '<h2>Tu cuenta</h2><p class="ssub">Inicia sesión para guardar tu progreso y lo que has visto, y retomarlo en cualquier dispositivo.</p>') +
@@ -4492,6 +4493,8 @@ function uVistaAcceso(pant) {
   };
   w.querySelectorAll('.ua-tabs button').forEach(b => b.onclick = () => modo(b.dataset.m));
   const vp = w.querySelector('#ua-planes'); if (vp) vp.onclick = () => { cerrarHoja(); abrirPlanes(null); };
+  /* Ningún botón del formulario le quita el foco al campo: el teclado no se cierra ni el contenido se reacomoda debajo del dedo (el clic sigue funcionando). */
+  w.querySelectorAll('button').forEach(b => b.addEventListener('mousedown', e => e.preventDefault()));
   f.addEventListener('submit', async e => {
     e.preventDefault(); err.hidden = true;
     const correo = f.correo.value.trim(), clave = f.clave.value;
