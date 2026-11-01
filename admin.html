@@ -335,6 +335,14 @@ body:not(.h) .nav button.on{background:#fff;color:#000}
   </div>
 
   <div class="c" data-g="biblioteca">
+    <h2>Lista de películas por año</h2>
+    <p class="s">Junta los nombres de todas las películas registradas (las de <b>index.html</b> y las publicadas desde aquí), ordenadas del año más reciente al más antiguo, y las deja listas para copiar.</p>
+    <div class="row" style="margin-top:10px"><button class="g" id="ly-go" type="button">Copiar nombres de películas</button></div>
+    <p class="m" id="ly-m" hidden></p>
+    <textarea class="ta" id="ly-out" rows="8" readonly hidden></textarea>
+  </div>
+
+  <div class="c" data-g="biblioteca">
     <h2>Consultar enlace registrado</h2>
     <p class="s">Busca una película o serie en TMDB para ver y copiar el enlace guardado en la biblioteca.</p>
     <label style="margin-top:12px">Buscar en TMDB<input id="l-q" type="search" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Nombre de la película o serie"></label>
@@ -2449,6 +2457,41 @@ const dIgn = () => { try { return new Set(JSON.parse(localStorage.getItem('bbDup
 const dIgnGuardar = s => { try { localStorage.setItem('bbDupOk', JSON.stringify([...s])); } catch (e) {} };
 const dEtiqueta = e => [e.o === 'panel' ? 'Publicada desde el panel' : 'En index.html', e.tipo === 'serie' ? 'Serie' : 'Película', e.tmdb ? 'TMDB ' + e.tmdb : 'sin TMDB', e.anio, e.link ? 'con enlace' : (e.eps ? e.eps + ' capítulo(s) sueltos' : 'sin enlace')].filter(Boolean).join(' · ');
 function dRefrescarX() { if ($('x-lista').children.length) $('x-go').click(); }
+
+/* ---- Lista de películas por año (más reciente primero), para copiar ---- */
+async function lyAnio(e) {
+  if (/^\d{4}$/.test(String(e.anio || ''))) return String(e.anio);
+  const j = e.tmdb
+    ? await fetch(`${TMDB}/movie/${e.tmdb}?api_key=${TMDB_KEY}&language=es-MX`, { signal: AbortSignal.timeout(10000) }).then(r => r.json())
+    : ((await fetch(`${TMDB}/search/movie?api_key=${TMDB_KEY}&language=es-MX&include_adult=false&query=${encodeURIComponent(e.buscar || e.titulo)}`, { signal: AbortSignal.timeout(10000) }).then(r => r.json())).results || [])[0] || {};
+  return String(j.release_date || '').slice(0, 4);
+}
+$('ly-go').onclick = () => con($('ly-go'), 'ly-m', async () => {
+  msg('ly-m', 'Leyendo el catálogo…', true);
+  await Promise.all([dIndice(), dPanel()]);
+  const vistos = new Set(), pelis = [];
+  dTodos().filter(e => e.tipo !== 'serie' && e.titulo).forEach(e => {      // sin series ni repetidas entre index.html y el panel
+    const k = e.tmdb ? 't' + e.tmdb : 'n' + dNorm(e.titulo);
+    if (vistos.has(k) || vistos.has('n' + dNorm(e.titulo))) return;
+    vistos.add(k); vistos.add('n' + dNorm(e.titulo)); pelis.push(e);
+  });
+  let hechas = 0, sinAnio = 0, sig = 0;
+  const trabajador = async () => {
+    while (sig < pelis.length) {
+      const e = pelis[sig++];
+      try { e.y = await lyAnio(e); } catch (er) { e.y = ''; }
+      if (!e.y) sinAnio++;
+      hechas++; if (hechas % 10 === 0) msg('ly-m', 'Buscando años… ' + hechas + ' de ' + pelis.length, true);
+    }
+  };
+  await Promise.all(Array.from({ length: 6 }, trabajador));
+  pelis.sort((a, b) => (Number(b.y) || 0) - (Number(a.y) || 0) || a.titulo.localeCompare(b.titulo, 'es'));
+  const texto = pelis.map(e => e.titulo + (e.y ? ' (' + e.y + ')' : '')).join('\n');
+  const out = $('ly-out'); out.value = texto; out.hidden = false;
+  let copiado = true;
+  try { await navigator.clipboard.writeText(texto); } catch (er) { out.select(); try { copiado = document.execCommand('copy'); } catch (er2) { copiado = false; } }
+  msg('ly-m', pelis.length + ' películas, del año más reciente al más antiguo' + (sinAnio ? ' (' + sinAnio + ' sin año al final)' : '') + (copiado ? '. Copiadas ✓' : '. No pude copiar solo: mantén presionado el cuadro, elige Seleccionar todo y Copiar.'), true);
+});
 
 /* ---- 1) Buscar repetidas en todo el catálogo ---- */
 function dPintar() {
