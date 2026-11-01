@@ -4466,15 +4466,17 @@ function uVistaAcceso(pant) {
     (pant ? '' : '<button class="sbtn sec" id="ua-planes" type="button">Ver planes</button>');
   const f = w.querySelector('#ua-f'), err = w.querySelector('#ua-err'), go = w.querySelector('#ua-go');
   const ojo = w.querySelector('.ojo');
-  ojo.addEventListener('mousedown', e => e.preventDefault());            // el teclado no se cierra al tocar el ojo
-  ojo.addEventListener('touchstart', e => e.preventDefault(), { passive: false });
-  ojo.onclick = () => {
+  const alternar = () => {
     const ver = f.clave.type === 'password', a = f.clave.selectionStart, b = f.clave.selectionEnd;
     f.clave.type = ver ? 'text' : 'password';
     ojo.setAttribute('aria-pressed', String(ver)); ojo.setAttribute('aria-label', ver ? 'Ocultar contraseña' : 'Mostrar contraseña');
     ojo.innerHTML = ver ? OJO_OFF : OJO_ON;
     try { f.clave.setSelectionRange(a, b); } catch (e) {}
   };
+  ojo.addEventListener('mousedown', e => e.preventDefault());            // el teclado no se cierra al tocar el ojo
+  /* En el teléfono se cambia al soltar el dedo. Antes se cancelaba el touchstart, y eso también cancela el clic: el ojo no hacía nada. */
+  ojo.addEventListener('touchend', e => { e.preventDefault(); alternar(); }, { passive: false });
+  ojo.onclick = alternar;                                                  // mouse y teclado
   const modo = (m, conservar) => {
     uModo = m; if (!conservar) err.hidden = true;
     w.querySelectorAll('.ua-tabs button').forEach(b => b.classList.toggle('on', b.dataset.m === m));
