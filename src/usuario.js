@@ -317,6 +317,20 @@ async function guardarDatos(env, correo, texto) {
 const tipoDe = i => i.tipo === 'serie' || i.episodios || /\{(t|e|tt|ee)\}/.test(String(i.link || '')) ? 'serie' : 'pelicula';   // solo para lo que venía de KV sin "tipo"
 const epsDe = t => { try { const o = JSON.parse(t || '{}'); return o && typeof o === 'object' ? o : {}; } catch (e) { return {}; } };
 /* Ajustes del banner principal. Rango [mín, máx] para números; listas para opciones. Lo que no esté aquí se descarta. */
+/* Títulos que el administrador no quiere que salgan cuando el banner se elige al azar: [{ tmdb, tipo, titulo }] */
+const BAN_EXC_MAX = 600;
+function limpiarBannerExcluidos(lista) {
+  const out = [], vistos = new Set();
+  (Array.isArray(lista) ? lista : []).forEach(x => {
+    if (!x || out.length >= BAN_EXC_MAX) return;
+    const tmdb = Math.max(0, Math.floor(Number(x.tmdb)) || 0), tipo = x.tipo === 'serie' ? 'serie' : 'pelicula', titulo = String(x.titulo || '').trim().slice(0, 200);
+    if (!tmdb && !titulo) return;
+    const k = tipo + ':' + (tmdb || titulo.toLowerCase());
+    if (vistos.has(k)) return;
+    vistos.add(k); out.push({ tmdb, tipo, titulo });
+  });
+  return out;
+}
 const BAN_NUM = {
   barra: [0, 200], alto: [40, 100], posX: [0, 100], posY: [0, 100],
   blurArriba: [0, 40], brilloArriba: [30, 130], mezclaArriba: [40, 400],
@@ -737,6 +751,8 @@ async function manejar({ request, env, params, waitUntil }) {
     try { if (db) { const r = await db.prepare("SELECT valor FROM meta WHERE clave = 'introdb_aviso'").first(); if (r && r.valor) { const v = JSON.parse(r.valor); const n = Number(v && v.segundos); if (Number.isInteger(n)) introdbAviso.segundos = Math.max(-300, Math.min(600, n)); } } } catch (e) {}
     let sug = {};
     try { if (db) { const r = await db.prepare("SELECT valor FROM meta WHERE clave = 'sugerencia'").first(); if (r && r.valor) sug = JSON.parse(r.valor) || {}; } } catch (e) {}
+    let banEx = [];
+    try { if (db) { const r = await db.prepare("SELECT valor FROM meta WHERE clave = 'banner_excluidos'").first(); if (r && r.valor) banEx = limpiarBannerExcluidos(JSON.parse(r.valor)); } } catch (e) {}
     let banAj = { h: {}, v: {} };
     try { if (db) { const r = await db.prepare("SELECT valor FROM meta WHERE clave = 'banner_ajustes'").first(); if (r && r.valor) banAj = limpiarBannerAjustes(JSON.parse(r.valor)); } } catch (e) {}
     let ban = [];
@@ -744,7 +760,7 @@ async function manejar({ request, env, params, waitUntil }) {
     let anun = limpiarAnuncios({});
     try { if (db) { const r = await db.prepare("SELECT valor FROM meta WHERE clave = 'anuncios'").first(); if (r && r.valor) anun = limpiarAnuncios(JSON.parse(r.valor)); } } catch (e) {}
     anun = { activo: anun.activo, items: anun.items.filter(x => x.activo), google: anun.google };
-    const js ='window.ANUNCIOS_EXTRA=' + JSON.stringify(anun).replace(/</g, '\\u003c') + ';window.PELICULAS_EXTRA=' + JSON.stringify(items).replace(/</g, '\\u003c') + ';window.COLECCIONES_EXTRA=' + JSON.stringify(cols).replace(/</g, '\\u003c') + ';window.SECCIONES_EXTRA=' + JSON.stringify(secs).replace(/</g, '\\u003c') + ';window.ACCESO_EXTRA=' + JSON.stringify(acc).replace(/</g, '\\u003c') + ';window.EFECTOS_EXTRA=' + JSON.stringify(efe).replace(/</g, '\\u003c') + ';window.INTERACCIONES_EXTRA=' + JSON.stringify(inter).replace(/</g, '\\u003c') + ';window.INTRODB_EXTRA=' + JSON.stringify(introdb).replace(/</g, '\\u003c') + ';window.INTRODB_AVISO_EXTRA=' + JSON.stringify(introdbAviso) + ';window.SUGERENCIA_EXTRA=' + JSON.stringify(sug).replace(/</g, '\\u003c') + ';window.BANNER_EXTRA=' + JSON.stringify(ban).replace(/</g, '\\u003c') + ';window.BANNER_AJUSTES=' + JSON.stringify(banAj) + ';';
+    const js ='window.ANUNCIOS_EXTRA=' + JSON.stringify(anun).replace(/</g, '\\u003c') + ';window.PELICULAS_EXTRA=' + JSON.stringify(items).replace(/</g, '\\u003c') + ';window.COLECCIONES_EXTRA=' + JSON.stringify(cols).replace(/</g, '\\u003c') + ';window.SECCIONES_EXTRA=' + JSON.stringify(secs).replace(/</g, '\\u003c') + ';window.ACCESO_EXTRA=' + JSON.stringify(acc).replace(/</g, '\\u003c') + ';window.EFECTOS_EXTRA=' + JSON.stringify(efe).replace(/</g, '\\u003c') + ';window.INTERACCIONES_EXTRA=' + JSON.stringify(inter).replace(/</g, '\\u003c') + ';window.INTRODB_EXTRA=' + JSON.stringify(introdb).replace(/</g, '\\u003c') + ';window.INTRODB_AVISO_EXTRA=' + JSON.stringify(introdbAviso) + ';window.SUGERENCIA_EXTRA=' + JSON.stringify(sug).replace(/</g, '\\u003c') + ';window.BANNER_EXTRA=' + JSON.stringify(ban).replace(/</g, '\\u003c') + ';window.BANNER_AJUSTES=' + JSON.stringify(banAj) + ';window.BANNER_EXCLUIDOS=' + JSON.stringify(banEx).replace(/</g, '\\u003c') + ';';
     return new Response(js, { headers: { 'Content-Type': 'application/javascript; charset=utf-8', 'Cache-Control': 'public, max-age=30' } });
   }
 
@@ -1045,6 +1061,17 @@ async function manejar({ request, env, params, waitUntil }) {
       return json({ ok: true });
     }
 
+    if (cuerpo.op === 'banner_excluidos') {
+      let v = [];
+      try { const r = await db.prepare("SELECT valor FROM meta WHERE clave = 'banner_excluidos'").first(); if (r && r.valor) v = limpiarBannerExcluidos(JSON.parse(r.valor)); } catch (e) {}
+      return json({ items: v });
+    }
+    if (cuerpo.op === 'guardar_banner_excluidos') {
+      const v = limpiarBannerExcluidos(cuerpo.items);
+      await db.prepare('CREATE TABLE IF NOT EXISTS meta (clave TEXT PRIMARY KEY, valor TEXT) WITHOUT ROWID').run();
+      await db.prepare("INSERT INTO meta (clave, valor) VALUES ('banner_excluidos', ?1) ON CONFLICT(clave) DO UPDATE SET valor = ?1").bind(JSON.stringify(v)).run();
+      return json({ ok: true, items: v });
+    }
     /* Ajustes del banner principal: dos versiones (h = horizontal, v = vertical). Solo se guardan los valores que se cambiaron; lo demás queda como estaba. */
     if (cuerpo.op === 'banner_ajustes') {
       let v = {};

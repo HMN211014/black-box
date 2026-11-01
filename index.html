@@ -2448,14 +2448,21 @@ function bannerDelPanel() {                         // títulos que el administr
   });
   return out.slice(0, 12);
 }
+const bnNorm = t => String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+function bannerExcluido(p) {                         // títulos que el administrador sacó del azar (admin > Banner principal > Banner al azar)
+  const ex = Array.isArray(window.BANNER_EXCLUIDOS) ? window.BANNER_EXCLUIDOS : [];
+  if (!ex.length) return false;
+  const id = Number(p.tmdbId || p.tmdb) || 0, tipo = p.tipo === 'serie' ? 'serie' : 'pelicula', t = bnNorm(p.titulo);
+  return ex.some(e => (e.tipo === tipo && id && e.tmdb === id) || (e.titulo && e.tipo === tipo && bnNorm(e.titulo) === t));
+}
 function elegirBanner() {
   const delPanel = bannerDelPanel();
   if (delPanel.length) return delPanel;             // lista elegida en el panel; si no hay ninguna para esta sección, sigue el azar de abajo
-  const out = [];
+  const out = [], base = () => L().filter(p => !bannerExcluido(p));
   const llenar = lista => azar(lista).forEach(p => { if (out.length < BANNER_N && !out.includes(p)) out.push(p); });
-  llenar(L().filter(p => +p.anio === ANIO_ACTUAL));
-  llenar(L().filter(p => +p.anio === ANIO_ACTUAL - 1));
-  llenar(L());
+  llenar(base().filter(p => +p.anio === ANIO_ACTUAL));
+  llenar(base().filter(p => +p.anio === ANIO_ACTUAL - 1));
+  llenar(base());
   return out;
 }
 function armarBanner() {
@@ -5140,6 +5147,7 @@ window.colExplica = id => {                            // consola:  colExplica("
 window.bbPuente = {
   ver: () => datosVer, norm,
   biblioteca: () => peliculas.map(p => ({ titulo: p.titulo, tmdb: Number(p.tmdbId || p.tmdb) || 0, tipo: p.tipo === 'serie' ? 'serie' : 'pelicula', poster: p.poster || '', anio: p.anio || '' })),
+  bannerPosibles: () => { const f = p => ({ titulo: p.titulo, tmdb: Number(p.tmdbId || p.tmdb) || 0, tipo: p.tipo === 'serie' ? 'serie' : 'pelicula', poster: p.poster || '', anio: p.anio || '' }); return { peliculas: peliculas.map(f), series: series.map(f), anio: ANIO_ACTUAL, n: BANNER_N }; },
   miembrosDe: id => { const c = typeof COLECCIONES !== 'undefined' && COLECCIONES.find(x => x.id === id); return c ? pelisDe(c).map(p => ({ titulo: p.titulo, tmdb: Number(p.tmdbId || p.tmdb) || 0, tipo: p.tipo === 'serie' ? 'serie' : 'pelicula', anio: p.anio || '' })) : []; },
   miembros: c => { const k = c.id || '_borrador'; colCache.delete(k); try { return resolverCol({ ...c, id: k }).lista.map(p => ({ titulo: p.titulo, tmdb: Number(p.tmdbId || p.tmdb) || 0, poster: p.poster || '', anio: p.anio || '' })); } finally { colCache.delete(k); } }
 };

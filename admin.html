@@ -405,6 +405,33 @@ body:not(.h) .nav button.on{background:#fff;color:#000}
     </div>
   </div>
 
+  <div class="c w" data-g="banner" id="bx-card">
+    <h2>Banner al azar: qué pósters pueden salir</h2>
+    <p class="s">Cuando la lista de arriba está vacía, el banner elige títulos al azar de tu biblioteca. Aquí ves todos los que pueden salir y puedes <b>excluir</b> los que no quieras. Primero entran al azar los del año actual, luego los del año pasado y después el resto, hasta 9 en el banner.</p>
+    <style>
+      .bx-bar{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 6px}
+      .bx-bar button.on{background:#fff;color:#000}
+      .bx-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:12px;margin-top:12px}
+      .bx-t{position:relative;border-radius:12px;overflow:hidden;background:#1c1c20;aspect-ratio:2/3;border:2px solid transparent}
+      .bx-t img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+      .bx-t .n{position:absolute;left:0;right:0;bottom:0;padding:22px 8px 8px;background:linear-gradient(0deg,rgba(0,0,0,.92),transparent);font-size:12px;line-height:1.2;word-break:break-word}
+      .bx-t .n small{display:block;color:#a1a1a6;margin-top:2px}
+      .bx-t .y{position:absolute;left:6px;top:6px;padding:2px 7px;border-radius:999px;background:rgba(0,0,0,.65);font-size:11px;font-weight:700}
+      .bx-t button{position:absolute;right:6px;top:6px;width:32px;height:32px;padding:0;border-radius:50%;font-size:14px;line-height:1}
+      .bx-t.ex{border-color:#ff453a}
+      .bx-t.ex img{filter:grayscale(1) brightness(.45)}
+      .bx-t.ex::after{content:"Excluida";position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);text-align:center;font-weight:700;font-size:13px;color:#ff6961}
+    </style>
+    <p class="m" id="bx-aviso" hidden></p>
+    <div class="bp-seg" id="bx-tipo"><button class="g on" type="button" data-t="peliculas">Películas</button><button class="g" type="button" data-t="series">Series</button></div>
+    <label>Buscar<input id="bx-q" type="search" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Nombre del título"></label>
+    <div class="bx-bar" id="bx-f"><button class="g on" type="button" data-f="todas">Todas</button><button class="g" type="button" data-f="salen">Pueden salir</button><button class="g" type="button" data-f="ex">Excluidas</button></div>
+    <p class="s" id="bx-res"></p>
+    <p class="m" id="bx-m" role="status" aria-live="polite" hidden></p>
+    <div class="row" style="margin-top:10px"><button class="g" id="bx-cargar" type="button">Cargar pósters</button><button id="bx-save" type="button" disabled>Guardar exclusiones</button><button class="g" id="bx-limpiar" type="button">Volver a incluir todas</button></div>
+    <div class="bx-grid" id="bx-grid"></div>
+  </div>
+
   <div class="c w" data-g="banner" id="bp-card">
     <h2>Posición y efectos del banner</h2>
     <p class="s">Mueve los controles y mira el resultado en la vista previa (es la app de verdad). Hay <b>dos versiones</b>: horizontal y vertical, cada una con sus propios ajustes. Solo se guarda lo que muevas; lo demás queda como está. Toca <b>↺</b> en un control para devolverlo a como estaba.</p>
@@ -786,6 +813,7 @@ function comprobarClave() {
       try { await window.bbAdminCargarInteracciones(); }
       catch (e) { msg('it-m', 'La clave es correcta, pero no se pudieron cargar los últimos cambios: ' + e.message, false); }
     }
+    if (!bxSucio()) { try { await bxCargarExcluidos(); } catch (e) { msg('bx-m', 'La clave es correcta, pero no se pudieron cargar las exclusiones: ' + e.message, false); } }
     if (!bpSucio) { try { await bpCargar(); } catch (e) { msg('bp-m', 'La clave es correcta, pero no se pudieron cargar los ajustes del banner: ' + e.message, false); } }
     if (!bnCargado || !bnSucio()) { try { await bnCargar(); } catch (e) { msg('bn-m', 'La clave es correcta, pero no se pudo cargar el banner: ' + e.message, false); } }       // sin pisar cambios que aún no se guardan
   });
@@ -853,6 +881,65 @@ function efPoner(o) { efSliders.forEach(s => { const v = o && (s.dataset.ef === 
 $('ef-reset').onclick = () => { efPoner({}); msg('ef-m', 'Se pusieron los valores de fábrica. Falta guardar.', true); };
 $('ef-cargar').onclick = () => con($('ef-cargar'), 'ef-m', async () => { efPoner((await admin({ op: 'efectos' })).item || {}); msg('ef-m', 'Se cargó lo que está guardado.', true); });
 $('ef-go').onclick = () => con($('ef-go'), 'ef-m', async () => { await admin({ op: 'guardar_efectos', efectos: efLeer() }); msg('ef-m', 'Guardado. En la app se actualiza en menos de un minuto.', true); });
+/* ---- Banner al azar: ver los pósters que pueden salir y excluir los que no ---- */
+const bxCl = x => (x.tipo === 'serie' ? 's' : 'p') + ':' + (x.tmdb || 'n' + coNx(x.titulo));
+const coNx = t => String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+let bxLista = null, bxEx = [], bxGuardado = '[]', bxTipo = 'peliculas', bxFiltro = 'todas', bxCargado = false;
+const bxLimpio = () => bxEx.map(e => ({ tmdb: e.tmdb || 0, tipo: e.tipo, titulo: e.titulo }));
+const bxSucio = () => JSON.stringify(bxLimpio()) !== bxGuardado;
+const bxEsEx = x => bxEx.some(e => e.tipo === x.tipo && ((e.tmdb && x.tmdb && e.tmdb === x.tmdb) || (e.titulo && coNx(e.titulo) === coNx(x.titulo))));
+function bxPintar() {
+  const box = $('bx-grid'); box.replaceChildren();
+  $('bx-save').disabled = !bxSucio();
+  let man = 0; try { man = bnItems.length; } catch (e) {}                 // bnItems se define más abajo en la página
+  $('bx-aviso').hidden = !man;
+  if (man) msg('bx-aviso', 'Ahora mismo el banner usa la lista manual de arriba (' + man + ' título(s)), así que el azar no se está usando. Vacía esa lista para que se use esto.', false);
+  if (!bxLista) { $('bx-res').textContent = bxEx.length ? bxEx.length + ' título(s) excluido(s) guardado(s). Toca "Cargar pósters" para verlos.' : 'Toca "Cargar pósters" para ver los títulos de tu biblioteca.'; return; }
+  const q = coNx($('bx-q').value), anio = bxLista.anio;
+  const todos = bxLista[bxTipo].filter(x => x.titulo);
+  const peso = x => +x.anio === anio ? 0 : +x.anio === anio - 1 ? 1 : 2;
+  const vis = todos.filter(x => (!q || coNx(x.titulo).includes(q)) && (bxFiltro === 'todas' || (bxFiltro === 'ex') === bxEsEx(x)))
+    .sort((a, b) => peso(a) - peso(b) || (+b.anio || 0) - (+a.anio || 0) || a.titulo.localeCompare(b.titulo, 'es'));
+  const nEx = todos.filter(bxEsEx).length;
+  $('bx-res').textContent = todos.length + ' en la biblioteca · ' + (todos.length - nEx) + ' pueden salir · ' + nEx + ' excluida(s)' + (vis.length !== todos.length ? ' · mostrando ' + vis.length : '');
+  vis.forEach(x => {
+    const ex = bxEsEx(x), d = document.createElement('div'); d.className = 'bx-t' + (ex ? ' ex' : '');
+    if (x.poster) { const i = new Image(); i.alt = ''; i.loading = 'lazy'; i.src = x.poster.charAt(0) === '/' ? COIMG + 'w185' + x.poster : x.poster; i.onerror = () => i.remove(); d.appendChild(i); }
+    if (x.anio) { const y = document.createElement('span'); y.className = 'y'; y.textContent = x.anio; d.appendChild(y); }
+    const n = document.createElement('div'); n.className = 'n'; n.textContent = x.titulo; d.appendChild(n);
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'g'; b.textContent = ex ? '↩' : '✕';
+    b.title = ex ? 'Volver a incluir en el azar' : 'Excluir del azar'; b.setAttribute('aria-label', b.title + ': ' + x.titulo);
+    b.onclick = () => {
+      if (ex) bxEx = bxEx.filter(e => !(e.tipo === x.tipo && ((e.tmdb && x.tmdb && e.tmdb === x.tmdb) || (e.titulo && coNx(e.titulo) === coNx(x.titulo)))));
+      else bxEx.push({ tmdb: x.tmdb || 0, tipo: x.tipo, titulo: x.titulo });
+      bxPintar();
+    };
+    d.appendChild(b); box.appendChild(d);
+  });
+}
+async function bxCargarPosters() {
+  $('bx-res').textContent = 'Cargando tu biblioteca…';
+  const P = await coPuente();
+  if (!P || !P.bannerPosibles) throw new Error('No pude leer la biblioteca desde index.html. Reintenta en unos segundos.');
+  bxLista = P.bannerPosibles(); bxPintar();
+}
+async function bxCargarExcluidos() {
+  const j = await admin({ op: 'banner_excluidos' });
+  bxEx = (j.items || []).map(x => ({ ...x })); bxGuardado = JSON.stringify(bxLimpio()); bxCargado = true; bxPintar();
+}
+window.bxCargarExcluidos = bxCargarExcluidos; window.bxEsSucio = bxSucio;
+$('bx-cargar').onclick = () => con($('bx-cargar'), 'bx-m', async () => { await bxCargarPosters(); if (!bxCargado || !bxSucio()) await bxCargarExcluidos(); });
+$('bx-save').onclick = () => con($('bx-save'), 'bx-m', async () => {
+  if (!bxCargado) throw new Error('Verifica tu clave de administrador para cargar lo guardado antes de guardar.');
+  const j = await admin({ op: 'guardar_banner_excluidos', items: bxLimpio() });
+  bxEx = (j.items || []).map(x => ({ ...x })); bxGuardado = JSON.stringify(bxLimpio()); bxPintar();
+  msg('bx-m', 'Guardado: ' + bxEx.length + ' excluida(s). En la app se actualiza en menos de un minuto.', true);
+});
+$('bx-limpiar').onclick = () => { bxEx = []; bxPintar(); msg('bx-m', 'Se volverán a incluir todas. Falta guardar.', true); };
+document.querySelectorAll('#bx-tipo button').forEach(b => b.onclick = () => { bxTipo = b.dataset.t; document.querySelectorAll('#bx-tipo button').forEach(x => x.classList.toggle('on', x === b)); bxPintar(); });
+document.querySelectorAll('#bx-f button').forEach(b => b.onclick = () => { bxFiltro = b.dataset.f; document.querySelectorAll('#bx-f button').forEach(x => x.classList.toggle('on', x === b)); bxPintar(); });
+$('bx-q').addEventListener('input', bxPintar);
+bxPintar();
 /* ---- Editor del banner principal: dos versiones (h = horizontal, v = vertical) con vista previa en vivo ---- */
 const BP_DEF = [
   ['Póster', [
