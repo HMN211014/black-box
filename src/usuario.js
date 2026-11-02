@@ -317,6 +317,47 @@ async function guardarDatos(env, correo, texto) {
 const tipoDe = i => i.tipo === 'serie' || i.episodios || /\{(t|e|tt|ee)\}/.test(String(i.link || '')) ? 'serie' : 'pelicula';   // solo para lo que venía de KV sin "tipo"
 const epsDe = t => { try { const o = JSON.parse(t || '{}'); return o && typeof o === 'object' ? o : {}; } catch (e) { return {}; } };
 /* Ajustes del banner principal. Rango [mín, máx] para números; listas para opciones. Lo que no esté aquí se descarta. */
+/* Etiqueta CAM (película grabada en cine). Una sola lista para toda la biblioteca, venga del panel o de index.html:
+   [{ tmdb, tipo, titulo, cam: 1|0, q }]  ·  cam = 1 lleva la etiqueta; cam = 0 es una marca quitada a propósito (tapa un cam:true de index.html);
+   q = fecha (ms) en que se le quitó CAM: durante unos días sube al inicio de "Recientes". */
+const CAM_MAX = 1500;
+const normTitulo = t => String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+const camClave = (tipo, tmdb, titulo) => (tipo === 'serie' ? 'serie' : 'pelicula') + ':' + (Number(tmdb) > 0 ? Math.floor(Number(tmdb)) : 't-' + normTitulo(titulo));
+function limpiarCam(lista) {
+  const out = [], vistos = new Set();
+  (Array.isArray(lista) ? lista : []).forEach(x => {
+    if (!x || out.length >= CAM_MAX) return;
+    const tmdb = Math.max(0, Math.floor(Number(x.tmdb)) || 0), tipo = x.tipo === 'serie' ? 'serie' : 'pelicula', titulo = String(x.titulo || '').trim().slice(0, 200);
+    if (!tmdb && !titulo) return;
+    const k = camClave(tipo, tmdb, titulo); if (vistos.has(k)) return; vistos.add(k);
+    const q = Math.max(0, Math.floor(Number(x.q)) || 0);
+    out.push({ tmdb, tipo, titulo, cam: x.cam ? 1 : 0, q: x.cam ? 0 : q });
+  });
+  return out;
+}
+async function leerCam(db) {
+  try { const r = await db.prepare("SELECT valor FROM meta WHERE clave = 'cam_marcas'").first(); if (r && r.valor) return limpiarCam(JSON.parse(r.valor)); } catch (e) {}
+  return [];
+}
+const camActiva = (lista, tipo, tmdb, titulo) => { const m = lista.find(x => camClave(x.tipo, x.tmdb, x.titulo) === camClave(tipo, tmdb, titulo)); return !!(m && m.cam); };
+/* cambios: [{ tmdb, tipo, titulo, cam: true|false, antes?: true|false }]. Al quitar CAM a un título que la tenía, se anota la fecha (sube en Recientes).
+   "antes" lo manda el panel cuando la etiqueta venía escrita en index.html y aquí todavía no había marca. */
+async function aplicarCam(db, cambios) {
+  const lista = await leerCam(db), ahora = Date.now();
+  for (const c of cambios) {
+    const tmdb = Math.max(0, Math.floor(Number(c.tmdb)) || 0), tipo = c.tipo === 'serie' ? 'serie' : 'pelicula', titulo = String(c.titulo || '').trim().slice(0, 200);
+    if (!tmdb && !titulo) continue;
+    const k = camClave(tipo, tmdb, titulo), i = lista.findIndex(x => camClave(x.tipo, x.tmdb, x.titulo) === k), m = i >= 0 ? lista[i] : null;
+    const tenia = m ? !!m.cam : c.antes === true;
+    if (c.cam) { if (m) { m.cam = 1; m.q = 0; if (titulo) m.titulo = titulo; } else lista.push({ tmdb, tipo, titulo, cam: 1, q: 0 }); }
+    else if (tenia) { if (m) { m.cam = 0; m.q = ahora; } else lista.push({ tmdb, tipo, titulo, cam: 0, q: ahora }); }
+    else if (m && m.cam) { m.cam = 0; m.q = ahora; }
+  }
+  const v = limpiarCam(lista);
+  await db.prepare('CREATE TABLE IF NOT EXISTS meta (clave TEXT PRIMARY KEY, valor TEXT) WITHOUT ROWID').run();
+  await db.prepare("INSERT INTO meta (clave, valor) VALUES ('cam_marcas', ?1) ON CONFLICT(clave) DO UPDATE SET valor = ?1").bind(JSON.stringify(v)).run();
+  return v;
+}
 /* Títulos que el administrador no quiere que salgan cuando el banner se elige al azar: [{ tmdb, tipo, titulo }] */
 const BAN_EXC_MAX = 600;
 function limpiarBannerExcluidos(lista) {
@@ -362,7 +403,6 @@ function prepararCatalogo(db, kv) {
     ]);
     try { await db.prepare("ALTER TABLE publicados ADD COLUMN version TEXT NOT NULL DEFAULT 'latino'").run(); } catch (e) { if (!/duplicate column/i.test(String(e && e.message))) throw e; }
     try { await db.prepare('ALTER TABLE publicados ADD COLUMN proximamente INTEGER NOT NULL DEFAULT 0').run(); } catch (e) { if (!/duplicate column/i.test(String(e && e.message))) throw e; }
-    try { await db.prepare('ALTER TABLE publicados ADD COLUMN cam INTEGER NOT NULL DEFAULT 0').run(); } catch (e) { if (!/duplicate column/i.test(String(e && e.message))) throw e; }      // 1 = calidad CAM (grabada en cine): se muestra una etiqueta sobre el póster
     const hecho = await db.prepare("SELECT valor FROM meta WHERE clave = 'catalogo_desde_kv'").first();
     if (hecho) return;
     let items = [], leido = true;
@@ -732,8 +772,8 @@ async function manejar({ request, env, params, waitUntil }) {
     try {
       if (db) {
         await prepararCatalogo(db, kv);
-        const r = await db.prepare('SELECT titulo, tmdb, link, tipo, episodios, version, proximamente, cam FROM publicados ORDER BY creado, tmdb').all();
-        items = r.results.map(i => { const eps = epsDe(i.episodios), px = !!i.proximamente; return { titulo: i.titulo, tmdb: i.tmdb, link: px ? '' : i.link, version: i.version === 'subtitulada' ? 'subtitulada' : 'latino', ...(px ? { proximamente: true } : {}), ...(i.cam ? { cam: true } : {}), ...(i.tipo === 'serie' ? { tipo: 'serie' } : {}), ...(!px && Object.keys(eps).length ? { episodios: eps } : {}) }; });
+        const r = await db.prepare('SELECT titulo, tmdb, link, tipo, episodios, version, proximamente FROM publicados ORDER BY creado, tmdb').all();
+        items = r.results.map(i => { const eps = epsDe(i.episodios), px = !!i.proximamente; return { titulo: i.titulo, tmdb: i.tmdb, link: px ? '' : i.link, version: i.version === 'subtitulada' ? 'subtitulada' : 'latino', ...(px ? { proximamente: true } : {}), ...(i.tipo === 'serie' ? { tipo: 'serie' } : {}), ...(!px && Object.keys(eps).length ? { episodios: eps } : {}) }; });
       }
     } catch (e) { console.error('[extras]', e && e.message); }
     let cols = [];
@@ -752,6 +792,8 @@ async function manejar({ request, env, params, waitUntil }) {
     try { if (db) { const r = await db.prepare("SELECT valor FROM meta WHERE clave = 'introdb_aviso'").first(); if (r && r.valor) { const v = JSON.parse(r.valor); const n = Number(v && v.segundos); if (Number.isInteger(n)) introdbAviso.segundos = Math.max(-300, Math.min(600, n)); } } } catch (e) {}
     let sug = {};
     try { if (db) { const r = await db.prepare("SELECT valor FROM meta WHERE clave = 'sugerencia'").first(); if (r && r.valor) sug = JSON.parse(r.valor) || {}; } } catch (e) {}
+    let camEx = [];
+    try { if (db) camEx = await leerCam(db); } catch (e) {}
     let banEx = [];
     try { if (db) { const r = await db.prepare("SELECT valor FROM meta WHERE clave = 'banner_excluidos'").first(); if (r && r.valor) banEx = limpiarBannerExcluidos(JSON.parse(r.valor)); } } catch (e) {}
     let banAj = { h: {}, v: {} };
@@ -761,7 +803,7 @@ async function manejar({ request, env, params, waitUntil }) {
     let anun = limpiarAnuncios({});
     try { if (db) { const r = await db.prepare("SELECT valor FROM meta WHERE clave = 'anuncios'").first(); if (r && r.valor) anun = limpiarAnuncios(JSON.parse(r.valor)); } } catch (e) {}
     anun = { activo: anun.activo, items: anun.items.filter(x => x.activo), google: anun.google };
-    const js ='window.ANUNCIOS_EXTRA=' + JSON.stringify(anun).replace(/</g, '\\u003c') + ';window.PELICULAS_EXTRA=' + JSON.stringify(items).replace(/</g, '\\u003c') + ';window.COLECCIONES_EXTRA=' + JSON.stringify(cols).replace(/</g, '\\u003c') + ';window.SECCIONES_EXTRA=' + JSON.stringify(secs).replace(/</g, '\\u003c') + ';window.ACCESO_EXTRA=' + JSON.stringify(acc).replace(/</g, '\\u003c') + ';window.EFECTOS_EXTRA=' + JSON.stringify(efe).replace(/</g, '\\u003c') + ';window.INTERACCIONES_EXTRA=' + JSON.stringify(inter).replace(/</g, '\\u003c') + ';window.INTRODB_EXTRA=' + JSON.stringify(introdb).replace(/</g, '\\u003c') + ';window.INTRODB_AVISO_EXTRA=' + JSON.stringify(introdbAviso) + ';window.SUGERENCIA_EXTRA=' + JSON.stringify(sug).replace(/</g, '\\u003c') + ';window.BANNER_EXTRA=' + JSON.stringify(ban).replace(/</g, '\\u003c') + ';window.BANNER_AJUSTES=' + JSON.stringify(banAj) + ';window.BANNER_EXCLUIDOS=' + JSON.stringify(banEx).replace(/</g, '\\u003c') + ';';
+    const js ='window.ANUNCIOS_EXTRA=' + JSON.stringify(anun).replace(/</g, '\\u003c') + ';window.PELICULAS_EXTRA=' + JSON.stringify(items).replace(/</g, '\\u003c') + ';window.COLECCIONES_EXTRA=' + JSON.stringify(cols).replace(/</g, '\\u003c') + ';window.SECCIONES_EXTRA=' + JSON.stringify(secs).replace(/</g, '\\u003c') + ';window.ACCESO_EXTRA=' + JSON.stringify(acc).replace(/</g, '\\u003c') + ';window.EFECTOS_EXTRA=' + JSON.stringify(efe).replace(/</g, '\\u003c') + ';window.INTERACCIONES_EXTRA=' + JSON.stringify(inter).replace(/</g, '\\u003c') + ';window.INTRODB_EXTRA=' + JSON.stringify(introdb).replace(/</g, '\\u003c') + ';window.INTRODB_AVISO_EXTRA=' + JSON.stringify(introdbAviso) + ';window.SUGERENCIA_EXTRA=' + JSON.stringify(sug).replace(/</g, '\\u003c') + ';window.BANNER_EXTRA=' + JSON.stringify(ban).replace(/</g, '\\u003c') + ';window.BANNER_AJUSTES=' + JSON.stringify(banAj) + ';window.BANNER_EXCLUIDOS=' + JSON.stringify(banEx).replace(/</g, '\\u003c') + ';window.CAM_EXTRA=' + JSON.stringify(camEx).replace(/</g, '\\u003c') + ';';
     return new Response(js, { headers: { 'Content-Type': 'application/javascript; charset=utf-8', 'Cache-Control': 'public, max-age=30' } });
   }
 
@@ -945,11 +987,11 @@ async function manejar({ request, env, params, waitUntil }) {
       await prepararCatalogo(db, kv);
       const tipo = cuerpo.tipo === 'serie' ? 'serie' : 'pelicula';
       const version = cuerpo.version === 'subtitulada' ? 'subtitulada' : cuerpo.version === 'latino' ? 'latino' : null;
-      const cam = cuerpo.cam === true ? 1 : cuerpo.cam === false ? 0 : null;
       const ya = await db.prepare('SELECT 1 AS x FROM publicados WHERE tmdb = ?1').bind(tmdb).first();
       if (!ya && (await totalPublicados(db)) >= 1500) return json({ error: 'Ya hay demasiadas películas publicadas desde el panel.' }, 400);
-      await db.prepare("INSERT INTO publicados (tmdb, titulo, tipo, link, episodios, version, proximamente, cam, creado) VALUES (?1, ?2, ?3, ?4, '{}', COALESCE(?5, 'latino'), 0, COALESCE(?7, 0), ?6) ON CONFLICT(tmdb) DO UPDATE SET titulo = ?2, tipo = ?3, link = ?4, version = COALESCE(?5, publicados.version), proximamente = 0, cam = COALESCE(?7, publicados.cam)")
-        .bind(tmdb, titulo, tipo, link, version, Date.now(), cam).run();       // si ya existía, se conservan sus capítulos sueltos
+      await db.prepare("INSERT INTO publicados (tmdb, titulo, tipo, link, episodios, version, proximamente, creado) VALUES (?1, ?2, ?3, ?4, '{}', COALESCE(?5, 'latino'), 0, ?6) ON CONFLICT(tmdb) DO UPDATE SET titulo = ?2, tipo = ?3, link = ?4, version = COALESCE(?5, publicados.version), proximamente = 0")
+        .bind(tmdb, titulo, tipo, link, version, Date.now()).run();
+      if (typeof cuerpo.cam === 'boolean') await aplicarCam(db, [{ tmdb, tipo, titulo, cam: cuerpo.cam }]);       // si ya existía, se conservan sus capítulos sueltos
       if (cuerpo.introdb !== undefined) await guardarIntroDbTitulo(db, tmdb, tipo, titulo, cuerpo.introdb === true);
       let lista = null;
       if (cuerpo.correo) {
@@ -962,8 +1004,9 @@ async function manejar({ request, env, params, waitUntil }) {
 
     if (cuerpo.op === 'publicadas') {
       await prepararCatalogo(db, kv);
-      const r = await db.prepare('SELECT titulo, tmdb, link, tipo, episodios, version, proximamente, cam FROM publicados ORDER BY creado DESC').all();
-      return json({ items: r.results.map(i => ({ titulo: i.titulo, tmdb: i.tmdb, link: i.link, tipo: i.tipo, version: i.version === 'subtitulada' ? 'subtitulada' : 'latino', proximamente: !!i.proximamente, cam: !!i.cam, eps: Object.keys(epsDe(i.episodios)).length })) });
+      const r = await db.prepare('SELECT titulo, tmdb, link, tipo, episodios, version, proximamente FROM publicados ORDER BY creado DESC').all();
+      const marcas = await leerCam(db);
+      return json({ items: r.results.map(i => ({ titulo: i.titulo, tmdb: i.tmdb, link: i.link, tipo: i.tipo, version: i.version === 'subtitulada' ? 'subtitulada' : 'latino', proximamente: !!i.proximamente, cam: camActiva(marcas, i.tipo, i.tmdb, i.titulo), eps: Object.keys(epsDe(i.episodios)).length })) });
     }
 
     if (cuerpo.op === 'r2_buscar') {
@@ -978,10 +1021,10 @@ async function manejar({ request, env, params, waitUntil }) {
       if (version !== 'latino' && version !== 'subtitulada') return json({ error: 'Elige Español latino o Subtitulada.' }, 400);
       const existe = await db.prepare('SELECT 1 AS x FROM publicados WHERE tmdb = ?1').bind(tmdb).first();
       if (!existe) return json({ error: 'Ese título ya no está registrado en la biblioteca.' }, 404);
-      const cam = cuerpo.cam === true ? 1 : cuerpo.cam === false ? 0 : null;
-      await db.prepare('UPDATE publicados SET version = ?2, cam = COALESCE(?3, cam) WHERE tmdb = ?1').bind(tmdb, version, cam).run();
-      const fila = await db.prepare('SELECT cam FROM publicados WHERE tmdb = ?1').bind(tmdb).first();
-      return json({ tmdb, version, cam: !!(fila && fila.cam) });
+      await db.prepare('UPDATE publicados SET version = ?2 WHERE tmdb = ?1').bind(tmdb, version).run();
+      const fila = await db.prepare('SELECT titulo, tipo FROM publicados WHERE tmdb = ?1').bind(tmdb).first();
+      if (typeof cuerpo.cam === 'boolean') await aplicarCam(db, [{ tmdb, tipo: fila.tipo, titulo: fila.titulo, cam: cuerpo.cam }]);
+      return json({ tmdb, version, cam: camActiva(await leerCam(db), fila.tipo, tmdb, fila.titulo) });
     }
 
     if (cuerpo.op === 'actualizar_publicacion') {
@@ -991,8 +1034,8 @@ async function manejar({ request, env, params, waitUntil }) {
       if (!tmdb || !titulo || !version) return json({ error: 'Faltan el título o la versión.' }, 400);
       const existe = await db.prepare('SELECT 1 AS x FROM publicados WHERE tmdb = ?1').bind(tmdb).first();
       if (!existe) return json({ error: 'Este título no está publicado desde Admin. Para agregarlo por primera vez necesitas su enlace.' }, 404);
-      const cam = cuerpo.cam === true ? 1 : cuerpo.cam === false ? 0 : null;
-      await db.prepare('UPDATE publicados SET titulo = ?2, tipo = ?3, version = ?4, cam = COALESCE(?5, cam) WHERE tmdb = ?1').bind(tmdb, titulo, tipo, version, cam).run();
+      await db.prepare('UPDATE publicados SET titulo = ?2, tipo = ?3, version = ?4 WHERE tmdb = ?1').bind(tmdb, titulo, tipo, version).run();
+      if (typeof cuerpo.cam === 'boolean') await aplicarCam(db, [{ tmdb, tipo, titulo, cam: cuerpo.cam }]);
       if (cuerpo.introdb !== undefined) await guardarIntroDbTitulo(db, tmdb, tipo, titulo, cuerpo.introdb === true);
       return json({ tmdb, titulo, tipo, version, actualizada: true });
     }
@@ -1066,6 +1109,11 @@ async function manejar({ request, env, params, waitUntil }) {
       return json({ ok: true });
     }
 
+    if (cuerpo.op === 'cam_marcas') return json({ items: await leerCam(db) });
+    if (cuerpo.op === 'guardar_cam') {
+      const cambios = (Array.isArray(cuerpo.cambios) ? cuerpo.cambios : []).slice(0, 500).filter(c => c && typeof c.cam === 'boolean');
+      return json({ ok: true, items: await aplicarCam(db, cambios) });
+    }
     if (cuerpo.op === 'banner_excluidos') {
       let v = [];
       try { const r = await db.prepare("SELECT valor FROM meta WHERE clave = 'banner_excluidos'").first(); if (r && r.valor) v = limpiarBannerExcluidos(JSON.parse(r.valor)); } catch (e) {}

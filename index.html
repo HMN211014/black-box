@@ -1907,12 +1907,26 @@ const peliculas = (window.PELICULAS_DB && window.PELICULAS_DB.length) ? window.P
   if (existente) {
     if (x.proximamente) { existente.link = ''; existente.enlace = ''; existente.plantilla = ''; delete existente.episodios; existente.proximamente = true; }
     if (x.version) existente.version = x.version;
-    if (x.cam) existente.cam = true;
     return;
   }
   if (x.link || x.proximamente || (sr && x.episodios))
-    peliculas.push(sr ? { titulo: x.titulo, tipo: 'serie', tmdb: x.tmdb, version: x.version, cam: !!x.cam, proximamente: !!x.proximamente, enlace: x.proximamente ? '' : (x.link || ''), ...(!x.proximamente && x.episodios ? { episodios: x.episodios } : {}) } : { titulo: x.titulo, tmdb: x.tmdb, version: x.version, cam: !!x.cam, proximamente: !!x.proximamente, link: x.proximamente ? '' : x.link });
+    peliculas.push(sr ? { titulo: x.titulo, tipo: 'serie', tmdb: x.tmdb, version: x.version, proximamente: !!x.proximamente, enlace: x.proximamente ? '' : (x.link || ''), ...(!x.proximamente && x.episodios ? { episodios: x.episodios } : {}) } : { titulo: x.titulo, tmdb: x.tmdb, version: x.version, proximamente: !!x.proximamente, link: x.proximamente ? '' : x.link });
 });
+/* Etiqueta CAM (película grabada en cine) elegida desde el panel: aplica a cualquier título, venga de index.html o del panel.
+   cam:1 = lleva la etiqueta · cam:0 = se la quitaron (tapa un cam:true escrito en index.html) y q = cuándo, para subirla en "Recientes". */
+(function () {
+  const marcas = Array.isArray(window.CAM_EXTRA) ? window.CAM_EXTRA : [];
+  if (!marcas.length) return;
+  const nt = t => String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+  const clave = (tipo, id, t) => (tipo === 'serie' ? 'serie' : 'pelicula') + ':' + (id > 0 ? id : 't-' + nt(t));
+  const mapa = new Map(marcas.map(m => [clave(m.tipo, Number(m.tmdb) || 0, m.titulo), m]));
+  peliculas.forEach(p => {
+    const tipo = p.tipo === 'serie' ? 'serie' : 'pelicula', id = Number(p.tmdbId || p.tmdb) || 0;
+    const m = mapa.get(clave(tipo, id, p.titulo)) || (id ? mapa.get(clave(tipo, 0, p.titulo)) : null);
+    if (!m) return;
+    p.cam = !!m.cam; if (!m.cam && m.q) p.camQuitado = Number(m.q) || 0;
+  });
+})();
 /* Colecciones creadas desde el panel de admin: se suman a las de colecciones.js (si un id se repite, la versión del panel reemplaza a la del archivo en su mismo lugar; el archivo no se toca). */
 if (typeof COLECCIONES !== 'undefined') (window.COLECCIONES_EXTRA || []).forEach(c => { if (!c || !c.id) return; const i = COLECCIONES.findIndex(x => x.id === c.id); if (i < 0) COLECCIONES.push(c); else COLECCIONES[i] = c; });
 else if ((window.COLECCIONES_EXTRA || []).length) window.COLECCIONES = window.COLECCIONES_EXTRA.slice();
@@ -3587,9 +3601,13 @@ function irA(v, desdeRuta) {                         // v: inicio | series | ped
    Si la base de datos trae una fecha (creado / created_at / agregado / fecha_subida) se ordena por ella;
    si no, por la posición en la lista. RECIENTES_AL_FINAL = true -> las últimas subidas son las del final de la lista. */
 const RECIENTES_AL_FINAL = true, RECIENTES_MAX = 40;
+const RECIENTES_SIN_CAM_DIAS = 14;                    // una película a la que se le quita la etiqueta CAM sube al inicio de Recientes durante estos días
 const fechaSubida = p => { const v = p.creado || p.created_at || p.agregado || p.fecha_subida || p.subida || ''; const t = v ? Date.parse(v) : NaN; return isNaN(t) ? null : t; };
 function pintarRecientes() {
+  const ahora = Date.now(), ventana = RECIENTES_SIN_CAM_DIAS * 864e5, sinCam = p => !p.cam && p.camQuitado && ahora - p.camQuitado < ventana;
   const lista = [...peliculas].sort((a, b) => {
+    const sa = sinCam(a), sb = sinCam(b);
+    if (sa || sb) return sa && sb ? b.camQuitado - a.camQuitado : sa ? -1 : 1;     // las que ya no son CAM, primero (la más reciente arriba)
     const x = fechaSubida(a), y = fechaSubida(b);
     if (x !== null && y !== null && x !== y) return y - x;                       // fecha más nueva primero
     return RECIENTES_AL_FINAL ? b._i - a._i : a._i - b._i;                      // si no hay fecha: por posición en la lista
@@ -5159,8 +5177,8 @@ window.colExplica = id => {                            // consola:  colExplica("
 /* Puente para el panel de admin (admin.html lo lee desde un iframe oculto): la biblioteca real y quién entra de verdad en una colección. */
 window.bbPuente = {
   ver: () => datosVer, norm,
-  biblioteca: () => peliculas.map(p => ({ titulo: p.titulo, tmdb: Number(p.tmdbId || p.tmdb) || 0, tipo: p.tipo === 'serie' ? 'serie' : 'pelicula', poster: p.poster || '', anio: p.anio || '' })),
-  bannerPosibles: () => { const f = p => ({ titulo: p.titulo, tmdb: Number(p.tmdbId || p.tmdb) || 0, tipo: p.tipo === 'serie' ? 'serie' : 'pelicula', poster: p.poster || '', anio: p.anio || '' }); return { peliculas: peliculas.map(f), series: series.map(f), anio: ANIO_ACTUAL, n: BANNER_N }; },
+  biblioteca: () => peliculas.map(p => ({ titulo: p.titulo, tmdb: Number(p.tmdbId || p.tmdb) || 0, tipo: p.tipo === 'serie' ? 'serie' : 'pelicula', poster: p.poster || '', anio: p.anio || '', cam: !!p.cam })),
+  bannerPosibles: () => { const f = p => ({ titulo: p.titulo, tmdb: Number(p.tmdbId || p.tmdb) || 0, tipo: p.tipo === 'serie' ? 'serie' : 'pelicula', poster: p.poster || '', anio: p.anio || '', cam: !!p.cam }); return { peliculas: peliculas.map(f), series: series.map(f), anio: ANIO_ACTUAL, n: BANNER_N }; },
   miembrosDe: id => { const c = typeof COLECCIONES !== 'undefined' && COLECCIONES.find(x => x.id === id); return c ? pelisDe(c).map(p => ({ titulo: p.titulo, tmdb: Number(p.tmdbId || p.tmdb) || 0, tipo: p.tipo === 'serie' ? 'serie' : 'pelicula', anio: p.anio || '' })) : []; },
   miembros: c => { const k = c.id || '_borrador'; colCache.delete(k); try { return resolverCol({ ...c, id: k }).lista.map(p => ({ titulo: p.titulo, tmdb: Number(p.tmdbId || p.tmdb) || 0, poster: p.poster || '', anio: p.anio || '' })); } finally { colCache.delete(k); } }
 };

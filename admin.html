@@ -335,6 +335,17 @@ body:not(.h) .nav button.on{background:#fff;color:#000}
     <div id="x-lista"></div>
   </div>
 
+  <div class="c w" data-g="biblioteca" id="cm-card">
+    <h2>Etiqueta CAM de toda la biblioteca</h2>
+    <p class="s">Marca qué películas son <b>CAM</b> (grabadas en cine): en la app llevan una etiqueta pequeña «CAM» en la esquina del póster. Aquí salen todas, las publicadas desde el panel y las de <b>index.html</b>. Cuando le <b>quitas CAM</b> a una película (porque ya hay una versión buena), sube al inicio de <b>Recientes</b> durante 14 días.</p>
+    <label>Buscar<input id="cm-q" type="search" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Nombre de la película"></label>
+    <div class="bx-bar" id="cm-f"><button class="g on" type="button" data-f="todas">Todas</button><button class="g" type="button" data-f="cam">Con CAM</button><button class="g" type="button" data-f="sin">Sin CAM</button><button class="g" type="button" data-f="cambios">Con cambios</button></div>
+    <p class="s" id="cm-res"></p>
+    <p class="m" id="cm-m" role="status" aria-live="polite" hidden></p>
+    <div class="row" style="margin-top:10px"><button class="g" id="cm-cargar" type="button">Cargar películas</button><button id="cm-save" type="button" disabled>Guardar cambios</button></div>
+    <div class="bx-grid" id="cm-grid"></div>
+  </div>
+
   <div class="c" data-g="biblioteca">
     <h2>Lista de películas por año</h2>
     <p class="s">Junta los nombres de todas las películas registradas (las de <b>index.html</b> y las publicadas desde aquí), ordenadas del año más reciente al más antiguo, y las deja listas para copiar.</p>
@@ -419,6 +430,9 @@ body:not(.h) .nav button.on{background:#fff;color:#000}
       .bx-t .n small{display:block;color:#a1a1a6;margin-top:2px}
       .bx-t .y{position:absolute;left:6px;top:6px;padding:2px 7px;border-radius:999px;background:rgba(0,0,0,.65);font-size:11px;font-weight:700}
       .bx-t button{position:absolute;right:6px;top:6px;width:32px;height:32px;padding:0;border-radius:50%;font-size:14px;line-height:1}
+      .bx-t.cm-on{border-color:#ffd60a}
+      .bx-t.cm-cambio{box-shadow:0 0 0 2px #0a84ff}
+      .cm-tag{position:absolute;left:6px;bottom:44px;padding:2px 7px;border-radius:6px;background:#ffd60a;color:#000;font-size:11px;font-weight:800;letter-spacing:.06em}
       .bx-t.ex{border-color:#ff453a}
       .bx-t.ex img{filter:grayscale(1) brightness(.45)}
       .bx-t.ex::after{content:"Excluida";position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);text-align:center;font-weight:700;font-size:13px;color:#ff6961}
@@ -882,6 +896,58 @@ function efPoner(o) { efSliders.forEach(s => { const v = o && (s.dataset.ef === 
 $('ef-reset').onclick = () => { efPoner({}); msg('ef-m', 'Se pusieron los valores de fábrica. Falta guardar.', true); };
 $('ef-cargar').onclick = () => con($('ef-cargar'), 'ef-m', async () => { efPoner((await admin({ op: 'efectos' })).item || {}); msg('ef-m', 'Se cargó lo que está guardado.', true); });
 $('ef-go').onclick = () => con($('ef-go'), 'ef-m', async () => { await admin({ op: 'guardar_efectos', efectos: efLeer() }); msg('ef-m', 'Guardado. En la app se actualiza en menos de un minuto.', true); });
+/* ---- Etiqueta CAM de toda la biblioteca ---- */
+let cmLista = null, cmOrig = new Map(), cmDes = new Map(), cmFiltro = 'todas';
+const cmK = x => camKeyAd(x.tipo, x.tmdb, x.titulo);
+const cmCambios = () => (cmLista || []).filter(x => cmDes.get(cmK(x)) !== cmOrig.get(cmK(x)));
+function cmPintar() {
+  const box = $('cm-grid'); box.replaceChildren();
+  $('cm-save').disabled = !cmCambios().length;
+  if (!cmLista) { $('cm-res').textContent = 'Toca "Cargar películas" para ver tu biblioteca.'; return; }
+  const q = coNx($('cm-q').value);
+  const vis = cmLista.filter(x => (!q || coNx(x.titulo).includes(q)) && (cmFiltro === 'todas' || (cmFiltro === 'cam' && cmDes.get(cmK(x))) || (cmFiltro === 'sin' && !cmDes.get(cmK(x))) || (cmFiltro === 'cambios' && cmDes.get(cmK(x)) !== cmOrig.get(cmK(x)))))
+    .sort((a, b) => (+b.anio || 0) - (+a.anio || 0) || a.titulo.localeCompare(b.titulo, 'es'));
+  const nCam = cmLista.filter(x => cmDes.get(cmK(x))).length, nCamb = cmCambios().length;
+  $('cm-res').textContent = cmLista.length + ' películas · ' + nCam + ' con CAM' + (nCamb ? ' · ' + nCamb + ' cambio(s) sin guardar' : '') + (vis.length !== cmLista.length ? ' · mostrando ' + vis.length : '');
+  vis.forEach(x => {
+    const on = !!cmDes.get(cmK(x)), cambio = cmDes.get(cmK(x)) !== cmOrig.get(cmK(x)), d = document.createElement('div');
+    d.className = 'bx-t' + (on ? ' cm-on' : '') + (cambio ? ' cm-cambio' : '');
+    if (x.poster) { const i = new Image(); i.alt = ''; i.loading = 'lazy'; i.src = x.poster.charAt(0) === '/' ? COIMG + 'w185' + x.poster : x.poster; i.onerror = () => i.remove(); d.appendChild(i); }
+    if (x.anio) { const y = document.createElement('span'); y.className = 'y'; y.textContent = x.anio; d.appendChild(y); }
+    if (on) { const c = document.createElement('span'); c.className = 'cm-tag'; c.textContent = 'CAM'; d.appendChild(c); }
+    const n = document.createElement('div'); n.className = 'n'; n.textContent = x.titulo; d.appendChild(n);
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'g'; b.textContent = on ? '✓' : '+';
+    b.title = on ? 'Quitar CAM' : 'Marcar como CAM'; b.setAttribute('aria-label', b.title + ': ' + x.titulo);
+    b.onclick = () => { cmDes.set(cmK(x), !on); cmPintar(); };
+    d.appendChild(b); box.appendChild(d);
+  });
+}
+async function cmCargar() {
+  $('cm-res').textContent = 'Cargando tu biblioteca…';
+  const P = await coPuente();
+  if (!P || !P.bannerPosibles) throw new Error('No pude leer la biblioteca desde index.html. Reintenta en unos segundos.');
+  const [pos, mj] = [P.bannerPosibles(), await admin({ op: 'cam_marcas' })];
+  const marcas = mj.items || [], vistos = new Set();
+  cmLista = pos.peliculas.filter(x => { if (!x.titulo) return false; const k = cmK(x); if (vistos.has(k)) return false; vistos.add(k); return true; });
+  cmOrig = new Map(); cmDes = new Map();
+  cmLista.forEach(x => {
+    const m = marcas.find(z => camKeyAd(z.tipo, z.tmdb, z.titulo) === cmK(x)), on = m ? !!m.cam : !!x.cam;      // lo guardado manda sobre lo que trae la página
+    cmOrig.set(cmK(x), on); cmDes.set(cmK(x), on);
+  });
+  cmPintar();
+}
+$('cm-cargar').onclick = () => con($('cm-cargar'), 'cm-m', async () => { if (cmCambios().length && !confirm('Hay cambios sin guardar. ¿Volver a cargar y perderlos?')) return; await cmCargar(); });
+$('cm-save').onclick = async () => { await con($('cm-save'), 'cm-m', async () => {
+  const camb = cmCambios(); if (!camb.length) return;
+  await admin({ op: 'guardar_cam', cambios: camb.map(x => ({ tmdb: x.tmdb, tipo: x.tipo, titulo: x.titulo, cam: !!cmDes.get(cmK(x)), antes: !!cmOrig.get(cmK(x)) })) });
+  const quitadas = camb.filter(x => !cmDes.get(cmK(x))).length;
+  camb.forEach(x => cmOrig.set(cmK(x), !!cmDes.get(cmK(x))));
+  cmPintar();
+  msg('cm-m', 'Guardado: ' + camb.length + ' cambio(s).' + (quitadas ? ' ' + quitadas + ' película(s) sin CAM suben al inicio de Recientes.' : '') + ' En la app se actualiza en menos de un minuto.', true);
+}); cmPintar(); };      // con() reactiva el botón al terminar: se vuelve a apagar si no quedan cambios
+document.querySelectorAll('#cm-f button').forEach(b => b.onclick = () => { cmFiltro = b.dataset.f; document.querySelectorAll('#cm-f button').forEach(x => x.classList.toggle('on', x === b)); cmPintar(); });
+$('cm-q').addEventListener('input', cmPintar);
+cmPintar();
 /* ---- Banner al azar: ver los pósters que pueden salir y excluir los que no ---- */
 const bxCl = x => (x.tipo === 'serie' ? 's' : 'p') + ':' + (x.tmdb || 'n' + coNx(x.titulo));
 const coNx = t => String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
@@ -930,12 +996,12 @@ async function bxCargarExcluidos() {
 }
 window.bxCargarExcluidos = bxCargarExcluidos; window.bxEsSucio = bxSucio;
 $('bx-cargar').onclick = () => con($('bx-cargar'), 'bx-m', async () => { await bxCargarPosters(); if (!bxCargado || !bxSucio()) await bxCargarExcluidos(); });
-$('bx-save').onclick = () => con($('bx-save'), 'bx-m', async () => {
+$('bx-save').onclick = async () => { await con($('bx-save'), 'bx-m', async () => {
   if (!bxCargado) throw new Error('Verifica tu clave de administrador para cargar lo guardado antes de guardar.');
   const j = await admin({ op: 'guardar_banner_excluidos', items: bxLimpio() });
   bxEx = (j.items || []).map(x => ({ ...x })); bxGuardado = JSON.stringify(bxLimpio()); bxPintar();
   msg('bx-m', 'Guardado: ' + bxEx.length + ' excluida(s). En la app se actualiza en menos de un minuto.', true);
-});
+}); bxPintar(); };
 $('bx-limpiar').onclick = () => { bxEx = []; bxPintar(); msg('bx-m', 'Se volverán a incluir todas. Falta guardar.', true); };
 document.querySelectorAll('#bx-tipo button').forEach(b => b.onclick = () => { bxTipo = b.dataset.t; document.querySelectorAll('#bx-tipo button').forEach(x => x.classList.toggle('on', x === b)); bxPintar(); });
 document.querySelectorAll('#bx-f button').forEach(b => b.onclick = () => { bxFiltro = b.dataset.f; document.querySelectorAll('#bx-f button').forEach(x => x.classList.toggle('on', x === b)); bxPintar(); });
@@ -2436,9 +2502,13 @@ sePoner(null);
 
 /* ---- subir película o serie con datos de TMDB ---- */
 const TMDB_KEY = '28e735f7aea07e37f38a95d346bcdd7f', TMDB = 'https://api.themoviedb.org/3', IMG = 'https://image.tmdb.org/t/p/';
+let sCamOk = false, sCamIni = false;
+const camKeyAd = (tipo, tmdb, t) => (tipo === 'serie' ? 'serie' : 'pelicula') + ':' + (Number(tmdb) > 0 ? Math.floor(Number(tmdb)) : 't-' + coNx(t));
+const camActivaAd = (lista, tipo, tmdb, t) => { const k = camKeyAd(tipo, tmdb, t), m = lista.find(x => camKeyAd(x.tipo, x.tmdb, x.titulo) === k); return !!(m && m.cam); };
 let sElegido = null, sTemps = [], sEps = {}, sCache = {}, sDupOk = true, sDupTxt = '';   // sEps: capítulos ya publicados de la serie elegida ("1x3" → enlace)
 const sTipo = () => sElegido && sElegido.media_type === 'tv' ? 'serie' : 'pelicula';
-function sLimpiar() { sElegido = null; sTemps = []; sEps = {}; sCache = {}; sDupOk = true; $('s-dup').hidden = true; $('s-sel').hidden = true; $('s-introdb').checked = false; $('s-introdb').disabled = false; $('s-cam').checked = false; }
+const sCamCambio = () => (sCamOk && $('s-cam').checked !== sCamIni) ? { cam: $('s-cam').checked } : {};      // solo se manda si la cambiaste: si no, la etiqueta queda como estaba
+function sLimpiar() { sElegido = null; sTemps = []; sEps = {}; sCache = {}; sDupOk = true; $('s-dup').hidden = true; $('s-sel').hidden = true; $('s-introdb').checked = false; $('s-introdb').disabled = false; $('s-cam').checked = false; $('s-cam').disabled = false; sCamOk = false; }
 /* Buscador de TMDB reutilizable: escribe en inpId, pinta los resultados en resId y llama a alElegir(resultado) */
 function buscadorTmdb(inpId, resId, msgId, alElegir, marca) {
   let timer = null, n = 0;
@@ -2475,7 +2545,12 @@ function sElegir(r) {
   const serie = r.media_type === 'tv';
   const pub = (window.PELICULAS_EXTRA || []).find(x => Number(x.tmdb) === Number(r.id) && (x.tipo === 'serie') === serie);
   $('s-version').value = pub && pub.version === 'subtitulada' ? 'subtitulada' : 'latino';
-  $('s-cam').checked = !!(pub && pub.cam);
+  sCamOk = false; sCamIni = false; $('s-cam').checked = false; $('s-cam').disabled = true;
+  admin({ op: 'cam_marcas' }).then(j => {                                      // la etiqueta CAM guardada de este título
+    if (sElegido !== r) return;
+    sCamIni = camActivaAd(j.items || [], serie ? 'serie' : 'pelicula', r.id, r.title || r.name);
+    $('s-cam').checked = sCamIni; $('s-cam').disabled = false; sCamOk = true;
+  }).catch(() => { if (sElegido === r) $('s-cam').disabled = true; });
   $('s-introdb').checked = false; $('s-introdb').disabled = true;
   introdbAdminLeer().then(items => { if (sElegido === r) { $('s-introdb').checked = items.some(x => Number(x.tmdb) === Number(r.id) && x.tipo === (serie ? 'serie' : 'pelicula')); $('s-introdb').disabled = false; } }).catch(() => { if (sElegido === r) $('s-introdb').disabled = false; });
   $('s-img').src = r.poster_path ? IMG + 'w185' + r.poster_path : '';
@@ -2597,8 +2672,8 @@ $('s-go').onclick = () => con($('s-go'), 's-m', async () => {
   const serie = sTipo() === 'serie';
   if (link && serie && !/\{(e|ee)\}/.test(link)) throw new Error('En una serie el enlace debe llevar {e} (capítulo) y {t} (temporada). Usa los botones de arriba.');
   const j = link
-    ? await admin({ op: 'publicar', titulo, tmdb: sElegido.id, tipo: sTipo(), link, version: $('s-version').value, cam: $('s-cam').checked, introdb: $('s-introdb').checked })
-    : await admin({ op: 'actualizar_publicacion', titulo, tmdb: sElegido.id, tipo: sTipo(), version: $('s-version').value, cam: $('s-cam').checked, introdb: $('s-introdb').checked });
+    ? await admin({ op: 'publicar', titulo, tmdb: sElegido.id, tipo: sTipo(), link, version: $('s-version').value, ...sCamCambio(), introdb: $('s-introdb').checked })
+    : await admin({ op: 'actualizar_publicacion', titulo, tmdb: sElegido.id, tipo: sTipo(), version: $('s-version').value, ...sCamCambio(), introdb: $('s-introdb').checked });
   introdbAdminCacheTitulo(sElegido.id, sTipo(), titulo, $('s-introdb').checked);
   msg('s-m', (j.actualizada || !link ? 'Actualizada sin cambiar el enlace: ' : 'Publicada: ') + titulo + '. En menos de un minuto aparece en la biblioteca.', true);
   sLimpiar();

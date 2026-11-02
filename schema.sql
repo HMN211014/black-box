@@ -83,7 +83,6 @@ CREATE TABLE IF NOT EXISTS publicados (
   tipo      TEXT NOT NULL DEFAULT 'pelicula',   -- pelicula | serie
   link      TEXT NOT NULL DEFAULT '',           -- enlace de la película, o plantilla {t}/{e} de la serie
   episodios TEXT NOT NULL DEFAULT '{}',
-  cam       INTEGER NOT NULL DEFAULT 0,        -- 1 = calidad CAM (grabada en cine): se muestra una etiqueta CAM sobre el póster
   creado    INTEGER NOT NULL
 );
 
