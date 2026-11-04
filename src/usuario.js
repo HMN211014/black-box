@@ -371,6 +371,18 @@ async function guardarDatos(env, correo, texto) {
   if (env.DATOS) { await env.DATOS.put(claveDatos(correo), texto, { httpMetadata: { contentType: 'application/json' } }); return; }
   await env.DB.prepare('INSERT INTO datos (correo, json) VALUES (?1, ?2) ON CONFLICT(correo) DO UPDATE SET json = ?2').bind(correo, texto).run();
 }
+function limitarProgresoCuenta(prog) {
+  if (!prog || typeof prog !== 'object' || Array.isArray(prog)) return {};
+  const grupos = new Map();
+  for (const k of Object.keys(prog)) {
+    const m = /^(.*)\|(\d+)x(\d+)$/.exec(k), grupo = m ? 's:' + m[1] : 'p:' + k, f = Number(prog[k] && prog[k].f) || 0;
+    if (!grupos.has(grupo)) grupos.set(grupo, { f, keys: [] });
+    const g = grupos.get(grupo); g.f = Math.max(g.f, f); g.keys.push(k);
+  }
+  const conservar = new Set([...grupos.entries()].sort((a, b) => b[1].f - a[1].f).slice(0, 8).map(x => x[0]));
+  grupos.forEach((g, k) => { if (!conservar.has(k)) g.keys.forEach(x => { delete prog[x]; }); });
+  return prog;
+}
 
 /* ---- Catálogo publicado desde el panel: vive en D1 (tablas "publicados" y "meta").
    Antes estaba en KV (x:catalogo) y se agotaban las escrituras diarias: lo que haya en KV se copia solo, una vez, y después ya no se toca. ---- */
@@ -772,17 +784,17 @@ async function manejar({ request, env, params, waitUntil }) {
     if (esPost) {
       const d = cuerpo.datos;
       if (!d || typeof d !== 'object' || Array.isArray(d)) return json({ error: 'Datos no válidos.' }, 400);
+      const obj = x => x && typeof x === 'object' && !Array.isArray(x);
       const limpio = {
-        prog: d.prog && typeof d.prog === 'object' && !Array.isArray(d.prog) ? d.prog : {},
-        vis: d.vis && typeof d.vis === 'object' && !Array.isArray(d.vis) ? d.vis : {},
+        prog: limitarProgresoCuenta(obj(d.prog) ? d.prog : {}),
+        vis: obj(d.vis) ? d.vis : {},
       };
       const previo = await leerDatos(env, correo);
       /* Perfiles (los manda la app): lista con nombre/avatar, perfiles borrados y el progreso de cada uno. La web no los manda: se conservan. */
-      const obj = x => x && typeof x === 'object' && !Array.isArray(x);
       if (obj(d.perf) && Array.isArray(d.perf.lista) && obj(d.pp)) {
         const txt = (v, n) => String(v == null ? '' : v).slice(0, n);
         const lista = d.perf.lista.slice(0, 8).filter(x => obj(x) && x.id).map(x => ({ id: txt(x.id, 16), nombre: txt(x.nombre, 24) || 'Perfil', av: txt(x.av, 8), c: Number(x.c) | 0, f: Number(x.f) || 0 }));
-        const pp = {}; lista.forEach(x => { const v = d.pp[x.id]; pp[x.id] = obj(v) ? { prog: obj(v.prog) ? v.prog : {}, vis: obj(v.vis) ? v.vis : {} } : { prog: {}, vis: {} }; });
+        const pp = {}; lista.forEach(x => { const v = d.pp[x.id]; pp[x.id] = obj(v) ? { prog: limitarProgresoCuenta(obj(v.prog) ? v.prog : {}), vis: obj(v.vis) ? v.vis : {} } : { prog: {}, vis: {} }; });
         limpio.perf = { lista, activo: txt(d.perf.activo, 16), del: (Array.isArray(d.perf.del) ? d.perf.del : []).slice(0, 40).map(x => txt(x, 16)) };
         limpio.pp = pp;
       } else if (previo && previo.datos && previo.datos.perf) { limpio.perf = previo.datos.perf; limpio.pp = previo.datos.pp; }

@@ -3566,8 +3566,20 @@ else mic.onclick = () => {                                        // búsqueda p
 /* ---------- Continuar viendo (estilo Netflix) ----------
    El avance de cada película se guarda en este dispositivo (localStorage, clave "bbprog").
    Se considera terminada cuando faltan menos de ~4 % (mín. 90 s): sale de la fila. */
+const CONTINUAR_MAX = 8;
+function limitarProg(o) {
+  const grupos = new Map();
+  Object.keys(o || {}).forEach(k => {
+    const m = /^(.*)\|(\d+)x(\d+)$/.exec(k), grupo = m ? 's:' + m[1] : 'p:' + k, f = Number(o[k] && o[k].f) || 0;
+    if (!grupos.has(grupo)) grupos.set(grupo, { f, keys: [] });
+    const g = grupos.get(grupo); g.f = Math.max(g.f, f); g.keys.push(k);
+  });
+  const conservar = new Set([...grupos.entries()].sort((a, b) => b[1].f - a[1].f).slice(0, CONTINUAR_MAX).map(x => x[0]));
+  grupos.forEach((g, k) => { if (!conservar.has(k)) g.keys.forEach(x => { delete o[x]; }); });
+  return o;
+}
 function leerProg() { try { return JSON.parse(localStorage.getItem('bbprog')) || {}; } catch (e) { return {}; } }
-function escribirProg(o) { try { localStorage.setItem('bbprog', JSON.stringify(o)); } catch (e) {} if (window.bbSync) window.bbSync(); }
+function escribirProg(o) { limitarProg(o); try { localStorage.setItem('bbprog', JSON.stringify(o)); } catch (e) {} if (window.bbSync) window.bbSync(); }
 function hayProg(p) { return conEpisodios(p) ? (!!ultimoProgKey(p, leerProg()) || !!leerVistos()[p.titulo]) : !!leerProg()[p.titulo]; }
 function quitarProg(p) { const o = leerProg(); delete o[p.titulo]; escribirProg(o); }
 function guardar(forzar) {
@@ -3585,7 +3597,9 @@ function guardar(forzar) {
 const cont = H('cont'), ctrack = H('ctrack');
 const quedan = s => { const m = Math.max(1, Math.round(s / 60)); return m >= 60 ? Math.floor(m / 60) + ' h ' + (m % 60) + ' min' : m + ' min'; };
 function actualizarCont() {
-  const pr = leerProg(), lista = [];
+  const pr = leerProg(), antes = JSON.stringify(pr), lista = [];
+  limitarProg(pr);
+  if (JSON.stringify(pr) !== antes) escribirProg(pr);   // elimina del almacenamiento y de la cuenta lo que ya quedó fuera de las 8 más recientes
   L().forEach(p => {
     if (!p.link) return;
     if (conEpisodios(p)) { const k = ultimoProgKey(p, pr); if (k) lista.push({ p, k, g: pr[k], ...parEp(k) }); }
@@ -4502,7 +4516,7 @@ const perfGuardar = () => { try { localStorage.setItem('bbperf', JSON.stringify(
 const perfActual = () => PERF.lista.find(p => p.id === PERF.activo) || PERF.lista[0];
 const perfOn = () => esApp() && !!U.correo;
 const perfStash = id => { try { return JSON.parse(localStorage.getItem('bbpd:' + id)) || { prog: {}, vis: {} }; } catch (e) { return { prog: {}, vis: {} }; } };
-const perfPonerStash = (id, d) => { try { localStorage.setItem('bbpd:' + id, JSON.stringify(d)); } catch (e) {} };
+const perfPonerStash = (id, d) => { if (d && d.prog) limitarProg(d.prog); try { localStorage.setItem('bbpd:' + id, JSON.stringify(d)); } catch (e) {} };
 const perfTodos = () => { const pp = {}; PERF.lista.forEach(p => { pp[p.id] = p.id === PERF.activo ? { prog: leerProg(), vis: leerVistos() } : perfStash(p.id); }); return pp; };
 function perfLimpiar() {                                    // al cerrar sesión: el siguiente que use el dispositivo empieza limpio
   try { Object.keys(localStorage).filter(k => k.startsWith('bbpd:') || k === 'bbperf').forEach(k => localStorage.removeItem(k)); } catch (e) {}
@@ -4543,7 +4557,7 @@ function fusPD(a, b) {                                  // a = este dispositivo,
     const nueva = (y.f || 0) > (x.f || 0) ? y : x;
     vis[k] = { v: [...new Set([...(x.v || []), ...(y.v || [])])], u: nueva.u, f: Math.max(x.f || 0, y.f || 0) };
   }
-  return { prog, vis };
+  return { prog: limitarProg(prog), vis };
 }
 function uFusionar(a, b) {
   if (!esApp()) return fusPD(a, b);
@@ -4562,7 +4576,7 @@ function uAplicar(d) {
   try {
     if (esApp() && d.pp) {
       PERF.lista = d.perf.lista; PERF.activo = d.perf.activo; PERF.del = d.perf.del; try { localStorage.setItem('bbperf', JSON.stringify(PERF)); } catch (e) {}
-      PERF.lista.forEach(x => { const v = d.pp[x.id] || { prog: {}, vis: {} }; if (x.id === PERF.activo) { localStorage.setItem('bbprog', JSON.stringify(v.prog)); localStorage.setItem('bbsvis', JSON.stringify(v.vis)); } else perfPonerStash(x.id, v); });
+      PERF.lista.forEach(x => { const v = d.pp[x.id] || { prog: {}, vis: {} }; limitarProg(v.prog); if (x.id === PERF.activo) { localStorage.setItem('bbprog', JSON.stringify(v.prog)); localStorage.setItem('bbsvis', JSON.stringify(v.vis)); } else perfPonerStash(x.id, v); });
       Object.keys(localStorage).filter(k => k.startsWith('bbpd:') && !PERF.lista.some(x => k === 'bbpd:' + x.id)).forEach(k => localStorage.removeItem(k));
     } else { localStorage.setItem('bbprog', JSON.stringify(d.prog)); localStorage.setItem('bbsvis', JSON.stringify(d.vis)); }
   } catch (e) {}
