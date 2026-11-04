@@ -3421,6 +3421,7 @@ actorList.addEventListener('click', async e => {
   }
 });
 function abrirBusqueda() {
+  if (vistaCompartida) return;
   busq = true; document.body.classList.add('buscando'); H('dk-buscar').setAttribute('aria-expanded', 'true');
   filtrar(); setTimeout(() => bq.focus(), 60);
 }
@@ -3570,6 +3571,12 @@ function ponerModo(m) {                              // el inicio sirve para Pel
   H('herowrap').hidden = s && !series.length;
 }
 function irA(v, desdeRuta) {                         // v: inicio | series | pedidos | recientes
+  if (vistaCompartida && !desdeRuta) {
+    const destino = vistaCompartida.tipo === 'coleccion' ? '#/c/' + vistaCompartida.id : '#/p/' + encodeURIComponent(vistaCompartida.id);
+    history.replaceState(null, '', location.pathname + location.search + destino);
+    ruta(true);
+    return;
+  }
   const hacer = () => {
     clearInterval(cTimer);
     document.body.classList.remove('colmode', 'detmode');
@@ -4264,7 +4271,7 @@ const porVales = () => ACCESO_POR_CUENTA && U.servicio === true && !!U.acceso &&
 const soloLista = () => ACCESO_POR_CUENTA && U.servicio === true && ((uVigente() && U.acceso.plan === 'pedidos') || porVales());   // plan "Películas por pedido": solo reproduce lo de su lista
 const enLista = p => (U.lista || []).some(x => (x.t && x.t === p.titulo) || (x.id && p.tmdb && Number(x.id) === Number(p.tmdb)));
 const cuentaOk = p => ACCESO_POR_CUENTA && U.servicio === true && (soloLista() ? enLista(p) : uVigente());
-const puedeVer = p => !ACCESO_POR_CUENTA || U.servicio !== true || cuentaOk(p);   // si el servidor de cuentas no responde, no se bloquea
+const puedeVer = p => (vistaCompartida && permiteVistaCompartida(p)) || !ACCESO_POR_CUENTA || U.servicio !== true || cuentaOk(p);   // el enlace habilita solo su colección o serie
 window.bbCand = p => soloLista() && !enLista(p);                              // ¿lleva candado en la biblioteca?
 function marcarCandados() {
   [tarjetas, tarjetasC].forEach(m => m.forEach((b, p) => b.classList.toggle('lk', !!window.bbCand(p))));
@@ -4448,8 +4455,34 @@ const esApp = () => !!(window.Capacitor && Capacitor.isNativePlatform && Capacit
 const accesoActivo = () => ACCESO_POR_CUENTA && (PANTALLA_ACCESO === 'siempre' || (PANTALLA_ACCESO === 'app' && esApp()));
 const AX = { titulo: 'Black BOX', subtitulo: 'Inicia sesión para ver tu colección y retomar donde te quedaste.', canje: '¿Tienes un código de acceso? Inicia sesión o crea tu cuenta y canjéalo en «Mi cuenta» para activar tu acceso.', explorar: 'Explorar', logo: '', brillo: 60 };
 { const ex = window.ACCESO_EXTRA || {}; for (const k in AX) if (typeof ex[k] === 'string' && ex[k].trim()) AX[k] = ex[k].trim(); if (ex.brillo !== undefined && ex.brillo !== '' && isFinite(Number(ex.brillo))) AX.brillo = Math.max(0, Math.min(100, Number(ex.brillo))); }   // lo que pones en admin > Pantalla de acceso
-// Los enlaces directos a colecciones y fichas (incluidas series) dejan explorar sin iniciar sesión.
-let explorando = /^#\/(?:c\/[\w-]+|p\/.+)$/.test(location.hash), acTimer = 0;
+// Un enlace compartido permite explorar solo su colección o serie, incluida su reproducción.
+const rutaCompartidaInicial = (() => {
+  let m = location.hash.match(/^#\/c\/([\w-]+)$/);
+  if (m) return { tipo: 'coleccion', id: m[1] };
+  m = location.hash.match(/^#\/p\/(.+)$/);
+  return m ? { tipo: 'titulo', id: decodeURIComponent(m[1]) } : null;
+})();
+let vistaCompartida = rutaCompartidaInicial;
+let explorando = !!rutaCompartidaInicial, acTimer = 0;
+if (vistaCompartida) { H('bbox').hidden = true; H('dk-buscar').hidden = true; }
+function permiteVistaCompartida(p) {
+  if (!vistaCompartida || !p) return false;
+  if (vistaCompartida.tipo === 'titulo') return slugDe(p) === vistaCompartida.id;
+  const c = (typeof COLECCIONES !== 'undefined' && COLECCIONES.find(x => x.id === vistaCompartida.id)) || generoCol(vistaCompartida.id);
+  return !!(c && pelisDe(c).includes(p));
+}
+function rutaPermitidaEnVistaCompartida(h) {
+  if (!vistaCompartida) return true;
+  if (vistaCompartida.tipo === 'coleccion') {
+    if (h === '#/c/' + vistaCompartida.id) return true;
+    const m = h.match(/^#\/p\/(.+)$/);
+    if (m) { try { const slug = decodeURIComponent(m[1]); return todas().some(p => slugDe(p) === slug && permiteVistaCompartida(p)); } catch (e) {} }
+    return false;
+  }
+  const m = h.match(/^#\/p\/(.+)$/);
+  if (m) { try { return decodeURIComponent(m[1]) === vistaCompartida.id; } catch (e) {} }
+  return false;
+}
 function armarAcceso() {
   const w = H('ac-w'); w.replaceChildren();
   const logo = el('img', 'ac-logo'); logo.alt = ''; logo.src = AX.logo || '/icon-512.png'; logo.onerror = () => { logo.onerror = null; logo.src = '/icon-512.png'; };
@@ -5273,6 +5306,11 @@ const PATRONES = {           // fondos de las páginas de colección (patron: "a
 };
 function ruta(viaEnlace) {
   const h = location.hash; let m;
+  if (vistaCompartida && !rutaPermitidaEnVistaCompartida(h)) {
+    const destino = vistaCompartida.tipo === 'coleccion' ? '#/c/' + vistaCompartida.id : '#/p/' + encodeURIComponent(vistaCompartida.id);
+    history.replaceState(null, '', location.pathname + location.search + destino);
+    return ruta(true);
+  }
   const saliendoFicha = !vistas.det.hidden, entrandoFicha = /^#\/p\//.test(h);
   const opc = entrandoFicha ? { tipo: 'poster', desde: fuenteVT } : saliendoFicha ? { tipo: 'poster', hacia: () => fuenteVT } : { tipo: 'tab' };
   conTransicion(() => {

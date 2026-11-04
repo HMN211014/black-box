@@ -206,6 +206,7 @@ body:not(.h) .nav button.on{background:#fff;color:#000}
   <nav class="nav" id="nav" aria-label="Secciones">
     <button type="button" data-g="cuentas">Cuentas y códigos</button>
     <button type="button" data-g="biblioteca">Biblioteca</button>
+    <button type="button" data-g="compartir">Enlaces compartidos</button>
     <button type="button" data-g="banner">Banner principal</button>
     <button type="button" data-g="collage">Collage</button>
     <button type="button" data-g="pedidos">Pedidos</button>
@@ -336,6 +337,17 @@ body:not(.h) .nav button.on{background:#fff;color:#000}
     <div id="d-lista"></div>
     <p class="m" id="x-m" hidden></p>
     <div id="x-lista"></div>
+  </div>
+
+  <div class="c w" data-g="compartir" id="share-card">
+    <h2>Enlaces compartidos</h2>
+    <p class="s">Comparte una película, una serie o una colección. El enlace permite reproducir solo ese título o el contenido de esa colección, sin pedir iniciar sesión.</p>
+    <label style="margin-top:12px">Filtrar por nombre<input id="share-q" type="search" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Escribe un título o una colección"></label>
+    <div class="row" style="margin-top:10px"><button class="g" id="share-refresh" type="button">Cargar o actualizar enlaces</button></div>
+    <p class="m" id="share-m" role="status" aria-live="polite" hidden></p>
+    <details open style="margin-top:14px"><summary><b>Películas</b></summary><div id="share-movies"></div></details>
+    <details open style="margin-top:14px"><summary><b>Series</b></summary><div id="share-series"></div></details>
+    <details open style="margin-top:14px"><summary><b>Colecciones</b></summary><div id="share-cols"></div></details>
   </div>
 
   <div class="c w" data-g="biblioteca" id="cm-card">
@@ -478,9 +490,9 @@ body:not(.h) .nav button.on{background:#fff;color:#000}
 
   <div class="c w" data-g="colecciones" id="col-card">
     <h2>Colecciones</h2>
-    <p class="s">Revisa y comparte las colecciones desde la lista; edítalas aquí. También aparecen las de <b>colecciones.js</b>: al guardarlas, el panel conserva una versión que las reemplaza sin tocar el archivo (puedes <b>restaurar la original</b> cuando quieras).</p>
-    <div class="row" style="align-items:center;justify-content:space-between;margin-top:16px"><h3 style="margin:0">Colecciones listas para compartir</h3><button class="g" id="co-ver" type="button">Actualizar lista</button></div>
-    <p class="s" style="margin:5px 0 0">Cada fila muestra una colección y sus acciones de edición y enlace.</p>
+    <p class="s">Edita las colecciones aquí. También aparecen las de <b>colecciones.js</b>: al guardarlas, el panel conserva una versión que las reemplaza sin tocar el archivo (puedes <b>restaurar la original</b> cuando quieras). Los enlaces para compartir están en su propia sección.</p>
+    <div class="row" style="align-items:center;justify-content:space-between;margin-top:16px"><h3 style="margin:0">Colecciones</h3><button class="g" id="co-ver" type="button">Actualizar lista</button></div>
+    <p class="s" style="margin:5px 0 0">Cada fila muestra una colección y sus acciones de edición.</p>
     <div id="co-lista" aria-live="polite"></div>
     <div class="cp" id="co-prev" style="margin-top:14px"><span id="co-pn">Nombre</span></div>
 
@@ -1745,25 +1757,6 @@ $('x-go').onclick = () => con($('x-go'), 'x-m', async () => {
         alGuardar: link => { x.link = link; if (sePub.has(x.tmdb)) sePub.get(x.tmdb).link = link; cerrar(); msg('x-m', 'Enlace de "' + x.titulo + '" actualizado.', true); } });
       d.appendChild(form);
     };
-    if (x.tipo === 'serie' && !x.proximamente) {
-      const compartirSerie = document.createElement('button'); compartirSerie.className = 'g'; compartirSerie.type = 'button'; compartirSerie.textContent = 'Compartir serie';
-      compartirSerie.onclick = async () => {
-        const slug = String(x.titulo || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
-        const destino = new URL('index.html', location.href); destino.hash = '/p/' + encodeURIComponent(slug);
-        const url = destino.href;
-        try {
-          if (navigator.share) await navigator.share({ title: x.titulo + ' · Black BOX', text: 'Mira esta serie en Black BOX', url });
-          else if (navigator.clipboard && window.isSecureContext) { await navigator.clipboard.writeText(url); alert('Enlace de la serie copiado.'); }
-          else {
-            const campo = document.createElement('textarea'); campo.value = url; campo.setAttribute('readonly', ''); campo.style.position = 'fixed'; campo.style.opacity = '0'; document.body.appendChild(campo); campo.select();
-            const copiado = document.execCommand('copy'); campo.remove();
-            if (!copiado) throw new Error('No se pudo copiar el enlace.');
-            alert('Enlace de la serie copiado.');
-          }
-        } catch (error) { if (error && error.name !== 'AbortError') prompt('Copia el enlace de la serie:', url); }
-      };
-      d.appendChild(compartirSerie);
-    }
     const ve = document.createElement('button'); ve.className = 'g'; ve.type = 'button'; ve.textContent = 'Editar audio / CAM'; let vf = null;
     ve.onclick = () => {
       if (vf) { vf.remove(); vf = null; return; }
@@ -2146,22 +2139,6 @@ async function coLista() {
       ? 'Editando "' + c.nombre + '", que viene de colecciones.js. Al guardar, el panel crea una versión que la reemplaza; el archivo no se toca.'
       : 'Editando "' + c.nombre + '". Cambia lo que quieras y toca Guardar.');
     r.appendChild(e);
-    const compartir = document.createElement('button'); compartir.className = 'g'; compartir.type = 'button'; compartir.textContent = 'Compartir enlace';
-    compartir.onclick = async () => {
-      const destino = new URL('index.html', location.href); destino.hash = '/c/' + encodeURIComponent(c.id);
-      const url = destino.href;
-      try {
-        if (navigator.share) await navigator.share({ title: c.nombre + ' · Black BOX', text: 'Explora esta colección en Black BOX', url });
-        else if (navigator.clipboard && window.isSecureContext) { await navigator.clipboard.writeText(url); alert('Enlace de la colección copiado.'); }
-        else {
-          const campo = document.createElement('textarea'); campo.value = url; campo.setAttribute('readonly', ''); campo.style.position = 'fixed'; campo.style.opacity = '0'; document.body.appendChild(campo); campo.select();
-          const copiado = document.execCommand('copy'); campo.remove();
-          if (!copiado) throw new Error('No se pudo copiar el enlace.');
-          alert('Enlace de la colección copiado.');
-        }
-      } catch (error) { if (error && error.name !== 'AbortError') prompt('Copia el enlace de la colección:', url); }
-    };
-    r.appendChild(compartir);
     if (f.origen !== 'arch') {                         // quitar la versión del panel (nunca borra películas ni toca colecciones.js)
       const q = document.createElement('button'); q.className = 'g'; q.type = 'button'; q.textContent = f.origen === 'mod' ? 'Restaurar original' : 'Quitar';
       q.onclick = () => {
@@ -2751,7 +2728,7 @@ function dSim(p, q) {
 }
 function dSimLista(A, B) { let m = 0; for (const a of A) for (const b of B) { const r = dSim(a, b); if (r > m) m = r; } return m; }
 function dEntrada(o, x) {
-  const e = { o, titulo: String(x.titulo || ''), buscar: x.buscar || '', tmdb: Number(x.tmdbId || x.tmdb) || 0, tipo: x.tipo === 'serie' ? 'serie' : 'pelicula', link: x.link || x.enlace || '', eps: x.eps || 0, anio: x.anio || '' };
+  const e = { o, titulo: String(x.titulo || ''), buscar: x.buscar || '', tmdb: Number(x.tmdbId || x.tmdb) || 0, tipo: x.tipo === 'serie' ? 'serie' : 'pelicula', link: x.link || x.enlace || '', eps: x.eps || Object.keys(x.episodios || {}).length || 0, anio: x.anio || '' };
   e.p = [dPrep(e.titulo)]; if (e.buscar) e.p.push(dPrep(e.buscar));
   return e;
 }
@@ -2794,6 +2771,64 @@ async function dPanel() {           // lo publicado desde el panel (necesita la 
   } catch (e) { dPanOk = false; throw e; }
 }
 const dTodos = () => [...(dIdx || []), ...dPan];
+const shareSlug = titulo => String(titulo || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+function shareButton(tipo, titulo, id) {
+  const labels = { pelicula: 'película', serie: 'serie', coleccion: 'colección' };
+  const button = dEl('button', 'g', 'Compartir enlace'); button.type = 'button';
+  button.onclick = async () => {
+    const destino = new URL('index.html', location.href);
+    destino.hash = tipo === 'coleccion' ? '/c/' + encodeURIComponent(id) : '/p/' + encodeURIComponent(shareSlug(titulo));
+    const url = destino.href, label = labels[tipo];
+    try {
+      if (navigator.share) await navigator.share({ title: titulo + ' · Black BOX', text: (tipo === 'coleccion' ? 'Explora esta colección' : 'Mira esta ' + label) + ' en Black BOX', url });
+      else if (navigator.clipboard && window.isSecureContext) { await navigator.clipboard.writeText(url); alert('Enlace copiado.'); }
+      else {
+        const campo = document.createElement('textarea'); campo.value = url; campo.setAttribute('readonly', ''); campo.style.position = 'fixed'; campo.style.opacity = '0'; document.body.appendChild(campo); campo.select();
+        const copiado = document.execCommand('copy'); campo.remove();
+        if (!copiado) throw new Error('No se pudo copiar el enlace.');
+        alert('Enlace copiado.');
+      }
+    } catch (error) { if (error && error.name !== 'AbortError') prompt('Copia el enlace de ' + label + ':', url); }
+  };
+  return button;
+}
+function shareFila(box, tipo, titulo, id, detalle) {
+  const d = dEl('div', 'it share-item'); d.dataset.nombre = dNorm(titulo);
+  const tx = dEl('div', 'tx'); tx.append(dEl('b', '', titulo), dEl('small', '', detalle || ''));
+  d.append(tx, shareButton(tipo, titulo, id)); box.appendChild(d);
+}
+async function shareCargar() {
+  const button = $('share-refresh'); button.disabled = true;
+  try {
+    msg('share-m', 'Cargando películas, series y colecciones…', true);
+    await Promise.all([dIndice(), dPanel()]);
+    const j = await admin({ op: 'colecciones' });
+    const titulos = new Map();
+    dTodos().filter(x => x.titulo && (x.link || x.eps)).forEach(x => {
+      const k = x.tipo + ':' + (x.tmdb || dNorm(x.titulo));
+      const previo = titulos.get(k); if (!previo || (!previo.link && x.link)) titulos.set(k, x);
+    });
+    const peliculas = [...titulos.values()].filter(x => x.tipo !== 'serie').sort((a, b) => a.titulo.localeCompare(b.titulo, 'es'));
+    const series = [...titulos.values()].filter(x => x.tipo === 'serie').sort((a, b) => a.titulo.localeCompare(b.titulo, 'es'));
+    const cols = new Map(delArchivo.map(c => [c.id, c]));
+    j.items.forEach(c => cols.set(c.id, c));
+    const boxPel = $('share-movies'), boxSer = $('share-series'), boxCol = $('share-cols');
+    boxPel.replaceChildren(); boxSer.replaceChildren(); boxCol.replaceChildren();
+    peliculas.forEach(x => shareFila(boxPel, 'pelicula', x.titulo, '', (x.o === 'panel' ? 'Publicada desde el panel' : 'En index.html') + (x.tmdb ? ' · TMDB ' + x.tmdb : '')));
+    series.forEach(x => shareFila(boxSer, 'serie', x.titulo, '', (x.o === 'panel' ? 'Publicada desde el panel' : 'En index.html') + (x.tmdb ? ' · TMDB ' + x.tmdb : '')));
+    [...cols.values()].sort((a, b) => String(a.nombre || '').localeCompare(String(b.nombre || ''), 'es')).forEach(c => shareFila(boxCol, 'coleccion', c.nombre, c.id, '#/c/' + c.id));
+    [boxPel, boxSer, boxCol].forEach(box => { if (!box.children.length) box.append(dEl('p', 's', 'No hay elementos disponibles para compartir.')); });
+    msg('share-m', peliculas.length + ' película(s), ' + series.length + ' serie(s) y ' + cols.size + ' colección(es).', true);
+    shareFiltrar();
+  } catch (e) { msg('share-m', e.message || 'No se pudieron cargar los enlaces.', false); }
+  finally { button.disabled = false; }
+}
+function shareFiltrar() {
+  const q = dNorm($('share-q').value);
+  document.querySelectorAll('#share-movies .share-item, #share-series .share-item, #share-cols .share-item').forEach(d => { d.hidden = !!q && !d.dataset.nombre.includes(q); });
+}
+$('share-refresh').onclick = shareCargar;
+$('share-q').addEventListener('input', shareFiltrar);
 const dIgn = () => { try { return new Set(JSON.parse(localStorage.getItem('bbDupOk') || '[]')); } catch (e) { return new Set(); } };
 const dIgnGuardar = s => { try { localStorage.setItem('bbDupOk', JSON.stringify([...s])); } catch (e) {} };
 const dEtiqueta = e => [e.o === 'panel' ? 'Publicada desde el panel' : 'En index.html', e.tipo === 'serie' ? 'Serie' : 'Película', e.tmdb ? 'TMDB ' + e.tmdb : 'sin TMDB', e.anio, e.link ? 'con enlace' : (e.eps ? e.eps + ' capítulo(s) sueltos' : 'sin enlace')].filter(Boolean).join(' · ');
