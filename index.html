@@ -2156,10 +2156,11 @@ function pintarPopulares() {
     ? [...L()].sort((a, b) => (puntuacion.get(Number(b.tmdbId || b.tmdb)) || 0) - (puntuacion.get(Number(a.tmdbId || a.tmdb)) || 0) || (a._i - b._i)).filter(p => puntuacion.has(Number(p.tmdbId || p.tmdb))).slice(0, POPULARES)
     : [...L().filter(p => p.popular), ...L().filter(p => !p.popular)].slice(0, POPULARES);
   const titulo = document.getElementById('pop-title');
+  const bloquePop = document.getElementById('pop');
   titulo.textContent = conDatos ? 'Top 10 más reproducidos' : 'Populares';
   document.getElementById('rowpel').setAttribute('aria-label', titulo.textContent);
-  H('pop').classList.toggle('top-ranking', conDatos);
-  if (modo === 'series') H('pop').hidden = !conDatos && !(L().some(p => p.popular) || L().length > 10);
+  bloquePop.classList.toggle('top-ranking', conDatos);
+  if (modo === 'series') bloquePop.hidden = !conDatos && !(L().some(p => p.popular) || L().length > 10);
   const ya = [...tarjetasC.keys()];
   if (tarjetasCRanking === conDatos && ya.length === lista.length && lista.every((p, i) => ya[i] === p)) return;   // sin cambios: no se mueve el carrusel
   track.innerHTML = ''; tarjetasC.clear();
