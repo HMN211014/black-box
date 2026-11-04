@@ -4167,8 +4167,15 @@ async function descargarPelicula(p, boton) {
     if (!autoriza) { boton.disabled = false; return; }
   }
   try {
-    const a = document.createElement('a'); a.href = href; a.download = ''; a.rel = 'noopener'; a.style.display = 'none';
-    document.body.appendChild(a); a.click(); a.remove();
+    const cap = window.Capacitor;
+    if (cap && typeof cap.isNativePlatform === 'function' && cap.isNativePlatform()) {
+      // Android WebView ignora de forma inconsistente el atributo download en clics programáticos;
+      // navegar al endpoint permite que su DownloadListener lo entregue a DownloadManager.
+      location.assign(new URL(href, location.href).href);
+    } else {
+      const a = document.createElement('a'); a.href = href; a.download = ''; a.rel = 'noopener'; a.style.display = 'none';
+      document.body.appendChild(a); a.click(); a.remove();
+    }
   } catch (e) { alert('No se pudo iniciar la descarga.'); }
   boton.disabled = false;
 }
