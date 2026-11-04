@@ -103,6 +103,10 @@ dialog[open]{animation:pop .28s cubic-bezier(.2,.9,.3,1.2)}
  .track{gap:14px;padding:18px 20px 32px;scroll-padding:0 20px}
  .card{flex-basis:58vw;max-width:240px;border-radius:18px}
  .card .t{font-size:20px;left:14px;right:14px;bottom:14px}
+ #pop.top-ranking .track{gap:8px;padding:16px 20px 30px;scroll-padding:0 20px}
+ #pop.top-ranking .top-card{flex-basis:clamp(170px,48vw,210px);aspect-ratio:1.28}
+ #pop.top-ranking .top-num{font-size:clamp(132px,39vw,176px);-webkit-text-stroke-width:2px}
+ #pop.top-ranking .top-card .card{left:39%;width:61%;max-width:none;border-radius:14px}
  dialog{max-width:100%;max-height:92vh;max-height:92dvh;margin:auto 0 0 0}
  dialog[open]{animation:up .32s cubic-bezier(.2,.9,.3,1)}
  .sheet{grid-template-columns:1fr;gap:18px;padding:22px 20px calc(24px + env(safe-area-inset-bottom,0px));border-radius:28px 28px 0 0;max-height:92vh;max-height:92dvh;overflow-y:auto}
@@ -118,6 +122,19 @@ dialog[open]{animation:pop .28s cubic-bezier(.2,.9,.3,1.2)}
 html,body{touch-action:pan-x pan-y;overscroll-behavior-y:none;-webkit-touch-callout:none}
 body{-webkit-user-select:none;user-select:none}
 .btn:disabled{opacity:.5;cursor:default}
+
+/* Ranking de reproducciones: números grandes detrás de las portadas, solo en la fila Top 10. */
+#pop.top-ranking .track{gap:14px;padding-top:22px;padding-bottom:34px}
+#pop.top-ranking .top-card{position:relative;isolation:isolate;overflow:visible;flex:0 0 clamp(205px,21vw,270px);aspect-ratio:1.48;scroll-snap-align:start}
+#pop.top-ranking .top-num{position:absolute;left:0;bottom:-.105em;z-index:0;color:#050505;font-size:clamp(148px,17vw,224px);font-weight:900;letter-spacing:-.12em;line-height:.82;-webkit-text-stroke:2px rgba(255,255,255,.48);paint-order:stroke fill;pointer-events:none}
+#pop.top-ranking .top-card .card{position:absolute;top:0;right:0;bottom:0;left:40%;z-index:1;width:60%;height:100%;max-width:none;aspect-ratio:auto;flex:none;border-radius:16px}
+#pop.top-ranking .top-card .card .t{font-size:clamp(13px,1.2vw,17px);left:10px;right:10px;bottom:10px}
+@media(max-width:620px){
+  #pop.top-ranking .track{gap:8px;padding:16px 20px 30px;scroll-padding:0 20px}
+  #pop.top-ranking .top-card{flex-basis:clamp(170px,48vw,210px);aspect-ratio:1.28}
+  #pop.top-ranking .top-num{font-size:clamp(132px,39vw,176px);-webkit-text-stroke-width:2px}
+  #pop.top-ranking .top-card .card{left:39%;width:61%;max-width:none;border-radius:14px}
+}
 
 /* Aviso de descarga: cristal líquido a juego con la barra superior */
 #download-modal[hidden]{display:none}
@@ -1446,7 +1463,7 @@ html.en-pip #pcr{display:none}
   </section>
 </div>
 <div id="pop">
-  <h3 class="rt">Populares</h3>
+  <h3 class="rt" id="pop-title">Populares</h3>
   <section class="row" id="rowpel" aria-label="Populares">
     <button class="nav prev" aria-label="Anterior">‹</button>
     <div class="track" id="track"></div>
@@ -1952,6 +1969,10 @@ const peliculas = (window.PELICULAS_DB && window.PELICULAS_DB.length) ? window.P
 /* Colecciones creadas desde el panel de admin: se suman a las de colecciones.js (si un id se repite, la versión del panel reemplaza a la del archivo en su mismo lugar; el archivo no se toca). */
 if (typeof COLECCIONES !== 'undefined') (window.COLECCIONES_EXTRA || []).forEach(c => { if (!c || !c.id) return; const i = COLECCIONES.findIndex(x => x.id === c.id); if (i < 0) COLECCIONES.push(c); else COLECCIONES[i] = c; });
 else if ((window.COLECCIONES_EXTRA || []).length) window.COLECCIONES = window.COLECCIONES_EXTRA.slice();
+if (typeof COLECCIONES !== 'undefined' && Array.isArray(window.COLECCIONES_ORDEN) && window.COLECCIONES_ORDEN.length) {
+  const pos = new Map(window.COLECCIONES_ORDEN.map((id, i) => [id, i]));
+  COLECCIONES.sort((a, b) => (pos.get(a.id) ?? Infinity) - (pos.get(b.id) ?? Infinity));
+}
 
 
 /* Series: las entradas del catálogo con  tipo:"serie"  van a la sección Series y no salen en Películas. */
@@ -2111,7 +2132,9 @@ const crearTarjeta = p => {
 };
 /* Carrusel "Populares": solo 7. Primero las que marques con  popular:true  y luego las primeras de la lista.
    La cuadrícula "Todas las películas" muestra todas, en dos columnas. */
-const POPULARES = 7;
+const POPULARES = 10;
+let topReproducciones = [];
+let tarjetasCRanking = false;
 const tarjetasC = new Map();
 const tarjetasG = new Map();                  // tarjetas de las filas por género (para ponerles el póster y el candado cuando llegan los datos)
 
@@ -2126,11 +2149,40 @@ const esActual = p => +p.anio === ANIO_ACTUAL;
 let ordenPend;
 function programarOrden() { clearTimeout(ordenPend); ordenPend = setTimeout(ordenar, 500); }
 function pintarPopulares() {
-  const lista = [...L().filter(p => p.popular), ...L().filter(p => !p.popular)].slice(0, POPULARES);
+  const tipo = modo === 'series' ? 'serie' : 'pelicula';
+  const puntuacion = new Map(topReproducciones.filter(x => x.tipo === tipo).map(x => [Number(x.tmdb), Number(x.total) || 0]));
+  const conDatos = L().some(p => puntuacion.has(Number(p.tmdbId || p.tmdb)));
+  const lista = conDatos
+    ? [...L()].sort((a, b) => (puntuacion.get(Number(b.tmdbId || b.tmdb)) || 0) - (puntuacion.get(Number(a.tmdbId || a.tmdb)) || 0) || (a._i - b._i)).filter(p => puntuacion.has(Number(p.tmdbId || p.tmdb))).slice(0, POPULARES)
+    : [...L().filter(p => p.popular), ...L().filter(p => !p.popular)].slice(0, POPULARES);
+  const titulo = document.getElementById('pop-title');
+  titulo.textContent = conDatos ? 'Top 10 más reproducidos' : 'Populares';
+  document.getElementById('rowpel').setAttribute('aria-label', titulo.textContent);
+  H('pop').classList.toggle('top-ranking', conDatos);
+  if (modo === 'series') H('pop').hidden = !conDatos && !(L().some(p => p.popular) || L().length > 10);
   const ya = [...tarjetasC.keys()];
-  if (ya.length === lista.length && lista.every((p, i) => ya[i] === p)) return;   // sin cambios: no se mueve el carrusel
+  if (tarjetasCRanking === conDatos && ya.length === lista.length && lista.every((p, i) => ya[i] === p)) return;   // sin cambios: no se mueve el carrusel
   track.innerHTML = ''; tarjetasC.clear();
-  lista.forEach(p => { const b = crearTarjeta(p); track.appendChild(b); tarjetasC.set(p, b); });
+  lista.forEach((p, i) => {
+    const b = crearTarjeta(p);
+    if (conDatos) {
+      const item = document.createElement('div'); item.className = 'top-card';
+      const numero = document.createElement('span'); numero.className = 'top-num'; numero.setAttribute('aria-hidden', 'true'); numero.textContent = String(i + 1);
+      item.append(numero, b); track.appendChild(item);
+    } else track.appendChild(b);
+    tarjetasC.set(p, b);
+  });
+  tarjetasCRanking = conDatos;
+}
+async function cargarTopReproducciones() {
+  try {
+    const r = await fetch('/api/usuario/reproducciones', { cache: 'no-store' });
+    if (!r.ok) return;
+    const j = await r.json();
+    if (!Array.isArray(j.items)) return;
+    topReproducciones = j.items;
+    pintarPopulares();
+  } catch (e) {}
 }
 function ordenar() {
   [peliculas, series].forEach(l => l.sort((a, b) => (esActual(b) - esActual(a)) || (a._i - b._i))); datosVer++;
@@ -2172,6 +2224,7 @@ document.getElementById('vt').onclick = () => {
 if (window.ResizeObserver) new ResizeObserver(() => { const w = document.getElementById('grid').clientWidth; if (w !== gridAncho) { gridAncho = w; compactarGrid(); } }).observe(document.getElementById('grid'));
 todas().forEach(p => tarjetas.set(p, crearTarjeta(p)));
 ordenar();
+cargarTopReproducciones();
 
 let abierta = null;
 const calientes = new Set();
@@ -2626,6 +2679,7 @@ const ICON = {
 const VEL = [1, 1.25, 1.5, 2, 0.75];
 let swipeFlag = false, ajustando = false, hideT, dragging = false, hls = null, fsAuto = false, vi = 0, actualP = null, actualEp = null, reanudar = 0, ultGuardado = 0;
 let tvModo = null, tvPeli = null, tvUrl = '', tvBloq = false;   // transmisión a TV: null | 'cast' | 'el' | 'dlna'
+let reproduccionContada = false;
 let tvDev = null, dlSt = { estado: '', t: 0, d: 0, vol: -1 }, dlPoll = 0, dlFallos = 0, dlMudo = false, dlVolT = 0;
 let introDbOutro = null, introDbRun = 0;
 const introDbImdb = new Map(), introDbSegments = new Map(), skipDbSegments = new Map();
@@ -2781,6 +2835,7 @@ async function horizontal() {
 }
 function iniciar(p, url, sinHist) {
   limpiarSugerencia(true);
+  reproduccionContada = false;
   const id = driveId(url);
   const net = navigator.connection;
   V.preload = net && (net.saveData || /(^|-)2g$/.test(net.effectiveType || '')) ? 'metadata' : 'auto';
@@ -2877,7 +2932,16 @@ window.addEventListener('resize', () => {
 });
 V.addEventListener('loadedmetadata', () => { aplicarFit(); if (cfgEl) cfgRender(); });
 V.addEventListener('resize', () => aplicarFit());
-V.addEventListener('playing', () => aplicarFit());
+V.addEventListener('playing', () => {
+  aplicarFit();
+  if (reproduccionContada || !tvPeli) return;
+  const item = tvPeli.serie || tvPeli, tmdb = Number(item.tmdbId || item.tmdb) || 0;
+  if (!tmdb || !item.titulo) return;
+  reproduccionContada = true;
+  const evento = (crypto.randomUUID ? crypto.randomUUID().replace(/-/g, '') : Date.now().toString(36) + Math.random().toString(36).slice(2)).slice(0, 64);
+  fetch('/api/usuario/reproducciones', { method: 'POST', headers: { 'Content-Type': 'application/json' }, keepalive: true,
+    body: JSON.stringify({ evento, tmdb, tipo: item.tipo === 'serie' || tvPeli.serie ? 'serie' : 'pelicula', titulo: item.titulo }) }).then(r => { if (r.ok) cargarTopReproducciones(); }).catch(() => {});
+});
 aplicarFit();
 
 function cerrarPlayer(desdePop) {
@@ -3593,7 +3657,7 @@ function ponerModo(m) {                              // el inicio sirve para Pel
   document.querySelectorAll('.secw[data-u="inicio"]').forEach(n => { n.hidden = s; });
   H('plat').hidden = s || typeof PLATAFORMAS === 'undefined';
   rt.textContent = s ? 'Todas las series · ' + series.length : 'Todas las películas';
-  H('pop').hidden = s && !(series.some(p => p.popular) || series.length > 10);   // con pocas series, "Populares" solo repetiría la lista
+  H('pop').hidden = s && !(series.some(p => p.popular) || series.length > 10 || topReproducciones.some(x => x.tipo === 'serie' && series.some(p => Number(p.tmdbId || p.tmdb) === Number(x.tmdb))));
   H('vacio').hidden = !(s && !series.length);
   if (cambio) { ordenar(); armarBanner(); actualizarCont(); }
   H('herowrap').hidden = s && !series.length;

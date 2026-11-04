@@ -632,6 +632,37 @@ async function manejar({ request, env, params, waitUntil }) {
   if (accion === 'descargar') return descargarArchivo(env, request);
   if (accion === 'compartido' && esPost) return manejarEnlaceCompartido(db, cuerpo, request.cf || {});
 
+  /* Reproducciones de la biblioteca: conteo agregado sin asociarlo a cuentas o IPs. */
+  if (accion === 'reproducciones') {
+    await db.prepare('CREATE TABLE IF NOT EXISTS reproducciones (tmdb INTEGER NOT NULL, tipo TEXT NOT NULL, titulo TEXT NOT NULL, total INTEGER NOT NULL DEFAULT 0, actualizado INTEGER NOT NULL, PRIMARY KEY (tipo, tmdb)) WITHOUT ROWID').run();
+    await db.prepare('CREATE TABLE IF NOT EXISTS reproducciones_eventos (evento TEXT PRIMARY KEY, fecha INTEGER NOT NULL) WITHOUT ROWID').run();
+    if (request.method === 'GET') {
+      const tipo = new URL(request.url).searchParams.get('tipo');
+      const q = tipo === 'serie' || tipo === 'pelicula'
+        ? await db.prepare('SELECT tmdb, tipo, titulo, total FROM reproducciones WHERE tipo = ?1 AND total > 0 ORDER BY total DESC, actualizado DESC LIMIT 100').bind(tipo).all()
+        : await db.prepare('SELECT tmdb, tipo, titulo, total FROM reproducciones WHERE total > 0 ORDER BY total DESC, actualizado DESC LIMIT 200').all();
+      return json({ items: q.results || [] });
+    }
+    if (request.method !== 'POST') return json({ error: 'Método no permitido.' }, 405);
+    const tmdb = Math.floor(Number(cuerpo.tmdb)), tipo = cuerpo.tipo === 'serie' ? 'serie' : 'pelicula';
+    const titulo = String(cuerpo.titulo || '').trim().slice(0, 200);
+    const evento = String(cuerpo.evento || '');
+    if (!(tmdb > 0) || !titulo || !/^[A-Za-z0-9_-]{20,80}$/.test(evento)) return json({ error: 'Reproducción no válida.' }, 400);
+    const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+    const huellaIp = new Uint8Array(await crypto.subtle.digest('SHA-256', enc.encode(ip)));
+    const claveLimite = 'repro:' + Array.from(huellaIp.slice(0, 12), x => x.toString(16).padStart(2, '0')).join('');
+    if (await intentosDe(db, claveLimite) >= 120) return json({ error: 'Se alcanzó el límite temporal de reproducciones.' }, 429);
+    await sumarIntento(db, claveLimite, 600);
+    const ahora = Date.now();
+    const res = await db.batch([
+      db.prepare('INSERT OR IGNORE INTO reproducciones_eventos (evento, fecha) VALUES (?1, ?2)').bind(evento, ahora),
+      db.prepare(`INSERT INTO reproducciones (tmdb, tipo, titulo, total, actualizado)
+        SELECT ?1, ?2, ?3, 1, ?4 WHERE changes() = 1
+        ON CONFLICT(tipo, tmdb) DO UPDATE SET titulo = ?3, total = total + 1, actualizado = ?4`).bind(tmdb, tipo, titulo, ahora)
+    ]);
+    return json({ ok: true, contado: !!(res[0] && res[0].meta && res[0].meta.changes) });
+  }
+
   /* ---- Crear cuenta ---- */
   if (accion === 'registro' && esPost) {
     const correo = limpiarCorreo(cuerpo.correo);
@@ -870,8 +901,14 @@ async function manejar({ request, env, params, waitUntil }) {
         items = r.results.map(i => { const eps = epsDe(i.episodios), px = !!i.proximamente; return { titulo: i.titulo, tmdb: i.tmdb, link: px ? '' : i.link, version: i.version === 'subtitulada' ? 'subtitulada' : 'latino', ...(px ? { proximamente: true } : {}), ...(i.tipo === 'serie' ? { tipo: 'serie' } : {}), ...(!px && Object.keys(eps).length ? { episodios: eps } : {}) }; });
       }
     } catch (e) { console.error('[extras]', e && e.message); }
-    let cols = [];
-    try { if (db) { const r = await db.prepare('SELECT datos FROM colecciones ORDER BY creado, id').all(); cols = r.results.map(x => datosCol(x.datos)).filter(Boolean).map(colParaPagina); } } catch (e) { console.error('[extras colecciones]', e && e.message); }
+    let cols = [], ordenCols = [];
+    try { if (db) {
+      const r = await db.prepare('SELECT datos FROM colecciones ORDER BY creado, id').all();
+      cols = r.results.map(x => datosCol(x.datos)).filter(Boolean).map(colParaPagina);
+      const o = await db.prepare("SELECT valor FROM meta WHERE clave = 'colecciones_orden'").first();
+      if (o && o.valor) { try { const v = JSON.parse(o.valor); if (Array.isArray(v)) ordenCols = v.filter(x => /^[a-z0-9][a-z0-9-]{0,39}$/.test(String(x))).slice(0, 100); } catch (e) {} }
+      if (ordenCols.length) { const p = new Map(ordenCols.map((id, i) => [id, i])); cols.sort((a, b) => (p.get(a.id) ?? Infinity) - (p.get(b.id) ?? Infinity)); }
+    } } catch (e) { console.error('[extras colecciones]', e && e.message); }
     let secs = [];
     try { if (db) { const r = await db.prepare('SELECT datos FROM secciones ORDER BY creado, id').all(); secs = r.results.map(x => datosSec(x.datos)).filter(Boolean); } } catch (e) { console.error('[extras secciones]', e && e.message); }
     let acc = {};
@@ -897,7 +934,7 @@ async function manejar({ request, env, params, waitUntil }) {
     let anun = limpiarAnuncios({});
     try { if (db) { const r = await db.prepare("SELECT valor FROM meta WHERE clave = 'anuncios'").first(); if (r && r.valor) anun = limpiarAnuncios(JSON.parse(r.valor)); } } catch (e) {}
     anun = { activo: anun.activo, items: anun.items.filter(x => x.activo), google: anun.google };
-    const js ='window.ANUNCIOS_EXTRA=' + JSON.stringify(anun).replace(/</g, '\\u003c') + ';window.PELICULAS_EXTRA=' + JSON.stringify(items).replace(/</g, '\\u003c') + ';window.COLECCIONES_EXTRA=' + JSON.stringify(cols).replace(/</g, '\\u003c') + ';window.SECCIONES_EXTRA=' + JSON.stringify(secs).replace(/</g, '\\u003c') + ';window.ACCESO_EXTRA=' + JSON.stringify(acc).replace(/</g, '\\u003c') + ';window.EFECTOS_EXTRA=' + JSON.stringify(efe).replace(/</g, '\\u003c') + ';window.INTERACCIONES_EXTRA=' + JSON.stringify(inter).replace(/</g, '\\u003c') + ';window.INTRODB_EXTRA=' + JSON.stringify(introdb).replace(/</g, '\\u003c') + ';window.INTRODB_AVISO_EXTRA=' + JSON.stringify(introdbAviso) + ';window.SUGERENCIA_EXTRA=' + JSON.stringify(sug).replace(/</g, '\\u003c') + ';window.BANNER_EXTRA=' + JSON.stringify(ban).replace(/</g, '\\u003c') + ';window.BANNER_AJUSTES=' + JSON.stringify(banAj) + ';window.BANNER_EXCLUIDOS=' + JSON.stringify(banEx).replace(/</g, '\\u003c') + ';window.CAM_EXTRA=' + JSON.stringify(camEx).replace(/</g, '\\u003c') + ';';
+    const js ='window.ANUNCIOS_EXTRA=' + JSON.stringify(anun).replace(/</g, '\\u003c') + ';window.PELICULAS_EXTRA=' + JSON.stringify(items).replace(/</g, '\\u003c') + ';window.COLECCIONES_EXTRA=' + JSON.stringify(cols).replace(/</g, '\\u003c') + ';window.COLECCIONES_ORDEN=' + JSON.stringify(ordenCols) + ';window.SECCIONES_EXTRA=' + JSON.stringify(secs).replace(/</g, '\\u003c') + ';window.ACCESO_EXTRA=' + JSON.stringify(acc).replace(/</g, '\\u003c') + ';window.EFECTOS_EXTRA=' + JSON.stringify(efe).replace(/</g, '\\u003c') + ';window.INTERACCIONES_EXTRA=' + JSON.stringify(inter).replace(/</g, '\\u003c') + ';window.INTRODB_EXTRA=' + JSON.stringify(introdb).replace(/</g, '\\u003c') + ';window.INTRODB_AVISO_EXTRA=' + JSON.stringify(introdbAviso) + ';window.SUGERENCIA_EXTRA=' + JSON.stringify(sug).replace(/</g, '\\u003c') + ';window.BANNER_EXTRA=' + JSON.stringify(ban).replace(/</g, '\\u003c') + ';window.BANNER_AJUSTES=' + JSON.stringify(banAj) + ';window.BANNER_EXCLUIDOS=' + JSON.stringify(banEx).replace(/</g, '\\u003c') + ';window.CAM_EXTRA=' + JSON.stringify(camEx).replace(/</g, '\\u003c') + ';';
     return new Response(js, { headers: { 'Content-Type': 'application/javascript; charset=utf-8', 'Cache-Control': 'public, max-age=30' } });
   }
 
@@ -1352,7 +1389,20 @@ async function manejar({ request, env, params, waitUntil }) {
     if (cuerpo.op === 'colecciones') {
       await prepararCatalogo(db, kv);
       const r = await db.prepare('SELECT datos FROM colecciones ORDER BY creado, id').all();
-      return json({ items: r.results.map(x => datosCol(x.datos)).filter(Boolean) });
+      let orden = [];
+      try { const o = await db.prepare("SELECT valor FROM meta WHERE clave = 'colecciones_orden'").first(); if (o && o.valor) orden = JSON.parse(o.valor) || []; } catch (e) {}
+      return json({ items: r.results.map(x => datosCol(x.datos)).filter(Boolean), orden });
+    }
+
+    if (cuerpo.op === 'ordenar_col') {
+      const orden = [], vistos = new Set();
+      for (const raw of Array.isArray(cuerpo.orden) ? cuerpo.orden.slice(0, 100) : []) {
+        const id = String(raw || '').trim().toLowerCase();
+        if (/^[a-z0-9][a-z0-9-]{0,39}$/.test(id) && !vistos.has(id)) { vistos.add(id); orden.push(id); }
+      }
+      await db.prepare('CREATE TABLE IF NOT EXISTS meta (clave TEXT PRIMARY KEY, valor TEXT) WITHOUT ROWID').run();
+      await db.prepare("INSERT INTO meta (clave, valor) VALUES ('colecciones_orden', ?1) ON CONFLICT(clave) DO UPDATE SET valor = ?1").bind(JSON.stringify(orden)).run();
+      return json({ ok: true, orden });
     }
 
     if (cuerpo.op === 'guardar_col') {

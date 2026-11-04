@@ -91,6 +91,20 @@ CREATE TABLE IF NOT EXISTS meta (
   valor TEXT
 ) WITHOUT ROWID;
 
+-- Conteo agregado de reproducciones para el carrusel principal. Los eventos no guardan cuentas ni IP.
+CREATE TABLE IF NOT EXISTS reproducciones (
+  tmdb INTEGER NOT NULL,
+  tipo TEXT NOT NULL,
+  titulo TEXT NOT NULL,
+  total INTEGER NOT NULL DEFAULT 0,
+  actualizado INTEGER NOT NULL,
+  PRIMARY KEY (tipo, tmdb)
+) WITHOUT ROWID;
+CREATE TABLE IF NOT EXISTS reproducciones_eventos (
+  evento TEXT PRIMARY KEY,
+  fecha INTEGER NOT NULL
+) WITHOUT ROWID;
+
 -- Colecciones del inicio creadas desde el panel de admin (también se crea sola la primera vez).
 -- "datos" es el JSON de la colección tal como la arma el panel.
 CREATE TABLE IF NOT EXISTS colecciones (

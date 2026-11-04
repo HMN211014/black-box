@@ -55,6 +55,9 @@ td.k{font-family:ui-monospace,Menlo,Consolas,monospace;white-space:nowrap}
 .it button{height:36px;padding:0 12px;font-size:14px;flex:none}
 #co-lista .it{flex-wrap:nowrap;gap:14px}
 #co-lista .it .row{flex-wrap:nowrap;justify-content:flex-end}
+#co-lista .it.co-orden-row{cursor:grab}
+#co-lista .it.co-arrastrando{opacity:.45}
+#co-lista .it .row button[data-move]{min-width:36px;padding:0}
 @media(max-width:700px){#co-lista .it{align-items:flex-start}#co-lista .it .row{flex-wrap:wrap;justify-content:flex-end;max-width:48%}}
 .pe{padding:14px 0;border-top:1px solid rgba(255,255,255,.1)}
 .pe b{font-size:16px}.pe small{display:block;color:#a1a1a6;font-size:13px;margin:2px 0 8px}
@@ -285,7 +288,7 @@ body:not(.h) .nav button.on{background:#fff;color:#000}
 
   <div class="c w" data-g="pedidos">
     <h2>Pedidos de clientes</h2>
-    <p class="s">Aquí llegan las películas que piden (las de plan por pedido ya gastaron un vale; si rechazas una, el vale vuelve a su cuenta). Elige el título tal como está en tu catálogo y agrégalo a su cuenta.</p>
+    <p class="s">Aquí llegan las películas que piden (las de plan por pedido ya gastaron un vale; si rechazas una, el vale vuelve a su cuenta). Al actualizar, los pedidos que ya tengan una película o serie disponible en la biblioteca se agregan a la cuenta y se marcan <b>Listo</b> automáticamente.</p>
     <div class="row" style="margin-top:12px"><button class="g" id="p-go" type="button">Actualizar pedidos</button><button class="g" id="p-cp" type="button" hidden>Copiar líneas de todos los pendientes</button></div>
     <div id="np-box" hidden style="margin-top:12px;padding:12px;border-radius:14px;background:rgba(255,255,255,.06)">
       <b>Avisos de pedidos nuevos</b>
@@ -498,8 +501,9 @@ body:not(.h) .nav button.on{background:#fff;color:#000}
     <h2>Colecciones</h2>
     <p class="s">Edita las colecciones aquí. También aparecen las de <b>colecciones.js</b>: al guardarlas, el panel conserva una versión que las reemplaza sin tocar el archivo (puedes <b>restaurar la original</b> cuando quieras). Los enlaces para compartir están en su propia sección.</p>
     <div class="row" style="align-items:center;justify-content:space-between;margin-top:16px"><h3 style="margin:0">Colecciones</h3><button class="g" id="co-ver" type="button">Actualizar lista</button></div>
-    <p class="s" style="margin:5px 0 0">Cada fila muestra una colección y sus acciones de edición.</p>
+    <p class="s" style="margin:5px 0 0">Arrastra las filas o usa las flechas para cambiar el orden. Guarda para aplicarlo al inicio.</p>
     <div id="co-lista" aria-live="polite"></div>
+    <div class="row" style="margin-top:12px"><button class="g" id="co-orden-guardar" type="button" disabled>Guardar orden visual</button></div>
     <div class="cp" id="co-prev" style="margin-top:14px"><span id="co-pn">Nombre</span></div>
 
     <label>Nombre<input id="co-nombre" maxlength="60" autocomplete="off" placeholder="Por ejemplo: Harry Potter"></label>
@@ -1613,11 +1617,40 @@ async function copiar(texto, btn, normal) {
 }
 let pendientes = [];
 $('p-cp').onclick = () => copiar(pendientes.map(lineaIndex).join('\n'), $('p-cp'), 'Copiar líneas de todos los pendientes');
+function pedidoDisponibleEn(pedido, catalogo) {
+  const tipo = pedido.tipo === 'tv' ? 'serie' : 'pelicula';
+  const posibles = catalogo.filter(x => x.tipo === tipo && (x.link || x.eps));
+  const tmdb = Number(pedido.tmdb) || 0;
+  return posibles.find(x => tmdb && Number(x.tmdb) === tmdb)
+    || posibles.find(x => dNorm(x.titulo) === dNorm(pedido.titulo) && (!pedido.anio || !x.anio || String(pedido.anio) === String(x.anio)))
+    || null;
+}
+async function pedidosAgregarDisponibles(pedidos) {
+  const porRevisar = pedidos.filter(x => x.estado === 'pendiente');
+  if (!porRevisar.length) return [];
+  const fuentes = await Promise.allSettled([dIndice(true), dPanel()]);
+  const catalogo = [
+    ...(fuentes[0].status === 'fulfilled' ? fuentes[0].value : []),
+    ...(fuentes[1].status === 'fulfilled' ? dPan : [])
+  ];
+  if (!catalogo.length) return [];
+  const listos = [];
+  for (const pedido of porRevisar) {
+    const hit = pedidoDisponibleEn(pedido, catalogo);
+    if (!hit) continue;
+    try {
+      await admin({ op: 'asignar', correo: pedido.correo, titulo: hit.titulo, tmdb: pedido.tmdb, pedido: pedido.id });
+      pedido.estado = 'listo'; pedido.listo = Date.now(); pedido.coincidenciaBiblioteca = hit.titulo; listos.push(pedido);
+    } catch (e) { console.warn('[pedidos] No se pudo completar automáticamente', pedido.id, e); }
+  }
+  return listos;
+}
 $('p-go').onclick = () => con($('p-go'), 'p-m', async () => {
   const j = await admin({ op: 'pedidos' });
+  const listosAuto = await pedidosAgregarDisponibles(j.pedidos);
   const box = $('p-lista'); box.replaceChildren();
   pendientes = j.pedidos.filter(x => x.estado === 'pendiente'); $('p-cp').hidden = !pendientes.length;
-  if (!j.pedidos.length) { msg('p-m', 'Todavía no hay pedidos.', true); return; }
+  if (!j.pedidos.length) { msg('p-m', listosAuto.length ? listosAuto.length + ' pedido(s) disponible(s) se marcaron Listo automáticamente.' : 'Todavía no hay pedidos.', true); return; }
   j.pedidos.forEach(x => {
     const d = document.createElement('div'); d.className = 'pe';
     const t = document.createElement('div');
@@ -1628,7 +1661,7 @@ $('p-go').onclick = () => con($('p-go'), 'p-m', async () => {
     const sm = document.createElement('small'); sm.textContent = x.correo + ' · ' + (x.tipo === 'tv' ? 'Serie' : 'Película') + ' · TMDB ' + x.tmdb + ' · ' + fecha(x.creado) + (x.vale ? ' · pagado con vale' : '');
     d.append(t, sm);
     if (x.estado === 'pendiente') {
-      const hit = CAT.find(c => c.tmdb && Number(c.tmdb) === x.tmdb);
+      const hit = pedidoDisponibleEn(x, dTodos()) || CAT.find(c => c.tmdb && Number(c.tmdb) === x.tmdb && (x.tipo === 'tv' ? c.tipo === 'serie' : c.tipo !== 'serie'));
       const inp = document.createElement('input'); inp.setAttribute('list', 'titulos'); inp.placeholder = 'Título tal como quedó en tu lista';
       inp.value = hit ? hit.titulo : x.titulo;
       const en = document.createElement('input'); en.type = 'url'; en.placeholder = 'Enlace del video (https://…)'; en.autocapitalize = 'off'; en.spellcheck = false;
@@ -1657,7 +1690,7 @@ $('p-go').onclick = () => con($('p-go'), 'p-m', async () => {
     }
     box.appendChild(d);
   });
-  msg('p-m', j.pedidos.filter(x => x.estado === 'pendiente').length + ' pendiente(s).', true);
+  msg('p-m', j.pedidos.filter(x => x.estado === 'pendiente').length + ' pendiente(s).' + (listosAuto.length ? ' ' + listosAuto.length + ' disponible(s) agregado(s) y marcado(s) Listo automáticamente.' : ''), true);
 });
 $('push-test-enviar').onclick = () => con($('push-test-enviar'), 'push-test-m', async () => {
   const correo = $('push-test-correo').value.trim();
@@ -2064,6 +2097,7 @@ const REGLAS = ['peliculas', 'tmdbSagas', 'tmdbDirectores', 'tmdbReparto', 'tmdb
 const SUB_REGLAS = ['peliculas', 'tmdbSagas', 'tmdbDirectores', 'tmdbReparto', 'tmdbEmpresas'];
 const nReglas = c => ((c.proximamente || []).length || (c.series || []).length ? 1 : 0) + REGLAS.filter(k => (c[k] || []).length).length + (c.subcategorias || []).filter(s => SUB_REGLAS.some(k => (s[k] || []).length)).length;
 let coManual = false, coEditando = null, coPanel = new Map(), coProx = [], coSeries = [];   // coPanel: las que están guardadas en la base (por id)
+let coOrden = [], coArrastre = null;
 
 /* subcategorías: tarjetas dentro del formulario; se guardan al tocar "Guardar colección" */
 const SUB_CAMPOS = [['peliculas', 'Títulos exactos', 'Escritos igual que en tu catálogo'], ['tmdbSagas', 'Saga de TMDB (nombre o número)', 'Star Wars Collection'], ['tmdbDirectores', 'Director', 'George Lucas'], ['tmdbReparto', 'Actores principales', 'Mark Hamill'], ['tmdbEmpresas', 'Productora (nombre exacto o número)', 'Lucasfilm']];
@@ -2139,9 +2173,24 @@ async function coLista() {
     ...delArchivo.map(f => ({ id: f.id, ef: coPanel.get(f.id) || aFormaPanel(f), origen: coPanel.has(f.id) ? 'mod' : 'arch' })),
     ...soloPanel.map(c => ({ id: c.id, ef: c, origen: 'panel' }))
   ];
+  const posiciones = new Map((Array.isArray(j.orden) ? j.orden : []).map((id, i) => [id, i]));
+  filas.sort((a, b) => (posiciones.get(a.id) ?? Infinity) - (posiciones.get(b.id) ?? Infinity));
+  coOrden = filas.map(f => f.id); $('co-orden-guardar').disabled = true;
   msg('co-m', filas.length ? filas.length + ' colección(es): ' + delArchivo.length + ' de colecciones.js y ' + soloPanel.length + ' creada(s) desde aquí.' : 'Todavía no hay colecciones.', true);
+  const cambioOrden = () => { coOrden = [...box.querySelectorAll('.it')].map(x => x.dataset.colId); $('co-orden-guardar').disabled = false; msg('co-m', 'Orden cambiado. Guarda para aplicarlo al inicio.', true); };
+  const mover = (id, delta) => {
+    const i = coOrden.indexOf(id), n = i + delta; if (i < 0 || n < 0 || n >= coOrden.length) return;
+    [coOrden[i], coOrden[n]] = [coOrden[n], coOrden[i]];
+    coOrden.forEach(k => { const row = [...box.children].find(x => x.dataset.colId === k); if (row) box.appendChild(row); });
+    [...box.children].forEach((row, ix) => { row.querySelector('[data-move="up"]').disabled = ix === 0; row.querySelector('[data-move="down"]').disabled = ix === box.children.length - 1; });
+    cambioOrden();
+  };
   filas.forEach(f => {
-    const c = f.ef, d = document.createElement('div'); d.className = 'it';
+    const c = f.ef, d = document.createElement('div'); d.className = 'it co-orden-row'; d.draggable = true; d.dataset.colId = f.id;
+    d.addEventListener('dragstart', e => { coArrastre = d; d.classList.add('co-arrastrando'); e.dataTransfer.effectAllowed = 'move'; });
+    d.addEventListener('dragend', () => { d.classList.remove('co-arrastrando'); coArrastre = null; });
+    d.addEventListener('dragover', e => { e.preventDefault(); if (!coArrastre || coArrastre === d) return; const r = d.getBoundingClientRect(); box.insertBefore(coArrastre, e.clientY < r.top + r.height / 2 ? d : d.nextSibling); });
+    d.addEventListener('drop', e => { e.preventDefault(); cambioOrden(); [...box.children].forEach((row, ix) => { row.querySelector('[data-move="up"]').disabled = ix === 0; row.querySelector('[data-move="down"]').disabled = ix === box.children.length - 1; }); });
     const tx = document.createElement('div'); tx.className = 'tx';
     const b = document.createElement('b'); b.textContent = c.nombre;
     const sm = document.createElement('small');
@@ -2149,6 +2198,9 @@ async function coLista() {
     sm.textContent = '#/c/' + c.id + ' · ' + (f.origen === 'arch' ? 'de colecciones.js' : f.origen === 'mod' ? 'de colecciones.js, modificada desde el panel' : 'creada desde el panel') + (nSub ? ' · ' + nSub + ' subcategoría(s)' : '') + (nReglas(c) ? '' : ' · sin reglas: saldrá vacía');
     tx.append(b, sm);
     const r = document.createElement('div'); r.className = 'row';
+    const up = document.createElement('button'); up.className = 'g'; up.type = 'button'; up.textContent = '↑'; up.title = 'Mover arriba'; up.setAttribute('aria-label', 'Mover ' + c.nombre + ' arriba'); up.dataset.move = 'up'; up.disabled = coOrden[0] === f.id; up.onclick = () => mover(f.id, -1);
+    const down = document.createElement('button'); down.className = 'g'; down.type = 'button'; down.textContent = '↓'; down.title = 'Mover abajo'; down.setAttribute('aria-label', 'Mover ' + c.nombre + ' abajo'); down.dataset.move = 'down'; down.disabled = coOrden[coOrden.length - 1] === f.id; down.onclick = () => mover(f.id, 1);
+    r.append(up, down);
     const e = document.createElement('button'); e.className = 'g'; e.type = 'button'; e.textContent = 'Editar';
     e.onclick = () => coEditar(c, f.origen === 'arch'
       ? 'Editando "' + c.nombre + '", que viene de colecciones.js. Al guardar, el panel crea una versión que la reemplaza; el archivo no se toca.'
@@ -2165,6 +2217,11 @@ async function coLista() {
     d.append(tx, r); box.appendChild(d);
   });
 }
+$('co-orden-guardar').onclick = async () => {
+  const btn = $('co-orden-guardar'); btn.disabled = true; msg('co-m', '', true);
+  try { await admin({ op: 'ordenar_col', orden: coOrden }); msg('co-m', 'Orden de las colecciones guardado. Aparecerán así en el inicio.', true); }
+  catch (e) { msg('co-m', e.message || 'No se pudo guardar el orden.', false); btn.disabled = false; }
+};
 /* ---- cuadros de películas de la colección ----
    La biblioteca real vive en index.html: se carga en un iframe oculto (solo cuando lo pides) y se le pregunta con window.bbPuente,
    así lo que ves aquí es exactamente lo que verá el inicio (reglas automáticas, exclusiones y subcategorías incluidas). */
@@ -2785,7 +2842,8 @@ function dSugerida(g) {      // la que conviene conservar: la que tiene enlace y
 /*DUP-PURE-FIN*/
 
 let dIdx = null, dPan = [], dPanOk = false;
-async function dIndice() {          // lee la biblioteca fija directo de index.html (sin tocarlo)
+async function dIndice(forzar = false) { // lee la biblioteca fija directo de index.html (sin tocarlo)
+  if (forzar) dIdx = null;
   if (dIdx) return dIdx;
   const h = await fetch('/index.html', { cache: 'no-store' }).then(r => { if (!r.ok) throw new Error('index.html'); return r.text(); });
   const leer = (ini, fin, extra) => {
