@@ -4448,7 +4448,8 @@ const esApp = () => !!(window.Capacitor && Capacitor.isNativePlatform && Capacit
 const accesoActivo = () => ACCESO_POR_CUENTA && (PANTALLA_ACCESO === 'siempre' || (PANTALLA_ACCESO === 'app' && esApp()));
 const AX = { titulo: 'Black BOX', subtitulo: 'Inicia sesión para ver tu colección y retomar donde te quedaste.', canje: '¿Tienes un código de acceso? Inicia sesión o crea tu cuenta y canjéalo en «Mi cuenta» para activar tu acceso.', explorar: 'Explorar', logo: '', brillo: 60 };
 { const ex = window.ACCESO_EXTRA || {}; for (const k in AX) if (typeof ex[k] === 'string' && ex[k].trim()) AX[k] = ex[k].trim(); if (ex.brillo !== undefined && ex.brillo !== '' && isFinite(Number(ex.brillo))) AX.brillo = Math.max(0, Math.min(100, Number(ex.brillo))); }   // lo que pones en admin > Pantalla de acceso
-let explorando = false, acTimer = 0;
+// Los enlaces directos a colecciones y fichas (incluidas series) dejan explorar sin iniciar sesión.
+let explorando = /^#\/(?:c\/[\w-]+|p\/.+)$/.test(location.hash), acTimer = 0;
 function armarAcceso() {
   const w = H('ac-w'); w.replaceChildren();
   const logo = el('img', 'ac-logo'); logo.alt = ''; logo.src = AX.logo || '/icon-512.png'; logo.onerror = () => { logo.onerror = null; logo.src = '/icon-512.png'; };

@@ -52,6 +52,9 @@ td.k{font-family:ui-monospace,Menlo,Consolas,monospace;white-space:nowrap}
 .it{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:10px 0;border-top:1px solid rgba(255,255,255,.1)}
 .it .tx{min-width:0;flex:1}.it b{display:block;font-size:15px;word-break:break-word}.it small{color:#a1a1a6;font-size:12px}
 .it button{height:36px;padding:0 12px;font-size:14px;flex:none}
+#co-lista .it{flex-wrap:nowrap;gap:14px}
+#co-lista .it .row{flex-wrap:nowrap;justify-content:flex-end}
+@media(max-width:700px){#co-lista .it{align-items:flex-start}#co-lista .it .row{flex-wrap:wrap;justify-content:flex-end;max-width:48%}}
 .pe{padding:14px 0;border-top:1px solid rgba(255,255,255,.1)}
 .pe b{font-size:16px}.pe small{display:block;color:#a1a1a6;font-size:13px;margin:2px 0 8px}
 .pe input{height:42px;margin:0 0 8px;font-size:15px}
@@ -475,7 +478,10 @@ body:not(.h) .nav button.on{background:#fff;color:#000}
 
   <div class="c w" data-g="colecciones" id="col-card">
     <h2>Colecciones</h2>
-    <p class="s">Crea y edita cuadros como Marvel o Nolan. Toca <b>Ver colecciones</b> para ver también las de <b>colecciones.js</b> y editarlas: el panel guarda una versión que las reemplaza y el archivo no se toca (puedes <b>restaurar la original</b> cuando quieras).</p>
+    <p class="s">Revisa y comparte las colecciones desde la lista; edítalas aquí. También aparecen las de <b>colecciones.js</b>: al guardarlas, el panel conserva una versión que las reemplaza sin tocar el archivo (puedes <b>restaurar la original</b> cuando quieras).</p>
+    <div class="row" style="align-items:center;justify-content:space-between;margin-top:16px"><h3 style="margin:0">Colecciones listas para compartir</h3><button class="g" id="co-ver" type="button">Actualizar lista</button></div>
+    <p class="s" style="margin:5px 0 0">Cada fila muestra una colección y sus acciones de edición y enlace.</p>
+    <div id="co-lista" aria-live="polite"></div>
     <div class="cp" id="co-prev" style="margin-top:14px"><span id="co-pn">Nombre</span></div>
 
     <label>Nombre<input id="co-nombre" maxlength="60" autocomplete="off" placeholder="Por ejemplo: Harry Potter"></label>
@@ -542,9 +548,8 @@ body:not(.h) .nav button.on{background:#fff;color:#000}
       <label>Texto del botón<input id="co-ab" maxlength="40" autocomplete="off" placeholder="Ver más"></label>
     </details>
 
-    <div class="row" style="margin-top:16px"><button id="co-go" type="button">Guardar colección</button><button class="g" id="co-nuevo" type="button">Nueva</button><button class="g" id="co-ver" type="button">Ver colecciones</button></div>
+    <div class="row" style="margin-top:16px"><button id="co-go" type="button">Guardar colección</button><button class="g" id="co-nuevo" type="button">Nueva</button></div>
     <p class="m" id="co-m" hidden></p>
-    <div id="co-lista"></div>
   </div>
 
   <div class="c w" data-g="collage">
@@ -1740,6 +1745,25 @@ $('x-go').onclick = () => con($('x-go'), 'x-m', async () => {
         alGuardar: link => { x.link = link; if (sePub.has(x.tmdb)) sePub.get(x.tmdb).link = link; cerrar(); msg('x-m', 'Enlace de "' + x.titulo + '" actualizado.', true); } });
       d.appendChild(form);
     };
+    if (x.tipo === 'serie' && !x.proximamente) {
+      const compartirSerie = document.createElement('button'); compartirSerie.className = 'g'; compartirSerie.type = 'button'; compartirSerie.textContent = 'Compartir serie';
+      compartirSerie.onclick = async () => {
+        const slug = String(x.titulo || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+        const destino = new URL('index.html', location.href); destino.hash = '/p/' + encodeURIComponent(slug);
+        const url = destino.href;
+        try {
+          if (navigator.share) await navigator.share({ title: x.titulo + ' · Black BOX', text: 'Mira esta serie en Black BOX', url });
+          else if (navigator.clipboard && window.isSecureContext) { await navigator.clipboard.writeText(url); alert('Enlace de la serie copiado.'); }
+          else {
+            const campo = document.createElement('textarea'); campo.value = url; campo.setAttribute('readonly', ''); campo.style.position = 'fixed'; campo.style.opacity = '0'; document.body.appendChild(campo); campo.select();
+            const copiado = document.execCommand('copy'); campo.remove();
+            if (!copiado) throw new Error('No se pudo copiar el enlace.');
+            alert('Enlace de la serie copiado.');
+          }
+        } catch (error) { if (error && error.name !== 'AbortError') prompt('Copia el enlace de la serie:', url); }
+      };
+      d.appendChild(compartirSerie);
+    }
     const ve = document.createElement('button'); ve.className = 'g'; ve.type = 'button'; ve.textContent = 'Editar audio / CAM'; let vf = null;
     ve.onclick = () => {
       if (vf) { vf.remove(); vf = null; return; }
@@ -2122,6 +2146,22 @@ async function coLista() {
       ? 'Editando "' + c.nombre + '", que viene de colecciones.js. Al guardar, el panel crea una versión que la reemplaza; el archivo no se toca.'
       : 'Editando "' + c.nombre + '". Cambia lo que quieras y toca Guardar.');
     r.appendChild(e);
+    const compartir = document.createElement('button'); compartir.className = 'g'; compartir.type = 'button'; compartir.textContent = 'Compartir enlace';
+    compartir.onclick = async () => {
+      const destino = new URL('index.html', location.href); destino.hash = '/c/' + encodeURIComponent(c.id);
+      const url = destino.href;
+      try {
+        if (navigator.share) await navigator.share({ title: c.nombre + ' · Black BOX', text: 'Explora esta colección en Black BOX', url });
+        else if (navigator.clipboard && window.isSecureContext) { await navigator.clipboard.writeText(url); alert('Enlace de la colección copiado.'); }
+        else {
+          const campo = document.createElement('textarea'); campo.value = url; campo.setAttribute('readonly', ''); campo.style.position = 'fixed'; campo.style.opacity = '0'; document.body.appendChild(campo); campo.select();
+          const copiado = document.execCommand('copy'); campo.remove();
+          if (!copiado) throw new Error('No se pudo copiar el enlace.');
+          alert('Enlace de la colección copiado.');
+        }
+      } catch (error) { if (error && error.name !== 'AbortError') prompt('Copia el enlace de la colección:', url); }
+    };
+    r.appendChild(compartir);
     if (f.origen !== 'arch') {                         // quitar la versión del panel (nunca borra películas ni toca colecciones.js)
       const q = document.createElement('button'); q.className = 'g'; q.type = 'button'; q.textContent = f.origen === 'mod' ? 'Restaurar original' : 'Quitar';
       q.onclick = () => {
@@ -2215,6 +2255,7 @@ $('co-go').onclick = () => con($('co-go'), 'co-m', async () => {
   msg('co-m', (j.nueva ? (deArchivo ? 'Guardada tu versión de la colección de colecciones.js. ' : 'Colección creada. ') : 'Colección actualizada. ') + 'Aparece en el inicio en menos de un minuto.' + (nReglas(c) ? '' : ' Ojo: no tiene reglas, así que saldrá vacía.'), true);
 });
 coPoner(null);
+coLista().catch(e => msg('co-m', e.message || 'No se pudo cargar la lista de colecciones.', false));
 
 /* ---- secciones temáticas (franja + página propia, como "Huluween") ---- */
 const SE_FIJOS = {
