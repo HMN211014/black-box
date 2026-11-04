@@ -520,13 +520,19 @@ body:not(.h) .nav button.on{background:#fff;color:#000}
 
     <div id="co-pv" style="margin-top:14px;border-top:1px solid rgba(255,255,255,.1);padding-top:14px">
       <b>Contenido de la colección</b>
-      <p class="s" style="margin:4px 0 0">Busca en TMDB para agregar películas o series. Si ya está en tu biblioteca entra normal; si no, sale como <b>Próximamente</b> y entra sola cuando la publiques. Con la ✕ la quitas (si entraba por una regla, pasa a excluidas).</p>
+      <p class="s" style="margin:4px 0 0">Busca en TMDB para agregar películas, series o títulos próximos. Las series disponibles también se pueden elegir directamente desde la biblioteca. Con la ✕ quitas un título; si entraba por una regla, pasa a excluido.</p>
       <label class="ck" style="margin-top:10px"><input type="checkbox" id="co-series"> Incluir series de la biblioteca y aplicarles las reglas de esta colección</label>
-      <label style="margin-top:10px">Agregar película o serie<input id="co-q" type="search" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Busca en TMDB…"></label>
+      <label style="margin-top:10px">Agregar película o título próximo<input id="co-q" type="search" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Busca en TMDB…"></label>
       <div class="sr" id="co-res"></div>
       <p class="m" id="co-qm" hidden></p>
       <p class="s" id="co-pst" style="margin:10px 0 0"></p>
-      <div class="ct" id="co-tiles"></div>
+      <h4 style="margin:14px 0 0">Películas de la colección</h4>
+      <div class="ct" id="co-tiles-pel"></div>
+      <h4 style="margin:18px 0 0">Series de la colección</h4>
+      <label style="margin-top:8px">Agregar serie disponible en la biblioteca<input id="co-series-q" type="search" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Filtra por título…"></label>
+      <p class="s" id="co-series-status" style="margin:8px 0 0">Escribe parte del título para buscar en las series de la biblioteca.</p>
+      <div class="ct" id="co-series-pick"></div>
+      <div class="ct" id="co-tiles-ser"></div>
       <div id="co-exw" hidden><p class="s" style="margin:14px 0 0">Excluidas (toca ↩ para devolverlas)</p><div class="ct" id="co-exl"></div></div>
     </div>
 
@@ -2050,8 +2056,8 @@ const fuenteKey = f => COL_FUENTES[f] ? f : (Object.keys(COL_FUENTES).find(k => 
 const aFormaPanel = c => ({ ...c, fuente: fuenteKey(c.fuente), peso: String(c.peso || '700'), esp: c.esp || 'normal', mayus: !!c.mayus, patronColor: c.patronColor || '#ffffff' });
 const REGLAS = ['peliculas', 'tmdbSagas', 'tmdbDirectores', 'tmdbReparto', 'tmdbEmpresas', 'tmdbEmpresasContiene', 'tmdbPalabras'];
 const SUB_REGLAS = ['peliculas', 'tmdbSagas', 'tmdbDirectores', 'tmdbReparto', 'tmdbEmpresas'];
-const nReglas = c => ((c.proximamente || []).length ? 1 : 0) + REGLAS.filter(k => (c[k] || []).length).length + (c.subcategorias || []).filter(s => SUB_REGLAS.some(k => (s[k] || []).length)).length;
-let coManual = false, coEditando = null, coPanel = new Map(), coProx = [];   // coPanel: las que están guardadas en la base (por id)
+const nReglas = c => ((c.proximamente || []).length || (c.series || []).length ? 1 : 0) + REGLAS.filter(k => (c[k] || []).length).length + (c.subcategorias || []).filter(s => SUB_REGLAS.some(k => (s[k] || []).length)).length;
+let coManual = false, coEditando = null, coPanel = new Map(), coProx = [], coSeries = [];   // coPanel: las que están guardadas en la base (por id)
 
 /* subcategorías: tarjetas dentro del formulario; se guardan al tocar "Guardar colección" */
 const SUB_CAMPOS = [['peliculas', 'Títulos exactos', 'Escritos igual que en tu catálogo'], ['tmdbSagas', 'Saga de TMDB (nombre o número)', 'Star Wars Collection'], ['tmdbDirectores', 'Director', 'George Lucas'], ['tmdbReparto', 'Actores principales', 'Mark Hamill'], ['tmdbEmpresas', 'Productora (nombre exacto o número)', 'Lucasfilm']];
@@ -2085,7 +2091,7 @@ function coLeer() {
     patron: $('co-patron').value, patronColor: $('co-pc').value,
     anuncio: { titulo: $('co-at').value.trim(), texto: $('co-ax').value.trim(), imagen: $('co-ai').value.trim(), enlace: $('co-ae').value.trim(), boton: $('co-ab').value.trim() },
     tmdbEmpresas: lin('co-emp'), tmdbEmpresasContiene: lin('co-empc'), tmdbPalabras: lin('co-pal'), tmdbSagas: lin('co-sag'), tmdbDirectores: lin('co-dir'), tmdbReparto: lin('co-rep'),
-    auto: $('co-auto').checked, incluirSeries: $('co-series').checked, excluir: lin('co-exc'), peliculas: lin('co-pel'), subcategorias: coSubsLeer(), proximamente: coProx.map(x => ({ ...x }))
+    auto: $('co-auto').checked, incluirSeries: $('co-series').checked, excluir: lin('co-exc'), peliculas: lin('co-pel'), series: coSeries.slice(), subcategorias: coSubsLeer(), proximamente: coProx.map(x => ({ ...x }))
   };
 }
 function coPrev() {
@@ -2107,6 +2113,7 @@ function coPoner(c) {                                  // c = null → formulari
   $('co-mayus').checked = c.id ? !!c.mayus : true; v('co-fondo', c.fondo, ''); v('co-logo', c.logo, ''); $('co-sin').checked = !!c.sinNombre;
   L('co-pel', c.peliculas); L('co-sag', c.tmdbSagas); L('co-dir', c.tmdbDirectores); L('co-rep', c.tmdbReparto); L('co-emp', c.tmdbEmpresas);
   L('co-empc', c.tmdbEmpresasContiene); L('co-pal', c.tmdbPalabras); L('co-exc', c.excluir); $('co-auto').checked = c.auto !== false; $('co-series').checked = !!c.incluirSeries;
+  coSeries = (c.series || []).slice(); $('co-series-q').value = '';
   v('co-at', an.titulo, ''); v('co-ax', an.texto, ''); v('co-ai', an.imagen, ''); v('co-ae', an.enlace, ''); v('co-ab', an.boton, '');
   $('co-subs').replaceChildren(); (c.subcategorias || []).forEach(coSubAgregar);
   coProx = (c.proximamente || []).map(x => ({ ...x }));
@@ -2175,33 +2182,48 @@ function coTile(o, tipo, alX) {
   const n = document.createElement('span'); n.className = 'n'; n.textContent = o.titulo; d.appendChild(n);
   if (tipo === 'px') { const e = document.createElement('em'); e.textContent = 'Próximamente'; d.appendChild(e); }
   else if (o.tipo === 'serie') { const e = document.createElement('em'); e.textContent = 'Serie'; d.appendChild(e); }
-  const x = document.createElement('button'); x.type = 'button'; x.className = 'x'; x.textContent = tipo === 'ex' ? '↩' : '✕';
-  x.title = tipo === 'ex' ? 'Devolver a la colección' : 'Quitar de la colección'; x.setAttribute('aria-label', x.title + ': ' + o.titulo); x.onclick = alX; d.appendChild(x);
+  const x = document.createElement('button'); x.type = 'button'; x.className = 'x'; x.textContent = tipo === 'ex' ? '↩' : tipo === 'lib' ? '+' : '✕';
+  x.title = tipo === 'ex' ? 'Devolver a la colección' : tipo === 'lib' ? 'Agregar serie a la colección' : 'Quitar de la colección'; x.setAttribute('aria-label', x.title + ': ' + o.titulo); x.onclick = alX; d.appendChild(x);
   return d;
 }
 async function coTiles(cargar) {
-  const box = $('co-tiles'), exl = $('co-exl'), st = $('co-pst');
+  const boxPel = $('co-tiles-pel'), boxSer = $('co-tiles-ser'), pick = $('co-series-pick'), exl = $('co-exl'), st = $('co-pst'), pickStatus = $('co-series-status');
   if (!coPuenteP && !cargar) {                                   // todavía no se carga la biblioteca: botón para hacerlo
-    box.replaceChildren(); exl.replaceChildren(); $('co-exw').hidden = true;
+    boxPel.replaceChildren(); boxSer.replaceChildren(); pick.replaceChildren(); exl.replaceChildren(); $('co-exw').hidden = true;
     st.textContent = coProx.length ? coProx.length + ' próximamente guardada(s). ' : '';
     const b = document.createElement('button'); b.type = 'button'; b.className = 'g'; b.textContent = 'Cargar títulos de la colección'; b.style.marginTop = '8px';
-    b.onclick = () => { b.disabled = true; coTiles(true); }; st.appendChild(b); return;
+    b.onclick = () => { b.disabled = true; coTiles(true); }; st.appendChild(b);
+    pickStatus.textContent = 'Carga la biblioteca para elegir series disponibles.'; return;
   }
   st.textContent = 'Cargando tu biblioteca…';
   const P = await coPuente();
   if (!P) { st.textContent = 'No pude leer la biblioteca desde index.html. Reintenta; mientras tanto puedes editar las listas de abajo.'; return; }
   const c = coLeer(), mem = P.miembros(c), bib = P.biblioteca(), nx = t => P.norm(t); coVer = P.ver();
-  box.replaceChildren(); exl.replaceChildren();
-  mem.forEach(m => box.appendChild(coTile(m, '', () => {
-    $('co-pel').value = lin('co-pel').filter(x => nx(x) !== nx(m.titulo)).join('\n');
+  boxPel.replaceChildren(); boxSer.replaceChildren(); pick.replaceChildren(); exl.replaceChildren();
+  const quitarMiembro = m => {
+    if (m.tipo === 'serie') {
+      coSeries = coSeries.filter(x => nx(x) !== nx(m.titulo));
+      if (!mem.some(y => y.tipo !== 'serie' && nx(y.titulo) === nx(m.titulo))) $('co-pel').value = lin('co-pel').filter(x => nx(x) !== nx(m.titulo)).join('\n');
+    } else $('co-pel').value = lin('co-pel').filter(x => nx(x) !== nx(m.titulo)).join('\n');
     coProx = coProx.filter(x => x.tmdb !== m.tmdb || (x.tipo === 'serie') !== (m.tipo === 'serie'));
-    if (P.miembros(coLeer()).some(y => nx(y.titulo) === nx(m.titulo))) $('co-exc').value = [...lin('co-exc'), m.titulo].join('\n');   // entraba por una regla: se excluye
+    if (P.miembros(coLeer()).some(y => y.tipo === m.tipo && nx(y.titulo) === nx(m.titulo))) $('co-exc').value = [...lin('co-exc'), m.titulo].join('\n');   // entraba por una regla: se excluye
     coPrev(); coTiles();
+  };
+  mem.filter(m => m.tipo !== 'serie').forEach(m => boxPel.appendChild(coTile(m, '', () => quitarMiembro(m))));
+  mem.filter(m => m.tipo === 'serie').forEach(m => boxSer.appendChild(coTile(m, '', () => quitarMiembro(m))));
+  coProx.filter(x => x.tipo !== 'serie' && !bib.some(b => b.tmdb && b.tmdb === x.tmdb && b.tipo === 'pelicula')).forEach(x => boxPel.appendChild(coTile({ titulo: x.titulo, poster: x.poster, tipo: x.tipo }, 'px', () => { coProx = coProx.filter(y => y.tmdb !== x.tmdb || y.tipo === 'serie'); coPrev(); coTiles(); })));
+  coProx.filter(x => x.tipo === 'serie' && !bib.some(b => b.tmdb && b.tmdb === x.tmdb && b.tipo === 'serie')).forEach(x => boxSer.appendChild(coTile({ titulo: x.titulo, poster: x.poster, tipo: x.tipo }, 'px', () => { coProx = coProx.filter(y => y.tmdb !== x.tmdb || y.tipo !== 'serie'); coPrev(); coTiles(); })));
+  const qSerie = nx($('co-series-q').value.trim()), seriesSeleccionadas = new Set(mem.filter(m => m.tipo === 'serie').map(m => nx(m.titulo)));
+  const disponibles = qSerie ? bib.filter(b => b.tipo === 'serie' && !seriesSeleccionadas.has(nx(b.titulo)) && nx(b.titulo).includes(qSerie)).slice(0, 36) : [];
+  disponibles.forEach(s => pick.appendChild(coTile(s, 'lib', () => {
+    if (!coSeries.some(x => nx(x) === nx(s.titulo))) coSeries.push(s.titulo);
+    $('co-series').checked = true; $('co-exc').value = lin('co-exc').filter(x => nx(x) !== nx(s.titulo)).join('\n');
+    $('co-series-q').value = ''; coPrev(); coTiles();
   })));
-  coProx.filter(x => (x.tipo !== 'serie' || c.incluirSeries) && !bib.some(b => b.tmdb && b.tmdb === x.tmdb && b.tipo === (x.tipo === 'serie' ? 'serie' : 'pelicula'))).forEach(x => box.appendChild(coTile({ titulo: x.titulo, poster: x.poster, tipo: x.tipo }, 'px', () => { coProx = coProx.filter(y => y.tmdb !== x.tmdb || (y.tipo === 'serie') !== (x.tipo === 'serie')); coPrev(); coTiles(); })));
+  pickStatus.textContent = !qSerie ? 'Escribe parte del título para buscar en las series de la biblioteca.' : disponibles.length ? disponibles.length + ' serie(s) disponible(s). Toca + para agregar.' : 'No hay series de la biblioteca que coincidan con esa búsqueda.';
   const exc = lin('co-exc'); $('co-exw').hidden = !exc.length;
   exc.forEach(t => { const b = bib.find(y => nx(y.titulo) === nx(t)) || { titulo: t }; exl.appendChild(coTile(b, 'ex', () => { $('co-exc').value = lin('co-exc').filter(x => nx(x) !== nx(t)).join('\n'); coPrev(); coTiles(); })); });
-  st.textContent = mem.length + ' título(s) en la colección · ' + coProx.length + ' próximamente · ' + exc.length + ' excluida(s)' + (box.children.length ? '' : ' · aún no hay nada');
+  st.textContent = mem.filter(m => m.tipo !== 'serie').length + ' película(s) y ' + mem.filter(m => m.tipo === 'serie').length + ' serie(s) en la colección · ' + coProx.length + ' próximamente · ' + exc.length + ' excluida(s)';
 }
 async function coAgregar(r) {
   const P = await coPuente();
@@ -2210,8 +2232,9 @@ async function coAgregar(r) {
   if (tp === 'serie') $('co-series').checked = true;
   const hit = bib.find(b => b.tmdb && b.tmdb === r.id && b.tipo === tp) || bib.find(b => !b.tmdb && b.tipo === tp && nx(b.titulo) === nx(titulo));
   if (hit) {
-    const pel = lin('co-pel'); if (!pel.some(x => nx(x) === nx(hit.titulo))) pel.push(hit.titulo);
-    $('co-pel').value = pel.join('\n'); $('co-exc').value = lin('co-exc').filter(x => nx(x) !== nx(hit.titulo)).join('\n');
+    if (tp === 'serie') { if (!coSeries.some(x => nx(x) === nx(hit.titulo))) coSeries.push(hit.titulo); }
+    else { const pel = lin('co-pel'); if (!pel.some(x => nx(x) === nx(hit.titulo))) pel.push(hit.titulo); $('co-pel').value = pel.join('\n'); }
+    $('co-exc').value = lin('co-exc').filter(x => nx(x) !== nx(hit.titulo)).join('\n');
     coProx = coProx.filter(x => x.tmdb !== r.id || (x.tipo === 'serie') !== (tp === 'serie'));
     msg('co-qm', '"' + hit.titulo + '" está en tu biblioteca: agregada a la colección.', true);
   } else {
@@ -2222,6 +2245,7 @@ async function coAgregar(r) {
 }
 buscadorTmdb('co-q', 'co-res', 'co-qm', r => coAgregar(r));
 $('co-q').addEventListener('focus', () => { if (!coPuenteP) coPuente(); });       // empieza a cargar la biblioteca en cuanto vas a buscar
+$('co-series-q').addEventListener('input', () => coTiles(true));
 let coDeb = null;
 document.querySelectorAll('#col-card textarea').forEach(e => e.addEventListener('input', () => { clearTimeout(coDeb); coDeb = setTimeout(() => { if (coPuenteP) coTiles(); }, 400); }));
 setInterval(() => { if (coPb && coPb.ver() !== coVer) coTiles(); }, 3000);          // al llegar datos de TMDB a la biblioteca, se actualizan las que entran solas
@@ -2783,6 +2807,7 @@ function shareButton(tipo, titulo, id) {
     ? 'Te comparto la colección ' + tituloSeguro + ' de Black BOX. ¡Te invito a explorarla!'
     : 'Te comparto la ' + label + ' ' + tituloSeguro + ' de Black BOX. ¡Te invito a verla!';
   const destino = new URL('index.html', location.href);
+  destino.searchParams.set('bb-share', '1');
   destino.hash = tipo === 'coleccion' ? '/c/' + encodeURIComponent(id) : '/p/' + encodeURIComponent(shareSlug(titulo));
   const url = destino.href, mensaje = invitacion + '\n' + url;
   const acciones = dEl('div', 'row');

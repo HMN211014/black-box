@@ -525,6 +525,7 @@ function limpiarCol(c) {
   }).filter((x, i, a) => x && a.findIndex(y => y && y.tmdb === x.tmdb && (y.tipo === 'serie') === (x.tipo === 'serie')) === i);
   if (prox.length) o.proximamente = prox;
   const pel = textosCol(c.peliculas); if (pel.length) o.peliculas = pel;
+  const ser = textosCol(c.series); if (ser.length) o.series = ser;
   /* Subcategorías (por ejemplo "Trilogía original" dentro de Star Wars): cada una con sus propias reglas. Lo que entra en una también pertenece a la colección. */
   const subs = (Array.isArray(c.subcategorias) ? c.subcategorias : []).slice(0, 30).map(s => {
     s = s && typeof s === 'object' ? s : {};

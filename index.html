@@ -4528,8 +4528,9 @@ const esApp = () => !!(window.Capacitor && Capacitor.isNativePlatform && Capacit
 const accesoActivo = () => ACCESO_POR_CUENTA && (PANTALLA_ACCESO === 'siempre' || (PANTALLA_ACCESO === 'app' && esApp()));
 const AX = { titulo: 'Black BOX', subtitulo: 'Inicia sesión para ver tu colección y retomar donde te quedaste.', canje: '¿Tienes un código de acceso? Inicia sesión o crea tu cuenta y canjéalo en «Mi cuenta» para activar tu acceso.', explorar: 'Explorar', logo: '', brillo: 60 };
 { const ex = window.ACCESO_EXTRA || {}; for (const k in AX) if (typeof ex[k] === 'string' && ex[k].trim()) AX[k] = ex[k].trim(); if (ex.brillo !== undefined && ex.brillo !== '' && isFinite(Number(ex.brillo))) AX.brillo = Math.max(0, Math.min(100, Number(ex.brillo))); }   // lo que pones en admin > Pantalla de acceso
-// Un enlace compartido permite explorar solo su colección o serie, incluida su reproducción.
+// Solo los enlaces generados desde Admin llevan bb-share=1; las rutas internas /c/ y /p/ no activan el modo limitado.
 const rutaCompartidaInicial = (() => {
+  if (new URLSearchParams(location.search).get('bb-share') !== '1') return null;
   let m = location.hash.match(/^#\/c\/([\w-]+)$/);
   if (m) return { tipo: 'coleccion', id: m[1] };
   m = location.hash.match(/^#\/p\/(.+)$/);
@@ -5246,13 +5247,13 @@ const listaCrit = v => (v || []).map(e => typeof e === 'number' ? e : norm(e));
 const coincide = (crit, o) => crit.some(e => typeof e === 'number' ? e === o.id : norm(o.nombre).includes(e));
 const catalogoCol = c => c.incluirSeries ? todas() : peliculas;
 const semillaDe = c => {
-  const t = new Set((c.peliculas || []).map(norm));
+  const t = new Set((c.peliculas || []).map(norm)), ts = new Set((c.series || []).map(norm));
   const emp = (c.tmdbEmpresas || []).map(e => typeof e === 'number' ? e : norm(e));      // productoras de TMDB: nombre exacto o número
   const sub = (c.tmdbEmpresasContiene || []).map(norm);                                   // o cualquier productora cuyo nombre contenga estas palabras
   const gn = new Set((c.generos || []).map(norm));                                // colecciones por género (c.generos): entra toda película con ese género de TMDB
   const idPr = new Set((c.proximamente || []).map(x => (x.tipo === 'serie' ? 's:' : 'p:') + Number(x.tmdb))); // Próximamente: entra al publicarse el mismo tipo de TMDB
   const sg = listaCrit(c.tmdbSagas), pa = listaCrit(c.tmdbPalabras), di = listaCrit(c.tmdbDirectores), re = listaCrit(c.tmdbReparto);
-  return catalogoCol(c).filter(p => t.has(norm(p.titulo)) || (idPr.size && idPr.has((p.tipo === 'serie' ? 's:' : 'p:') + (Number(p.tmdbId || p.tmdb) || -1))) || (gn.size && String(p.genero || '').split(',').some(x => gn.has(norm(x.trim())))) || String(p.coleccion || '').split(',').map(s => s.trim().toLowerCase()).includes(c.id)
+  return catalogoCol(c).filter(p => (p.tipo === 'serie' ? ts.has(norm(p.titulo)) || (c.incluirSeries && t.has(norm(p.titulo))) : t.has(norm(p.titulo))) || (idPr.size && idPr.has((p.tipo === 'serie' ? 's:' : 'p:') + (Number(p.tmdbId || p.tmdb) || -1))) || (gn.size && String(p.genero || '').split(',').some(x => gn.has(norm(x.trim())))) || String(p.coleccion || '').split(',').map(s => s.trim().toLowerCase()).includes(c.id)
     || (p.empresas || []).some(x => emp.includes(x.id) || emp.includes(norm(x.nombre)) || sub.some(s => norm(x.nombre).includes(s)))
     || (p.saga && coincide(sg, p.saga)) || (p.palabras || []).some(k => coincide(pa, k))
     || (p.director || []).some(d => coincide(di, d)) || (p.reparto || []).some(a => coincide(re, a)));
