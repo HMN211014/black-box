@@ -119,6 +119,16 @@ html,body{touch-action:pan-x pan-y;overscroll-behavior-y:none;-webkit-touch-call
 body{-webkit-user-select:none;user-select:none}
 .btn:disabled{opacity:.5;cursor:default}
 
+/* Aviso de descarga: cristal líquido a juego con la barra superior */
+#download-modal[hidden]{display:none}
+#download-modal{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;padding:24px;background:rgba(0,0,0,.62);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.download-dialog{width:min(100%,440px);padding:28px;border-radius:26px;color:#fff;background:linear-gradient(180deg,rgba(255,255,255,.2),rgba(255,255,255,.09));border:1px solid rgba(255,255,255,.22);backdrop-filter:blur(30px) saturate(1.8);-webkit-backdrop-filter:blur(30px) saturate(1.8);box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 24px 80px rgba(0,0,0,.6)}
+.download-dialog h2{margin:0 0 12px;font-size:clamp(22px,5vw,28px);letter-spacing:-.03em}
+.download-dialog p{margin:0;color:rgba(255,255,255,.82);font-size:16px;line-height:1.5;overflow-wrap:anywhere}
+.download-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:24px}
+.download-actions .btn{min-width:112px;padding:12px 20px;text-align:center}
+@media(max-width:420px){.download-dialog{padding:24px 20px;border-radius:22px}.download-actions .btn{min-width:0;flex:1;padding:12px 10px}}
+
 /* ---- Reproductor propio (subpágina encima de la principal) ---- */
 #player{position:fixed;inset:0;z-index:100;background:#000;color:#fff;overflow:hidden;touch-action:none;-webkit-user-select:none;user-select:none;
  --st:env(safe-area-inset-top,0px);--sb:env(safe-area-inset-bottom,0px);--sl:env(safe-area-inset-left,0px);--sr:env(safe-area-inset-right,0px)}
@@ -4117,6 +4127,22 @@ function pintarSerie(p) {
 
 const DESCARGA_LIMITE = 2_000_000_000;
 const bytesHumanos = n => { const u = ['B', 'KB', 'MB', 'GB', 'TB']; let x = n, i = 0; while (x >= 1000 && i < u.length - 1) { x /= 1000; i++; } return (i ? x.toFixed(2) : Math.round(x)) + ' ' + u[i]; };
+function confirmarDescarga(mensaje) {
+  const modal = H('download-modal'), texto = H('download-message'), aceptar = H('download-accept'), cancelar = H('download-cancel');
+  texto.textContent = mensaje; modal.hidden = false; aceptar.focus();
+  return new Promise(resolve => {
+    let cerrado = false;
+    const terminar = valor => {
+      if (cerrado) return; cerrado = true; modal.hidden = true;
+      aceptar.removeEventListener('click', si); cancelar.removeEventListener('click', no); modal.removeEventListener('click', fuera); document.removeEventListener('keydown', tecla);
+      resolve(valor);
+    };
+    const si = () => terminar(true), no = () => terminar(false);
+    const fuera = e => { if (e.target === modal) no(); };
+    const tecla = e => { if (e.key === 'Escape') { e.preventDefault(); no(); } };
+    aceptar.addEventListener('click', si); cancelar.addEventListener('click', no); modal.addEventListener('click', fuera); document.addEventListener('keydown', tecla);
+  });
+}
 async function descargarPelicula(p, boton) {
   if (!p || p.tipo === 'serie' || !p.link || boton.disabled) return;
   boton.disabled = true; boton.title = 'Revisando el tamaño del archivo…';
@@ -4134,10 +4160,10 @@ async function descargarPelicula(p, boton) {
   } catch (e) { if (!servidoPorApp) href = p.link; }
   boton.title = 'Descargar película';
   if (tamanoConocido && bytes > DESCARGA_LIMITE) {
-    const autoriza = confirm('Este archivo pesa ' + bytesHumanos(bytes) + ' y supera los 2 GB. Puede consumir mucho espacio y datos. ¿Autorizas la descarga de «' + p.titulo + '»?');
+    const autoriza = await confirmarDescarga('Este archivo pesa ' + bytesHumanos(bytes) + ' y supera los 2 GB. Puede consumir mucho espacio y datos. ¿Autorizas la descarga de «' + p.titulo + '»?');
     if (!autoriza) { boton.disabled = false; return; }
   } else if (!tamanoConocido) {
-    const autoriza = confirm('No se pudo verificar el tamaño de «' + p.titulo + '». El archivo podría superar los 2 GB. ¿Autorizas la descarga?');
+    const autoriza = await confirmarDescarga('No se pudo verificar el tamaño de «' + p.titulo + '». El archivo podría superar los 2 GB. ¿Autorizas la descarga?');
     if (!autoriza) { boton.disabled = false; return; }
   }
   try {
@@ -5608,6 +5634,13 @@ setTimeout(() => { vtOK = true; }, 600);              // las transiciones empiez
   setTimeout(cerrar, reducido ? 1200 : 3300);
 })();
 </script>
+<div id="download-modal" hidden>
+  <section class="download-dialog" role="dialog" aria-modal="true" aria-labelledby="download-title" aria-describedby="download-message" tabindex="-1">
+    <h2 id="download-title">Autorizar descarga</h2>
+    <p id="download-message"></p>
+    <div class="download-actions"><button class="btn ghost" id="download-cancel" type="button">Cancelar</button><button class="btn primary" id="download-accept" type="button">Descargar</button></div>
+  </section>
+</div>
 </body>
 </html>
 
