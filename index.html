@@ -267,6 +267,10 @@ svg.st text{fill:currentColor;stroke:none}
 #gen-w{margin-top:28px}#gen-w[hidden]{display:none}
 #gens{display:grid;grid-auto-flow:column;grid-auto-columns:clamp(130px,16vw,200px);gap:14px;padding:12px 5vw 8px;overflow-x:auto;scroll-snap-type:x proximity;scroll-padding-inline:5vw;scrollbar-width:none}
 #gens::-webkit-scrollbar{display:none}
+.tile-row{position:relative}
+.tile-row .nav{opacity:.72}
+.tile-row:hover .nav,.tile-row .nav:focus-visible{opacity:1}
+.tile-row .nav.prev{left:1vw}.tile-row .nav.next{right:1vw}
 .ctile .gc{font-size:12px;color:rgba(255,255,255,.82);text-shadow:0 1px 8px rgba(0,0,0,.5)}
 @media(max-width:620px){#gens{grid-auto-columns:38vw;gap:12px;padding:10px 20px 4px;scroll-padding-inline:20px}}
 .ctile{position:relative;overflow:hidden;isolation:isolate;display:grid;place-items:center;align-content:center;gap:8px;aspect-ratio:16/10;padding:10px;border-radius:22px;text-decoration:none;color:var(--tx);scroll-snap-align:start;
@@ -615,9 +619,12 @@ body.con-q #top .cred{display:none}
 .dtit{font-size:clamp(34px,5vw,60px);letter-spacing:-.035em;line-height:1.02;margin:0 0 12px}
 .dgen{font-size:19px;font-weight:600;color:#fff;margin-bottom:18px}
 .dact{margin-bottom:22px;display:flex}
+.dact{gap:12px;align-items:center}
 .dact .btn{width:auto;min-height:0;justify-content:center}
 .dact .btn{display:inline-flex;align-items:center;gap:10px;height:54px;padding:0 32px 0 26px;font-size:18px}
 .dact .btn svg{width:22px;height:22px}
+.dact #ddownload{flex:none;width:54px;padding:0;border:1px solid rgba(255,255,255,.28);background:rgba(255,255,255,.14)}
+#ddownload[hidden]{display:none!important}
 .dchips{display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:17px;font-weight:600;color:#fff;margin-bottom:10px}
 .dchips .cert{border:1.5px solid rgba(255,255,255,.7);border-radius:6px;padding:1px 8px;font-size:14px;line-height:1.5}
 .dchips .audio-tag{border:1px solid rgba(255,255,255,.24);border-radius:999px;padding:4px 10px;background:rgba(255,255,255,.11);font-size:13px;font-weight:700;line-height:1.25}
@@ -673,6 +680,7 @@ body.detmode #top::before{display:none}
   .dlogo{margin:0 auto 14px;object-position:center bottom;max-width:86%;max-height:120px}
   .dact{justify-content:center}
   .dact .btn{width:min(100%,320px)}
+  .dact #ddownload{width:54px;min-width:54px}
   .dchips{justify-content:center;font-size:16px}
   .dsin{margin:0 auto;font-size:17px}
   .dinfo{width:100%;margin-top:18px;text-align:left}
@@ -1407,8 +1415,8 @@ html.en-pip #pcr{display:none}
 </div>
 <aside id="anun" hidden aria-label="Publicidad"></aside>
 <div id="vacio" hidden><b>Pronto habrá series aquí</b>Todavía no se agrega ninguna.</div>
-<div id="cols-w"><div class="cols-sep" aria-hidden="true"></div><h3 class="cols-t">Colecciones</h3><div id="cols" aria-label="Colecciones"></div></div>
-<div id="gen-w" hidden><div class="cols-sep" aria-hidden="true"></div><h3 class="cols-t">Géneros</h3><div id="gens" aria-label="Géneros"></div></div>
+<div id="cols-w"><div class="cols-sep" aria-hidden="true"></div><h3 class="cols-t">Colecciones</h3><section class="tile-row row" aria-label="Colecciones"><button class="nav prev" type="button" aria-label="Desplazar colecciones a la izquierda">‹</button><div id="cols" aria-label="Colecciones"></div><button class="nav next" type="button" aria-label="Desplazar colecciones a la derecha">›</button></section></div>
+<div id="gen-w" hidden><div class="cols-sep" aria-hidden="true"></div><h3 class="cols-t">Géneros</h3><section class="tile-row row" aria-label="Géneros"><button class="nav prev" type="button" aria-label="Desplazar géneros a la izquierda">‹</button><div id="gens" aria-label="Géneros"></div><button class="nav next" type="button" aria-label="Desplazar géneros a la derecha">›</button></section></div>
 <div id="cont" hidden>
   <h3 class="rt">Continuar viendo</h3>
   <section class="row" aria-label="Continuar viendo">
@@ -1476,7 +1484,7 @@ html.en-pip #pcr{display:none}
   <div id="c-subs"></div>
   <h3 class="rt" id="c-rt">Todas las películas</h3>
   <div class="grid" id="c-grid"></div>
-  <p class="cvacio" id="c-vacio" hidden>Aún no hay películas en esta colección.</p>
+  <p class="cvacio" id="c-vacio" hidden>Aún no hay títulos en esta colección.</p>
 </section>
 
 <section id="vista-sec" hidden aria-label="Sección temática">
@@ -1519,7 +1527,7 @@ html.en-pip #pcr{display:none}
       <img class="dlogo" id="dlogo" alt="" hidden>
       <h1 class="dtit" id="dtit"></h1>
       <p class="dgen" id="dgen"></p>
-      <div class="dact"><button class="btn primary" id="dplay" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor"/></svg><span id="dplayt">Ver ahora</span></button></div>
+      <div class="dact"><button class="btn primary" id="dplay" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor"/></svg><span id="dplayt">Ver ahora</span></button><button class="btn ghost" id="ddownload" type="button" aria-label="Descargar película" title="Descargar película" hidden><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0 5-5m-5 5-5-5M4 17v3h16v-3"/></svg></button></div>
       <div class="dchips" id="dchips"></div>
       <p class="ddir" id="ddir"></p>
       <p class="dsin" id="dsin"></p><button class="dmas" id="dmas" type="button" hidden>Leer más</button>
@@ -3329,7 +3337,7 @@ function casaPalabra(t, ws) {                              // qué tanto se pare
 const fichas = new Map();
 function ficha(p) {                                        // palabras buscables de cada título (se rehace al llegar datos de TMDB)
   let f = fichas.get(p); if (f && f.v === datosVer) return f;
-  const cols = (typeof COLECCIONES !== 'undefined' && p.tipo !== 'serie') ? COLECCIONES.filter(c => pelisDe(c).includes(p)).map(c => c.nombre) : [];
+  const cols = (typeof COLECCIONES !== 'undefined') ? COLECCIONES.filter(c => pelisDe(c).includes(p)).map(c => c.nombre) : [];
   const tit = norm(p.titulo + ' ' + (p.buscar || ''));
   const extra = [p.saga && p.saga.nombre, p.genero, p.anio, ...(p.director || []).map(d => d.nombre), ...(p.reparto || []).map(a => a.nombre), ...cols].filter(Boolean).join(' ');
   f = { v: datosVer, tit, tw: palabrasDe(tit), ew: palabrasDe(extra) };
@@ -4107,6 +4115,37 @@ function pintarSerie(p) {
   act();
 })();
 
+const DESCARGA_LIMITE = 2_000_000_000;
+const bytesHumanos = n => { const u = ['B', 'KB', 'MB', 'GB', 'TB']; let x = n, i = 0; while (x >= 1000 && i < u.length - 1) { x /= 1000; i++; } return (i ? x.toFixed(2) : Math.round(x)) + ' ' + u[i]; };
+async function descargarPelicula(p, boton) {
+  if (!p || p.tipo === 'serie' || !p.link || boton.disabled) return;
+  boton.disabled = true; boton.title = 'Revisando el tamaño del archivo…';
+  const endpoint = '/api/usuario/descargar?url=' + encodeURIComponent(p.link);
+  let bytes = 0, tamanoConocido = false, href = endpoint, host = '';
+  try { host = new URL(p.link, location.href).hostname.toLowerCase(); } catch (e) {}
+  const servidoPorApp = host.endsWith('.r2.dev') || host === 'drive.google.com';
+  try {
+    const r = await fetch(endpoint, { method: 'HEAD', cache: 'no-store', credentials: 'same-origin', signal: AbortSignal.timeout(10000) });
+    if (r.ok && r.headers.get('X-Download-Size-Known') !== '0') {
+      bytes = Number(r.headers.get('Content-Length')) || 0;
+      tamanoConocido = bytes > 0;
+    }
+    if (!r.ok && !servidoPorApp) href = p.link; // respaldo para un proveedor distinto de R2 o Drive
+  } catch (e) { if (!servidoPorApp) href = p.link; }
+  boton.title = 'Descargar película';
+  if (tamanoConocido && bytes > DESCARGA_LIMITE) {
+    const autoriza = confirm('Este archivo pesa ' + bytesHumanos(bytes) + ' y supera los 2 GB. Puede consumir mucho espacio y datos. ¿Autorizas la descarga de «' + p.titulo + '»?');
+    if (!autoriza) { boton.disabled = false; return; }
+  } else if (!tamanoConocido) {
+    const autoriza = confirm('No se pudo verificar el tamaño de «' + p.titulo + '». El archivo podría superar los 2 GB. ¿Autorizas la descarga?');
+    if (!autoriza) { boton.disabled = false; return; }
+  }
+  try {
+    const a = document.createElement('a'); a.href = href; a.download = ''; a.rel = 'noopener'; a.style.display = 'none';
+    document.body.appendChild(a); a.click(); a.remove();
+  } catch (e) { alert('No se pudo iniciar la descarga.'); }
+  boton.disabled = false;
+}
 function pintarDetalle(p) {
   const serie = p.tipo === 'serie';
   H('dbgwrap').style.setProperty('--g', grad(p.titulo));
@@ -4115,6 +4154,7 @@ function pintarDetalle(p) {
   H('dgen').textContent = (p.genero || '').split(',').map(x => x.trim()).filter(Boolean).slice(0, 3).join(' · ');
   H('dplayt').textContent = etiquetaPlay(p);
   H('dplay').disabled = !p.link; H('dplay').onclick = () => reproducir(p);
+  const descarga = H('ddownload'); descarga.hidden = serie || !p.link; descarga.disabled = false; descarga.onclick = () => descargarPelicula(p, descarga);
   const ch = H('dchips'); ch.replaceChildren();
   if (p.anio) ch.appendChild(mk('span', '', p.anio));
   if (p.minutos || p.duracion) ch.appendChild(mk('span', '', p.minutos ? fmtMin(p.minutos) : p.duracion));
@@ -5124,7 +5164,7 @@ let cTimer, cIdx = 0, cLista = [], colHist = false, colActual = null, colFirma =
    casi exclusivas de la semilla); director, reparto, productoras y géneros solo suman, nunca bastan solos.
    Opcional por colección: auto:false (sin expansión) y excluir:["Título"] (quitar alguna en particular). */
 const UMBRAL = 1.5, TOPE = { s: 3, k: 2.5, d: .5, a: .6, e: .5, g: .2 };
-let idxVer = -1, idxN = 0, idxDf = new Map(), idxRas = new Map();
+let idxVer = -1, idxModo = '', idxN = 0, idxDf = new Map(), idxRas = new Map();
 const rasgosDe = p => {
   const r = [];
   if (p.saga && p.saga.id) r.push('s' + p.saga.id);
@@ -5135,12 +5175,15 @@ const rasgosDe = p => {
   (p.generosIds || []).forEach(g => r.push('g' + g));
   return r;
 };
-function indice() {                                    // cuántas películas tiene cada rasgo (se recalcula solo al llegar datos)
-  if (idxVer === datosVer) return;
-  idxVer = datosVer; idxN = peliculas.length; idxDf = new Map(); idxRas = new Map();
-  peliculas.forEach(p => { const r = new Set(rasgosDe(p)); idxRas.set(p, r); r.forEach(f => idxDf.set(f, (idxDf.get(f) || 0) + 1)); });
+function indice(incluirSeries = false) {                 // cuántos títulos tiene cada rasgo; el índice respeta el tipo elegido
+  const modo = incluirSeries ? 'peliculas-series' : 'peliculas';
+  if (idxVer === datosVer && idxModo === modo) return;
+  const base = incluirSeries ? todas() : peliculas;
+  idxVer = datosVer; idxModo = modo; idxN = base.length; idxDf = new Map(); idxRas = new Map();
+  base.forEach(p => { const r = new Set(rasgosDe(p)); idxRas.set(p, r); r.forEach(f => idxDf.set(f, (idxDf.get(f) || 0) + 1)); });
 }
-function perfilDe(S) {                                 // qué rasgos distinguen a la semilla (y con qué valor)
+function perfilDe(S, incluirSeries = false) {          // qué rasgos distinguen a la semilla (y con qué valor)
+  indice(incluirSeries);
   const sup = new Map(), n = S.length, rara = Math.max(4, Math.round(idxN * .08)), perfil = new Map();
   S.forEach(p => idxRas.get(p).forEach(f => sup.set(f, (sup.get(f) || 0) + 1)));
   sup.forEach((k, f) => {
@@ -5168,14 +5211,15 @@ function puntuar(m, perfil) {                          // ¿cuánto se parece m 
 }
 const listaCrit = v => (v || []).map(e => typeof e === 'number' ? e : norm(e));
 const coincide = (crit, o) => crit.some(e => typeof e === 'number' ? e === o.id : norm(o.nombre).includes(e));
+const catalogoCol = c => c.incluirSeries ? todas() : peliculas;
 const semillaDe = c => {
   const t = new Set((c.peliculas || []).map(norm));
   const emp = (c.tmdbEmpresas || []).map(e => typeof e === 'number' ? e : norm(e));      // productoras de TMDB: nombre exacto o número
   const sub = (c.tmdbEmpresasContiene || []).map(norm);                                   // o cualquier productora cuyo nombre contenga estas palabras
   const gn = new Set((c.generos || []).map(norm));                                // colecciones por género (c.generos): entra toda película con ese género de TMDB
-  const idPr = new Set((c.proximamente || []).map(x => Number(x.tmdb)));        // "próximamente" del panel: si ya se publicó en la biblioteca, entra sola
+  const idPr = new Set((c.proximamente || []).map(x => (x.tipo === 'serie' ? 's:' : 'p:') + Number(x.tmdb))); // Próximamente: entra al publicarse el mismo tipo de TMDB
   const sg = listaCrit(c.tmdbSagas), pa = listaCrit(c.tmdbPalabras), di = listaCrit(c.tmdbDirectores), re = listaCrit(c.tmdbReparto);
-  return peliculas.filter(p => t.has(norm(p.titulo)) || (idPr.size && idPr.has(Number(p.tmdbId || p.tmdb) || -1)) || (gn.size && String(p.genero || '').split(',').some(x => gn.has(norm(x.trim())))) || String(p.coleccion || '').split(',').map(s => s.trim().toLowerCase()).includes(c.id)
+  return catalogoCol(c).filter(p => t.has(norm(p.titulo)) || (idPr.size && idPr.has((p.tipo === 'serie' ? 's:' : 'p:') + (Number(p.tmdbId || p.tmdb) || -1))) || (gn.size && String(p.genero || '').split(',').some(x => gn.has(norm(x.trim())))) || String(p.coleccion || '').split(',').map(s => s.trim().toLowerCase()).includes(c.id)
     || (p.empresas || []).some(x => emp.includes(x.id) || emp.includes(norm(x.nombre)) || sub.some(s => norm(x.nombre).includes(s)))
     || (p.saga && coincide(sg, p.saga)) || (p.palabras || []).some(k => coincide(pa, k))
     || (p.director || []).some(d => coincide(di, d)) || (p.reparto || []).some(a => coincide(re, a)));
@@ -5183,17 +5227,16 @@ const semillaDe = c => {
 const colCache = new Map();
 function resolverCol(c) {
   const h = colCache.get(c.id); if (h && h.ver === datosVer) return h;
-  const semilla = semillaDe(c), enSemilla = new Set(semilla), extra = [], why = new Map();
+  const catalogo = catalogoCol(c), semilla = semillaDe(c), enSemilla = new Set(semilla), extra = [], why = new Map();
   if (c.auto !== false && semilla.length) {
-    indice();
-    const perfil = perfilDe(semilla);
-    peliculas.forEach(m => { if (enSemilla.has(m)) return; const r = puntuar(m, perfil); if (r.ok) { extra.push(m); why.set(m, r); } });
+    const perfil = perfilDe(semilla, !!c.incluirSeries);
+    catalogo.forEach(m => { if (enSemilla.has(m)) return; const r = puntuar(m, perfil); if (r.ok) { extra.push(m); why.set(m, r); } });
   }
   const excl = new Set((c.excluir || []).map(norm)), todas = new Set([...semilla, ...extra]);
-  const subs = (c.subcategorias || []).filter(s => s && s.nombre).map(s => ({ nombre: s.nombre, set: new Set(semillaDe(s)) }));
+  const subs = (c.subcategorias || []).filter(s => s && s.nombre).map(s => ({ nombre: s.nombre, set: new Set(semillaDe({ ...s, incluirSeries: !!c.incluirSeries })) }));
   subs.forEach(s => s.set.forEach(p => todas.add(p)));                 // lo que está en una subcategoría también pertenece a la colección
   const ok = p => todas.has(p) && !excl.has(norm(p.titulo));
-  const res = { ver: datosVer, lista: peliculas.filter(ok), semilla: enSemilla, why, subs: subs.map(s => ({ nombre: s.nombre, lista: peliculas.filter(p => s.set.has(p) && ok(p)) })) };
+  const res = { ver: datosVer, lista: catalogo.filter(ok), semilla: enSemilla, why, subs: subs.map(s => ({ nombre: s.nombre, lista: catalogo.filter(p => s.set.has(p) && ok(p)) })) };
   colCache.set(c.id, res); return res;
 }
 const pelisDe = c => resolverCol(c).lista;
@@ -5205,15 +5248,15 @@ window.colExplica = id => {                            // consola:  colExplica("
 /* Puente para el panel de admin (admin.html lo lee desde un iframe oculto): la biblioteca real y quién entra de verdad en una colección. */
 window.bbPuente = {
   ver: () => datosVer, norm,
-  biblioteca: () => peliculas.map(p => ({ titulo: p.titulo, tmdb: Number(p.tmdbId || p.tmdb) || 0, tipo: p.tipo === 'serie' ? 'serie' : 'pelicula', poster: p.poster || '', anio: p.anio || '', cam: !!p.cam })),
+  biblioteca: () => todas().map(p => ({ titulo: p.titulo, tmdb: Number(p.tmdbId || p.tmdb) || 0, tipo: p.tipo === 'serie' ? 'serie' : 'pelicula', poster: p.poster || '', anio: p.anio || '', cam: !!p.cam })),
   bannerPosibles: () => { const f = p => ({ titulo: p.titulo, tmdb: Number(p.tmdbId || p.tmdb) || 0, tipo: p.tipo === 'serie' ? 'serie' : 'pelicula', poster: p.poster || '', anio: p.anio || '', cam: !!p.cam }); return { peliculas: peliculas.map(f), series: series.map(f), anio: ANIO_ACTUAL, n: BANNER_N }; },
   miembrosDe: id => { const c = typeof COLECCIONES !== 'undefined' && COLECCIONES.find(x => x.id === id); return c ? pelisDe(c).map(p => ({ titulo: p.titulo, tmdb: Number(p.tmdbId || p.tmdb) || 0, tipo: p.tipo === 'serie' ? 'serie' : 'pelicula', anio: p.anio || '' })) : []; },
-  miembros: c => { const k = c.id || '_borrador'; colCache.delete(k); try { return resolverCol({ ...c, id: k }).lista.map(p => ({ titulo: p.titulo, tmdb: Number(p.tmdbId || p.tmdb) || 0, poster: p.poster || '', anio: p.anio || '' })); } finally { colCache.delete(k); } }
+  miembros: c => { const k = c.id || '_borrador'; colCache.delete(k); try { return resolverCol({ ...c, id: k }).lista.map(p => ({ titulo: p.titulo, tmdb: Number(p.tmdbId || p.tmdb) || 0, tipo: p.tipo === 'serie' ? 'serie' : 'pelicula', poster: p.poster || '', anio: p.anio || '' })); } finally { colCache.delete(k); } }
 };
 /* Orden cronológico: de la más antigua a la más reciente (sin año, al final) */
 const fechaClave = p => p.fecha || (p.anio ? p.anio + '-99' : '9999');
 const cronologico = l => [...l].sort((a, b) => { const x = fechaClave(a), y = fechaClave(b); return x < y ? -1 : x > y ? 1 : a._i - b._i; });
-const firmaCol = c => cronologico(pelisDe(c)).map(p => p.titulo).join('|') + '#' + resolverCol(c).subs.map(s => s.nombre + ':' + s.lista.map(p => p.titulo).join(',')).join('|');
+const firmaCol = c => cronologico(pelisDe(c)).map(p => (p.tipo === 'serie' ? 's' : 'p') + ':' + Number(p.tmdbId || p.tmdb || 0) + ':' + p.titulo).join('|') + '#' + resolverCol(c).subs.map(s => s.nombre + ':' + s.lista.map(p => p.titulo).join(',')).join('|');
 const urlCss = u => 'url("' + String(u).replace(/"/g, '%22') + '")';
 const tCol = p => { const b = crearTarjeta(p); if (!tarjetasCol.has(p)) tarjetasCol.set(p, []); tarjetasCol.get(p).push(b); return b; };
 
@@ -5262,7 +5305,7 @@ function pintarSubs(c) {                              // una fila por subcategor
     sec.append(el('h3', 'rt', s.nombre), row); box.appendChild(sec);
   });
 }
-const proxDe = c => (c.proximamente || []).filter(x => x && x.tmdb && !peliculas.some(p => Number(p.tmdbId || p.tmdb) === Number(x.tmdb)));
+const proxDe = c => (c.proximamente || []).filter(x => x && x.tmdb && (x.tipo !== 'serie' || c.incluirSeries) && !catalogoCol(c).some(p => Number(p.tmdbId || p.tmdb) === Number(x.tmdb) && (p.tipo === 'serie') === (x.tipo === 'serie')));
 const tProx = x => { const b = document.createElement('div'); b.className = 'card prox'; b.setAttribute('aria-label', x.titulo + ' (próximamente)'); b.innerHTML = '<span class="t"></span><span class="pxb">Próximamente</span>'; b.querySelector('.t').textContent = x.titulo; b.style.setProperty('--g', grad(x.titulo)); if (x.poster) { const i = new Image(); i.alt = ''; i.loading = 'lazy'; i.src = IMG + 'w342' + x.poster; i.onerror = () => i.remove(); b.prepend(i); } return b; };
 function abrirCol(id, viaEnlace, silencio) {
   const c = (typeof COLECCIONES !== 'undefined' && COLECCIONES.find(x => x.id === id)) || generoCol(id);
@@ -5281,7 +5324,8 @@ function abrirCol(id, viaEnlace, silencio) {
   H('c-dots').replaceChildren(...cLista.map((p, i) => { const d = el('button'); d.type = 'button'; d.setAttribute('aria-label', p.titulo); d.onclick = () => { cMostrar(i); cAuto(); }; return d; }));
   cMostrar(0); cAuto();
   H('c-track').replaceChildren(...pop.map(tCol)); H('c-ctrack').replaceChildren(...cro.map(tCol)); H('c-grid').replaceChildren(...cro.map(tCol)); const prox = proxDe(c); H('c-grid').append(...prox.map(tProx));
-  H('c-pt').textContent = 'Populares de ' + c.nombre; H('c-rt').textContent = 'Todas las películas de ' + c.nombre;
+  H('c-pt').textContent = 'Populares de ' + c.nombre; H('c-rt').textContent = (c.incluirSeries ? 'Todas las películas y series de ' : 'Todas las películas de ') + c.nombre;
+  H('c-vacio').textContent = c.incluirSeries ? 'Aún no hay títulos en esta colección.' : 'Aún no hay películas en esta colección.';
   H('c-pop').hidden = !lista.length; H('c-rt').hidden = H('c-grid').hidden = !(lista.length || prox.length); H('c-cro').hidden = cro.length < 2; H('c-vacio').hidden = !!(lista.length || prox.length); pintarSubs(c); pintarSeccionesCol(c.id);
   vistas.inicio.hidden = vistas.ped.hidden = vistas.rec.hidden = vistas.det.hidden = vistas.sec.hidden = true; vistas.col.hidden = false; detActual = null;
   document.body.classList.remove('detmode'); marcarDock('inicio');
@@ -5356,8 +5400,14 @@ const marcaGenero = nombre => {
   const palabras = String(nombre || '').trim().split(/\s+/).filter(Boolean);
   return palabras.length > 1 ? palabras.slice(0, 2).map(x => x[0]).join('').toLocaleUpperCase('es') : (palabras[0] || '').slice(0, 3).toLocaleUpperCase('es');
 };
+function enlazarNavTiles(id) {
+  const box = H(id), row = box && box.closest('.tile-row'); if (!box || !row) return;
+  row.querySelector('.prev').onclick = () => box.scrollBy({ left: -box.clientWidth * .8, behavior: 'smooth' });
+  row.querySelector('.next').onclick = () => box.scrollBy({ left: box.clientWidth * .8, behavior: 'smooth' });
+}
 function pintarGenerosInicio() {
   const box = H('gens'), w = H('gen-w'), L = generosLista(); box.replaceChildren();
+  enlazarNavTiles('gens');
   L.forEach(g => {
     const c = colDeGenero(g), a = document.createElement('a'), n = g.n + (g.n === 1 ? ' película' : ' películas');
     a.className = 'ctile t-liso genre-tile'; a.href = '#/c/' + c.id; a.setAttribute('aria-label', g.nombre + ', ' + n);
@@ -5369,14 +5419,14 @@ function pintarGenerosInicio() {
 function pintarTiles() {
   pintarGenerosInicio();
   try { pintarSecciones(); } catch (e) { console.error('[secciones]', e); }
-  const cols = H('cols'); cols.replaceChildren();
+  const cols = H('cols'); cols.replaceChildren(); enlazarNavTiles('cols');
   if (typeof COLECCIONES === 'undefined' || !COLECCIONES.length) { cols.hidden = H('cols-w').hidden = true; return; }
   COLECCIONES.forEach(c => {
     const a = document.createElement('a');
     a.className = 'ctile t-' + (c.tema || 'liso') + (c.fondo ? ' img' : '') + (c.sinNombre ? ' sin-nombre' : ''); a.href = '#/c/' + c.id;
     a.style.setProperty('--a', c.a); a.style.setProperty('--b', c.b); a.style.setProperty('--tx', c.tx || '#fff');
     if (c.fondo) a.style.setProperty('--fondo', urlCss(c.fondo));
-    const n = pelisDe(c).length; a.setAttribute('aria-label', c.nombre + ', ' + n + (n === 1 ? ' película' : ' películas'));
+    const n = pelisDe(c).length; a.setAttribute('aria-label', c.nombre + ', ' + n + (n === 1 ? ' título' : ' títulos'));
     if (!c.sinNombre) a.append(typeof marca === 'function' ? marca(c) : el('span', 'wm', c.nombre));   // si la imagen ya trae el nombre, el cuadro queda solo con la imagen
     cols.appendChild(a);
   });

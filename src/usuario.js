@@ -140,6 +140,66 @@ async function buscarArchivosR2(env, request, consulta, actualizar, desde) {
   return { items, hoy: false, actualizado: indice.actualizado, parcial: !!indice.parcial };
 }
 
+async function descargarArchivo(env, request) {
+  if (request.method !== 'GET' && request.method !== 'HEAD') return json({ error: 'Método no permitido.' }, 405, { Allow: 'GET, HEAD' });
+  const solicitada = new URL(request.url).searchParams.get('url') || '';
+  let destino; try { destino = new URL(solicitada); } catch (e) { return json({ error: 'Enlace no válido.' }, 400); }
+  if (destino.protocol !== 'https:') return json({ error: 'Solo se permiten enlaces HTTPS.' }, 400);
+
+  if (destino.hostname === 'drive.google.com') {
+    const id = (destino.pathname.match(/\/d\/([\w-]+)/) || [])[1] || destino.searchParams.get('id') || '';
+    if (!/^[\w-]{10,200}$/.test(id)) return json({ error: 'No pude identificar el archivo de Google Drive.' }, 400);
+    const href = 'https://drive.google.com/uc?export=download&id=' + encodeURIComponent(id);
+    if (request.method === 'HEAD') {
+      try {
+        const r = await fetch(href, { method: 'HEAD', redirect: 'follow' });
+        const tipo = r.headers.get('Content-Type') || '', disposicion = r.headers.get('Content-Disposition') || '';
+        const esArchivo = /attachment/i.test(disposicion) || /^video\//i.test(tipo) || /application\/octet-stream/i.test(tipo);
+        const size = esArchivo ? Number(r.headers.get('Content-Length')) || 0 : 0;
+        const headers = new Headers({ 'X-Download-Size-Known': size ? '1' : '0', 'Cache-Control': 'no-store' });
+        if (size) headers.set('Content-Length', String(size));
+        return new Response(null, { status: 200, headers });
+      } catch (e) { return new Response(null, { status: 200, headers: { 'X-Download-Size-Known': '0', 'Cache-Control': 'no-store' } }); }
+    }
+    return Response.redirect(href, 302);
+  }
+
+  if (!env.DATOS) return json({ error: 'La descarga desde R2 no está disponible.' }, 503);
+  let base = String(env.R2_PUBLIC_BASE || '').trim();
+  if (base && !base.endsWith('/')) base += '/';
+  if (!base) {
+    try {
+      const assets = await env.ASSETS.fetch(new Request(new URL('/index.html', request.url)));
+      const html = await assets.text(), encontrado = html.match(/https:\/\/pub-[a-z0-9-]+\.r2\.dev\//i);
+      if (encontrado) base = encontrado[0];
+    } catch (e) {}
+  }
+  if (!base) return json({ error: 'No pude identificar el dominio público de R2.' }, 503);
+  const raiz = new URL(base);
+  if (destino.origin !== raiz.origin || !destino.pathname.startsWith(raiz.pathname)) return json({ error: 'El enlace no pertenece al bucket de videos.' }, 403);
+  let key = '';
+  try { key = destino.pathname.slice(raiz.pathname.length).split('/').map(decodeURIComponent).join('/'); } catch (e) { return json({ error: 'La ruta del archivo no es válida.' }, 400); }
+  if (!key || key.split('/').some(x => !x || x === '.' || x === '..') || !esVideoR2(key)) return json({ error: 'El enlace no es un archivo de video permitido.' }, 400);
+
+  if (request.method === 'HEAD') {
+    const objeto = await env.DATOS.head(key);
+    if (!objeto) return json({ error: 'No encontré el archivo en el bucket.' }, 404);
+    return new Response(null, { headers: { 'Content-Length': String(objeto.size), 'X-Download-Size-Known': '1', 'Cache-Control': 'no-store' } });
+  }
+
+  const objeto = await env.DATOS.get(key, { range: request.headers });
+  if (!objeto) return json({ error: 'No encontré el archivo en el bucket.' }, 404);
+  const headers = new Headers(); objeto.writeHttpMetadata(headers);
+  const nombre = key.split('/').pop().replace(/[\r\n"\\]/g, '_'), ascii = nombre.replace(/[^\x20-\x7e]/g, '_');
+  headers.set('Content-Disposition', `attachment; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(nombre)}`);
+  headers.set('Accept-Ranges', 'bytes'); headers.set('Cache-Control', 'no-store'); headers.set('ETag', objeto.httpEtag);
+  const parcial = request.headers.has('Range') && !!objeto.range;
+  const largo = parcial && objeto.range.length != null ? objeto.range.length : objeto.size;
+  headers.set('Content-Length', String(largo));
+  if (parcial) { headers.set('Content-Range', `bytes ${objeto.range.offset}-${objeto.range.offset + objeto.range.length - 1}/${objeto.size}`); }
+  return new Response(objeto.body, { status: parcial ? 206 : 200, headers });
+}
+
 async function guardarIntroDbTitulo(db, tmdb, tipo, titulo, activo) {
   const r = await db.prepare("SELECT valor FROM meta WHERE clave = 'introdb'").first();
   let items = []; try { if (r && r.valor) { const v = JSON.parse(r.valor); if (Array.isArray(v)) items = v; } } catch (e) {}
@@ -453,6 +513,7 @@ function limpiarCol(c) {
   for (const k of ['tmdbEmpresas', 'tmdbPalabras', 'tmdbSagas', 'tmdbDirectores', 'tmdbReparto']) { const l = criteriosCol(c[k]); if (l.length) o[k] = l; }
   const cont = textosCol(c.tmdbEmpresasContiene).slice(0, 80); if (cont.length) o.tmdbEmpresasContiene = cont;       // solo texto: se busca dentro del nombre
   if (c.auto === false) o.auto = false;
+  if (c.incluirSeries === true) o.incluirSeries = true;
   const exc = textosCol(c.excluir); if (exc.length) o.excluir = exc;
   /* Próximamente: películas de TMDB que todavía no están en la biblioteca. Se muestran en la colección como tarjeta sin enlace y, cuando se publican, entran solas. */
   const prox = (Array.isArray(c.proximamente) ? c.proximamente : []).slice(0, 100).map(x => {
@@ -461,7 +522,7 @@ function limpiarCol(c) {
     if (!(tmdb > 0) || !titulo) return null;
     return { tmdb, titulo, tipo: x.tipo === 'serie' ? 'serie' : 'pelicula', anio: /^\d{4}$/.test(String(x.anio || '')) ? String(x.anio) : '',
       poster: /^\/[\w-]{1,60}\.(jpg|jpeg|png|webp)$/i.test(String(x.poster || '')) ? String(x.poster) : '' };      // solo la ruta de TMDB (/abc.jpg), nunca una dirección libre
-  }).filter((x, i, a) => x && a.findIndex(y => y && y.tmdb === x.tmdb) === i);
+  }).filter((x, i, a) => x && a.findIndex(y => y && y.tmdb === x.tmdb && (y.tipo === 'serie') === (x.tipo === 'serie')) === i);
   if (prox.length) o.proximamente = prox;
   const pel = textosCol(c.peliculas); if (pel.length) o.peliculas = pel;
   /* Subcategorías (por ejemplo "Trilogía original" dentro de Star Wars): cada una con sus propias reglas. Lo que entra en una también pertenece a la colección. */
@@ -537,6 +598,8 @@ async function manejar({ request, env, params, waitUntil }) {
 
   let cuerpo = {};
   if (esPost) { try { cuerpo = await request.json(); } catch (e) { return json({ error: 'Solicitud no válida.' }, 400); } }
+
+  if (accion === 'descargar') return descargarArchivo(env, request);
 
   /* ---- Crear cuenta ---- */
   if (accion === 'registro' && esPost) {
@@ -1308,8 +1371,8 @@ async function manejar({ request, env, params, waitUntil }) {
 }
 
 export async function onRequest(ctx) {
-  // /extras solo usa KV; todo lo demás necesita la base de datos D1
-  if (ctx.params.accion !== 'extras' && !ctx.env.DB) {
+  // /extras y /descargar usan KV/R2; las demás acciones necesitan la base de datos D1.
+  if (!['extras', 'descargar'].includes(ctx.params.accion) && !ctx.env.DB) {
     return json({ error: 'La base de datos de usuarios no está conectada: falta el binding DB (D1) en wrangler.jsonc.' }, 503);
   }
   try { return await manejar(ctx); }

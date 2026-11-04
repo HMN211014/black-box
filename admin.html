@@ -519,9 +519,10 @@ body:not(.h) .nav button.on{background:#fff;color:#000}
     <label>Logo (opcional)<small class="h">Imagen del logo en lugar del nombre escrito.</small><input id="co-logo" type="url" autocapitalize="off" spellcheck="false" placeholder="https://…"></label>
 
     <div id="co-pv" style="margin-top:14px;border-top:1px solid rgba(255,255,255,.1);padding-top:14px">
-      <b>Películas de la colección</b>
-      <p class="s" style="margin:4px 0 0">Busca en TMDB para agregar. Si está en tu biblioteca entra normal; si no, sale como <b>Próximamente</b> y entra sola cuando la publiques. Con la ✕ la quitas (si entraba por una regla, pasa a excluidas).</p>
-      <label style="margin-top:10px">Agregar película<input id="co-q" type="search" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Busca en TMDB…"></label>
+      <b>Contenido de la colección</b>
+      <p class="s" style="margin:4px 0 0">Busca en TMDB para agregar películas o series. Si ya está en tu biblioteca entra normal; si no, sale como <b>Próximamente</b> y entra sola cuando la publiques. Con la ✕ la quitas (si entraba por una regla, pasa a excluidas).</p>
+      <label class="ck" style="margin-top:10px"><input type="checkbox" id="co-series"> Incluir series de la biblioteca y aplicarles las reglas de esta colección</label>
+      <label style="margin-top:10px">Agregar película o serie<input id="co-q" type="search" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Busca en TMDB…"></label>
       <div class="sr" id="co-res"></div>
       <p class="m" id="co-qm" hidden></p>
       <p class="s" id="co-pst" style="margin:10px 0 0"></p>
@@ -530,8 +531,8 @@ body:not(.h) .nav button.on{background:#fff;color:#000}
     </div>
 
     <details class="dt">
-      <summary>Qué películas entran</summary>
-      <p class="s" style="margin-bottom:12px">Escribe uno por línea. Entran solas las películas de tu biblioteca que cumplan cualquiera de estas reglas; las de TMDB se llenan con los datos de cada película.</p>
+      <summary>Qué títulos entran</summary>
+      <p class="s" style="margin-bottom:12px">Escribe uno por línea. Entran solos los títulos de tu biblioteca que cumplan cualquiera de estas reglas; las de TMDB se llenan con los datos de cada título.</p>
       <label>Títulos exactos<small class="h">Escritos igual que en tu catálogo.</small><textarea class="ta" id="co-pel" spellcheck="false" placeholder="Batman Inicia"></textarea></label>
       <label>Saga de TMDB<small class="h">Nombre o número de la saga.</small><textarea class="ta" id="co-sag" spellcheck="false" placeholder="Harry Potter Collection&#10;1241"></textarea></label>
       <label>Director<textarea class="ta" id="co-dir" spellcheck="false" placeholder="Christopher Nolan"></textarea></label>
@@ -539,8 +540,8 @@ body:not(.h) .nav button.on{background:#fff;color:#000}
       <label>Productora (nombre exacto o número)<textarea class="ta" id="co-emp" spellcheck="false" placeholder="Marvel Studios"></textarea></label>
       <label>Productora que contenga la palabra<textarea class="ta" id="co-empc" spellcheck="false" placeholder="warner"></textarea></label>
       <label>Palabras clave de TMDB (en inglés)<textarea class="ta" id="co-pal" spellcheck="false" placeholder="marvel cinematic universe"></textarea></label>
-      <label class="ck"><input type="checkbox" id="co-auto" checked> Sumar solas las películas parecidas</label>
-      <label>No incluir estas películas<small class="h">Títulos exactos, uno por línea.</small><textarea class="ta" id="co-exc" spellcheck="false" placeholder="The Batman"></textarea></label>
+      <label class="ck"><input type="checkbox" id="co-auto" checked> Sumar solos los títulos parecidos</label>
+      <label>No incluir estos títulos<small class="h">Títulos exactos, uno por línea.</small><textarea class="ta" id="co-exc" spellcheck="false" placeholder="The Batman"></textarea></label>
     </details>
 
     <details class="dt">
@@ -2084,7 +2085,7 @@ function coLeer() {
     patron: $('co-patron').value, patronColor: $('co-pc').value,
     anuncio: { titulo: $('co-at').value.trim(), texto: $('co-ax').value.trim(), imagen: $('co-ai').value.trim(), enlace: $('co-ae').value.trim(), boton: $('co-ab').value.trim() },
     tmdbEmpresas: lin('co-emp'), tmdbEmpresasContiene: lin('co-empc'), tmdbPalabras: lin('co-pal'), tmdbSagas: lin('co-sag'), tmdbDirectores: lin('co-dir'), tmdbReparto: lin('co-rep'),
-    auto: $('co-auto').checked, excluir: lin('co-exc'), peliculas: lin('co-pel'), subcategorias: coSubsLeer(), proximamente: coProx.map(x => ({ ...x }))
+    auto: $('co-auto').checked, incluirSeries: $('co-series').checked, excluir: lin('co-exc'), peliculas: lin('co-pel'), subcategorias: coSubsLeer(), proximamente: coProx.map(x => ({ ...x }))
   };
 }
 function coPrev() {
@@ -2105,13 +2106,14 @@ function coPoner(c) {                                  // c = null → formulari
   v('co-fuente', c.fuente, 'helvetica'); v('co-peso', c.peso, '700'); v('co-esp', esp, '.08em'); v('co-patron', c.patron, ''); v('co-pc', c.patronColor, '#ffffff');
   $('co-mayus').checked = c.id ? !!c.mayus : true; v('co-fondo', c.fondo, ''); v('co-logo', c.logo, ''); $('co-sin').checked = !!c.sinNombre;
   L('co-pel', c.peliculas); L('co-sag', c.tmdbSagas); L('co-dir', c.tmdbDirectores); L('co-rep', c.tmdbReparto); L('co-emp', c.tmdbEmpresas);
-  L('co-empc', c.tmdbEmpresasContiene); L('co-pal', c.tmdbPalabras); L('co-exc', c.excluir); $('co-auto').checked = c.auto !== false;
+  L('co-empc', c.tmdbEmpresasContiene); L('co-pal', c.tmdbPalabras); L('co-exc', c.excluir); $('co-auto').checked = c.auto !== false; $('co-series').checked = !!c.incluirSeries;
   v('co-at', an.titulo, ''); v('co-ax', an.texto, ''); v('co-ai', an.imagen, ''); v('co-ae', an.enlace, ''); v('co-ab', an.boton, '');
   $('co-subs').replaceChildren(); (c.subcategorias || []).forEach(coSubAgregar);
   coProx = (c.proximamente || []).map(x => ({ ...x }));
   coPrev(); coTiles();
 }
 document.querySelectorAll('#col-card input, #col-card select, #col-card textarea').forEach(e => e.addEventListener('input', coPrev));
+$('co-series').addEventListener('change', () => coTiles(true));
 $('co-nombre').addEventListener('input', () => { if (!coManual) $('co-id').value = slug($('co-nombre').value); });
 $('co-id').addEventListener('input', () => { coManual = true; });
 $('co-nuevo').onclick = () => { coPoner(null); msg('co-m', '', true); $('col-card').scrollIntoView({ behavior: 'smooth', block: 'start' }); };
@@ -2172,6 +2174,7 @@ function coTile(o, tipo, alX) {
   if (o.poster) { const i = new Image(); i.alt = ''; i.loading = 'lazy'; i.src = o.poster.charAt(0) === '/' ? COIMG + 'w185' + o.poster : o.poster; i.onerror = () => i.remove(); d.appendChild(i); }
   const n = document.createElement('span'); n.className = 'n'; n.textContent = o.titulo; d.appendChild(n);
   if (tipo === 'px') { const e = document.createElement('em'); e.textContent = 'Próximamente'; d.appendChild(e); }
+  else if (o.tipo === 'serie') { const e = document.createElement('em'); e.textContent = 'Serie'; d.appendChild(e); }
   const x = document.createElement('button'); x.type = 'button'; x.className = 'x'; x.textContent = tipo === 'ex' ? '↩' : '✕';
   x.title = tipo === 'ex' ? 'Devolver a la colección' : 'Quitar de la colección'; x.setAttribute('aria-label', x.title + ': ' + o.titulo); x.onclick = alX; d.appendChild(x);
   return d;
@@ -2181,7 +2184,7 @@ async function coTiles(cargar) {
   if (!coPuenteP && !cargar) {                                   // todavía no se carga la biblioteca: botón para hacerlo
     box.replaceChildren(); exl.replaceChildren(); $('co-exw').hidden = true;
     st.textContent = coProx.length ? coProx.length + ' próximamente guardada(s). ' : '';
-    const b = document.createElement('button'); b.type = 'button'; b.className = 'g'; b.textContent = 'Cargar películas de la colección'; b.style.marginTop = '8px';
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'g'; b.textContent = 'Cargar títulos de la colección'; b.style.marginTop = '8px';
     b.onclick = () => { b.disabled = true; coTiles(true); }; st.appendChild(b); return;
   }
   st.textContent = 'Cargando tu biblioteca…';
@@ -2191,27 +2194,28 @@ async function coTiles(cargar) {
   box.replaceChildren(); exl.replaceChildren();
   mem.forEach(m => box.appendChild(coTile(m, '', () => {
     $('co-pel').value = lin('co-pel').filter(x => nx(x) !== nx(m.titulo)).join('\n');
-    coProx = coProx.filter(x => x.tmdb !== m.tmdb);
+    coProx = coProx.filter(x => x.tmdb !== m.tmdb || (x.tipo === 'serie') !== (m.tipo === 'serie'));
     if (P.miembros(coLeer()).some(y => nx(y.titulo) === nx(m.titulo))) $('co-exc').value = [...lin('co-exc'), m.titulo].join('\n');   // entraba por una regla: se excluye
     coPrev(); coTiles();
   })));
-  coProx.filter(x => !bib.some(b => b.tmdb && b.tmdb === x.tmdb)).forEach(x => box.appendChild(coTile({ titulo: x.titulo, poster: x.poster }, 'px', () => { coProx = coProx.filter(y => y.tmdb !== x.tmdb); coPrev(); coTiles(); })));
+  coProx.filter(x => (x.tipo !== 'serie' || c.incluirSeries) && !bib.some(b => b.tmdb && b.tmdb === x.tmdb && b.tipo === (x.tipo === 'serie' ? 'serie' : 'pelicula'))).forEach(x => box.appendChild(coTile({ titulo: x.titulo, poster: x.poster, tipo: x.tipo }, 'px', () => { coProx = coProx.filter(y => y.tmdb !== x.tmdb || (y.tipo === 'serie') !== (x.tipo === 'serie')); coPrev(); coTiles(); })));
   const exc = lin('co-exc'); $('co-exw').hidden = !exc.length;
   exc.forEach(t => { const b = bib.find(y => nx(y.titulo) === nx(t)) || { titulo: t }; exl.appendChild(coTile(b, 'ex', () => { $('co-exc').value = lin('co-exc').filter(x => nx(x) !== nx(t)).join('\n'); coPrev(); coTiles(); })); });
-  st.textContent = mem.length + ' en la colección · ' + coProx.length + ' próximamente · ' + exc.length + ' excluida(s)' + (box.children.length ? '' : ' · aún no hay nada');
+  st.textContent = mem.length + ' título(s) en la colección · ' + coProx.length + ' próximamente · ' + exc.length + ' excluida(s)' + (box.children.length ? '' : ' · aún no hay nada');
 }
 async function coAgregar(r) {
   const P = await coPuente();
   if (!P) { msg('co-qm', 'No pude leer tu biblioteca para saber si ya está. Inténtalo de nuevo en un momento.', false); return; }
   const nx = t => P.norm(t), tp = r.media_type === 'tv' ? 'serie' : 'pelicula', titulo = r.title || r.name || '', bib = P.biblioteca();
-  const hit = bib.find(b => b.tmdb && b.tmdb === r.id && b.tipo === tp) || bib.find(b => !b.tmdb && nx(b.titulo) === nx(titulo));
+  if (tp === 'serie') $('co-series').checked = true;
+  const hit = bib.find(b => b.tmdb && b.tmdb === r.id && b.tipo === tp) || bib.find(b => !b.tmdb && b.tipo === tp && nx(b.titulo) === nx(titulo));
   if (hit) {
     const pel = lin('co-pel'); if (!pel.some(x => nx(x) === nx(hit.titulo))) pel.push(hit.titulo);
     $('co-pel').value = pel.join('\n'); $('co-exc').value = lin('co-exc').filter(x => nx(x) !== nx(hit.titulo)).join('\n');
-    coProx = coProx.filter(x => x.tmdb !== r.id);
+    coProx = coProx.filter(x => x.tmdb !== r.id || (x.tipo === 'serie') !== (tp === 'serie'));
     msg('co-qm', '"' + hit.titulo + '" está en tu biblioteca: agregada a la colección.', true);
   } else {
-    if (!coProx.some(x => x.tmdb === r.id)) coProx.push({ tmdb: r.id, titulo, tipo: tp, anio: (r.release_date || r.first_air_date || '').slice(0, 4), poster: r.poster_path || '' });
+    if (!coProx.some(x => x.tmdb === r.id && x.tipo === tp)) coProx.push({ tmdb: r.id, titulo, tipo: tp, anio: (r.release_date || r.first_air_date || '').slice(0, 4), poster: r.poster_path || '' });
     msg('co-qm', '"' + titulo + '" no está en tu biblioteca: saldrá como Próximamente.', true);
   }
   coPrev(); coTiles(true);
