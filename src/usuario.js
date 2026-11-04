@@ -1,7 +1,7 @@
 /* Cuentas de usuario (correo + contraseña), tiempo de acceso y códigos canjeables para Black BOX.
    Los datos viven en D1 (binding DB). El progreso va a R2 (binding DATOS) y, si no está conectado, a D1.
    Las películas publicadas desde el panel viven en D1 (tablas publicados y meta). El KV (binding USUARIOS) solo se lee una vez para copiarlas.
-   Ruta:  /api/usuario/registro | entrar | salir | yo | datos | canjear | pedir | pedidos | extras | push | pushquitar | admin */
+   Ruta:  /api/usuario/registro | entrar | salir | yo | datos | canjear | pedir | pedidos | extras | compartir | push | pushquitar | admin */
 
 import { avisarUsuario, asegurarPush, avisarAdmins, asegurarPushAdmin } from './push.js';
 
@@ -578,6 +578,30 @@ function limpiarSec(s) {
 }
 const datosSec = t => { try { const o = JSON.parse(t); return o && typeof o === 'object' && o.id ? o : null; } catch (e) { return null; } };
 
+async function prepararEnlacesCompartidos(db) {
+  await db.prepare('CREATE TABLE IF NOT EXISTS enlaces_compartidos (token TEXT PRIMARY KEY, tipo TEXT NOT NULL, destino TEXT NOT NULL, titulo TEXT NOT NULL, creado INTEGER NOT NULL, revocado INTEGER NOT NULL DEFAULT 0) WITHOUT ROWID').run();
+  await db.prepare('CREATE TABLE IF NOT EXISTS aperturas_compartidas (token TEXT NOT NULL, dispositivo TEXT NOT NULL, plataforma TEXT NOT NULL, navegador TEXT NOT NULL, primera INTEGER NOT NULL, ultima INTEGER NOT NULL, aperturas INTEGER NOT NULL DEFAULT 1, PRIMARY KEY (token, dispositivo)) WITHOUT ROWID').run();
+  await db.prepare('CREATE INDEX IF NOT EXISTS aperturas_compartidas_token ON aperturas_compartidas (token)').run();
+}
+async function manejarEnlaceCompartido(db, cuerpo) {
+  const token = String(cuerpo.token || '').trim();
+  if (!/^[A-Za-z0-9_-]{32,80}$/.test(token)) return json({ error: 'El enlace no es válido o ya no está disponible.' }, 404);
+  const enlace = await db.prepare('SELECT token, tipo, destino, titulo, revocado FROM enlaces_compartidos WHERE token = ?1').bind(token).first();
+  if (!enlace || enlace.revocado) return json({ error: 'El enlace fue eliminado o ya no está disponible.' }, 410);
+  if (cuerpo.op === 'validar') return json({ ok: true, tipo: enlace.tipo, destino: enlace.destino, titulo: enlace.titulo });
+  if (cuerpo.op !== 'abrir') return json({ error: 'Operación no válida.' }, 400);
+  const ruta = enlace.tipo === 'coleccion' ? '#/c/' + enlace.destino : '#/p/' + enlace.destino;
+  if (String(cuerpo.ruta || '') !== ruta) return json({ error: 'El enlace no corresponde a este contenido.' }, 403);
+  const dispositivo = String(cuerpo.dispositivo || '').trim(), plataforma = String(cuerpo.plataforma || 'Otro').trim().slice(0, 40), navegador = String(cuerpo.navegador || 'Navegador').trim().slice(0, 40);
+  if (!/^[a-f0-9]{32,64}$/.test(dispositivo)) return json({ error: 'No pude identificar este dispositivo.' }, 400);
+  const ahora = Date.now();
+  await db.prepare(`INSERT INTO aperturas_compartidas (token, dispositivo, plataforma, navegador, primera, ultima, aperturas)
+    VALUES (?1, ?2, ?3, ?4, ?5, ?5, 1)
+    ON CONFLICT(token, dispositivo) DO UPDATE SET plataforma = ?3, navegador = ?4, ultima = ?5, aperturas = aperturas + 1`)
+    .bind(token, dispositivo, plataforma, navegador, ahora).run();
+  return json({ ok: true, tipo: enlace.tipo, destino: enlace.destino, titulo: enlace.titulo });
+}
+
 async function manejar({ request, env, params, waitUntil }) {
   const db = env.DB;
   const posterDePedido = poster => /^\/[\w.-]{1,60}$/.test(String(poster || '')) ? 'https://image.tmdb.org/t/p/w500' + poster : '';
@@ -601,6 +625,7 @@ async function manejar({ request, env, params, waitUntil }) {
   if (esPost) { try { cuerpo = await request.json(); } catch (e) { return json({ error: 'Solicitud no válida.' }, 400); } }
 
   if (accion === 'descargar') return descargarArchivo(env, request);
+  if (accion === 'compartido' && esPost) return manejarEnlaceCompartido(db, cuerpo);
 
   /* ---- Crear cuenta ---- */
   if (accion === 'registro' && esPost) {
@@ -879,6 +904,39 @@ async function manejar({ request, env, params, waitUntil }) {
     }
 
     if (cuerpo.op === 'verificar_clave') return json({ ok: true, claveValida: true });
+
+    if (cuerpo.op === 'crear_enlace_compartido') {
+      const tipo = ['coleccion', 'pelicula', 'serie'].includes(cuerpo.tipo) ? cuerpo.tipo : '';
+      const destino = String(cuerpo.destino || '').trim().toLowerCase();
+      const titulo = String(cuerpo.titulo || '').trim().slice(0, 160);
+      if (!tipo || !/^[a-z0-9][a-z0-9-]{0,119}$/.test(destino) || !titulo) return json({ error: 'Faltan el tipo, destino o título del enlace.' }, 400);
+      await prepararEnlacesCompartidos(db);
+      const token = b64url(crypto.getRandomValues(new Uint8Array(24)));
+      await db.prepare('INSERT INTO enlaces_compartidos (token, tipo, destino, titulo, creado, revocado) VALUES (?1, ?2, ?3, ?4, ?5, 0)')
+        .bind(token, tipo, destino, titulo, Date.now()).run();
+      return json({ token, tipo, destino, titulo });
+    }
+    if (cuerpo.op === 'enlaces_compartidos') {
+      await prepararEnlacesCompartidos(db);
+      const r = await db.prepare(`SELECT e.token, e.tipo, e.destino, e.titulo, e.creado, e.revocado,
+        COUNT(a.dispositivo) AS dispositivos FROM enlaces_compartidos e
+        LEFT JOIN aperturas_compartidas a ON a.token = e.token
+        GROUP BY e.token ORDER BY e.creado DESC LIMIT 500`).all();
+      const d = await db.prepare(`SELECT a.token, substr(a.dispositivo, 1, 6) AS id_dispositivo, a.plataforma, a.navegador, a.primera, a.ultima, a.aperturas
+        FROM aperturas_compartidas a JOIN enlaces_compartidos e ON e.token = a.token
+        ORDER BY a.ultima DESC LIMIT 5000`).all();
+      const dispositivos = new Map();
+      d.results.forEach(x => { if (!dispositivos.has(x.token)) dispositivos.set(x.token, []); dispositivos.get(x.token).push(x); });
+      return json({ items: r.results.map(x => ({ ...x, dispositivos: dispositivos.get(x.token) || [] })) });
+    }
+    if (cuerpo.op === 'revocar_enlace_compartido') {
+      await prepararEnlacesCompartidos(db);
+      const token = String(cuerpo.token || '').trim();
+      if (!/^[A-Za-z0-9_-]{32,80}$/.test(token)) return json({ error: 'El enlace no es válido.' }, 400);
+      const r = await db.prepare('UPDATE enlaces_compartidos SET revocado = 1 WHERE token = ?1').bind(token).run();
+      if (!r.meta || !r.meta.changes) return json({ error: 'No encontré ese acceso compartido.' }, 404);
+      return json({ ok: true });
+    }
 
     if (cuerpo.op === 'introdb') {
       let items = [];

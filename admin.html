@@ -51,6 +51,7 @@ td.k{font-family:ui-monospace,Menlo,Consolas,monospace;white-space:nowrap}
 .tw{overflow-x:auto}
 .it{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:10px 0;border-top:1px solid rgba(255,255,255,.1)}
 .it .tx{min-width:0;flex:1}.it b{display:block;font-size:15px;word-break:break-word}.it small{color:#a1a1a6;font-size:12px}
+.share-device{display:block;margin:4px 0 0 10px}
 .it button{height:36px;padding:0 12px;font-size:14px;flex:none}
 #co-lista .it{flex-wrap:nowrap;gap:14px}
 #co-lista .it .row{flex-wrap:nowrap;justify-content:flex-end}
@@ -341,13 +342,18 @@ body:not(.h) .nav button.on{background:#fff;color:#000}
 
   <div class="c w" data-g="compartir" id="share-card">
     <h2>Enlaces compartidos</h2>
-    <p class="s">Comparte una película, una serie o una colección. El enlace permite reproducir solo ese título o el contenido de esa colección, sin pedir iniciar sesión.</p>
+    <p class="s">Comparte una película, una serie o una colección. Cada enlace crea un acceso individual que permite ver solo ese contenido sin iniciar sesión. En «Accesos y dispositivos» puedes revisar dónde se abrió y revocarlo.</p>
     <label style="margin-top:12px">Filtrar por nombre<input id="share-q" type="search" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Escribe un título o una colección"></label>
     <div class="row" style="margin-top:10px"><button class="g" id="share-refresh" type="button">Cargar o actualizar enlaces</button></div>
     <p class="m" id="share-m" role="status" aria-live="polite" hidden></p>
     <details open style="margin-top:14px"><summary><b>Películas</b></summary><div id="share-movies"></div></details>
     <details open style="margin-top:14px"><summary><b>Series</b></summary><div id="share-series"></div></details>
     <details open style="margin-top:14px"><summary><b>Colecciones</b></summary><div id="share-cols"></div></details>
+    <h3 style="margin-top:22px">Accesos y dispositivos</h3>
+    <p class="s">Aquí aparecen los dispositivos que abrieron cada enlace y la última apertura. Se registra el tipo de dispositivo y navegador, sin guardar IP ni cuenta del visitante. Puedes revocar cada acceso.</p>
+    <div class="row" style="margin-top:10px"><button class="g" id="share-access-refresh" type="button">Actualizar accesos</button></div>
+    <p class="m" id="share-access-status" role="status" aria-live="polite" hidden></p>
+    <div id="share-access-list"></div>
   </div>
 
   <div class="c w" data-g="biblioteca" id="cm-card">
@@ -2799,21 +2805,27 @@ async function dPanel() {           // lo publicado desde el panel (necesita la 
   } catch (e) { dPanOk = false; throw e; }
 }
 const dTodos = () => [...(dIdx || []), ...dPan];
-const shareSlug = titulo => String(titulo || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+const shareSlug = titulo => String(titulo || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 120).replace(/-+$/g, '');
+async function shareCrearUrl(tipo, titulo, id) {
+  const destino = tipo === 'coleccion' ? id : shareSlug(titulo);
+  const creado = await admin({ op: 'crear_enlace_compartido', tipo, destino, titulo });
+  const url = new URL('index.html', location.href);
+  url.searchParams.set('bb-share', creado.token);
+  url.hash = tipo === 'coleccion' ? '/c/' + encodeURIComponent(creado.destino) : '/p/' + encodeURIComponent(creado.destino);
+  return url.href;
+}
 function shareButton(tipo, titulo, id) {
   const labels = { pelicula: 'película', serie: 'serie', coleccion: 'colección' };
   const label = labels[tipo], tituloSeguro = '«' + titulo + '»';
   const invitacion = tipo === 'coleccion'
     ? 'Te comparto la colección ' + tituloSeguro + ' de Black BOX. ¡Te invito a explorarla!'
     : 'Te comparto la ' + label + ' ' + tituloSeguro + ' de Black BOX. ¡Te invito a verla!';
-  const destino = new URL('index.html', location.href);
-  destino.searchParams.set('bb-share', '1');
-  destino.hash = tipo === 'coleccion' ? '/c/' + encodeURIComponent(id) : '/p/' + encodeURIComponent(shareSlug(titulo));
-  const url = destino.href, mensaje = invitacion + '\n' + url;
   const acciones = dEl('div', 'row');
   const copiar = dEl('button', 'g', 'Copiar invitación'); copiar.type = 'button';
   copiar.onclick = async () => {
+    copiar.disabled = true;
     try {
+      const url = await shareCrearUrl(tipo, titulo, id), mensaje = invitacion + '\n' + url;
       if (navigator.clipboard && window.isSecureContext) await navigator.clipboard.writeText(mensaje);
       else {
         const campo = document.createElement('textarea'); campo.value = mensaje; campo.setAttribute('readonly', ''); campo.style.position = 'fixed'; campo.style.opacity = '0'; document.body.appendChild(campo); campo.select();
@@ -2821,14 +2833,20 @@ function shareButton(tipo, titulo, id) {
         if (!copiado) throw new Error('No se pudo copiar el texto.');
       }
       alert('Invitación y enlace copiados.');
-    } catch (error) { prompt('Copia la invitación y el enlace:', mensaje); }
+      await shareAccesosCargar();
+    } catch (error) { alert(error.message || 'No se pudo crear el enlace compartido.'); }
+    finally { copiar.disabled = false; }
   };
   const compartir = dEl('button', 'g', 'Compartir'); compartir.type = 'button';
   compartir.onclick = async () => {
+    compartir.disabled = true;
     try {
+      const url = await shareCrearUrl(tipo, titulo, id), mensaje = invitacion + '\n' + url;
       if (navigator.share) await navigator.share({ title: titulo + ' · Black BOX', text: invitacion, url });
       else { await navigator.clipboard.writeText(mensaje); alert('Invitación y enlace copiados.'); }
-    } catch (error) { if (error && error.name !== 'AbortError') prompt('Copia la invitación y el enlace:', mensaje); }
+      await shareAccesosCargar();
+    } catch (error) { if (error && error.name !== 'AbortError') alert(error.message || 'No se pudo compartir el enlace.'); }
+    finally { compartir.disabled = false; }
   };
   acciones.append(copiar, compartir);
   return acciones;
@@ -2837,6 +2855,37 @@ function shareFila(box, tipo, titulo, id, detalle) {
   const d = dEl('div', 'it share-item'); d.dataset.nombre = dNorm(titulo);
   const tx = dEl('div', 'tx'); tx.append(dEl('b', '', titulo), dEl('small', '', detalle || ''));
   d.append(tx, shareButton(tipo, titulo, id)); box.appendChild(d);
+}
+const shareFecha = n => n ? new Date(n).toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' }) : '—';
+async function shareAccesosCargar() {
+  const box = $('share-access-list'), btn = $('share-access-refresh');
+  if (btn) btn.disabled = true;
+  try {
+    const j = await admin({ op: 'enlaces_compartidos' }); box.replaceChildren();
+    if (!j.items.length) { msg('share-access-status', 'Todavía no has creado enlaces compartidos.', true); return; }
+    const tipos = { coleccion: 'Colección', pelicula: 'Película', serie: 'Serie' };
+    j.items.forEach(x => {
+      const d = dEl('div', 'it v share-access-entry'), head = dEl('div', 'row'), tx = dEl('div', 'tx');
+      tx.append(dEl('b', '', x.titulo), dEl('small', '', tipos[x.tipo] + ' · Creado ' + shareFecha(x.creado) + ' · ' + (x.revocado ? 'Acceso eliminado' : 'Activo')));
+      head.appendChild(tx); d.appendChild(head);
+      if (!x.dispositivos.length) d.appendChild(dEl('p', 's', 'Ningún dispositivo ha abierto este enlace.'));
+      else {
+        d.appendChild(dEl('p', 's', x.dispositivos.length + ' dispositivo(s):'));
+        x.dispositivos.forEach(dev => d.appendChild(dEl('small', 'share-device', dev.plataforma + ' · ' + dev.navegador + ' · equipo ' + dev.id_dispositivo + ' · ' + dev.aperturas + ' apertura(s) · última: ' + shareFecha(dev.ultima))));
+      }
+      if (!x.revocado) {
+        const quitar = dEl('button', 'g', 'Eliminar acceso'); quitar.type = 'button';
+        quitar.onclick = () => {
+          if (!confirm('¿Eliminar el acceso de «' + x.titulo + '»? El enlace dejará de abrir el contenido.')) return;
+          con(quitar, 'share-access-status', async () => { await admin({ op: 'revocar_enlace_compartido', token: x.token }); await shareAccesosCargar(); });
+        };
+        d.appendChild(quitar);
+      }
+      box.appendChild(d);
+    });
+    msg('share-access-status', j.items.length + ' enlace(s) compartido(s).', true);
+  } catch (e) { msg('share-access-status', e.message || 'No se pudieron cargar los accesos compartidos.', false); }
+  finally { if (btn) btn.disabled = false; }
 }
 async function shareCargar() {
   const button = $('share-refresh'); button.disabled = true;
@@ -2861,6 +2910,7 @@ async function shareCargar() {
     [boxPel, boxSer, boxCol].forEach(box => { if (!box.children.length) box.append(dEl('p', 's', 'No hay elementos disponibles para compartir.')); });
     msg('share-m', peliculas.length + ' película(s), ' + series.length + ' serie(s) y ' + cols.size + ' colección(es).', true);
     shareFiltrar();
+    await shareAccesosCargar();
   } catch (e) { msg('share-m', e.message || 'No se pudieron cargar los enlaces.', false); }
   finally { button.disabled = false; }
 }
@@ -2869,6 +2919,7 @@ function shareFiltrar() {
   document.querySelectorAll('#share-movies .share-item, #share-series .share-item, #share-cols .share-item').forEach(d => { d.hidden = !!q && !d.dataset.nombre.includes(q); });
 }
 $('share-refresh').onclick = shareCargar;
+$('share-access-refresh').onclick = shareAccesosCargar;
 $('share-q').addEventListener('input', shareFiltrar);
 const dIgn = () => { try { return new Set(JSON.parse(localStorage.getItem('bbDupOk') || '[]')); } catch (e) { return new Set(); } };
 const dIgnGuardar = s => { try { localStorage.setItem('bbDupOk', JSON.stringify([...s])); } catch (e) {} };

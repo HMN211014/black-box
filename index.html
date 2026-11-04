@@ -128,6 +128,9 @@ body{-webkit-user-select:none;user-select:none}
 .download-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:24px}
 .download-actions .btn{min-width:112px;padding:12px 20px;text-align:center}
 @media(max-width:420px){.download-dialog{padding:24px 20px;border-radius:22px}.download-actions .btn{min-width:0;flex:1;padding:12px 10px}}
+#share-denied[hidden]{display:none}
+#share-denied{position:fixed;inset:0;z-index:1200;display:grid;place-items:center;padding:24px;background:rgba(0,0,0,.72);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+#share-denied .download-dialog{width:min(100%,460px)}
 
 /* ---- Reproductor propio (subpágina encima de la principal) ---- */
 #player{position:fixed;inset:0;z-index:100;background:#000;color:#fff;overflow:hidden;touch-action:none;-webkit-user-select:none;user-select:none;
@@ -1384,6 +1387,13 @@ html.en-pip #pcr{display:none}
 </script>
 </head>
 <body>
+<div id="share-denied" hidden>
+  <section class="download-dialog" role="alertdialog" aria-modal="true" aria-labelledby="share-denied-title" aria-describedby="share-denied-message">
+    <h2 id="share-denied-title">Enlace no disponible</h2>
+    <p id="share-denied-message">Este acceso fue eliminado o no se pudo validar. Pide al administrador que genere un nuevo enlace.</p>
+    <div class="download-actions"><button class="btn primary" id="share-denied-home" type="button">Ir al inicio</button></div>
+  </section>
+</div>
 <header id="top">
   <button class="hback" id="hback" type="button" aria-label="Volver"><svg viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg></button>
   <a class="brand" id="brand" href="./" aria-label="Black BOX, inicio"><img src="/icon-192.png" alt="" onerror="this.remove()"><b>Black BOX</b></a>
@@ -4528,20 +4538,62 @@ const esApp = () => !!(window.Capacitor && Capacitor.isNativePlatform && Capacit
 const accesoActivo = () => ACCESO_POR_CUENTA && (PANTALLA_ACCESO === 'siempre' || (PANTALLA_ACCESO === 'app' && esApp()));
 const AX = { titulo: 'Black BOX', subtitulo: 'Inicia sesión para ver tu colección y retomar donde te quedaste.', canje: '¿Tienes un código de acceso? Inicia sesión o crea tu cuenta y canjéalo en «Mi cuenta» para activar tu acceso.', explorar: 'Explorar', logo: '', brillo: 60 };
 { const ex = window.ACCESO_EXTRA || {}; for (const k in AX) if (typeof ex[k] === 'string' && ex[k].trim()) AX[k] = ex[k].trim(); if (ex.brillo !== undefined && ex.brillo !== '' && isFinite(Number(ex.brillo))) AX.brillo = Math.max(0, Math.min(100, Number(ex.brillo))); }   // lo que pones en admin > Pantalla de acceso
-// Solo los enlaces generados desde Admin llevan bb-share=1; las rutas internas /c/ y /p/ no activan el modo limitado.
+// El token bb-share identifica un acceso revocable creado en Admin; las rutas internas /c/ y /p/ no activan el modo limitado.
+const tokenCompartido = new URLSearchParams(location.search).get('bb-share') || '';
 const rutaCompartidaInicial = (() => {
-  if (new URLSearchParams(location.search).get('bb-share') !== '1') return null;
+  if (!/^[A-Za-z0-9_-]{32,80}$/.test(tokenCompartido)) return null;
   let m = location.hash.match(/^#\/c\/([\w-]+)$/);
   if (m) return { tipo: 'coleccion', id: m[1] };
   m = location.hash.match(/^#\/p\/(.+)$/);
   return m ? { tipo: 'titulo', id: decodeURIComponent(m[1]) } : null;
 })();
-let vistaCompartida = rutaCompartidaInicial;
-let explorando = !!rutaCompartidaInicial, acTimer = 0;
-if (vistaCompartida) { H('bbox').hidden = true; H('dk-buscar').hidden = true; }
+let vistaCompartida = null, enlaceCompartidoListo = !tokenCompartido, enlaceCompartidoRevocado = false;
+let explorando = !!tokenCompartido, acTimer = 0;
+if (tokenCompartido) { H('bbox').hidden = true; H('dk-buscar').hidden = true; }
+function infoDispositivoCompartido() {
+  let dispositivo = '';
+  const claveDispositivo = 'bb_share_device:' + tokenCompartido;
+  try { dispositivo = localStorage.getItem(claveDispositivo) || ''; } catch (e) {}
+  if (!/^[a-f0-9]{32,64}$/.test(dispositivo)) {
+    dispositivo = Array.from(crypto.getRandomValues(new Uint8Array(20)), b => b.toString(16).padStart(2, '0')).join('');
+    try { localStorage.setItem(claveDispositivo, dispositivo); } catch (e) {}
+  }
+  const ua = navigator.userAgent || '';
+  const plataforma = /android/i.test(ua) ? 'Android' : /iphone|ipad|ipod/i.test(ua) ? 'iOS' : /windows/i.test(ua) ? 'Windows' : /macintosh|mac os/i.test(ua) ? 'macOS' : /linux/i.test(ua) ? 'Linux' : 'Otro';
+  const navegador = esApp() ? 'App Black BOX' : /edg\//i.test(ua) ? 'Edge' : /opr\//i.test(ua) ? 'Opera' : /firefox\//i.test(ua) ? 'Firefox' : /crios|chrome\//i.test(ua) ? 'Chrome' : /safari\//i.test(ua) ? 'Safari' : 'Navegador';
+  return { dispositivo, plataforma, navegador };
+}
+function mostrarEnlaceDenegado() {
+  enlaceCompartidoRevocado = true; enlaceCompartidoListo = true;
+  try { H('pv').pause(); } catch (e) {}
+  H('share-denied').hidden = false;
+}
+async function validarEnlaceCompartido(op) {
+  const dispositivo = infoDispositivoCompartido();
+  const respuesta = await fetch('/api/usuario/compartido', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ op, token: tokenCompartido, ruta: location.hash, ...dispositivo }) });
+  const datos = await respuesta.json().catch(() => ({}));
+  if (!respuesta.ok) throw new Error(datos.error || 'Enlace no disponible.');
+  return datos;
+}
+async function iniciarEnlaceCompartido() {
+  if (!tokenCompartido) return;
+  if (!rutaCompartidaInicial) { mostrarEnlaceDenegado(); return; }
+  try {
+    const datos = await validarEnlaceCompartido('abrir');
+    vistaCompartida = datos.tipo === 'coleccion' ? { tipo: 'coleccion', id: datos.destino } : { tipo: 'titulo', id: datos.destino, tipoTitulo: datos.tipo };
+    explorando = true; enlaceCompartidoListo = true; ruta(false);
+  } catch (e) { mostrarEnlaceDenegado(); }
+}
+setInterval(async () => {
+  if (!tokenCompartido || !enlaceCompartidoListo || enlaceCompartidoRevocado) return;
+  try { await validarEnlaceCompartido('validar'); }
+  catch (e) { if (e && /eliminado|no disponible/i.test(e.message || '')) mostrarEnlaceDenegado(); }
+}, 30000);
+H('share-denied-home').onclick = () => location.replace(location.pathname);
 function permiteVistaCompartida(p) {
   if (!vistaCompartida || !p) return false;
-  if (vistaCompartida.tipo === 'titulo') return slugDe(p) === vistaCompartida.id;
+  if (vistaCompartida.tipo === 'titulo') return slugDe(p) === vistaCompartida.id && (!vistaCompartida.tipoTitulo || (p.tipo === 'serie' ? 'serie' : 'pelicula') === vistaCompartida.tipoTitulo);
   const c = (typeof COLECCIONES !== 'undefined' && COLECCIONES.find(x => x.id === vistaCompartida.id)) || generoCol(vistaCompartida.id);
   return !!(c && pelisDe(c).includes(p));
 }
@@ -4554,7 +4606,7 @@ function rutaPermitidaEnVistaCompartida(h) {
     return false;
   }
   const m = h.match(/^#\/p\/(.+)$/);
-  if (m) { try { return decodeURIComponent(m[1]) === vistaCompartida.id; } catch (e) {} }
+  if (m) { try { const slug = decodeURIComponent(m[1]); return slug === vistaCompartida.id && todas().some(p => slugDe(p) === slug && permiteVistaCompartida(p)); } catch (e) {} }
   return false;
 }
 function armarAcceso() {
@@ -5383,6 +5435,7 @@ const PATRONES = {           // fondos de las páginas de colección (patron: "a
   murcielagos: c => `<svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' width='150' height='150' viewBox='0 0 150 150'><defs><path id='b' d='M20 5L21.8 1L23.2 5.6C27 4 32 4.4 38 7.6Q34.8 8.8 33.4 12Q30.4 10.2 28.2 11.4Q26.2 12 25.2 15Q22.8 13.4 20 19Z'/><g id='m' fill='${c}'><use xlink:href='#b'/><use xlink:href='#b' transform='translate(40 0) scale(-1 1)'/></g></defs><use xlink:href='#m' transform='translate(8 14) rotate(-8 20 10) scale(1.5)'/><use xlink:href='#m' transform='translate(92 86) rotate(10 20 10) scale(.95)'/></svg>`
 };
 function ruta(viaEnlace) {
+  if (tokenCompartido && (!enlaceCompartidoListo || enlaceCompartidoRevocado)) return;
   const h = location.hash; let m;
   if (vistaCompartida && !rutaPermitidaEnVistaCompartida(h)) {
     const destino = vistaCompartida.tipo === 'coleccion' ? '#/c/' + vistaCompartida.id : '#/p/' + encodeURIComponent(vistaCompartida.id);
@@ -5585,7 +5638,7 @@ function abrirSec(id, viaEnlace, silencio) {
 }
 
 pintarTiles();
-ruta(false);
+if (tokenCompartido) iniciarEnlaceCompartido(); else ruta(false);
 setTimeout(() => { vtOK = true; }, 600);              // las transiciones empiezan después de la carga inicial
 
 </script>

@@ -99,6 +99,27 @@ CREATE TABLE IF NOT EXISTS colecciones (
   creado INTEGER NOT NULL
 );
 
+-- Enlaces de acceso compartido y dispositivos que los abrieron. No se guarda la IP ni una cuenta del visitante.
+CREATE TABLE IF NOT EXISTS enlaces_compartidos (
+  token   TEXT PRIMARY KEY,
+  tipo    TEXT NOT NULL,
+  destino TEXT NOT NULL,
+  titulo  TEXT NOT NULL,
+  creado  INTEGER NOT NULL,
+  revocado INTEGER NOT NULL DEFAULT 0
+) WITHOUT ROWID;
+CREATE TABLE IF NOT EXISTS aperturas_compartidas (
+  token       TEXT NOT NULL,
+  dispositivo TEXT NOT NULL,
+  plataforma  TEXT NOT NULL,
+  navegador   TEXT NOT NULL,
+  primera     INTEGER NOT NULL,
+  ultima      INTEGER NOT NULL,
+  aperturas   INTEGER NOT NULL DEFAULT 1,
+  PRIMARY KEY (token, dispositivo)
+) WITHOUT ROWID;
+CREATE INDEX IF NOT EXISTS aperturas_compartidas_token ON aperturas_compartidas (token);
+
 -- Secciones temáticas del inicio o de una colección (como "Huluween"): franja con carrusel + página propia.
 -- "datos" es el JSON de la sección tal como la arma el panel (también se crea sola la primera vez).
 CREATE TABLE IF NOT EXISTS secciones (
