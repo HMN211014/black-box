@@ -350,7 +350,7 @@ body:not(.h) .nav button.on{background:#fff;color:#000}
     <details open style="margin-top:14px"><summary><b>Series</b></summary><div id="share-series"></div></details>
     <details open style="margin-top:14px"><summary><b>Colecciones</b></summary><div id="share-cols"></div></details>
     <h3 style="margin-top:22px">Accesos y dispositivos</h3>
-    <p class="s">Aquí aparecen los dispositivos que abrieron cada enlace y la última apertura. Se registra el tipo de dispositivo y navegador, sin guardar IP ni cuenta del visitante. Puedes revocar cada acceso.</p>
+    <p class="s">Aquí aparecen los dispositivos que abrieron cada enlace, su ubicación aproximada y la última apertura. Se registra ciudad, región y país según la red, sin guardar IP ni cuenta del visitante; la ubicación puede no estar disponible o ser imprecisa. Puedes revocar cada acceso.</p>
     <div class="row" style="margin-top:10px"><button class="g" id="share-access-refresh" type="button">Actualizar accesos</button></div>
     <p class="m" id="share-access-status" role="status" aria-live="polite" hidden></p>
     <div id="share-access-list"></div>
@@ -2871,7 +2871,10 @@ async function shareAccesosCargar() {
       if (!x.dispositivos.length) d.appendChild(dEl('p', 's', 'Ningún dispositivo ha abierto este enlace.'));
       else {
         d.appendChild(dEl('p', 's', x.dispositivos.length + ' dispositivo(s):'));
-        x.dispositivos.forEach(dev => d.appendChild(dEl('small', 'share-device', dev.plataforma + ' · ' + dev.navegador + ' · equipo ' + dev.id_dispositivo + ' · ' + dev.aperturas + ' apertura(s) · última: ' + shareFecha(dev.ultima))));
+        x.dispositivos.forEach(dev => {
+          const ubicacion = [dev.ciudad, dev.region, dev.pais].filter(Boolean).join(', ') || 'Ubicación no disponible';
+          d.appendChild(dEl('small', 'share-device', dev.plataforma + ' · ' + dev.navegador + ' · equipo ' + dev.id_dispositivo + ' · ' + ubicacion + ' · ' + dev.aperturas + ' apertura(s) · última: ' + shareFecha(dev.ultima)));
+        });
       }
       if (!x.revocado) {
         const quitar = dEl('button', 'g', 'Eliminar acceso'); quitar.type = 'button';
