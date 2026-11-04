@@ -5799,7 +5799,8 @@ setTimeout(() => { vtOK = true; }, 600);              // las transiciones empiez
 (() => {
   const ua = navigator.userAgent || '', android = /Android/i.test(ua) && matchMedia('(max-width:1366px)').matches;
   const nativa = document.documentElement.classList.contains('en-app') || !!(window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform());
-  if (!android || nativa || new URLSearchParams(location.search).has('bb-share')) return;
+  const enlaceColeccionCompartido = new URLSearchParams(location.search).has('bb-share') && /^#\/c\//.test(location.hash);
+  if (!android || nativa) return;
   const storageKey = 'bb-app-promo-cerrado';
   try { if (Date.now() - Number(localStorage.getItem(storageKey) || 0) < 7 * 864e5) return; } catch (e) {}
   const promo = document.getElementById('app-promo'), cerrar = () => {
@@ -5811,7 +5812,10 @@ setTimeout(() => { vtOK = true; }, 600);              // las transiciones empiez
   document.getElementById('app-promo-download').addEventListener('click', () => { try { localStorage.setItem(storageKey, String(Date.now())); } catch (e) {} });
   fetch('/api/usuario/app', { cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(j => {
     if (!j || !j.disponible) return;
-    setTimeout(() => { if (!location.hash && !document.hidden) promo.hidden = false; }, 3500);
+    setTimeout(() => {
+      const enVistaAdmitida = enlaceColeccionCompartido ? /^#\/c\//.test(location.hash) : !location.hash;
+      if (enVistaAdmitida && !document.hidden) promo.hidden = false;
+    }, 3500);
   }).catch(() => {});
 })();
 </script>
