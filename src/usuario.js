@@ -200,6 +200,52 @@ async function descargarArchivo(env, request) {
   return new Response(objeto.body, { status: parcial ? 206 : 200, headers });
 }
 
+const APP_R2_KEY = 'app-distribucion/black-box.apk', APP_MAX_BYTES = 95 * 1024 * 1024;
+async function manejarApp(env, request) {
+  if (!env.DATOS) return json({ error: 'El bucket R2 de descargas no está conectado.' }, 503);
+  if (request.method === 'GET') {
+    const objeto = await env.DATOS.head(APP_R2_KEY);
+    if (!objeto) return json({ disponible: false });
+    return json({ disponible: true, nombre: objeto.customMetadata && objeto.customMetadata.nombre || 'black-box.apk', size: objeto.size, actualizado: objeto.uploaded ? objeto.uploaded.getTime() : 0 });
+  }
+  if (request.method !== 'POST' && request.method !== 'DELETE') return json({ error: 'Método no permitido.' }, 405, { Allow: 'GET, POST, DELETE' });
+  if (!env.ADMIN_CLAVE) return json({ error: 'Falta configurar ADMIN_CLAVE en Cloudflare.' }, 503);
+  if (!(await mismaClave(String(request.headers.get('X-Admin-Key') || ''), String(env.ADMIN_CLAVE)))) return json({ error: 'Clave de administrador incorrecta.' }, 401);
+  if (request.method === 'DELETE') { await env.DATOS.delete(APP_R2_KEY); return json({ ok: true }); }
+  const size = Number(request.headers.get('X-App-Size')) || 0;
+  if (!request.body || !Number.isInteger(size) || size < 1 || size > APP_MAX_BYTES) return json({ error: 'El archivo debe pesar entre 1 byte y 95 MB.' }, 413);
+  let original = String(request.headers.get('X-App-Filename') || 'black-box.apk');
+  try { original = decodeURIComponent(original); } catch (e) {}
+  const nombre = original.split(/[\\/]/).pop().replace(/[^A-Za-z0-9(). _-]/g, '_').slice(0, 100);
+  if (!/\.apk$/i.test(nombre)) return json({ error: 'Solo se pueden publicar archivos APK de Android.' }, 400);
+  const largo = Number(request.headers.get('Content-Length')) || 0;
+  if (largo && largo !== size) return json({ error: 'El tamaño enviado no coincide con el archivo.' }, 400);
+  const actualizado = Date.now();
+  await env.DATOS.put(APP_R2_KEY, request.body, {
+    httpMetadata: { contentType: 'application/vnd.android.package-archive', contentDisposition: `attachment; filename="${nombre}"` },
+    customMetadata: { nombre, actualizado: String(actualizado), size: String(size) }
+  });
+  return json({ ok: true, nombre, size, actualizado });
+}
+async function descargarApp(env, request) {
+  if (request.method !== 'GET' && request.method !== 'HEAD') return json({ error: 'Método no permitido.' }, 405, { Allow: 'GET, HEAD' });
+  if (!env.DATOS) return json({ error: 'El bucket R2 de descargas no está conectado.' }, 503);
+  const objeto = request.method === 'HEAD' ? await env.DATOS.head(APP_R2_KEY) : await env.DATOS.get(APP_R2_KEY, { range: request.headers });
+  if (!objeto) return json({ error: 'La descarga de la app todavía no está disponible.' }, 404);
+  const nombre = objeto.customMetadata && objeto.customMetadata.nombre || 'black-box.apk';
+  const headers = new Headers();
+  if (request.method === 'GET') objeto.writeHttpMetadata(headers);
+  headers.set('Content-Type', 'application/vnd.android.package-archive');
+  headers.set('Content-Disposition', `attachment; filename="${nombre}"; filename*=UTF-8''${encodeURIComponent(nombre)}`);
+  headers.set('Accept-Ranges', 'bytes'); headers.set('Cache-Control', 'no-store');
+  if (objeto.httpEtag) headers.set('ETag', objeto.httpEtag);
+  const parcial = request.method === 'GET' && request.headers.has('Range') && !!objeto.range;
+  const largo = parcial && objeto.range.length != null ? objeto.range.length : objeto.size;
+  headers.set('Content-Length', String(largo));
+  if (parcial) headers.set('Content-Range', `bytes ${objeto.range.offset}-${objeto.range.offset + objeto.range.length - 1}/${objeto.size}`);
+  return new Response(request.method === 'HEAD' ? null : objeto.body, { status: parcial ? 206 : 200, headers });
+}
+
 async function guardarIntroDbTitulo(db, tmdb, tipo, titulo, activo) {
   const r = await db.prepare("SELECT valor FROM meta WHERE clave = 'introdb'").first();
   let items = []; try { if (r && r.valor) { const v = JSON.parse(r.valor); if (Array.isArray(v)) items = v; } } catch (e) {}
@@ -637,6 +683,9 @@ async function manejar({ request, env, params, waitUntil }) {
     let ok = false; try { ok = new URL(origen).host === new URL(request.url).host; } catch (e) {}
     if (!ok) return json({ error: 'Solicitud no permitida.' }, 403);
   }
+
+  if (accion === 'app') return manejarApp(env, request);
+  if (accion === 'app-download') return descargarApp(env, request);
 
   let cuerpo = {};
   if (esPost) { try { cuerpo = await request.json(); } catch (e) { return json({ error: 'Solicitud no válida.' }, 400); } }
@@ -1498,7 +1547,7 @@ async function manejar({ request, env, params, waitUntil }) {
 
 export async function onRequest(ctx) {
   // /extras y /descargar usan KV/R2; las demás acciones necesitan la base de datos D1.
-  if (!['extras', 'descargar'].includes(ctx.params.accion) && !ctx.env.DB) {
+  if (!['extras', 'descargar', 'app', 'app-download'].includes(ctx.params.accion) && !ctx.env.DB) {
     return json({ error: 'La base de datos de usuarios no está conectada: falta el binding DB (D1) en wrangler.jsonc.' }, 503);
   }
   try { return await manejar(ctx); }

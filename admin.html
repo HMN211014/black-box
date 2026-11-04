@@ -221,6 +221,7 @@ body:not(.h) .nav button.on{background:#fff;color:#000}
     <button type="button" data-g="efectos">Efectos</button>
     <button type="button" data-g="interacciones">Interacciones</button>
     <button type="button" data-g="sugerencia">Sugerencia</button>
+    <button type="button" data-g="app">Descarga de la app</button>
   </nav>
 </aside>
 <div class="pan">
@@ -820,6 +821,15 @@ body:not(.h) .nav button.on{background:#fff;color:#000}
     <div class="pnxt-stage" id="pnxt-stage" data-estilo="cristal"><div class="pnxt-copy"><small>SIGUIENTE EPISODIO</small><b>T2 E4 · Una nueva pista</b></div><button class="pnxt-btn" type="button" data-k="play">Reproducir</button><button class="pnxt-btn" type="button" data-k="cancel">Cancelar</button></div>
     <p class="pnxt-guide">Mantén presionado un botón y arrástralo por la zona inferior.</p>
     <div class="row"><button id="pnxt-go" type="button">Guardar diseño</button><button class="g" id="pnxt-cargar" type="button">Cargar guardado</button><button class="g" id="pnxt-reset" type="button">Restablecer</button></div><p class="m" id="pnxt-m" hidden></p>
+  </div>
+
+  <div class="c w" data-g="app" id="app-card">
+    <h2>Descarga de la app</h2>
+    <p class="s">Sube el APK de Android que podrán descargar desde teléfonos y tabletas. El archivo se guarda en el bucket R2 y reemplaza la versión publicada. Tamaño máximo: 95 MB.</p>
+    <div id="app-current" class="s" style="margin:14px 0">Consultando el archivo publicado…</div>
+    <label>Archivo APK<input id="app-file" type="file" accept=".apk,application/vnd.android.package-archive"></label>
+    <div class="row" style="margin-top:12px"><button id="app-upload" type="button">Subir y publicar</button><button class="g" id="app-remove" type="button" hidden>Quitar descarga</button></div>
+    <p class="m" id="app-m" role="status" aria-live="polite" hidden></p>
   </div>
 </div>
 </main>
@@ -3136,6 +3146,42 @@ pnxtPaint();
 $('pnxt-reset').onclick = () => { pnxtPut(PNXT_DEF); msg('pnxt-m', 'Diseño restablecido. Guarda para aplicarlo.', true); };
 $('pnxt-cargar').onclick = () => con($('pnxt-cargar'), 'pnxt-m', async () => { pnxtPut((await admin({ op: 'sugerencia' })).item); msg('pnxt-m', 'Diseño guardado cargado.', true); });
 $('pnxt-go').onclick = () => con($('pnxt-go'), 'pnxt-m', async () => { await admin({ op: 'guardar_sugerencia', sugerencia: pnxtDraft }); msg('pnxt-m', 'Diseño guardado. La app lo recibirá en menos de un minuto.', true); });
+
+/* ---- APK de descarga pública, administrado y almacenado en R2 ---- */
+const appBytes = n => { const u = ['bytes', 'KB', 'MB', 'GB']; let i = 0; while (n >= 1024 && i < u.length - 1) { n /= 1024; i++; } return (i ? n.toFixed(1) : n) + ' ' + u[i]; };
+async function appRefrescar() {
+  try {
+    const r = await fetch('/api/usuario/app', { cache: 'no-store' }), j = await r.json();
+    if (!r.ok) throw new Error(j.error || 'No se pudo consultar el archivo.');
+    $('app-current').textContent = j.disponible ? 'Publicado: ' + j.nombre + ' · ' + appBytes(j.size) + (j.actualizado ? ' · ' + new Date(j.actualizado).toLocaleString() : '') : 'Todavía no hay una app publicada. El aviso móvil permanecerá oculto.';
+    $('app-remove').hidden = !j.disponible;
+  } catch (e) { $('app-current').textContent = e.message || 'No se pudo consultar el archivo publicado.'; }
+}
+$('app-upload').onclick = async () => {
+  const btn = $('app-upload'), file = $('app-file').files[0];
+  if (!file) { msg('app-m', 'Selecciona el archivo APK que quieres publicar.', false); return; }
+  if (!/\.apk$/i.test(file.name)) { msg('app-m', 'El archivo debe tener extensión .apk.', false); return; }
+  if (!file.size || file.size > 95 * 1024 * 1024) { msg('app-m', 'El archivo debe pesar menos de 95 MB.', false); return; }
+  if (!$('clave').value) { msg('app-m', 'Escribe primero la clave de administrador.', false); return; }
+  btn.disabled = true; msg('app-m', 'Subiendo el APK a Cloudflare R2…', true);
+  try {
+    const r = await fetch('/api/usuario/app', { method: 'POST', credentials: 'same-origin', headers: { 'X-Admin-Key': $('clave').value, 'X-App-Filename': encodeURIComponent(file.name), 'X-App-Size': String(file.size) }, body: file });
+    const j = await r.json(); if (!r.ok) throw new Error(j.error || 'No se pudo subir el APK.');
+    $('app-file').value = ''; msg('app-m', 'App publicada correctamente. El aviso ya puede mostrarse en teléfonos y tabletas Android.', true); await appRefrescar();
+  } catch (e) { msg('app-m', e.message || 'No se pudo subir el APK.', false); }
+  finally { btn.disabled = false; }
+};
+$('app-remove').onclick = async () => {
+  const btn = $('app-remove'); if (!confirm('¿Quitar la descarga de la app? El aviso dejará de mostrarse.')) return;
+  btn.disabled = true; msg('app-m', 'Quitando el APK publicado…', true);
+  try {
+    const r = await fetch('/api/usuario/app', { method: 'DELETE', credentials: 'same-origin', headers: { 'X-Admin-Key': $('clave').value } });
+    const j = await r.json(); if (!r.ok) throw new Error(j.error || 'No se pudo quitar el APK.');
+    msg('app-m', 'Descarga retirada.', true); await appRefrescar();
+  } catch (e) { msg('app-m', e.message || 'No se pudo quitar el APK.', false); }
+  finally { btn.disabled = false; }
+};
+appRefrescar();
 
 </script>
 <script>
