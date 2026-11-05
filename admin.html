@@ -209,6 +209,7 @@ body:not(.h) .nav button.on{background:#fff;color:#000}
   </div>
   <nav class="nav" id="nav" aria-label="Secciones">
     <button type="button" data-g="cuentas">Cuentas y códigos</button>
+    <button type="button" data-g="actividad">Usuarios activos</button>
     <button type="button" data-g="biblioteca">Biblioteca</button>
     <button type="button" data-g="compartir">Enlaces compartidos</button>
     <button type="button" data-g="banner">Banner principal</button>
@@ -238,6 +239,19 @@ body:not(.h) .nav button.on{background:#fff;color:#000}
     <p class="m" id="g-m" hidden></p>
     <textarea id="g-out" readonly hidden></textarea>
     <div class="row" id="g-acc" style="margin-top:10px" hidden><button class="g" id="g-cp" type="button">Copiar todos</button></div>
+  </div>
+
+  <div class="c w" data-g="actividad" id="actividad-card">
+    <h2>Usuarios activos</h2>
+    <p class="s">Muestra actividad de los últimos tres minutos. Se cuentan las cuentas activas y las visitas sin sesión; no se muestran correos ni direcciones IP. La actividad se actualiza automáticamente cada 30 segundos mientras esta sección está abierta.</p>
+    <div id="actividad-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin-top:14px">
+      <div class="c"><small>Web</small><h3 id="act-web">—</h3><p class="s" id="act-web-info">Esperando datos…</p></div>
+      <div class="c"><small>App</small><h3 id="act-app">—</h3><p class="s" id="act-app-info">Esperando datos…</p></div>
+      <div class="c"><small>Cuentas activas en ambos</small><h3 id="act-ambos-cuentas">—</h3><p class="s">La misma cuenta con actividad en web y app.</p></div>
+      <div class="c"><small>Dispositivos detectados en ambos</small><h3 id="act-ambos-dispositivos">—</h3><p class="s">El mismo identificador local registró web y app.</p></div>
+    </div>
+    <div class="row" style="margin-top:12px"><button class="g" id="act-refresh" type="button">Actualizar ahora</button></div>
+    <p class="m" id="act-m" role="status" aria-live="polite" hidden></p>
   </div>
 
   <div class="c" data-g="cuentas">
@@ -3182,6 +3196,28 @@ $('app-remove').onclick = async () => {
   finally { btn.disabled = false; }
 };
 appRefrescar();
+
+/* ---- actividad reciente de web y app ---- */
+async function actRefrescar() {
+  try {
+    const j = await admin({ op: 'presencia' }), n = x => Number(x || 0).toLocaleString('es-MX');
+    $('act-web').textContent = n(j.web.usuarios);
+    $('act-web-info').textContent = n(j.web.cuentas) + ' cuentas · ' + n(j.web.anonimos) + ' sin sesión · ' + n(j.web.dispositivos) + ' dispositivos';
+    $('act-app').textContent = n(j.app.usuarios);
+    $('act-app-info').textContent = n(j.app.cuentas) + ' cuentas · ' + n(j.app.anonimos) + ' sin sesión · ' + n(j.app.dispositivos) + ' dispositivos';
+    $('act-ambos-cuentas').textContent = n(j.ambos.cuentas);
+    $('act-ambos-dispositivos').textContent = n(j.ambos.dispositivos);
+    msg('act-m', 'Actualizado ' + new Date(j.actualizado).toLocaleTimeString('es-MX') + ' · actividad de los últimos ' + Math.round(j.ventanaSegundos / 60) + ' min.', true);
+  } catch (e) { msg('act-m', e.message || 'No se pudo cargar la actividad.', false); }
+}
+let actInterval = 0;
+const actNav = document.querySelector('#nav button[data-g="actividad"]');
+function actEmpezar() {
+  actRefrescar(); clearInterval(actInterval);
+  actInterval = setInterval(() => { if ($('actividad-card').classList.contains('on')) actRefrescar(); else { clearInterval(actInterval); actInterval = 0; } }, 30000);
+}
+actNav.addEventListener('click', actEmpezar);
+if ($('actividad-card').classList.contains('on')) actEmpezar();
 
 </script>
 <script>

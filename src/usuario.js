@@ -20,6 +20,15 @@ const json = (o, status = 200, extra = {}) => new Response(JSON.stringify(o), {
   status,
   headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', ...extra },
 });
+let presenciaTablas = null, presenciaLimpieza = 0;
+function asegurarPresencia(db) {
+  if (!presenciaTablas) presenciaTablas = db.batch([
+    db.prepare('CREATE TABLE IF NOT EXISTS presencia (dispositivo TEXT NOT NULL, plataforma TEXT NOT NULL, usuario_hash TEXT, actividad INTEGER NOT NULL, PRIMARY KEY (dispositivo, plataforma)) WITHOUT ROWID'),
+    db.prepare('CREATE INDEX IF NOT EXISTS presencia_actividad ON presencia (actividad)'),
+    db.prepare('CREATE INDEX IF NOT EXISTS presencia_usuario ON presencia (usuario_hash, actividad)')
+  ]).catch(e => { presenciaTablas = null; throw e; });
+  return presenciaTablas;
+}
 const b64 = buf => { let s = ''; new Uint8Array(buf).forEach(c => (s += String.fromCharCode(c))); return btoa(s); };
 const deb64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
 const b64url = buf => b64(buf).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
@@ -693,6 +702,22 @@ async function manejar({ request, env, params, waitUntil }) {
   if (accion === 'descargar') return descargarArchivo(env, request);
   if (accion === 'compartido' && esPost) return manejarEnlaceCompartido(db, cuerpo, request.cf || {});
 
+  if (accion === 'presencia' && esPost) {
+    const dispositivo = String(cuerpo.dispositivo || '').toLowerCase(), plataforma = cuerpo.plataforma === 'app' ? 'app' : cuerpo.plataforma === 'web' ? 'web' : '';
+    if (!/^[a-f0-9]{32,64}$/.test(dispositivo) || !plataforma) return json({ error: 'Identificador de actividad no válido.' }, 400);
+    await asegurarPresencia(db);
+    const correo = await correoDeSesion(request, db);
+    const usuarioHash = correo ? Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', enc.encode(String(env.ADMIN_CLAVE || '') + '\0' + correo))).slice(0, 16), x => x.toString(16).padStart(2, '0')).join('') : null;
+    const ahora = Date.now();
+    await db.prepare(`INSERT INTO presencia (dispositivo, plataforma, usuario_hash, actividad) VALUES (?1, ?2, ?3, ?4)
+      ON CONFLICT(dispositivo, plataforma) DO UPDATE SET usuario_hash = ?3, actividad = ?4`).bind(dispositivo, plataforma, usuarioHash, ahora).run();
+    if (ahora - presenciaLimpieza > 6 * 60 * 60 * 1000) {
+      presenciaLimpieza = ahora;
+      await db.prepare('DELETE FROM presencia WHERE actividad < ?1').bind(ahora - 7 * 86400000).run();
+    }
+    return json({ ok: true });
+  }
+
   /* Reproducciones de la biblioteca: conteo agregado sin asociarlo a cuentas o IPs. */
   if (accion === 'reproducciones') {
     await db.prepare('CREATE TABLE IF NOT EXISTS reproducciones (tmdb INTEGER NOT NULL, tipo TEXT NOT NULL, titulo TEXT NOT NULL, total INTEGER NOT NULL DEFAULT 0, actualizado INTEGER NOT NULL, PRIMARY KEY (tipo, tmdb)) WITHOUT ROWID').run();
@@ -1007,6 +1032,24 @@ async function manejar({ request, env, params, waitUntil }) {
     }
 
     if (cuerpo.op === 'verificar_clave') return json({ ok: true, claveValida: true });
+
+    if (cuerpo.op === 'presencia') {
+      await asegurarPresencia(db);
+      const ahora = Date.now(), desde = ahora - 180000;
+      const r = await db.prepare('SELECT dispositivo, plataforma, usuario_hash FROM presencia WHERE actividad >= ?1').bind(desde).all();
+      const filas = r.results || [], tomar = (plataforma, campo) => new Set(filas.filter(x => x.plataforma === plataforma && x[campo]).map(x => x[campo]));
+      const dispositivosWeb = tomar('web', 'dispositivo'), dispositivosApp = tomar('app', 'dispositivo');
+      const cuentasWeb = tomar('web', 'usuario_hash'), cuentasApp = tomar('app', 'usuario_hash');
+      const anonimosWeb = tomar('web', 'dispositivo'); filas.filter(x => x.plataforma === 'web' && x.usuario_hash).forEach(x => anonimosWeb.delete(x.dispositivo));
+      const anonimosApp = tomar('app', 'dispositivo'); filas.filter(x => x.plataforma === 'app' && x.usuario_hash).forEach(x => anonimosApp.delete(x.dispositivo));
+      const interseccion = (a, b) => [...a].filter(x => b.has(x)).length;
+      return json({
+        web: { cuentas: cuentasWeb.size, anonimos: anonimosWeb.size, dispositivos: dispositivosWeb.size, usuarios: cuentasWeb.size + anonimosWeb.size },
+        app: { cuentas: cuentasApp.size, anonimos: anonimosApp.size, dispositivos: dispositivosApp.size, usuarios: cuentasApp.size + anonimosApp.size },
+        ambos: { cuentas: interseccion(cuentasWeb, cuentasApp), dispositivos: interseccion(dispositivosWeb, dispositivosApp) },
+        actualizado: ahora, ventanaSegundos: 180
+      });
+    }
 
     if (cuerpo.op === 'crear_enlace_compartido') {
       const tipo = ['coleccion', 'pelicula', 'serie'].includes(cuerpo.tipo) ? cuerpo.tipo : '';
