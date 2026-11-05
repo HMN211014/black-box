@@ -750,6 +750,8 @@ async function manejar({ request, env, params, waitUntil }) {
   if (accion === 'reproducciones') {
     await db.prepare('CREATE TABLE IF NOT EXISTS reproducciones (tmdb INTEGER NOT NULL, tipo TEXT NOT NULL, titulo TEXT NOT NULL, total INTEGER NOT NULL DEFAULT 0, actualizado INTEGER NOT NULL, PRIMARY KEY (tipo, tmdb)) WITHOUT ROWID').run();
     await db.prepare('CREATE TABLE IF NOT EXISTS reproducciones_eventos (evento TEXT PRIMARY KEY, fecha INTEGER NOT NULL) WITHOUT ROWID').run();
+    await db.prepare('CREATE TABLE IF NOT EXISTS reproducciones_plataformas (tmdb INTEGER NOT NULL, tipo TEXT NOT NULL, plataforma TEXT NOT NULL, total INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (tipo, tmdb, plataforma)) WITHOUT ROWID').run();
+    await db.prepare('CREATE TABLE IF NOT EXISTS reproducciones_dispositivos (tmdb INTEGER NOT NULL, tipo TEXT NOT NULL, plataforma TEXT NOT NULL, dispositivo_hash TEXT NOT NULL, PRIMARY KEY (tipo, tmdb, plataforma, dispositivo_hash)) WITHOUT ROWID').run();
     if (request.method === 'GET') {
       const tipo = new URL(request.url).searchParams.get('tipo');
       const q = tipo === 'serie' || tipo === 'pelicula'
@@ -762,6 +764,11 @@ async function manejar({ request, env, params, waitUntil }) {
     const titulo = String(cuerpo.titulo || '').trim().slice(0, 200);
     const evento = String(cuerpo.evento || '');
     if (!(tmdb > 0) || !titulo || !/^[A-Za-z0-9_-]{20,80}$/.test(evento)) return json({ error: 'Reproducción no válida.' }, 400);
+    const plataforma = cuerpo.plataforma === 'app' ? 'app' : cuerpo.plataforma === 'web' ? 'web' : 'otro';
+    const dispositivo = String(cuerpo.dispositivo || '').toLowerCase();
+    const dispositivoHash = /^[a-f0-9]{32,64}$/.test(dispositivo)
+      ? Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', enc.encode(String(env.ADMIN_CLAVE || 'blackbox-reproducciones') + '\0' + dispositivo))).slice(0, 16), x => x.toString(16).padStart(2, '0')).join('')
+      : null;
     const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
     const huellaIp = new Uint8Array(await crypto.subtle.digest('SHA-256', enc.encode(ip)));
     const claveLimite = 'repro:' + Array.from(huellaIp.slice(0, 12), x => x.toString(16).padStart(2, '0')).join('');
@@ -774,7 +781,14 @@ async function manejar({ request, env, params, waitUntil }) {
         SELECT ?1, ?2, ?3, 1, ?4 WHERE changes() = 1
         ON CONFLICT(tipo, tmdb) DO UPDATE SET titulo = ?3, total = total + 1, actualizado = ?4`).bind(tmdb, tipo, titulo, ahora)
     ]);
-    return json({ ok: true, contado: !!(res[0] && res[0].meta && res[0].meta.changes) });
+    const contado = !!(res[0] && res[0].meta && res[0].meta.changes);
+    if (contado) {
+      await db.prepare(`INSERT INTO reproducciones_plataformas (tmdb, tipo, plataforma, total) VALUES (?1, ?2, ?3, 1)
+        ON CONFLICT(tipo, tmdb, plataforma) DO UPDATE SET total = total + 1`).bind(tmdb, tipo, plataforma).run();
+      if (dispositivoHash) await db.prepare('INSERT OR IGNORE INTO reproducciones_dispositivos (tmdb, tipo, plataforma, dispositivo_hash) VALUES (?1, ?2, ?3, ?4)')
+        .bind(tmdb, tipo, plataforma, dispositivoHash).run();
+    }
+    return json({ ok: true, contado });
   }
 
   /* ---- Crear cuenta ---- */
@@ -1079,6 +1093,28 @@ async function manejar({ request, env, params, waitUntil }) {
         ambos: { cuentas: interseccion(cuentasWeb, cuentasApp), dispositivos: interseccion(dispositivosWeb, dispositivosApp) },
         actualizado: ahora, ventanaSegundos: 180
       });
+    }
+
+    if (cuerpo.op === 'reproducciones_admin') {
+      await db.prepare('CREATE TABLE IF NOT EXISTS reproducciones (tmdb INTEGER NOT NULL, tipo TEXT NOT NULL, titulo TEXT NOT NULL, total INTEGER NOT NULL DEFAULT 0, actualizado INTEGER NOT NULL, PRIMARY KEY (tipo, tmdb)) WITHOUT ROWID').run();
+      await db.prepare('CREATE TABLE IF NOT EXISTS reproducciones_plataformas (tmdb INTEGER NOT NULL, tipo TEXT NOT NULL, plataforma TEXT NOT NULL, total INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (tipo, tmdb, plataforma)) WITHOUT ROWID').run();
+      await db.prepare('CREATE TABLE IF NOT EXISTS reproducciones_dispositivos (tmdb INTEGER NOT NULL, tipo TEXT NOT NULL, plataforma TEXT NOT NULL, dispositivo_hash TEXT NOT NULL, PRIMARY KEY (tipo, tmdb, plataforma, dispositivo_hash)) WITHOUT ROWID').run();
+      const base = await db.prepare('SELECT tmdb, tipo, titulo, total FROM reproducciones WHERE total > 0 ORDER BY total DESC, actualizado DESC LIMIT 10').all();
+      const items = base.results || [];
+      if (!items.length) return json({ items: [] });
+      const detalle = await db.prepare(`SELECT p.tmdb, p.tipo, p.plataforma, p.total AS reproducciones, COUNT(DISTINCT d.dispositivo_hash) AS dispositivos
+        FROM reproducciones_plataformas p
+        LEFT JOIN reproducciones_dispositivos d ON d.tmdb = p.tmdb AND d.tipo = p.tipo AND d.plataforma = p.plataforma
+        INNER JOIN (SELECT tmdb, tipo FROM reproducciones WHERE total > 0 ORDER BY total DESC, actualizado DESC LIMIT 10) t
+          ON t.tmdb = p.tmdb AND t.tipo = p.tipo
+        GROUP BY p.tmdb, p.tipo, p.plataforma, p.total`).all();
+      const porTitulo = new Map();
+      (detalle.results || []).forEach(x => {
+        const key = x.tipo + ':' + x.tmdb;
+        if (!porTitulo.has(key)) porTitulo.set(key, {});
+        porTitulo.get(key)[x.plataforma] = { reproducciones: Number(x.reproducciones || 0), dispositivos: Number(x.dispositivos || 0) };
+      });
+      return json({ items: items.map(x => ({ ...x, plataformas: porTitulo.get(x.tipo + ':' + x.tmdb) || {} })) });
     }
 
     if (cuerpo.op === 'mensaje_emergente') {

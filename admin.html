@@ -254,6 +254,12 @@ body:not(.h) .nav button.on{background:#fff;color:#000}
     </div>
     <div class="row" style="margin-top:12px"><button class="g" id="act-refresh" type="button">Actualizar ahora</button></div>
     <p class="m" id="act-m" role="status" aria-live="polite" hidden></p>
+    <div class="c" style="margin-top:14px">
+      <h3>Más reproducidas</h3>
+      <p class="s">Top 10 acumulado de películas y series. El desglose compacto muestra reproducciones y dispositivos únicos por web y app; se recopila a partir de esta actualización.</p>
+      <div id="act-top-list" style="display:grid;gap:7px;margin-top:10px"></div>
+      <p class="m" id="act-top-m" role="status" aria-live="polite" hidden></p>
+    </div>
   </div>
 
   <div class="c w" data-g="mensaje" id="mensaje-card">
@@ -3219,6 +3225,31 @@ $('app-remove').onclick = async () => {
 appRefrescar();
 
 /* ---- actividad reciente de web y app ---- */
+async function actTopRefrescar() {
+  const box = $('act-top-list');
+  try {
+    const j = await admin({ op: 'reproducciones_admin' }), n = x => Number(x || 0).toLocaleString('es-MX');
+    box.replaceChildren();
+    if (!j.items.length) { const p = document.createElement('p'); p.className = 's'; p.textContent = 'Todavía no hay reproducciones registradas.'; box.appendChild(p); }
+    j.items.forEach((x, i) => {
+      const row = document.createElement('div'); row.style.cssText = 'display:grid;grid-template-columns:32px minmax(0,1fr);gap:9px;align-items:center;padding:9px 11px;border-radius:12px;background:rgba(255,255,255,.045)';
+      const rank = document.createElement('b'); rank.textContent = String(i + 1); rank.style.color = '#8fb6ff';
+      const content = document.createElement('div'), top = document.createElement('div'); top.style.cssText = 'display:flex;justify-content:space-between;gap:8px;align-items:baseline';
+      const title = document.createElement('b'); title.textContent = x.titulo || ('TMDB ' + x.tmdb); title.style.cssText = 'min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
+      const total = document.createElement('strong'); total.textContent = n(x.total) + ' reproducciones'; total.style.cssText = 'white-space:nowrap;font-size:12px';
+      top.append(title, total);
+      const tipo = document.createElement('small'); tipo.textContent = x.tipo === 'serie' ? 'Serie' : 'Película'; tipo.style.cssText = 'display:block;color:#a1a1a6;margin-top:2px';
+      const detalle = x.plataformas || {}, etiquetas = [];
+      [['web', 'Web'], ['app', 'App'], ['otro', 'Otro']].forEach(([k, nombre]) => {
+        const p = detalle[k]; if (p) etiquetas.push(nombre + ' ' + n(p.reproducciones) + ' rep · ' + n(p.dispositivos) + ' disp.');
+      });
+      const dispositivos = document.createElement('small'); dispositivos.textContent = etiquetas.length ? etiquetas.join('  |  ') : 'Desglose por dispositivo disponible a partir de esta actualización';
+      dispositivos.style.cssText = 'display:block;color:#b4c8e8;font-size:11px;margin-top:3px';
+      content.append(top, tipo, dispositivos); row.append(rank, content); box.appendChild(row);
+    });
+    msg('act-top-m', j.items.length ? 'Reproducciones totales acumuladas.' : '', true);
+  } catch (e) { msg('act-top-m', e.message || 'No se pudo cargar el ranking.', false); }
+}
 async function actRefrescar() {
   try {
     const j = await admin({ op: 'presencia' }), n = x => Number(x || 0).toLocaleString('es-MX');
@@ -3230,6 +3261,7 @@ async function actRefrescar() {
     $('act-ambos-dispositivos').textContent = n(j.ambos.dispositivos);
     msg('act-m', 'Actualizado ' + new Date(j.actualizado).toLocaleTimeString('es-MX') + ' · actividad de los últimos ' + Math.round(j.ventanaSegundos / 60) + ' min.', true);
   } catch (e) { msg('act-m', e.message || 'No se pudo cargar la actividad.', false); }
+  await actTopRefrescar();
 }
 let actInterval = 0;
 const actNav = document.querySelector('#nav button[data-g="actividad"]');

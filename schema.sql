@@ -125,6 +125,20 @@ CREATE TABLE IF NOT EXISTS reproducciones_eventos (
   evento TEXT PRIMARY KEY,
   fecha INTEGER NOT NULL
 ) WITHOUT ROWID;
+CREATE TABLE IF NOT EXISTS reproducciones_plataformas (
+  tmdb INTEGER NOT NULL,
+  tipo TEXT NOT NULL,
+  plataforma TEXT NOT NULL,
+  total INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (tipo, tmdb, plataforma)
+) WITHOUT ROWID;
+CREATE TABLE IF NOT EXISTS reproducciones_dispositivos (
+  tmdb INTEGER NOT NULL,
+  tipo TEXT NOT NULL,
+  plataforma TEXT NOT NULL,
+  dispositivo_hash TEXT NOT NULL,
+  PRIMARY KEY (tipo, tmdb, plataforma, dispositivo_hash)
+) WITHOUT ROWID;
 
 -- Colecciones del inicio creadas desde el panel de admin (también se crea sola la primera vez).
 -- "datos" es el JSON de la colección tal como la arma el panel.
