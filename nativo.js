@@ -54,6 +54,38 @@
     document.documentElement.classList.add('dlna-ok');
   }
 
+  // Google Cast nativo: el WebView no tiene el SDK Cast Sender de Chrome; esta capa usa Google Play Services.
+  const gc = P.GoogleCast || (cap.registerPlugin && cap.registerPlugin('GoogleCast'));
+  const gcOk = !!gc && (!cap.isPluginAvailable || cap.isPluginAvailable('GoogleCast'));
+  if (gcOk) {
+    const control = (nombre, datos) => gc[nombre](datos || {}).catch(e => ({ ok: false, error: e && e.message || 'No se pudo controlar la TV.' }));
+    window.bbCastNative = {
+      listo: false,
+      init: () => control('init'),
+      present: () => control('present'),
+      loadMedia: datos => control('loadMedia', datos),
+      play: () => control('play'), pause: () => control('pause'), stop: () => control('stop'),
+      seek: seconds => control('seek', { seconds }),
+      setVolume: volume => control('setVolume', { volume }),
+      setMuted: muted => control('setMuted', { muted }),
+      status: () => control('status'),
+      endSession: () => control('endSession'),
+      disponible: () => window.bbCastNative.listo
+    };
+    gc.addListener('sessionState', e => document.dispatchEvent(new CustomEvent('bb-cast-session', { detail: e })));
+    gc.addListener('status', e => document.dispatchEvent(new CustomEvent('bb-cast-status', { detail: e })));
+    window.bbCastNative.init().then(async r => {
+      if (r && r.ok) {
+        window.bbCastNative.listo = true; document.dispatchEvent(new Event('bb-cast-ready'));
+        const s = await window.bbCastNative.status();
+        if (s && s.connected) {
+          document.dispatchEvent(new CustomEvent('bb-cast-status', { detail: s }));
+          document.dispatchEvent(new CustomEvent('bb-cast-session', { detail: { connected: true, deviceName: s.deviceName, state: 'resumed' } }));
+        }
+      }
+    });
+  }
+
   // Brillo real de la pantalla para el deslizador del reproductor (si la app es antigua y no lo tiene, el sitio usa un oscurecido del video)
   window.bbBrillo = (v) => inmersivo ? inmersivo.brillo({ valor: v }) : Promise.reject();
   window.bbBrilloActual = () => inmersivo ? inmersivo.brilloActual().then((r) => r.valor) : Promise.reject();

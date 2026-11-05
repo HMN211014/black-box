@@ -3038,13 +3038,15 @@ H('pp').innerHTML = ICON.play; H('pm').innerHTML = ICON.vol;
    La TV descarga el video directo del enlace; el teléfono queda como control remoto (y se puede bloquear). */
 const tvp = H('castp'), tvs = H('tvsheet'), cps = H('cps'), cpv = H('cpv');
 let rp = null, rc = null, castOk = false, tvUlt = 0, tvArrastra = false, tvVisto = false, tvToastT;
+let tvCastNativo = { playerState: 'IDLE', currentTime: 0, duration: 0, volume: 1, muted: false, deviceName: '' };
+const castNativo = () => !!window.bbCastNative;
 const airOk = typeof V.webkitShowPlaybackTargetPicker === 'function';
 const remOk = !!(V.remote && typeof V.remote.prompt === 'function');
 const urlAbs = u => { try { return new URL(u, location.href).href; } catch (e) { return u; } };
 const mimeDe = u => /\.m3u8(\?|$)/i.test(u) ? 'application/x-mpegURL' : /\.webm(\?|$)/i.test(u) ? 'video/webm' : /\.mkv(\?|$)/i.test(u) ? 'video/x-matroska' : 'video/mp4';
 const sesion = () => { try { return cast.framework.CastContext.getInstance().getCurrentSession(); } catch (e) { return null; } };
-function tvTiempo() { return tvModo === 'dlna' ? (dlSt.t || 0) : tvModo === 'cast' && rp ? (rp.currentTime || 0) : V.currentTime; }
-function tvDur() { return tvModo === 'dlna' ? (dlSt.d || duracion()) : tvModo === 'cast' && rp && rp.duration ? rp.duration : duracion(); }
+function tvTiempo() { return tvModo === 'dlna' ? (dlSt.t || 0) : tvModo === 'cast' ? (castNativo() ? tvCastNativo.currentTime : rp ? (rp.currentTime || 0) : V.currentTime) : V.currentTime; }
+function tvDur() { return tvModo === 'dlna' ? (dlSt.d || duracion()) : tvModo === 'cast' ? (castNativo() ? tvCastNativo.duration || duracion() : rp && rp.duration ? rp.duration : duracion()) : duracion(); }
 function tvAviso(t) {
   const e = H('tvtoast'); e.textContent = t; e.hidden = false;
   clearTimeout(tvToastT); tvToastT = setTimeout(() => { e.hidden = true; }, 5000);
@@ -3054,6 +3056,7 @@ H('cpp').innerHTML = ICON.play; H('cpm').innerHTML = ICON.vol;
 
 /* --- Chromecast (SDK oficial de Google; usa el receptor estándar, sin registrar nada) --- */
 function iniciarCast() {
+  if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) return;
   try {
     const X = cast.framework, ctx = X.CastContext.getInstance();
     ctx.setOptions({ receiverApplicationId: chrome.cast.media.DEFAULT_MEDIA_RECEIVER_APP_ID,
@@ -3069,13 +3072,19 @@ function iniciarCast() {
   } catch (err) { castOk = false; }
 }
 window.__onGCastApiAvailable = ok => { if (ok) iniciarCast(); };
-if (!airOk) {                                                       // Safari/iPhone no usan Chromecast: ahí va AirPlay
+if (!airOk && !(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform())) { // Cast en Android app lo atiende el SDK nativo
   const sc = document.createElement('script'); sc.async = true;
   sc.src = 'https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1';
   document.head.appendChild(sc);
 }
 async function enviarACast(ses, t) {
-  const url = urlAbs(tvUrl), mi = new chrome.cast.media.MediaInfo(url, mimeDe(url));
+  const url = urlAbs(tvUrl);
+  if (castNativo()) {
+    const r = await window.bbCastNative.loadMedia({ url, contentType: mimeDe(url), title: tvPeli.tituloVista || tvPeli.titulo,
+      image: tvPeli.poster ? urlAbs(tvPeli.poster) : '', startTime: Math.max(0, t || 0) });
+    return r && r.ok ? null : (r && r.error) || 'La TV no pudo iniciar este video.';
+  }
+  const mi = new chrome.cast.media.MediaInfo(url, mimeDe(url));
   mi.streamType = chrome.cast.media.StreamType.BUFFERED;
   const md = new chrome.cast.media.GenericMediaMetadata(); md.title = tvPeli.tituloVista || tvPeli.titulo;
   if (tvPeli.poster) md.images = [new chrome.cast.Image(tvPeli.poster)];
@@ -3086,18 +3095,30 @@ async function enviarACast(ses, t) {
   return err;
 }
 async function entrarCast() {
-  const ses = sesion();
+  const nativo = castNativo(), ses = nativo ? true : sesion();
   if (!ses || pl.hidden || !tvPeli || tvModo) return;
   if (driveId(tvUrl)) { tvAviso('Este video es de Google Drive y no se puede transmitir.'); try { ses.endSession(true); } catch (e) {} return; }
   const t = V.currentTime || Math.max(0, reanudar - 3) || 0;
   tvModo = 'cast'; tvUlt = t; HAPT.tocar('marcado');                // conectó con la TV
   V.pause();
-  let dev = ''; try { dev = (ses.getCastDevice() || {}).friendlyName || ''; } catch (e) {}
+  let dev = nativo ? tvCastNativo.deviceName : ''; if (!nativo) try { dev = (ses.getCastDevice() || {}).friendlyName || ''; } catch (e) {}
   mostrarPanel(dev);
-  const err = await enviarACast(ses, t);
+  const err = await enviarACast(nativo ? null : ses, t);
   if (err) { tvAviso('La TV no pudo reproducir este video. Suele pasar con .mkv o formatos que no son H.264/AAC.'); salirTv(true); }
 }
-function castCambio() { if (tvModo !== 'cast' || !rp) return; pintarPanel(); guardar(false); if (rp.playerState === 'IDLE' && tvVisto && actualP) terminado(actualP); }
+function castCambio(estado) {
+  if (estado) tvCastNativo = { ...tvCastNativo, ...estado };
+  if (tvModo !== 'cast' || (!rp && !castNativo())) return;
+  pintarPanel(); guardar(false);
+  const state = castNativo() ? tvCastNativo.playerState : rp.playerState;
+  if (state === 'IDLE' && tvVisto && actualP) terminado(actualP);
+}
+document.addEventListener('bb-cast-session', e => {
+  const s = e.detail || {};
+  if (s.connected) { tvCastNativo.deviceName = s.deviceName || ''; if (!pl.hidden && tvPeli && !tvModo) entrarCast(); }
+  else if (tvModo === 'cast' && castNativo()) salirTv(true);
+});
+document.addEventListener('bb-cast-status', e => castCambio(e.detail));
 
 /* --- AirPlay y "pantalla del navegador": el propio <video> es quien se envía --- */
 function entrarEl(nombre) {
@@ -3190,7 +3211,7 @@ function mostrarPanel(dev) {
 function ocultarPanel() { tvp.hidden = true; pl.classList.remove('tv'); tvBloquear(false); mediaSesion(false); }
 function pintarPanel() {
   if (!tvModo) return;
-  const cast = tvModo === 'cast' && rp;
+  const nativo = castNativo(), cast = tvModo === 'cast' && (rp || nativo);
   const t = tvArrastra ? +cps.value : tvTiempo(), d = tvDur() || 0;
   let pausado, sub;
   if (tvModo === 'dlna') {
@@ -3201,12 +3222,12 @@ function pintarPanel() {
     H('cpm').innerHTML = dlMudo ? ICON.mute : ICON.vol;
     if (dlSt.vol >= 0 && document.activeElement !== cpv) cpv.value = dlSt.vol / 100;
   } else if (cast) {
-    const st = rp.playerState; if (st === 'PLAYING') tvVisto = true;
+    const st = nativo ? tvCastNativo.playerState : rp.playerState; if (st === 'PLAYING') tvVisto = true;
     pausado = st !== 'PLAYING' && st !== 'BUFFERING';
     sub = st === 'BUFFERING' ? 'Cargando…' : (st === 'IDLE' && tvVisto) ? 'Terminó' : pausado ? 'En pausa' : 'Reproduciendo en la TV';
     if (!tvArrastra && t > 0) tvUlt = t;
-    H('cpm').innerHTML = rp.isMuted ? ICON.mute : ICON.vol;
-    if (document.activeElement !== cpv) cpv.value = rp.volumeLevel;
+    H('cpm').innerHTML = (nativo ? tvCastNativo.muted : rp.isMuted) ? ICON.mute : ICON.vol;
+    if (document.activeElement !== cpv) cpv.value = nativo ? tvCastNativo.volume : rp.volumeLevel;
   } else { pausado = V.paused; sub = pausado ? 'En pausa' : 'Reproduciendo en la TV'; }
   if (!tvArrastra) { cps.max = d; cps.value = t; }
   const pc = d ? Math.min(100, t / d * 100) : 0;
@@ -3219,6 +3240,7 @@ function pintarPanel() {
 function tvIr(t) {
   const d = tvDur(); t = Math.max(0, d ? Math.min(t, d) : t);
   if (tvModo === 'dlna') { dlSt.t = t; tvUlt = t; window.bbTv.saltar(tvDev, Math.floor(t)); }
+  else if (tvModo === 'cast' && castNativo()) { tvCastNativo.currentTime = t; window.bbCastNative.seek(t); tvUlt = t; }
   else if (tvModo === 'cast' && rp) { rp.currentTime = t; rc.seek(); tvUlt = t; } else V.currentTime = t;
   pintarPanel();
 }
@@ -3233,14 +3255,22 @@ async function tvAlternar() {
     const ses = sesion();
     if (rp.playerState === 'IDLE' && tvVisto && ses) { await enviarACast(ses, 0); return; }   // ya terminó: volver a empezar
     rc.playOrPause();
+  } else if (tvModo === 'cast' && castNativo()) {
+    if (tvCastNativo.playerState === 'IDLE' && tvVisto) { await enviarACast(null, 0); return; }
+    if (tvCastNativo.playerState === 'PLAYING') window.bbCastNative.pause(); else window.bbCastNative.play();
   } else if (tvModo === 'el') alternar();
 }
 H('cpp').onclick = tvAlternar;
 H('cpr').onclick = () => tvSaltar(-10);
 H('cpf').onclick = () => tvSaltar(10);
-H('cpm').onclick = () => { if (tvModo === 'cast' && rc) rc.muteOrUnmute(); else if (tvModo === 'dlna') { dlMudo = !dlMudo; window.bbTv.silenciar(tvDev, dlMudo); pintarPanel(); } };
+H('cpm').onclick = () => {
+  if (tvModo === 'cast' && castNativo()) window.bbCastNative.setMuted(!tvCastNativo.muted);
+  else if (tvModo === 'cast' && rc) rc.muteOrUnmute();
+  else if (tvModo === 'dlna') { dlMudo = !dlMudo; window.bbTv.silenciar(tvDev, dlMudo); pintarPanel(); }
+};
 cpv.addEventListener('input', () => {
-  if (tvModo === 'cast' && rp) { rp.volumeLevel = +cpv.value; rc.setVolumeLevel(); }
+  if (tvModo === 'cast' && castNativo()) window.bbCastNative.setVolume(+cpv.value);
+  else if (tvModo === 'cast' && rp) { rp.volumeLevel = +cpv.value; rc.setVolumeLevel(); }
   else if (tvModo === 'dlna') { dlSt.vol = Math.round(+cpv.value * 100); clearTimeout(dlVolT); dlVolT = setTimeout(() => window.bbTv.volumen(tvDev, dlSt.vol), 120); }
 });
 cps.addEventListener('input', () => { tvArrastra = true; pintarPanel(); });
@@ -3255,7 +3285,7 @@ function salirTv(volver) {
   const era = tvModo; if (!era) return;
   const t = tvUlt;
   tvModo = null; ocultarPanel();
-  if (era === 'cast') { try { const s = sesion(); if (s) s.endSession(true); } catch (e) {} }
+  if (era === 'cast') { if (castNativo()) window.bbCastNative.endSession(); else try { const s = sesion(); if (s) s.endSession(true); } catch (e) {} }
   if (era === 'dlna') dlnaCortar();
   if (volver && !pl.hidden) {
     if ((era === 'cast' || era === 'dlna') && t > 1) { try { V.currentTime = Math.max(0, t - 2); } catch (e) {} }
@@ -3264,7 +3294,7 @@ function salirTv(volver) {
 }
 function tvCerrar() {                                              // al cerrar el reproductor se corta la transmisión
   const era = tvModo; tvModo = null; ocultarPanel(); tvs.hidden = true; tvPeli = null; tvUrl = '';
-  if (era === 'cast') { try { const s = sesion(); if (s) s.endSession(true); } catch (e) {} }
+  if (era === 'cast') { if (castNativo()) window.bbCastNative.endSession(); else try { const s = sesion(); if (s) s.endSession(true); } catch (e) {} }
   if (era === 'dlna') dlnaCortar();
 }
 
@@ -3291,8 +3321,8 @@ function mediaSesion(on) {
     if (on && tvPeli) {
       navigator.mediaSession.metadata = new MediaMetadata({ title: tvPeli.tituloVista || tvPeli.titulo, artist: 'Black BOX',
         artwork: tvPeli.poster ? [{ src: tvPeli.poster, sizes: '500x750', type: 'image/jpeg' }] : [] });
-      h('play', () => { if (tvModo === 'cast' ? rp && rp.isPaused : V.paused) tvAlternar(); });
-      h('pause', () => { if (tvModo === 'cast' ? rp && !rp.isPaused : !V.paused) tvAlternar(); });
+      h('play', () => { if (tvModo === 'cast' ? (castNativo() ? tvCastNativo.playerState !== 'PLAYING' : rp && rp.isPaused) : V.paused) tvAlternar(); });
+      h('pause', () => { if (tvModo === 'cast' ? (castNativo() ? tvCastNativo.playerState === 'PLAYING' : rp && !rp.isPaused) : !V.paused) tvAlternar(); });
       h('seekbackward', () => tvSaltar(-10)); h('seekforward', () => tvSaltar(10));
       h('seekto', d => tvIr(d.seekTime));
     } else {
@@ -3314,6 +3344,11 @@ async function copiarTexto(t) {
   try { const a = document.createElement('textarea'); a.value = t; a.style.cssText = 'position:fixed;opacity:0'; document.body.appendChild(a); a.select(); const ok = document.execCommand('copy'); a.remove(); return ok; } catch (e) { return false; }
 }
 async function pedirCast() {
+  if (castNativo()) {
+    const r = await window.bbCastNative.present();
+    if (!r || !r.ok) tvAviso((r && r.error) || 'No se pudo abrir el selector de Chromecast.');
+    return;
+  }
   try {
     const err = await cast.framework.CastContext.getInstance().requestSession();
     if (err && err !== 'cancel') tvAviso(err === 'receiver_unavailable' ? 'No se encontró ninguna TV. Revisa que estén en la misma red Wi-Fi.' : 'No se pudo conectar con la TV (' + err + ').');
@@ -3339,11 +3374,12 @@ function armarOtras(drive) {
 function abrirTv() {
   const cont = H('tvopts'); cont.innerHTML = ''; H('tvotras').hidden = true;
   const drive = !!driveId(tvUrl);
+  const castDisponible = castOk || castNativo();
   H('tver').textContent = drive ? 'Este video está en Google Drive y no se puede transmitir. Usa un enlace directo (.mp4).' : '';
   cont.append(
-    opcionTv('Chromecast y Google TV', castOk ? 'Android TV, Google TV y TV con Chromecast integrado' : 'Disponible en Chrome (Android o PC)', () => { tvs.hidden = true; pedirCast(); }, drive || !castOk),
+    opcionTv('Chromecast y Google TV', castDisponible ? 'Android TV, Google TV y TV con Chromecast integrado' : 'Disponible en Chrome (Android o PC)', () => { tvs.hidden = true; pedirCast(); }, drive || !castDisponible),
     opcionTv('AirPlay', airOk ? 'Apple TV y TV con AirPlay (Samsung, LG, Sony…)' : 'Disponible en iPhone, iPad y Safari', () => { tvs.hidden = true; pedirAir(); }, drive || !airOk));
-  if (remOk && !castOk && !airOk) cont.append(opcionTv('Pantalla del navegador', 'Elige una TV o pantalla cercana', () => { tvs.hidden = true; pedirRem(); }, drive));
+  if (remOk && !castDisponible && !airOk) cont.append(opcionTv('Pantalla del navegador', 'Elige una TV o pantalla cercana', () => { tvs.hidden = true; pedirRem(); }, drive));
   if (window.bbTv) cont.append(opcionTv('Samsung, LG, Sony y otras (DLNA)', 'Transmite sin duplicar la pantalla: la TV reproduce sola y puedes apagar el teléfono', buscarDlna, drive));
   cont.append(opcionTv('Otras TV (Samsung, LG…)', 'Enlace para apps DLNA o para abrir en la TV', () => { H('tvotras').hidden = !H('tvotras').hidden; }));
   armarOtras(drive);
