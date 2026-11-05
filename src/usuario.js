@@ -29,6 +29,15 @@ function asegurarPresencia(db) {
   ]).catch(e => { presenciaTablas = null; throw e; });
   return presenciaTablas;
 }
+let comentariosTabla = null;
+function asegurarComentarios(db) {
+  if (!comentariosTabla) comentariosTabla = db.batch([
+    db.prepare('CREATE TABLE IF NOT EXISTS comentarios (id INTEGER PRIMARY KEY AUTOINCREMENT, correo TEXT, mensaje TEXT NOT NULL, creado INTEGER NOT NULL, atendido INTEGER NOT NULL DEFAULT 0, dispositivo_hash TEXT NOT NULL)'),
+    db.prepare('CREATE INDEX IF NOT EXISTS comentarios_creado ON comentarios (creado DESC)'),
+    db.prepare('CREATE INDEX IF NOT EXISTS comentarios_dispositivo ON comentarios (dispositivo_hash, creado)')
+  ]).catch(e => { comentariosTabla = null; throw e; });
+  return comentariosTabla;
+}
 const b64 = buf => { let s = ''; new Uint8Array(buf).forEach(c => (s += String.fromCharCode(c))); return btoa(s); };
 const deb64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
 const b64url = buf => b64(buf).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
@@ -718,6 +727,25 @@ async function manejar({ request, env, params, waitUntil }) {
     return json({ ok: true });
   }
 
+  if (accion === 'comentario' && esPost) {
+    const mensaje = String(cuerpo.mensaje || '').trim().slice(0, 1000);
+    const dispositivo = String(cuerpo.dispositivo || '').toLowerCase();
+    if (mensaje.length < 2) return json({ error: 'Escribe un comentario antes de enviarlo.' }, 400);
+    if (!/^[a-f0-9]{32,64}$/.test(dispositivo)) return json({ error: 'No se pudo identificar este dispositivo.' }, 400);
+    let config = {};
+    try { const r = await db.prepare("SELECT valor FROM meta WHERE clave = 'mensaje_emergente'").first(); if (r && r.valor) config = JSON.parse(r.valor) || {}; } catch (e) {}
+    if (!config.activo || config.comentarios === false) return json({ error: 'Los comentarios no están disponibles en este momento.' }, 403);
+    await asegurarComentarios(db);
+    const secreto = String(env.ADMIN_CLAVE || 'blackbox-comentarios');
+    const dispositivoHash = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', enc.encode(secreto + '\0' + dispositivo))).slice(0, 16), x => x.toString(16).padStart(2, '0')).join('');
+    const ahora = Date.now();
+    const recientes = await db.prepare('SELECT COUNT(*) AS n FROM comentarios WHERE dispositivo_hash = ?1 AND creado > ?2').bind(dispositivoHash, ahora - 60 * 60 * 1000).first();
+    if (Number(recientes && recientes.n || 0) >= 5) return json({ error: 'Ya enviaste varios comentarios recientemente. Inténtalo más tarde.' }, 429);
+    const correo = await correoDeSesion(request, db);
+    await db.prepare('INSERT INTO comentarios (correo, mensaje, creado, dispositivo_hash) VALUES (?1, ?2, ?3, ?4)').bind(correo, mensaje, ahora, dispositivoHash).run();
+    return json({ ok: true });
+  }
+
   /* Reproducciones de la biblioteca: conteo agregado sin asociarlo a cuentas o IPs. */
   if (accion === 'reproducciones') {
     await db.prepare('CREATE TABLE IF NOT EXISTS reproducciones (tmdb INTEGER NOT NULL, tipo TEXT NOT NULL, titulo TEXT NOT NULL, total INTEGER NOT NULL DEFAULT 0, actualizado INTEGER NOT NULL, PRIMARY KEY (tipo, tmdb)) WITHOUT ROWID').run();
@@ -1009,6 +1037,8 @@ async function manejar({ request, env, params, waitUntil }) {
     try { if (db) { const r = await db.prepare("SELECT valor FROM meta WHERE clave = 'introdb_aviso'").first(); if (r && r.valor) { const v = JSON.parse(r.valor); const n = Number(v && v.segundos); if (Number.isInteger(n)) introdbAviso.segundos = Math.max(-300, Math.min(600, n)); } } } catch (e) {}
     let sug = {};
     try { if (db) { const r = await db.prepare("SELECT valor FROM meta WHERE clave = 'sugerencia'").first(); if (r && r.valor) sug = JSON.parse(r.valor) || {}; } } catch (e) {}
+    let mensajeEmergente = {};
+    try { if (db) { const r = await db.prepare("SELECT valor FROM meta WHERE clave = 'mensaje_emergente'").first(); if (r && r.valor) mensajeEmergente = JSON.parse(r.valor) || {}; } } catch (e) {}
     let camEx = [];
     try { if (db) camEx = await leerCam(db); } catch (e) {}
     let banEx = [];
@@ -1020,7 +1050,7 @@ async function manejar({ request, env, params, waitUntil }) {
     let anun = limpiarAnuncios({});
     try { if (db) { const r = await db.prepare("SELECT valor FROM meta WHERE clave = 'anuncios'").first(); if (r && r.valor) anun = limpiarAnuncios(JSON.parse(r.valor)); } } catch (e) {}
     anun = { activo: anun.activo, items: anun.items.filter(x => x.activo), google: anun.google };
-    const js ='window.ANUNCIOS_EXTRA=' + JSON.stringify(anun).replace(/</g, '\\u003c') + ';window.PELICULAS_EXTRA=' + JSON.stringify(items).replace(/</g, '\\u003c') + ';window.COLECCIONES_EXTRA=' + JSON.stringify(cols).replace(/</g, '\\u003c') + ';window.COLECCIONES_ORDEN=' + JSON.stringify(ordenCols) + ';window.SECCIONES_EXTRA=' + JSON.stringify(secs).replace(/</g, '\\u003c') + ';window.ACCESO_EXTRA=' + JSON.stringify(acc).replace(/</g, '\\u003c') + ';window.EFECTOS_EXTRA=' + JSON.stringify(efe).replace(/</g, '\\u003c') + ';window.INTERACCIONES_EXTRA=' + JSON.stringify(inter).replace(/</g, '\\u003c') + ';window.INTRODB_EXTRA=' + JSON.stringify(introdb).replace(/</g, '\\u003c') + ';window.INTRODB_AVISO_EXTRA=' + JSON.stringify(introdbAviso) + ';window.SUGERENCIA_EXTRA=' + JSON.stringify(sug).replace(/</g, '\\u003c') + ';window.BANNER_EXTRA=' + JSON.stringify(ban).replace(/</g, '\\u003c') + ';window.BANNER_AJUSTES=' + JSON.stringify(banAj) + ';window.BANNER_EXCLUIDOS=' + JSON.stringify(banEx).replace(/</g, '\\u003c') + ';window.CAM_EXTRA=' + JSON.stringify(camEx).replace(/</g, '\\u003c') + ';';
+    const js ='window.ANUNCIOS_EXTRA=' + JSON.stringify(anun).replace(/</g, '\\u003c') + ';window.PELICULAS_EXTRA=' + JSON.stringify(items).replace(/</g, '\\u003c') + ';window.COLECCIONES_EXTRA=' + JSON.stringify(cols).replace(/</g, '\\u003c') + ';window.COLECCIONES_ORDEN=' + JSON.stringify(ordenCols) + ';window.SECCIONES_EXTRA=' + JSON.stringify(secs).replace(/</g, '\\u003c') + ';window.ACCESO_EXTRA=' + JSON.stringify(acc).replace(/</g, '\\u003c') + ';window.EFECTOS_EXTRA=' + JSON.stringify(efe).replace(/</g, '\\u003c') + ';window.INTERACCIONES_EXTRA=' + JSON.stringify(inter).replace(/</g, '\\u003c') + ';window.INTRODB_EXTRA=' + JSON.stringify(introdb).replace(/</g, '\\u003c') + ';window.INTRODB_AVISO_EXTRA=' + JSON.stringify(introdbAviso) + ';window.SUGERENCIA_EXTRA=' + JSON.stringify(sug).replace(/</g, '\\u003c') + ';window.MENSAJE_EMERGENTE=' + JSON.stringify(mensajeEmergente).replace(/</g, '\\u003c') + ';window.BANNER_EXTRA=' + JSON.stringify(ban).replace(/</g, '\\u003c') + ';window.BANNER_AJUSTES=' + JSON.stringify(banAj) + ';window.BANNER_EXCLUIDOS=' + JSON.stringify(banEx).replace(/</g, '\\u003c') + ';window.CAM_EXTRA=' + JSON.stringify(camEx).replace(/</g, '\\u003c') + ';';
     return new Response(js, { headers: { 'Content-Type': 'application/javascript; charset=utf-8', 'Cache-Control': 'public, max-age=30' } });
   }
 
@@ -1049,6 +1079,40 @@ async function manejar({ request, env, params, waitUntil }) {
         ambos: { cuentas: interseccion(cuentasWeb, cuentasApp), dispositivos: interseccion(dispositivosWeb, dispositivosApp) },
         actualizado: ahora, ventanaSegundos: 180
       });
+    }
+
+    if (cuerpo.op === 'mensaje_emergente') {
+      let item = {};
+      try { const r = await db.prepare("SELECT valor FROM meta WHERE clave = 'mensaje_emergente'").first(); if (r && r.valor) item = JSON.parse(r.valor) || {}; } catch (e) {}
+      return json({ item });
+    }
+    if (cuerpo.op === 'guardar_mensaje_emergente') {
+      const a = cuerpo.item || {}, titulo = String(a.titulo || '').trim().slice(0, 100), mensaje = String(a.mensaje || '').trim().slice(0, 1000);
+      const activo = a.activo === true, comentarios = a.comentarios !== false;
+      if (activo && (!titulo || !mensaje)) return json({ error: 'Escribe el título y el mensaje antes de activarlo.' }, 400);
+      const item = { activo, titulo, mensaje, comentarios, version: Date.now() };
+      await db.prepare('CREATE TABLE IF NOT EXISTS meta (clave TEXT PRIMARY KEY, valor TEXT) WITHOUT ROWID').run();
+      await db.prepare("INSERT INTO meta (clave, valor) VALUES ('mensaje_emergente', ?1) ON CONFLICT(clave) DO UPDATE SET valor = ?1").bind(JSON.stringify(item)).run();
+      return json({ ok: true, item });
+    }
+    if (cuerpo.op === 'comentarios') {
+      await asegurarComentarios(db);
+      const r = await db.prepare('SELECT id, correo, mensaje, creado, atendido FROM comentarios ORDER BY creado DESC LIMIT 300').all();
+      return json({ items: r.results || [] });
+    }
+    if (cuerpo.op === 'comentario_atendido') {
+      await asegurarComentarios(db);
+      const id = Math.floor(Number(cuerpo.id));
+      if (!(id > 0)) return json({ error: 'Comentario no válido.' }, 400);
+      await db.prepare('UPDATE comentarios SET atendido = ?1 WHERE id = ?2').bind(cuerpo.atendido ? 1 : 0, id).run();
+      return json({ ok: true });
+    }
+    if (cuerpo.op === 'borrar_comentario') {
+      await asegurarComentarios(db);
+      const id = Math.floor(Number(cuerpo.id));
+      if (!(id > 0)) return json({ error: 'Comentario no válido.' }, 400);
+      await db.prepare('DELETE FROM comentarios WHERE id = ?1').bind(id).run();
+      return json({ ok: true });
     }
 
     if (cuerpo.op === 'crear_enlace_compartido') {

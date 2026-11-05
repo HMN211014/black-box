@@ -101,6 +101,17 @@ CREATE TABLE IF NOT EXISTS meta (
   valor TEXT
 ) WITHOUT ROWID;
 
+CREATE TABLE IF NOT EXISTS comentarios (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  correo TEXT,
+  mensaje TEXT NOT NULL,
+  creado INTEGER NOT NULL,
+  atendido INTEGER NOT NULL DEFAULT 0,
+  dispositivo_hash TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS comentarios_creado ON comentarios (creado DESC);
+CREATE INDEX IF NOT EXISTS comentarios_dispositivo ON comentarios (dispositivo_hash, creado);
+
 -- Conteo agregado de reproducciones para el carrusel principal. Los eventos no guardan cuentas ni IP.
 CREATE TABLE IF NOT EXISTS reproducciones (
   tmdb INTEGER NOT NULL,

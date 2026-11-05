@@ -145,6 +145,13 @@ body{-webkit-user-select:none;user-select:none}
 .download-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:24px}
 .download-actions .btn{min-width:112px;padding:12px 20px;text-align:center}
 @media(max-width:420px){.download-dialog{padding:24px 20px;border-radius:22px}.download-actions .btn{min-width:0;flex:1;padding:12px 10px}}
+#message-modal[hidden]{display:none}
+#message-comment[hidden],#message-send[hidden]{display:none}
+#message-modal{position:fixed;inset:0;z-index:1150;display:grid;place-items:center;padding:24px;background:rgba(0,0,0,.68);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+#message-modal .download-dialog{width:min(100%,480px)}
+#message-comment{display:block;width:100%;min-height:100px;margin-top:18px;padding:12px 14px;border:1px solid rgba(255,255,255,.22);border-radius:14px;background:rgba(0,0,0,.2);color:#fff;font:inherit;line-height:1.45;resize:vertical;-webkit-user-select:text;user-select:text}
+#message-comment:focus{outline:2px solid rgba(95,155,255,.85);outline-offset:2px}
+#message-status{min-height:1.3em;margin-top:8px;color:#ffc267;font-size:13px}
 #app-promo[hidden]{display:none}
 #app-promo{position:fixed;left:16px;right:16px;bottom:calc(88px + env(safe-area-inset-bottom,0px));z-index:1100;display:flex;justify-content:center;pointer-events:none}
 .app-promo-card{position:relative;width:min(100%,420px);display:grid;grid-template-columns:48px minmax(0,1fr);gap:12px;padding:16px;border:1px solid rgba(255,255,255,.22);border-radius:22px;color:#fff;background:linear-gradient(155deg,rgba(55,65,95,.96),rgba(20,20,26,.97));box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 18px 55px rgba(0,0,0,.6);pointer-events:auto}
@@ -4406,6 +4413,44 @@ async function api(ruta, cuerpo) {
   if (!r.ok) return { sesion: false, error: j.error || 'No se pudo completar la solicitud (código ' + r.status + ').' };
   return j;
 }
+let mensajeEmergenteAbierto = false;
+function mensajeEmergenteCerrar() { H('message-modal').hidden = true; mensajeEmergenteAbierto = false; }
+function mensajeEmergenteMostrar() {
+  const cfg = window.MENSAJE_EMERGENTE || {};
+  if (!cfg.activo || !cfg.titulo || !cfg.mensaje || mensajeEmergenteAbierto) return;
+  const version = String(cfg.version || (cfg.titulo + cfg.mensaje));
+  try { if (localStorage.getItem('bb-mensaje-visto-' + version) === '1') return; } catch (e) {}
+  try { localStorage.setItem('bb-mensaje-visto-' + version, '1'); } catch (e) {}
+  H('message-title').textContent = cfg.titulo;
+  H('message-body').textContent = cfg.mensaje;
+  H('message-comment').hidden = cfg.comentarios === false;
+  H('message-send').hidden = cfg.comentarios === false;
+  H('message-privacy').hidden = cfg.comentarios === false;
+  H('message-comment').value = ''; H('message-status').textContent = '';
+  H('message-modal').hidden = false; mensajeEmergenteAbierto = true;
+  H('message-close').focus();
+}
+addEventListener('DOMContentLoaded', () => {
+H('message-close').addEventListener('click', mensajeEmergenteCerrar);
+H('message-modal').addEventListener('click', e => { if (e.target === H('message-modal')) mensajeEmergenteCerrar(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !H('message-modal').hidden) mensajeEmergenteCerrar(); });
+H('message-send').addEventListener('click', async () => {
+  const boton = H('message-send'), texto = H('message-comment').value.trim();
+  if (texto.length < 2) { H('message-status').textContent = 'Escribe un comentario antes de enviarlo.'; return; }
+  let dispositivo = '';
+  try { dispositivo = localStorage.getItem('bb-presencia-device') || ''; } catch (e) {}
+  if (!/^[a-f0-9]{32}$/.test(dispositivo)) {
+    dispositivo = crypto.randomUUID ? crypto.randomUUID().replace(/-/g, '') : Array.from(crypto.getRandomValues(new Uint8Array(16)), x => x.toString(16).padStart(2, '0')).join('');
+    try { localStorage.setItem('bb-presencia-device', dispositivo); } catch (e) {}
+  }
+  boton.disabled = true; H('message-status').textContent = 'Enviando…';
+  try {
+    const r = await api('usuario/comentario', { mensaje: texto, dispositivo });
+    if (!r.ok) throw new Error(r.error || 'No se pudo enviar el comentario.');
+    H('message-comment').value = ''; H('message-comment').disabled = true; boton.hidden = true; H('message-status').textContent = 'Gracias. Tu comentario se envió.';
+  } catch (e) { H('message-status').textContent = e.message || 'No se pudo enviar. Inténtalo de nuevo.'; boton.disabled = false; }
+});
+});
 const el = (t, c, x) => { const n = document.createElement(t); if (c) n.className = c; if (x !== undefined) n.textContent = x; return n; };
 /* hoja inferior estilo iOS (confirmar compra / mostrar datos) */
 const hoja = nodos => { H('sp').replaceChildren(...nodos); H('sheet').hidden = false; };
@@ -5332,7 +5377,7 @@ H('ajustes').addEventListener('click', () => { if (perfOn()) abrirMenuPerfil(); 
     U.servicio = j.servicio === true;                  // el servidor de cuentas respondió bien
     if (j.correo) { U.correo = j.correo; U.acceso = j.acceso || null; U.lista = j.lista || []; uBtn(); uPlan(); await uBajar(); }
   } catch (e) { U.servicio = false; }
-  finally { decidirAcceso(); }
+  finally { decidirAcceso(); setTimeout(mensajeEmergenteMostrar, 1200); }
 })();
 
 /* ---------- Colecciones por temática ----------
@@ -5793,6 +5838,16 @@ setTimeout(() => { vtOK = true; }, 600);              // las transiciones empiez
   setTimeout(cerrar, reducido ? 1200 : 3300);
 })();
 </script>
+<div id="message-modal" hidden>
+  <section class="download-dialog" role="dialog" aria-modal="true" aria-labelledby="message-title" aria-describedby="message-body" tabindex="-1">
+    <h2 id="message-title"></h2>
+    <p id="message-body"></p>
+    <textarea id="message-comment" maxlength="1000" placeholder="Escribe aquí tu comentario" aria-label="Tu comentario"></textarea>
+    <p id="message-privacy" style="margin-top:8px;font-size:12px">Si iniciaste sesión, tu correo se mostrará en Administración junto a tu comentario.</p>
+    <p id="message-status" role="status" aria-live="polite"></p>
+    <div class="download-actions"><button class="btn ghost" id="message-close" type="button">Cerrar</button><button class="btn primary" id="message-send" type="button">Enviar comentario</button></div>
+  </section>
+</div>
 <div id="download-modal" hidden>
   <section class="download-dialog" role="dialog" aria-modal="true" aria-labelledby="download-title" aria-describedby="download-message" tabindex="-1">
     <h2 id="download-title">Autorizar descarga</h2>

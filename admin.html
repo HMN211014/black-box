@@ -210,6 +210,8 @@ body:not(.h) .nav button.on{background:#fff;color:#000}
   <nav class="nav" id="nav" aria-label="Secciones">
     <button type="button" data-g="cuentas">Cuentas y códigos</button>
     <button type="button" data-g="actividad">Usuarios activos</button>
+    <button type="button" data-g="mensaje">Mensaje emergente</button>
+    <button type="button" data-g="comentarios">Comentarios</button>
     <button type="button" data-g="biblioteca">Biblioteca</button>
     <button type="button" data-g="compartir">Enlaces compartidos</button>
     <button type="button" data-g="banner">Banner principal</button>
@@ -252,6 +254,25 @@ body:not(.h) .nav button.on{background:#fff;color:#000}
     </div>
     <div class="row" style="margin-top:12px"><button class="g" id="act-refresh" type="button">Actualizar ahora</button></div>
     <p class="m" id="act-m" role="status" aria-live="polite" hidden></p>
+  </div>
+
+  <div class="c w" data-g="mensaje" id="mensaje-card">
+    <h2>Mensaje emergente</h2>
+    <p class="s">Publica un aviso que aparecerá una vez en cada dispositivo. Cuando lo cambies, volverá a mostrarse. También puedes permitir que las personas te envíen comentarios desde esta ventana.</p>
+    <label class="ck"><input id="me-activo" type="checkbox"> Mostrar el mensaje</label>
+    <label>Título<input id="me-titulo" maxlength="100" placeholder="Por ejemplo: Cuéntanos qué te parece la app"></label>
+    <label>Mensaje<textarea class="ta" id="me-texto" maxlength="1000" placeholder="Escribe el mensaje que verán tus usuarios"></textarea></label>
+    <label class="ck"><input id="me-comentarios" type="checkbox" checked> Permitir que envíen comentarios</label>
+    <div class="row" style="margin-top:12px"><button id="me-guardar" type="button">Guardar mensaje</button><button class="g" id="me-cargar" type="button">Cargar guardado</button></div>
+    <p class="m" id="me-m" role="status" aria-live="polite" hidden></p>
+  </div>
+
+  <div class="c w" data-g="comentarios" id="comentarios-card">
+    <h2>Comentarios recibidos</h2>
+    <p class="s">Aquí se guardan los comentarios enviados desde el mensaje emergente. No se almacenan direcciones IP.</p>
+    <div class="row"><button class="g" id="co-actualizar" type="button">Actualizar comentarios</button></div>
+    <p class="m" id="co-m" role="status" aria-live="polite" hidden></p>
+    <div id="co-lista" style="margin-top:12px"></div>
   </div>
 
   <div class="c" data-g="cuentas">
@@ -3219,6 +3240,42 @@ function actEmpezar() {
 actNav.addEventListener('click', actEmpezar);
 document.getElementById('act-refresh').addEventListener('click', actRefrescar);
 if ($('actividad-card').classList.contains('on')) actEmpezar();
+
+/* ---- mensaje emergente y repositorio de comentarios ---- */
+async function meCargar() {
+  const x = (await admin({ op: 'mensaje_emergente' })).item || {};
+  $('me-activo').checked = x.activo === true; $('me-titulo').value = x.titulo || ''; $('me-texto').value = x.mensaje || ''; $('me-comentarios').checked = x.comentarios !== false;
+  msg('me-m', 'Se cargó el mensaje guardado.', true);
+}
+$('me-cargar').addEventListener('click', () => con($('me-cargar'), 'me-m', meCargar));
+$('me-guardar').addEventListener('click', () => con($('me-guardar'), 'me-m', async () => {
+  await admin({ op: 'guardar_mensaje_emergente', item: { activo: $('me-activo').checked, titulo: $('me-titulo').value, mensaje: $('me-texto').value, comentarios: $('me-comentarios').checked } });
+  msg('me-m', 'Mensaje guardado. Aparecerá en el sitio en menos de un minuto.', true);
+}));
+async function comentariosCargar() {
+  const j = await admin({ op: 'comentarios' }), box = $('co-lista'); box.replaceChildren();
+  if (!j.items.length) { const p = document.createElement('p'); p.className = 's'; p.textContent = 'Todavía no hay comentarios.'; box.appendChild(p); }
+  j.items.forEach(x => {
+    const card = document.createElement('div'); card.className = 'c'; card.style.marginTop = '10px';
+    const head = document.createElement('div'); head.className = 'row'; head.style.justifyContent = 'space-between';
+    const autor = document.createElement('b'); autor.textContent = x.correo || 'Visitante';
+    const fecha = document.createElement('small'); fecha.textContent = new Date(x.creado).toLocaleString('es-MX'); head.append(autor, fecha);
+    const texto = document.createElement('p'); texto.className = 's'; texto.style.whiteSpace = 'pre-wrap'; texto.textContent = x.mensaje;
+    const acciones = document.createElement('div'); acciones.className = 'row';
+    const estado = document.createElement('small'); estado.textContent = x.atendido ? 'Atendido' : 'Pendiente'; estado.style.color = x.atendido ? '#70d89b' : '#ffc267'; acciones.appendChild(estado);
+    const atender = document.createElement('button'); atender.className = 'g'; atender.type = 'button'; atender.textContent = x.atendido ? 'Reabrir' : 'Marcar atendido';
+    atender.onclick = () => con(atender, 'co-m', async () => { await admin({ op: 'comentario_atendido', id: x.id, atendido: !x.atendido }); await comentariosCargar(); });
+    const borrar = document.createElement('button'); borrar.className = 'g'; borrar.type = 'button'; borrar.textContent = 'Eliminar';
+    borrar.onclick = () => { if (confirm('¿Eliminar este comentario?')) con(borrar, 'co-m', async () => { await admin({ op: 'borrar_comentario', id: x.id }); await comentariosCargar(); }); };
+    acciones.append(atender, borrar); card.append(head, texto, acciones); box.appendChild(card);
+  });
+  msg('co-m', j.items.length + ' comentario(s) cargados.', true);
+}
+$('co-actualizar').addEventListener('click', () => con($('co-actualizar'), 'co-m', comentariosCargar));
+document.querySelector('#nav button[data-g="mensaje"]').addEventListener('click', () => { if ($('mensaje-card').classList.contains('on')) meCargar().catch(e => msg('me-m', e.message, false)); });
+document.querySelector('#nav button[data-g="comentarios"]').addEventListener('click', () => { if ($('comentarios-card').classList.contains('on')) con($('co-actualizar'), 'co-m', comentariosCargar); });
+if ($('mensaje-card').classList.contains('on')) meCargar().catch(e => msg('me-m', e.message, false));
+if ($('comentarios-card').classList.contains('on')) con($('co-actualizar'), 'co-m', comentariosCargar);
 
 </script>
 <script>
