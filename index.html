@@ -4418,7 +4418,7 @@ let mensajeEmergenteAbierto = false;
 function mensajeEmergenteCerrar() { H('message-modal').hidden = true; mensajeEmergenteAbierto = false; }
 function mensajeEmergenteMostrar() {
   const cfg = window.MENSAJE_EMERGENTE || {};
-  if (!cfg.activo || !cfg.titulo || !cfg.mensaje || mensajeEmergenteAbierto) return;
+  if (!cfg.activo || !cfg.titulo || !cfg.mensaje || mensajeEmergenteAbierto || U.servicio !== true || U.codigoCanjeado === true) return;
   const version = String(cfg.version || (cfg.titulo + cfg.mensaje));
   try { if (localStorage.getItem('bb-mensaje-visto-' + version) === '1') return; } catch (e) {}
   try { localStorage.setItem('bb-mensaje-visto-' + version, '1'); } catch (e) {}
@@ -4460,7 +4460,7 @@ H('sheet').addEventListener('click', e => { if (e.target === H('sheet')) cerrarH
 /* ---------- Cuenta de usuario (correo + contraseña) ----------
    Se abre desde el botón de configuración (engrane) del encabezado. Guarda en la cuenta lo que hoy vive solo en este
    dispositivo: "Continuar viendo" (bbprog) y los capítulos vistos (bbsvis). El servidor está en functions/api/usuario. */
-const U = { correo: '', acceso: null, lista: [], servicio: null };   // servicio: null = comprobando · true = cuentas activas · false = sin servidor
+const U = { correo: '', acceso: null, lista: [], servicio: null, codigoCanjeado: false };   // servicio: null = comprobando · true = cuentas activas · false = sin servidor
 let uModo = 'entrar', uPush = 0;
 /* ---------- Planes y acceso por tiempo ----------
    Cada cuenta tiene una fecha de vencimiento (la manejas en /admin.html con códigos canjeables).
@@ -5376,6 +5376,7 @@ H('ajustes').addEventListener('click', () => { if (perfOn()) abrirMenuPerfil(); 
   try {
     const j = await api('usuario/yo');
     U.servicio = j.servicio === true;                  // el servidor de cuentas respondió bien
+    U.codigoCanjeado = j.codigoCanjeado === true;
     if (j.correo) { U.correo = j.correo; U.acceso = j.acceso || null; U.lista = j.lista || []; uBtn(); uPlan(); await uBajar(); }
   } catch (e) { U.servicio = false; }
   finally { decidirAcceso(); setTimeout(mensajeEmergenteMostrar, 1200); }

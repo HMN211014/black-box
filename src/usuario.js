@@ -884,8 +884,9 @@ async function manejar({ request, env, params, waitUntil }) {
   /* ---- Estado ---- */
   if (accion === 'yo' && request.method === 'GET') {
     const correo = await correoDeSesion(request, db);
-    if (!correo) return json({ servicio: true, correo: '' });
-    return json({ servicio: true, correo, ...(await estadoDe(db, correo)) });
+    if (!correo) return json({ servicio: true, correo: '', codigoCanjeado: false });
+    const codigoCanjeado = !!(await db.prepare('SELECT 1 AS x FROM codigos WHERE usado_por = ?1 LIMIT 1').bind(correo).first());
+    return json({ servicio: true, correo, codigoCanjeado, ...(await estadoDe(db, correo)) });
   }
 
   /* ---- Datos de la cuenta (progreso y capítulos vistos) ---- */
