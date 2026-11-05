@@ -3217,6 +3217,7 @@ function actEmpezar() {
   actInterval = setInterval(() => { if ($('actividad-card').classList.contains('on')) actRefrescar(); else { clearInterval(actInterval); actInterval = 0; } }, 30000);
 }
 actNav.addEventListener('click', actEmpezar);
+document.getElementById('act-refresh').addEventListener('click', actRefrescar);
 if ($('actividad-card').classList.contains('on')) actEmpezar();
 
 </script>

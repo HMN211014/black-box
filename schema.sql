@@ -2,6 +2,16 @@
 -- Pégalo completo en: Cloudflare > D1 > tu base > Console > Execute.
 -- (Es seguro ejecutarlo más de una vez: no borra nada.)
 
+CREATE TABLE IF NOT EXISTS presencia (
+  dispositivo TEXT NOT NULL,
+  plataforma TEXT NOT NULL,
+  usuario_hash TEXT,
+  actividad INTEGER NOT NULL,
+  PRIMARY KEY (dispositivo, plataforma)
+) WITHOUT ROWID;
+CREATE INDEX IF NOT EXISTS presencia_actividad ON presencia (actividad);
+CREATE INDEX IF NOT EXISTS presencia_usuario ON presencia (usuario_hash, actividad);
+
 CREATE TABLE IF NOT EXISTS usuarios (
   correo  TEXT PRIMARY KEY,
   salt    TEXT NOT NULL,
