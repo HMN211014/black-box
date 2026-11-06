@@ -457,9 +457,7 @@ function limitarProgresoCuenta(prog) {
 const tipoDe = i => i.tipo === 'serie' || i.episodios || /\{(t|e|tt|ee)\}/.test(String(i.link || '')) ? 'serie' : 'pelicula';   // solo para lo que venía de KV sin "tipo"
 const epsDe = t => { try { const o = JSON.parse(t || '{}'); return o && typeof o === 'object' ? o : {}; } catch (e) { return {}; } };
 /* Ajustes del banner principal. Rango [mín, máx] para números; listas para opciones. Lo que no esté aquí se descarta. */
-/* Etiqueta CAM (película grabada en cine). Una sola lista para toda la biblioteca, venga del panel o de index.html:
-   [{ tmdb, tipo, titulo, cam: 1|0, q }]  ·  cam = 1 lleva la etiqueta; cam = 0 es una marca quitada a propósito (tapa un cam:true de index.html);
-   q = fecha (ms) en que se le quitó CAM: durante unos días sube al inicio de "Recientes". */
+/* Etiquetas CAM e IMAX para toda la biblioteca, venga del panel o de index.html. */
 const CAM_MAX = 1500;
 const normTitulo = t => String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
 const camClave = (tipo, tmdb, titulo) => (tipo === 'serie' ? 'serie' : 'pelicula') + ':' + (Number(tmdb) > 0 ? Math.floor(Number(tmdb)) : 't-' + normTitulo(titulo));
@@ -471,7 +469,7 @@ function limpiarCam(lista) {
     if (!tmdb && !titulo) return;
     const k = camClave(tipo, tmdb, titulo); if (vistos.has(k)) return; vistos.add(k);
     const q = Math.max(0, Math.floor(Number(x.q)) || 0);
-    out.push({ tmdb, tipo, titulo, cam: x.cam ? 1 : 0, q: x.cam ? 0 : q });
+    out.push({ tmdb, tipo, titulo, cam: x.cam ? 1 : 0, imax: x.imax ? 1 : 0, q: x.cam ? 0 : q });
   });
   return out;
 }
@@ -480,8 +478,7 @@ async function leerCam(db) {
   return [];
 }
 const camActiva = (lista, tipo, tmdb, titulo) => { const m = lista.find(x => camClave(x.tipo, x.tmdb, x.titulo) === camClave(tipo, tmdb, titulo)); return !!(m && m.cam); };
-/* cambios: [{ tmdb, tipo, titulo, cam: true|false, antes?: true|false }]. Al quitar CAM a un título que la tenía, se anota la fecha (sube en Recientes).
-   "antes" lo manda el panel cuando la etiqueta venía escrita en index.html y aquí todavía no había marca. */
+/* cambios: [{ tmdb, tipo, titulo, cam?, imax?, antes? }]. Al quitar CAM a un título que la tenía, se anota la fecha (sube en Recientes). */
 async function aplicarCam(db, cambios) {
   const lista = await leerCam(db), ahora = Date.now();
   for (const c of cambios) {
@@ -489,9 +486,15 @@ async function aplicarCam(db, cambios) {
     if (!tmdb && !titulo) continue;
     const k = camClave(tipo, tmdb, titulo), i = lista.findIndex(x => camClave(x.tipo, x.tmdb, x.titulo) === k), m = i >= 0 ? lista[i] : null;
     const tenia = m ? !!m.cam : c.antes === true;
-    if (c.cam) { if (m) { m.cam = 1; m.q = 0; if (titulo) m.titulo = titulo; } else lista.push({ tmdb, tipo, titulo, cam: 1, q: 0 }); }
-    else if (tenia) { if (m) { m.cam = 0; m.q = ahora; } else lista.push({ tmdb, tipo, titulo, cam: 0, q: ahora }); }
-    else if (m && m.cam) { m.cam = 0; m.q = ahora; }
+    const item = m || { tmdb, tipo, titulo, cam: tenia ? 1 : 0, imax: 0, q: 0 };
+    if (typeof c.cam === 'boolean') {
+      if (c.cam) { item.cam = 1; item.q = 0; }
+      else if (tenia) { item.cam = 0; item.q = ahora; }
+      else if (m && m.cam) { item.cam = 0; item.q = ahora; }
+    }
+    if (typeof c.imax === 'boolean') item.imax = c.imax ? 1 : 0;
+    if (titulo) item.titulo = titulo;
+    if (!m && (typeof c.cam === 'boolean' || typeof c.imax === 'boolean')) lista.push(item);
   }
   const v = limpiarCam(lista);
   await db.prepare('CREATE TABLE IF NOT EXISTS meta (clave TEXT PRIMARY KEY, valor TEXT) WITHOUT ROWID').run();
@@ -1567,7 +1570,7 @@ async function manejar({ request, env, params, waitUntil }) {
 
     if (cuerpo.op === 'cam_marcas') return json({ items: await leerCam(db) });
     if (cuerpo.op === 'guardar_cam') {
-      const cambios = (Array.isArray(cuerpo.cambios) ? cuerpo.cambios : []).slice(0, 500).filter(c => c && typeof c.cam === 'boolean');
+      const cambios = (Array.isArray(cuerpo.cambios) ? cuerpo.cambios : []).slice(0, 500).filter(c => c && (typeof c.cam === 'boolean' || typeof c.imax === 'boolean'));
       return json({ ok: true, items: await aplicarCam(db, cambios) });
     }
     if (cuerpo.op === 'banner_excluidos') {

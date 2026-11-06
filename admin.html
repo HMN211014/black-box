@@ -404,10 +404,10 @@ body:not(.h) .nav button.on{background:#fff;color:#000}
   </div>
 
   <div class="c w" data-g="biblioteca" id="cm-card">
-    <h2>Etiqueta CAM de toda la biblioteca</h2>
-    <p class="s">Marca qué películas son <b>CAM</b> (grabadas en cine): en la app llevan una etiqueta pequeña «CAM» en la esquina del póster. Aquí salen todas, las publicadas desde el panel y las de <b>index.html</b>. Cuando le <b>quitas CAM</b> a una película (porque ya hay una versión buena), sube al inicio de <b>Recientes</b> durante 14 días.</p>
+    <h2>Etiquetas CAM e IMAX de toda la biblioteca</h2>
+    <p class="s">Marca las películas <b>CAM</b> o <b>IMAX</b> desde esta misma sección. La app muestra la etiqueta elegida en la esquina del póster. Cuando le <b>quitas CAM</b> a una película (porque ya hay una versión buena), sube al inicio de <b>Recientes</b> durante 14 días.</p>
     <label>Buscar<input id="cm-q" type="search" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Nombre de la película"></label>
-    <div class="bx-bar" id="cm-f"><button class="g on" type="button" data-f="todas">Todas</button><button class="g" type="button" data-f="cam">Con CAM</button><button class="g" type="button" data-f="sin">Sin CAM</button><button class="g" type="button" data-f="cambios">Con cambios</button></div>
+    <div class="bx-bar" id="cm-f"><button class="g on" type="button" data-f="todas">Todas</button><button class="g" type="button" data-f="cam">Con CAM</button><button class="g" type="button" data-f="sin">Sin CAM</button><button class="g" type="button" data-f="imax">Con IMAX</button><button class="g" type="button" data-f="sin-imax">Sin IMAX</button><button class="g" type="button" data-f="cambios">Con cambios</button></div>
     <p class="s" id="cm-res"></p>
     <p class="m" id="cm-m" role="status" aria-live="polite" hidden></p>
     <div class="row" style="margin-top:10px"><button class="g" id="cm-cargar" type="button">Cargar películas</button><button id="cm-save" type="button" disabled>Guardar cambios</button></div>
@@ -498,9 +498,13 @@ body:not(.h) .nav button.on{background:#fff;color:#000}
       .bx-t .n small{display:block;color:#a1a1a6;margin-top:2px}
       .bx-t .y{position:absolute;left:6px;top:6px;padding:2px 7px;border-radius:999px;background:rgba(0,0,0,.65);font-size:11px;font-weight:700}
       .bx-t button{position:absolute;right:6px;top:6px;width:32px;height:32px;padding:0;border-radius:50%;font-size:14px;line-height:1}
+      .bx-t .cm-controls{position:absolute;top:6px;right:6px;display:flex;gap:4px}
+      .bx-t .cm-controls button{position:static;width:auto;min-width:46px;height:28px;padding:0 6px;border-radius:8px;font-size:10px}
       .bx-t.cm-on{border-color:#ffd60a}
+      .bx-t.cm-imax-on{box-shadow:0 0 0 2px rgba(255,255,255,.72)}
       .bx-t.cm-cambio{box-shadow:0 0 0 2px #0a84ff}
       .cm-tag{position:absolute;left:6px;bottom:44px;padding:2px 7px;border-radius:6px;background:#ffd60a;color:#000;font-size:11px;font-weight:800;letter-spacing:.06em}
+      .cm-tag.imax{left:54px;background:#f5f5f7;color:#111}
       .bx-t.ex{border-color:#ff453a}
       .bx-t.ex img{filter:grayscale(1) brightness(.45)}
       .bx-t.ex::after{content:"Excluida";position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);text-align:center;font-weight:700;font-size:13px;color:#ff6961}
@@ -989,30 +993,35 @@ function efPoner(o) { efSliders.forEach(s => { const v = o && (s.dataset.ef === 
 $('ef-reset').onclick = () => { efPoner({}); msg('ef-m', 'Se pusieron los valores de fábrica. Falta guardar.', true); };
 $('ef-cargar').onclick = () => con($('ef-cargar'), 'ef-m', async () => { efPoner((await admin({ op: 'efectos' })).item || {}); msg('ef-m', 'Se cargó lo que está guardado.', true); });
 $('ef-go').onclick = () => con($('ef-go'), 'ef-m', async () => { await admin({ op: 'guardar_efectos', efectos: efLeer() }); msg('ef-m', 'Guardado. En la app se actualiza en menos de un minuto.', true); });
-/* ---- Etiqueta CAM de toda la biblioteca ---- */
-let cmLista = null, cmOrig = new Map(), cmDes = new Map(), cmFiltro = 'todas';
+/* ---- Etiquetas CAM e IMAX de toda la biblioteca ---- */
+let cmLista = null, cmOrig = new Map(), cmDes = new Map(), cmImaxOrig = new Map(), cmImaxDes = new Map(), cmFiltro = 'todas';
 const cmK = x => camKeyAd(x.tipo, x.tmdb, x.titulo);
-const cmCambios = () => (cmLista || []).filter(x => cmDes.get(cmK(x)) !== cmOrig.get(cmK(x)));
+const cmCambios = () => (cmLista || []).filter(x => cmDes.get(cmK(x)) !== cmOrig.get(cmK(x)) || cmImaxDes.get(cmK(x)) !== cmImaxOrig.get(cmK(x)));
 function cmPintar() {
   const box = $('cm-grid'); box.replaceChildren();
   $('cm-save').disabled = !cmCambios().length;
   if (!cmLista) { $('cm-res').textContent = 'Toca "Cargar películas" para ver tu biblioteca.'; return; }
   const q = coNx($('cm-q').value);
-  const vis = cmLista.filter(x => (!q || coNx(x.titulo).includes(q)) && (cmFiltro === 'todas' || (cmFiltro === 'cam' && cmDes.get(cmK(x))) || (cmFiltro === 'sin' && !cmDes.get(cmK(x))) || (cmFiltro === 'cambios' && cmDes.get(cmK(x)) !== cmOrig.get(cmK(x)))))
+  const vis = cmLista.filter(x => {
+    const k = cmK(x), cam = !!cmDes.get(k), imax = !!cmImaxDes.get(k), cambio = cmDes.get(k) !== cmOrig.get(k) || cmImaxDes.get(k) !== cmImaxOrig.get(k);
+    const pasa = cmFiltro === 'todas' || (cmFiltro === 'cam' && cam) || (cmFiltro === 'sin' && !cam) || (cmFiltro === 'imax' && imax) || (cmFiltro === 'sin-imax' && !imax) || (cmFiltro === 'cambios' && cambio);
+    return (!q || coNx(x.titulo).includes(q)) && pasa;
+  })
     .sort((a, b) => (+b.anio || 0) - (+a.anio || 0) || a.titulo.localeCompare(b.titulo, 'es'));
-  const nCam = cmLista.filter(x => cmDes.get(cmK(x))).length, nCamb = cmCambios().length;
-  $('cm-res').textContent = cmLista.length + ' películas · ' + nCam + ' con CAM' + (nCamb ? ' · ' + nCamb + ' cambio(s) sin guardar' : '') + (vis.length !== cmLista.length ? ' · mostrando ' + vis.length : '');
+  const nCam = cmLista.filter(x => cmDes.get(cmK(x))).length, nImax = cmLista.filter(x => cmImaxDes.get(cmK(x))).length, nCamb = cmCambios().length;
+  $('cm-res').textContent = cmLista.length + ' películas · ' + nCam + ' con CAM · ' + nImax + ' con IMAX' + (nCamb ? ' · ' + nCamb + ' cambio(s) sin guardar' : '') + (vis.length !== cmLista.length ? ' · mostrando ' + vis.length : '');
   vis.forEach(x => {
-    const on = !!cmDes.get(cmK(x)), cambio = cmDes.get(cmK(x)) !== cmOrig.get(cmK(x)), d = document.createElement('div');
-    d.className = 'bx-t' + (on ? ' cm-on' : '') + (cambio ? ' cm-cambio' : '');
+    const k = cmK(x), on = !!cmDes.get(k), imax = !!cmImaxDes.get(k), cambio = cmDes.get(k) !== cmOrig.get(k) || cmImaxDes.get(k) !== cmImaxOrig.get(k), d = document.createElement('div');
+    d.className = 'bx-t' + (on ? ' cm-on' : '') + (imax ? ' cm-imax-on' : '') + (cambio ? ' cm-cambio' : '');
     if (x.poster) { const i = new Image(); i.alt = ''; i.loading = 'lazy'; i.src = x.poster.charAt(0) === '/' ? COIMG + 'w185' + x.poster : x.poster; i.onerror = () => i.remove(); d.appendChild(i); }
     if (x.anio) { const y = document.createElement('span'); y.className = 'y'; y.textContent = x.anio; d.appendChild(y); }
     if (on) { const c = document.createElement('span'); c.className = 'cm-tag'; c.textContent = 'CAM'; d.appendChild(c); }
+    if (imax) { const c = document.createElement('span'); c.className = 'cm-tag imax'; c.textContent = 'IMAX'; d.appendChild(c); }
     const n = document.createElement('div'); n.className = 'n'; n.textContent = x.titulo; d.appendChild(n);
-    const b = document.createElement('button'); b.type = 'button'; b.className = 'g'; b.textContent = on ? '✓' : '+';
-    b.title = on ? 'Quitar CAM' : 'Marcar como CAM'; b.setAttribute('aria-label', b.title + ': ' + x.titulo);
-    b.onclick = () => { cmDes.set(cmK(x), !on); cmPintar(); };
-    d.appendChild(b); box.appendChild(d);
+    const ctl = document.createElement('div'); ctl.className = 'cm-controls';
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'g'; b.textContent = on ? 'CAM ✓' : '+ CAM'; b.title = on ? 'Quitar CAM' : 'Marcar CAM'; b.setAttribute('aria-label', b.title + ': ' + x.titulo); b.onclick = () => { cmDes.set(k, !on); cmPintar(); };
+    const bi = document.createElement('button'); bi.type = 'button'; bi.className = 'g'; bi.textContent = imax ? 'IMAX ✓' : '+ IMAX'; bi.title = imax ? 'Quitar IMAX' : 'Marcar IMAX'; bi.setAttribute('aria-label', bi.title + ': ' + x.titulo); bi.onclick = () => { cmImaxDes.set(k, !imax); cmPintar(); };
+    ctl.append(b, bi); d.appendChild(ctl); box.appendChild(d);
   });
 }
 async function cmCargar() {
@@ -1022,21 +1031,23 @@ async function cmCargar() {
   const [pos, mj] = [P.bannerPosibles(), await admin({ op: 'cam_marcas' })];
   const marcas = mj.items || [], vistos = new Set();
   cmLista = pos.peliculas.filter(x => { if (!x.titulo) return false; const k = cmK(x); if (vistos.has(k)) return false; vistos.add(k); return true; });
-  cmOrig = new Map(); cmDes = new Map();
+  cmOrig = new Map(); cmDes = new Map(); cmImaxOrig = new Map(); cmImaxDes = new Map();
   cmLista.forEach(x => {
     const m = marcas.find(z => camKeyAd(z.tipo, z.tmdb, z.titulo) === cmK(x)), on = m ? !!m.cam : !!x.cam;      // lo guardado manda sobre lo que trae la página
-    cmOrig.set(cmK(x), on); cmDes.set(cmK(x), on);
+    const imax = !!(m && m.imax), k = cmK(x);
+    cmOrig.set(k, on); cmDes.set(k, on); cmImaxOrig.set(k, imax); cmImaxDes.set(k, imax);
   });
   cmPintar();
 }
 $('cm-cargar').onclick = () => con($('cm-cargar'), 'cm-m', async () => { if (cmCambios().length && !confirm('Hay cambios sin guardar. ¿Volver a cargar y perderlos?')) return; await cmCargar(); });
 $('cm-save').onclick = async () => { await con($('cm-save'), 'cm-m', async () => {
   const camb = cmCambios(); if (!camb.length) return;
-  await admin({ op: 'guardar_cam', cambios: camb.map(x => ({ tmdb: x.tmdb, tipo: x.tipo, titulo: x.titulo, cam: !!cmDes.get(cmK(x)), antes: !!cmOrig.get(cmK(x)) })) });
-  const quitadas = camb.filter(x => !cmDes.get(cmK(x))).length;
-  camb.forEach(x => cmOrig.set(cmK(x), !!cmDes.get(cmK(x))));
+  await admin({ op: 'guardar_cam', cambios: camb.map(x => ({ tmdb: x.tmdb, tipo: x.tipo, titulo: x.titulo, cam: !!cmDes.get(cmK(x)), imax: !!cmImaxDes.get(cmK(x)), antes: !!cmOrig.get(cmK(x)) })) });
+  const quitadas = camb.filter(x => cmOrig.get(cmK(x)) && !cmDes.get(cmK(x))).length;
+  const imaxNuevas = camb.filter(x => !cmImaxOrig.get(cmK(x)) && cmImaxDes.get(cmK(x))).length;
+  camb.forEach(x => { cmOrig.set(cmK(x), !!cmDes.get(cmK(x))); cmImaxOrig.set(cmK(x), !!cmImaxDes.get(cmK(x))); });
   cmPintar();
-  msg('cm-m', 'Guardado: ' + camb.length + ' cambio(s).' + (quitadas ? ' ' + quitadas + ' película(s) sin CAM suben al inicio de Recientes.' : '') + ' En la app se actualiza en menos de un minuto.', true);
+  msg('cm-m', 'Guardado: ' + camb.length + ' cambio(s).' + (quitadas ? ' ' + quitadas + ' película(s) sin CAM suben al inicio de Recientes.' : '') + (imaxNuevas ? ' ' + imaxNuevas + ' película(s) marcadas IMAX.' : '') + ' En la app se actualiza en menos de un minuto.', true);
 }); cmPintar(); };      // con() reactiva el botón al terminar: se vuelve a apagar si no quedan cambios
 document.querySelectorAll('#cm-f button').forEach(b => b.onclick = () => { cmFiltro = b.dataset.f; document.querySelectorAll('#cm-f button').forEach(x => x.classList.toggle('on', x === b)); cmPintar(); });
 $('cm-q').addEventListener('input', cmPintar);
