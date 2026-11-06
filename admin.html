@@ -275,7 +275,7 @@ body:not(.h) .nav button.on{background:#fff;color:#000}
 
   <div class="c w" data-g="comentarios" id="comentarios-card">
     <h2>Comentarios recibidos</h2>
-    <p class="s">Aquí se guardan los comentarios enviados desde el mensaje emergente. No se almacenan direcciones IP.</p>
+    <p class="s">Aquí se guardan los comentarios enviados desde el mensaje emergente. Puedes responder individualmente; la respuesta llega a la cuenta o al mismo dispositivo anónimo que escribió.</p>
     <div class="row"><button class="g" id="co-actualizar" type="button">Actualizar comentarios</button></div>
     <p class="m" id="co-m" role="status" aria-live="polite" hidden></p>
     <div id="co-lista" style="margin-top:12px"></div>
@@ -3294,12 +3294,16 @@ async function comentariosCargar() {
     const fecha = document.createElement('small'); fecha.textContent = new Date(x.creado).toLocaleString('es-MX'); head.append(autor, fecha);
     const texto = document.createElement('p'); texto.className = 's'; texto.style.whiteSpace = 'pre-wrap'; texto.textContent = x.mensaje;
     const acciones = document.createElement('div'); acciones.className = 'row';
+    const respuesta = document.createElement('textarea'); respuesta.className = 'ta'; respuesta.maxLength = 1000; respuesta.placeholder = 'Escribe una respuesta individual'; respuesta.value = x.respuesta || ''; respuesta.style.width = '100%';
+    const enviarRespuesta = document.createElement('button'); enviarRespuesta.type = 'button'; enviarRespuesta.textContent = x.respuesta ? 'Actualizar respuesta' : 'Enviar respuesta';
+    enviarRespuesta.onclick = () => con(enviarRespuesta, 'co-m', async () => { const r = await admin({ op: 'responder_comentario', id: x.id, respuesta: respuesta.value }); msg('co-m', x.correo ? (r.sinDispositivos ? 'Respuesta guardada; no hay dispositivos registrados para recibir la notificación.' : 'Respuesta enviada solo a ' + x.correo + '.') : 'Respuesta guardada para mostrarse en este dispositivo anónimo.', true); await comentariosCargar(); });
+    card.append(head, texto, respuesta, enviarRespuesta);
     const estado = document.createElement('small'); estado.textContent = x.atendido ? 'Atendido' : 'Pendiente'; estado.style.color = x.atendido ? '#70d89b' : '#ffc267'; acciones.appendChild(estado);
     const atender = document.createElement('button'); atender.className = 'g'; atender.type = 'button'; atender.textContent = x.atendido ? 'Reabrir' : 'Marcar atendido';
     atender.onclick = () => con(atender, 'co-m', async () => { await admin({ op: 'comentario_atendido', id: x.id, atendido: !x.atendido }); await comentariosCargar(); });
     const borrar = document.createElement('button'); borrar.className = 'g'; borrar.type = 'button'; borrar.textContent = 'Eliminar';
     borrar.onclick = () => { if (confirm('¿Eliminar este comentario?')) con(borrar, 'co-m', async () => { await admin({ op: 'borrar_comentario', id: x.id }); await comentariosCargar(); }); };
-    acciones.append(atender, borrar); card.append(head, texto, acciones); box.appendChild(card);
+    acciones.append(atender, borrar); card.append(acciones); box.appendChild(card);
   });
   msg('co-m', j.items.length + ' comentario(s) cargados.', true);
 }

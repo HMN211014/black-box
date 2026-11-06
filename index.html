@@ -4451,12 +4451,32 @@ async function api(ruta, cuerpo) {
   return j;
 }
 let mensajeEmergenteAbierto = false;
+async function cargarRespuestasComentarios() {
+  let dispositivo = ''; try { dispositivo = localStorage.getItem('bb-presencia-device') || ''; } catch (e) {}
+  if (!/^[a-f0-9]{32,64}$/.test(dispositivo)) return;
+  try {
+    const r = await api('usuario/comentario_respuestas', { dispositivo });
+    const antiguas = H('message-replies'); antiguas.replaceChildren();
+    (r.items || []).forEach(x => { const item = document.createElement('p'); item.style.whiteSpace = 'pre-wrap'; item.textContent = 'Tu comentario: ' + x.mensaje + '\nRespuesta: ' + x.respuesta; antiguas.appendChild(item); });
+    antiguas.hidden = !r.items || !r.items.length;
+  } catch (e) {}
+}
 function mensajeEmergenteCerrar() { H('message-modal').hidden = true; mensajeEmergenteAbierto = false; }
 function mensajeEmergenteMostrar() {
   const cfg = window.MENSAJE_EMERGENTE || {};
   if (!cfg.activo || !cfg.titulo || !cfg.mensaje || mensajeEmergenteAbierto || U.servicio !== true || U.codigoCanjeado === true) return;
   const version = String(cfg.version || (cfg.titulo + cfg.mensaje));
-  try { if (localStorage.getItem('bb-mensaje-visto-' + version) === '1') return; } catch (e) {}
+  try {
+    if (localStorage.getItem('bb-mensaje-visto-' + version) === '1') {
+      cargarRespuestasComentarios().then(() => {
+        if (H('message-replies').hidden) return;
+        H('message-title').textContent = 'Conversación'; H('message-body').textContent = cfg.titulo;
+        H('message-comment').hidden = true; H('message-send').hidden = true; H('message-privacy').hidden = true;
+        H('message-modal').hidden = false; mensajeEmergenteAbierto = true;
+      });
+      return;
+    }
+  } catch (e) {}
   try { localStorage.setItem('bb-mensaje-visto-' + version, '1'); } catch (e) {}
   H('message-title').textContent = cfg.titulo;
   H('message-body').textContent = cfg.mensaje;
@@ -4464,6 +4484,7 @@ function mensajeEmergenteMostrar() {
   H('message-send').hidden = cfg.comentarios === false;
   H('message-privacy').hidden = cfg.comentarios === false;
   H('message-comment').value = ''; H('message-status').textContent = '';
+  cargarRespuestasComentarios();
   H('message-modal').hidden = false; mensajeEmergenteAbierto = true;
   H('message-close').focus();
 }
@@ -4485,6 +4506,7 @@ H('message-send').addEventListener('click', async () => {
     const r = await api('usuario/comentario', { mensaje: texto, dispositivo });
     if (!r.ok) throw new Error(r.error || 'No se pudo enviar el comentario.');
     H('message-comment').value = ''; H('message-comment').disabled = true; boton.hidden = true; H('message-status').textContent = 'Gracias. Tu comentario se envió.';
+    try { localStorage.setItem('bb-mensaje-visto-' + String((window.MENSAJE_EMERGENTE || {}).version || ((window.MENSAJE_EMERGENTE || {}).titulo + (window.MENSAJE_EMERGENTE || {}).mensaje)), '1'); } catch (e) {}
   } catch (e) { H('message-status').textContent = e.message || 'No se pudo enviar. Inténtalo de nuevo.'; boton.disabled = false; }
 });
 });
@@ -5881,6 +5903,7 @@ setTimeout(() => { vtOK = true; }, 600);              // las transiciones empiez
     <h2 id="message-title"></h2>
     <p id="message-body"></p>
     <textarea id="message-comment" maxlength="1000" placeholder="Escribe aquí tu comentario" aria-label="Tu comentario"></textarea>
+    <div id="message-replies" hidden style="max-height:180px;overflow:auto;margin-top:12px;padding:10px;border-radius:12px;background:rgba(255,255,255,.08)"></div>
     <p id="message-privacy" style="margin-top:8px;font-size:12px">Si iniciaste sesión, tu correo se mostrará en Administración junto a tu comentario.</p>
     <p id="message-status" role="status" aria-live="polite"></p>
     <div class="download-actions"><button class="btn ghost" id="message-close" type="button">Cerrar</button><button class="btn primary" id="message-send" type="button">Enviar comentario</button></div>

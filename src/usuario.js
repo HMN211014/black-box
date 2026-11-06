@@ -32,10 +32,14 @@ function asegurarPresencia(db) {
 let comentariosTabla = null;
 function asegurarComentarios(db) {
   if (!comentariosTabla) comentariosTabla = db.batch([
-    db.prepare('CREATE TABLE IF NOT EXISTS comentarios (id INTEGER PRIMARY KEY AUTOINCREMENT, correo TEXT, mensaje TEXT NOT NULL, creado INTEGER NOT NULL, atendido INTEGER NOT NULL DEFAULT 0, dispositivo_hash TEXT NOT NULL)'),
+    db.prepare('CREATE TABLE IF NOT EXISTS comentarios (id INTEGER PRIMARY KEY AUTOINCREMENT, correo TEXT, mensaje TEXT NOT NULL, creado INTEGER NOT NULL, atendido INTEGER NOT NULL DEFAULT 0, dispositivo_hash TEXT NOT NULL, respuesta TEXT, respondido INTEGER)'),
     db.prepare('CREATE INDEX IF NOT EXISTS comentarios_creado ON comentarios (creado DESC)'),
     db.prepare('CREATE INDEX IF NOT EXISTS comentarios_dispositivo ON comentarios (dispositivo_hash, creado)')
-  ]).catch(e => { comentariosTabla = null; throw e; });
+  ]).then(async () => {
+    for (const sql of ['ALTER TABLE comentarios ADD COLUMN respuesta TEXT', 'ALTER TABLE comentarios ADD COLUMN respondido INTEGER']) {
+      try { await db.prepare(sql).run(); } catch (e) { if (!/duplicate column/i.test(String(e && e.message))) throw e; }
+    }
+  }).catch(e => { comentariosTabla = null; throw e; });
   return comentariosTabla;
 }
 const b64 = buf => { let s = ''; new Uint8Array(buf).forEach(c => (s += String.fromCharCode(c))); return btoa(s); };
@@ -745,6 +749,15 @@ async function manejar({ request, env, params, waitUntil }) {
     await db.prepare('INSERT INTO comentarios (correo, mensaje, creado, dispositivo_hash) VALUES (?1, ?2, ?3, ?4)').bind(correo, mensaje, ahora, dispositivoHash).run();
     return json({ ok: true });
   }
+  if (accion === 'comentario_respuestas' && esPost) {
+    const dispositivo = String(cuerpo.dispositivo || '').toLowerCase();
+    if (!/^[a-f0-9]{32,64}$/.test(dispositivo)) return json({ error: 'No se pudo identificar este dispositivo.' }, 400);
+    await asegurarComentarios(db);
+    const secreto = String(env.ADMIN_CLAVE || 'blackbox-comentarios');
+    const hash = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', enc.encode(secreto + '\0' + dispositivo))).slice(0, 16), x => x.toString(16).padStart(2, '0')).join('');
+    const r = await db.prepare('SELECT id, mensaje, creado, respuesta, respondido FROM comentarios WHERE dispositivo_hash = ?1 AND respuesta IS NOT NULL ORDER BY creado ASC').bind(hash).all();
+    return json({ items: r.results || [] });
+  }
 
   /* Reproducciones de la biblioteca: conteo agregado sin asociarlo a cuentas o IPs. */
   if (accion === 'reproducciones') {
@@ -1134,8 +1147,19 @@ async function manejar({ request, env, params, waitUntil }) {
     }
     if (cuerpo.op === 'comentarios') {
       await asegurarComentarios(db);
-      const r = await db.prepare('SELECT id, correo, mensaje, creado, atendido FROM comentarios ORDER BY creado DESC LIMIT 300').all();
+      const r = await db.prepare('SELECT id, correo, mensaje, creado, atendido, respuesta, respondido FROM comentarios ORDER BY creado DESC LIMIT 300').all();
       return json({ items: r.results || [] });
+    }
+    if (cuerpo.op === 'responder_comentario') {
+      await asegurarComentarios(db);
+      const id = Math.floor(Number(cuerpo.id)), respuesta = String(cuerpo.respuesta || '').trim().slice(0, 1000);
+      if (!(id > 0) || respuesta.length < 2) return json({ error: 'Escribe una respuesta antes de enviarla.' }, 400);
+      const comentario = await db.prepare('SELECT correo, mensaje FROM comentarios WHERE id = ?1').bind(id).first();
+      if (!comentario) return json({ error: 'No se encontró ese comentario.' }, 404);
+      await db.prepare('UPDATE comentarios SET respuesta = ?1, respondido = ?2, atendido = 1 WHERE id = ?3').bind(respuesta, Date.now(), id).run();
+      if (!comentario.correo) return json({ ok: true, anonimo: true });
+      const aviso = await avisarUsuario(env, comentario.correo, { titulo: 'Respuesta a tu comentario', texto: respuesta.slice(0, 180), datos: { tipo: 'respuesta_comentario', comentarioId: id } });
+      return json({ ok: true, enviados: aviso.enviados || 0, sinDispositivos: aviso.error === 'sin_dispositivos' });
     }
     if (cuerpo.op === 'comentario_atendido') {
       await asegurarComentarios(db);
