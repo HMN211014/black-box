@@ -279,7 +279,7 @@ body:not(.h) .nav button.on{background:#fff;color:#000}
     <p class="s">Aquí se guardan los comentarios enviados desde el mensaje emergente. Puedes responder individualmente; la respuesta llega a la cuenta o al mismo dispositivo anónimo que escribió.</p>
     <div class="row"><button class="g" id="co-actualizar" type="button">Actualizar comentarios</button></div>
     <p class="m" id="co-m" role="status" aria-live="polite" hidden></p>
-    <div id="co-lista" style="margin-top:12px"></div>
+    <div id="comentarios-lista" style="margin-top:12px"></div>
   </div>
 
   <div class="c" data-g="cuentas">
@@ -3349,7 +3349,7 @@ $('me-guardar').addEventListener('click', () => con($('me-guardar'), 'me-m', asy
   msg('me-m', 'Mensaje guardado. Aparecerá en el sitio en menos de un minuto.', true);
 }));
 async function comentariosCargar() {
-  const j = await admin({ op: 'comentarios' }), box = $('co-lista'); box.replaceChildren();
+  const j = await admin({ op: 'comentarios' }), box = $('comentarios-lista'); box.replaceChildren();
   if (!j.items.length) { const p = document.createElement('p'); p.className = 's'; p.textContent = 'Todavía no hay comentarios.'; box.appendChild(p); }
   j.items.forEach(x => {
     const card = document.createElement('div'); card.className = 'c'; card.style.marginTop = '10px';
