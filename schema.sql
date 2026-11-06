@@ -170,6 +170,7 @@ CREATE TABLE IF NOT EXISTS aperturas_compartidas (
   primera     INTEGER NOT NULL,
   ultima      INTEGER NOT NULL,
   aperturas   INTEGER NOT NULL DEFAULT 1,
+  descargas   INTEGER NOT NULL DEFAULT 0,
   PRIMARY KEY (token, dispositivo)
 ) WITHOUT ROWID;
 CREATE INDEX IF NOT EXISTS aperturas_compartidas_token ON aperturas_compartidas (token);

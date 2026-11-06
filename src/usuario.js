@@ -662,11 +662,13 @@ async function prepararEnlacesCompartidos(db) {
   await db.prepare('CREATE TABLE IF NOT EXISTS enlaces_compartidos (token TEXT PRIMARY KEY, tipo TEXT NOT NULL, destino TEXT NOT NULL, titulo TEXT NOT NULL, creado INTEGER NOT NULL, revocado INTEGER NOT NULL DEFAULT 0, nombre TEXT NOT NULL DEFAULT \'\') WITHOUT ROWID').run();
   try { await db.prepare("ALTER TABLE enlaces_compartidos ADD COLUMN nombre TEXT NOT NULL DEFAULT ''").run(); }
   catch (e) { if (!/duplicate column/i.test(String(e && e.message))) throw e; }
-  await db.prepare('CREATE TABLE IF NOT EXISTS aperturas_compartidas (token TEXT NOT NULL, dispositivo TEXT NOT NULL, plataforma TEXT NOT NULL, navegador TEXT NOT NULL, ciudad TEXT NOT NULL DEFAULT \'\', region TEXT NOT NULL DEFAULT \'\', pais TEXT NOT NULL DEFAULT \'\', primera INTEGER NOT NULL, ultima INTEGER NOT NULL, aperturas INTEGER NOT NULL DEFAULT 1, PRIMARY KEY (token, dispositivo)) WITHOUT ROWID').run();
+  await db.prepare('CREATE TABLE IF NOT EXISTS aperturas_compartidas (token TEXT NOT NULL, dispositivo TEXT NOT NULL, plataforma TEXT NOT NULL, navegador TEXT NOT NULL, ciudad TEXT NOT NULL DEFAULT \'\', region TEXT NOT NULL DEFAULT \'\', pais TEXT NOT NULL DEFAULT \'\', primera INTEGER NOT NULL, ultima INTEGER NOT NULL, aperturas INTEGER NOT NULL DEFAULT 1, descargas INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (token, dispositivo)) WITHOUT ROWID').run();
   for (const campo of ['ciudad', 'region', 'pais']) {
     try { await db.prepare(`ALTER TABLE aperturas_compartidas ADD COLUMN ${campo} TEXT NOT NULL DEFAULT ''`).run(); }
     catch (e) { if (!/duplicate column/i.test(String(e && e.message))) throw e; }
   }
+  try { await db.prepare('ALTER TABLE aperturas_compartidas ADD COLUMN descargas INTEGER NOT NULL DEFAULT 0').run(); }
+  catch (e) { if (!/duplicate column/i.test(String(e && e.message))) throw e; }
   await db.prepare('CREATE INDEX IF NOT EXISTS aperturas_compartidas_token ON aperturas_compartidas (token)').run();
 }
 async function manejarEnlaceCompartido(db, cuerpo, cf = {}) {
@@ -675,6 +677,14 @@ async function manejarEnlaceCompartido(db, cuerpo, cf = {}) {
   const enlace = await db.prepare('SELECT token, tipo, destino, titulo, revocado FROM enlaces_compartidos WHERE token = ?1').bind(token).first();
   if (!enlace || enlace.revocado) return json({ error: 'El enlace fue eliminado o ya no está disponible.' }, 410);
   if (cuerpo.op === 'validar') return json({ ok: true, tipo: enlace.tipo, destino: enlace.destino, titulo: enlace.titulo });
+  if (cuerpo.op === 'descarga') {
+    const dispositivo = String(cuerpo.dispositivo || '').trim().toLowerCase();
+    if (!/^[a-f0-9]{32,64}$/.test(dispositivo)) return json({ error: 'No pude identificar este dispositivo.' }, 400);
+    await prepararEnlacesCompartidos(db);
+    const r = await db.prepare('UPDATE aperturas_compartidas SET descargas = descargas + 1, ultima = ?1 WHERE token = ?2 AND dispositivo = ?3').bind(Date.now(), token, dispositivo).run();
+    if (!r.meta || !r.meta.changes) return json({ error: 'No se encontró la apertura de este dispositivo para el enlace.' }, 403);
+    return json({ ok: true });
+  }
   if (cuerpo.op !== 'abrir') return json({ error: 'Operación no válida.' }, 400);
   const ruta = enlace.tipo === 'coleccion' ? '#/c/' + enlace.destino : '#/p/' + enlace.destino;
   if (String(cuerpo.ruta || '') !== ruta) return json({ error: 'El enlace no corresponde a este contenido.' }, 403);
@@ -1196,7 +1206,7 @@ async function manejar({ request, env, params, waitUntil }) {
         COUNT(a.dispositivo) AS dispositivos FROM enlaces_compartidos e
         LEFT JOIN aperturas_compartidas a ON a.token = e.token
         GROUP BY e.token ORDER BY e.creado DESC LIMIT 500`).all();
-      const d = await db.prepare(`SELECT a.token, substr(a.dispositivo, 1, 6) AS id_dispositivo, a.plataforma, a.navegador, a.ciudad, a.region, a.pais, a.primera, a.ultima, a.aperturas
+      const d = await db.prepare(`SELECT a.token, substr(a.dispositivo, 1, 6) AS id_dispositivo, a.plataforma, a.navegador, a.ciudad, a.region, a.pais, a.primera, a.ultima, a.aperturas, a.descargas
         FROM aperturas_compartidas a JOIN enlaces_compartidos e ON e.token = a.token
         ORDER BY a.ultima DESC LIMIT 5000`).all();
       const dispositivos = new Map();

@@ -4305,6 +4305,10 @@ async function descargarPelicula(p, boton) {
     const autoriza = await confirmarDescarga('No se pudo verificar el tamaño de «' + p.titulo + '». El archivo podría superar los 2 GB. ¿Autorizas la descarga?');
     if (!autoriza) { boton.disabled = false; return; }
   }
+  if (tokenCompartido && permiteVistaCompartida(p)) {
+    try { await validarEnlaceCompartido('descarga'); }
+    catch (e) { console.warn('[enlace compartido] No se pudo registrar la descarga iniciada.', e); }
+  }
   try {
     const cap = window.Capacitor;
     if (cap && typeof cap.isNativePlatform === 'function' && cap.isNativePlatform()) {
