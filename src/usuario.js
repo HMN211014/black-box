@@ -659,7 +659,9 @@ function limpiarSec(s) {
 const datosSec = t => { try { const o = JSON.parse(t); return o && typeof o === 'object' && o.id ? o : null; } catch (e) { return null; } };
 
 async function prepararEnlacesCompartidos(db) {
-  await db.prepare('CREATE TABLE IF NOT EXISTS enlaces_compartidos (token TEXT PRIMARY KEY, tipo TEXT NOT NULL, destino TEXT NOT NULL, titulo TEXT NOT NULL, creado INTEGER NOT NULL, revocado INTEGER NOT NULL DEFAULT 0) WITHOUT ROWID').run();
+  await db.prepare('CREATE TABLE IF NOT EXISTS enlaces_compartidos (token TEXT PRIMARY KEY, tipo TEXT NOT NULL, destino TEXT NOT NULL, titulo TEXT NOT NULL, creado INTEGER NOT NULL, revocado INTEGER NOT NULL DEFAULT 0, nombre TEXT NOT NULL DEFAULT \'\') WITHOUT ROWID').run();
+  try { await db.prepare("ALTER TABLE enlaces_compartidos ADD COLUMN nombre TEXT NOT NULL DEFAULT ''").run(); }
+  catch (e) { if (!/duplicate column/i.test(String(e && e.message))) throw e; }
   await db.prepare('CREATE TABLE IF NOT EXISTS aperturas_compartidas (token TEXT NOT NULL, dispositivo TEXT NOT NULL, plataforma TEXT NOT NULL, navegador TEXT NOT NULL, ciudad TEXT NOT NULL DEFAULT \'\', region TEXT NOT NULL DEFAULT \'\', pais TEXT NOT NULL DEFAULT \'\', primera INTEGER NOT NULL, ultima INTEGER NOT NULL, aperturas INTEGER NOT NULL DEFAULT 1, PRIMARY KEY (token, dispositivo)) WITHOUT ROWID').run();
   for (const campo of ['ciudad', 'region', 'pais']) {
     try { await db.prepare(`ALTER TABLE aperturas_compartidas ADD COLUMN ${campo} TEXT NOT NULL DEFAULT ''`).run(); }
@@ -1180,16 +1182,17 @@ async function manejar({ request, env, params, waitUntil }) {
       const tipo = ['coleccion', 'pelicula', 'serie'].includes(cuerpo.tipo) ? cuerpo.tipo : '';
       const destino = String(cuerpo.destino || '').trim().toLowerCase();
       const titulo = String(cuerpo.titulo || '').trim().slice(0, 160);
+      const nombre = String(cuerpo.nombre || titulo).trim().slice(0, 100) || titulo;
       if (!tipo || !/^[a-z0-9][a-z0-9-]{0,119}$/.test(destino) || !titulo) return json({ error: 'Faltan el tipo, destino o título del enlace.' }, 400);
       await prepararEnlacesCompartidos(db);
       const token = b64url(crypto.getRandomValues(new Uint8Array(24)));
-      await db.prepare('INSERT INTO enlaces_compartidos (token, tipo, destino, titulo, creado, revocado) VALUES (?1, ?2, ?3, ?4, ?5, 0)')
-        .bind(token, tipo, destino, titulo, Date.now()).run();
-      return json({ token, tipo, destino, titulo });
+      await db.prepare('INSERT INTO enlaces_compartidos (token, tipo, destino, titulo, creado, revocado, nombre) VALUES (?1, ?2, ?3, ?4, ?5, 0, ?6)')
+        .bind(token, tipo, destino, titulo, Date.now(), nombre).run();
+      return json({ token, tipo, destino, titulo, nombre });
     }
     if (cuerpo.op === 'enlaces_compartidos') {
       await prepararEnlacesCompartidos(db);
-      const r = await db.prepare(`SELECT e.token, e.tipo, e.destino, e.titulo, e.creado, e.revocado,
+      const r = await db.prepare(`SELECT e.token, e.tipo, e.destino, e.titulo, e.nombre, e.creado, e.revocado,
         COUNT(a.dispositivo) AS dispositivos FROM enlaces_compartidos e
         LEFT JOIN aperturas_compartidas a ON a.token = e.token
         GROUP BY e.token ORDER BY e.creado DESC LIMIT 500`).all();
@@ -1200,12 +1203,31 @@ async function manejar({ request, env, params, waitUntil }) {
       d.results.forEach(x => { if (!dispositivos.has(x.token)) dispositivos.set(x.token, []); dispositivos.get(x.token).push(x); });
       return json({ items: r.results.map(x => ({ ...x, dispositivos: dispositivos.get(x.token) || [] })) });
     }
+    if (cuerpo.op === 'guardar_nombre_enlace') {
+      await prepararEnlacesCompartidos(db);
+      const token = String(cuerpo.token || '').trim(), nombre = String(cuerpo.nombre || '').trim().slice(0, 100);
+      if (!/^[A-Za-z0-9_-]{32,80}$/.test(token)) return json({ error: 'El enlace no es válido.' }, 400);
+      const r = await db.prepare('UPDATE enlaces_compartidos SET nombre = ?1 WHERE token = ?2').bind(nombre, token).run();
+      if (!r.meta || !r.meta.changes) return json({ error: 'No encontré ese enlace.' }, 404);
+      return json({ ok: true, nombre });
+    }
     if (cuerpo.op === 'revocar_enlace_compartido') {
       await prepararEnlacesCompartidos(db);
       const token = String(cuerpo.token || '').trim();
       if (!/^[A-Za-z0-9_-]{32,80}$/.test(token)) return json({ error: 'El enlace no es válido.' }, 400);
       const r = await db.prepare('UPDATE enlaces_compartidos SET revocado = 1 WHERE token = ?1').bind(token).run();
       if (!r.meta || !r.meta.changes) return json({ error: 'No encontré ese acceso compartido.' }, 404);
+      return json({ ok: true });
+    }
+    if (cuerpo.op === 'eliminar_enlace_compartido') {
+      await prepararEnlacesCompartidos(db);
+      const token = String(cuerpo.token || '').trim();
+      if (!/^[A-Za-z0-9_-]{32,80}$/.test(token)) return json({ error: 'El enlace no es válido.' }, 400);
+      const r = await db.batch([
+        db.prepare('DELETE FROM aperturas_compartidas WHERE token = ?1').bind(token),
+        db.prepare('DELETE FROM enlaces_compartidos WHERE token = ?1').bind(token),
+      ]);
+      if (!r[1] || !r[1].meta || !r[1].meta.changes) return json({ error: 'No encontré ese enlace.' }, 404);
       return json({ ok: true });
     }
 
@@ -1280,19 +1302,22 @@ async function manejar({ request, env, params, waitUntil }) {
 
     if (cuerpo.op === 'generar') {
       const cantidad = Math.floor(Number(cuerpo.cantidad));
+      const nombre = String(cuerpo.nombre || '').trim().slice(0, 100);
       const vale = plan === 'pedidos';                       // plan "Películas por pedido": el código vale por N películas, no por días
       const sinVence = PLANES_SIN_VENCE.includes(plan);      // gratis y distribuidor: el código activa el plan sin fecha de fin
       if (vale && !(peliculas >= 1 && peliculas <= 20)) return json({ error: 'Las películas por código deben ser entre 1 y 20.' }, 400);
       if (!vale && !sinVence && !(dias >= 1 && dias <= 3650)) return json({ error: 'Los días deben ser entre 1 y 3650.' }, 400);
       if (!(cantidad >= 1 && cantidad <= 50)) return json({ error: 'La cantidad debe ser entre 1 y 50.' }, 400);
+      try { await db.prepare("ALTER TABLE codigos ADD COLUMN nombre TEXT NOT NULL DEFAULT ''").run(); }
+      catch (e) { if (!/duplicate column/i.test(String(e && e.message))) throw e; }
       const creado = Date.now();
       let codigos = [];
       for (let intento = 0; intento < 3 && !codigos.length; intento++) {
         const nuevos = new Set();
         while (nuevos.size < cantidad) nuevos.add(nuevoCodigo());
         try {
-          await db.batch([...nuevos].map(cod => db.prepare('INSERT INTO codigos (codigo, plan, dias, peliculas, creado) VALUES (?1, ?2, ?3, ?4, ?5)')
-            .bind(cod, plan, vale || sinVence ? null : dias, vale ? peliculas : null, creado)));
+          await db.batch([...nuevos].map(cod => db.prepare('INSERT INTO codigos (codigo, plan, dias, peliculas, creado, nombre) VALUES (?1, ?2, ?3, ?4, ?5, ?6)')
+            .bind(cod, plan, vale || sinVence ? null : dias, vale ? peliculas : null, creado, nombre)));
           codigos = [...nuevos];
         } catch (e) { if (!/unique|constraint/i.test(String(e && e.message))) throw e; }   // choque de códigos (casi imposible): se reintenta
       }
@@ -1301,14 +1326,42 @@ async function manejar({ request, env, params, waitUntil }) {
     }
 
     if (cuerpo.op === 'listar') {
+      try { await db.prepare("ALTER TABLE codigos ADD COLUMN nombre TEXT NOT NULL DEFAULT ''").run(); }
+      catch (e) { if (!/duplicate column/i.test(String(e && e.message))) throw e; }
       await db.prepare('CREATE TABLE IF NOT EXISTS codigos_canje_info (codigo TEXT PRIMARY KEY, pais TEXT, ciudad TEXT, canjeado INTEGER NOT NULL) WITHOUT ROWID').run();
       await asegurarBloqueos(db);
-      const r = await db.prepare('SELECT c.codigo, c.plan, c.dias, c.peliculas, c.creado, c.usado_por, c.usado_fecha, u.pais AS pais_canje, u.ciudad AS ciudad_canje, (SELECT 1 FROM usuarios x WHERE x.correo = c.usado_por) AS existe, (SELECT 1 FROM usuarios_bloqueados b WHERE b.correo = c.usado_por) AS bloqueado FROM codigos c LEFT JOIN codigos_canje_info u ON u.codigo = c.codigo ORDER BY c.creado DESC LIMIT 2000').all();
+      const r = await db.prepare('SELECT c.codigo, c.plan, c.dias, c.peliculas, c.creado, c.nombre, c.usado_por, c.usado_fecha, u.pais AS pais_canje, u.ciudad AS ciudad_canje, (SELECT 1 FROM usuarios x WHERE x.correo = c.usado_por) AS existe, (SELECT 1 FROM usuarios_bloqueados b WHERE b.correo = c.usado_por) AS bloqueado FROM codigos c LEFT JOIN codigos_canje_info u ON u.codigo = c.codigo ORDER BY c.creado DESC LIMIT 2000').all();
       return json({ codigos: r.results.map(k => ({
-        codigo: k.codigo, plan: k.plan, creado: k.creado,
+        codigo: k.codigo, plan: k.plan, creado: k.creado, nombre: k.nombre || '',
         ...(k.dias != null ? { dias: k.dias } : {}), ...(k.peliculas != null ? { peliculas: k.peliculas } : {}),
         usado: k.usado_por ? { por: k.usado_por, fecha: k.usado_fecha, existe: !!k.existe, bloqueado: !!k.bloqueado, ubicacion: { pais: k.pais_canje || '', ciudad: k.ciudad_canje || '' } } : null,
       })) });
+    }
+    if (cuerpo.op === 'lotes_codigos') {
+      try { await db.prepare("ALTER TABLE codigos ADD COLUMN nombre TEXT NOT NULL DEFAULT ''").run(); }
+      catch (e) { if (!/duplicate column/i.test(String(e && e.message))) throw e; }
+      const r = await db.prepare("SELECT creado, MAX(nombre) AS nombre, COUNT(*) AS cantidad FROM codigos GROUP BY creado ORDER BY creado DESC LIMIT 500").all();
+      return json({ items: r.results || [] });
+    }
+    if (cuerpo.op === 'guardar_nombre_lote_codigos') {
+      const creado = Math.floor(Number(cuerpo.creado)), nombre = String(cuerpo.nombre || '').trim().slice(0, 100);
+      if (!(creado > 0)) return json({ error: 'La tanda de códigos no es válida.' }, 400);
+      try { await db.prepare("ALTER TABLE codigos ADD COLUMN nombre TEXT NOT NULL DEFAULT ''").run(); }
+      catch (e) { if (!/duplicate column/i.test(String(e && e.message))) throw e; }
+      const r = await db.prepare('UPDATE codigos SET nombre = ?1 WHERE creado = ?2').bind(nombre, creado).run();
+      if (!r.meta || !r.meta.changes) return json({ error: 'No encontré esa tanda de códigos.' }, 404);
+      return json({ ok: true, nombre, cantidad: r.meta.changes });
+    }
+    if (cuerpo.op === 'eliminar_codigo') {
+      const codigo = normalizarCodigo(cuerpo.codigo);
+      if (!codigo) return json({ error: 'El código no es válido.' }, 400);
+      await db.prepare('CREATE TABLE IF NOT EXISTS codigos_canje_info (codigo TEXT PRIMARY KEY, pais TEXT, ciudad TEXT, canjeado INTEGER NOT NULL) WITHOUT ROWID').run();
+      const r = await db.batch([
+        db.prepare('DELETE FROM codigos_canje_info WHERE codigo = ?1').bind(codigo),
+        db.prepare('DELETE FROM codigos WHERE codigo = ?1').bind(codigo),
+      ]);
+      if (!r[1] || !r[1].meta || !r[1].meta.changes) return json({ error: 'No encontré ese código.' }, 404);
+      return json({ ok: true });
     }
 
     if (cuerpo.op === 'conceder') {

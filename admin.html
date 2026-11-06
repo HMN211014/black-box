@@ -237,6 +237,7 @@ body:not(.h) .nav button.on{background:#fff;color:#000}
       <label id="g-pel-l" hidden>Películas por código<input id="g-pel" type="number" min="1" max="20" value="1" inputmode="numeric"></label>
       <label>Cantidad<input id="g-cant" type="number" min="1" max="50" value="5" inputmode="numeric"></label>
     </div>
+    <label>Nombre de esta tanda (opcional)<input id="g-nombre" maxlength="100" placeholder="Ej. Promoción del 5 de noviembre"></label>
     <button id="g-go" type="button">Generar</button>
     <p class="m" id="g-m" hidden></p>
     <textarea id="g-out" readonly hidden></textarea>
@@ -387,7 +388,8 @@ body:not(.h) .nav button.on{background:#fff;color:#000}
 
   <div class="c w" data-g="compartir" id="share-card">
     <h2>Enlaces compartidos</h2>
-    <p class="s">Comparte una película, una serie o una colección. Cada enlace crea un acceso individual que permite ver solo ese contenido sin iniciar sesión. En «Accesos y dispositivos» puedes revisar dónde se abrió y revocarlo.</p>
+    <p class="s">Comparte una película, una serie o una colección. Cada enlace crea un acceso individual que permite ver solo ese contenido sin iniciar sesión. Asigna un nombre predeterminado antes de compartir o edítalo después en «Accesos y dispositivos».</p>
+    <label>Nombre predeterminado para los próximos enlaces<input id="share-default-name" maxlength="100" placeholder="Vacío: usar el título del contenido"></label>
     <label style="margin-top:12px">Filtrar por nombre<input id="share-q" type="search" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Escribe un título o una colección"></label>
     <div class="row" style="margin-top:10px"><button class="g" id="share-refresh" type="button">Cargar o actualizar enlaces</button></div>
     <p class="m" id="share-m" role="status" aria-live="polite" hidden></p>
@@ -850,9 +852,15 @@ body:not(.h) .nav button.on{background:#fff;color:#000}
     <h2>Todos los códigos</h2>
     <button class="g" id="l-go" type="button">Actualizar lista</button>
     <p class="m" id="l-m" hidden></p>
-    <p class="s">En los códigos ya canjeados puedes <b>bloquear</b> o <b>eliminar</b> a quien lo usó. Bloquear le cierra la sesión y no lo deja volver a entrar hasta que lo desbloquees. Eliminar borra su cuenta, lista, pedidos y progreso (no se puede deshacer).</p>
+    <p class="s">Puedes eliminar cualquier código, usado o disponible, para quitarlo de esta lista. Si ya fue canjeado, eliminarlo no cambia el acceso que recibió la cuenta. Las opciones de bloquear o eliminar una cuenta sí afectan a la persona.</p>
     <p class="m" id="l-um" hidden></p>
-    <div class="tw"><table id="l-t" hidden><thead><tr><th>Código</th><th>Plan</th><th>Días / películas</th><th>Estado</th><th>Ubicación del canje</th></tr></thead><tbody></tbody></table></div>
+    <div class="c" style="margin:12px 0">
+      <h3>Nombre de tanda</h3>
+      <p class="s">Selecciona una generación para nombrar todos los códigos creados en esa tanda.</p>
+      <div class="row"><select id="l-lote" aria-label="Tanda de códigos" style="min-width:220px"><option value="">Selecciona una tanda</option></select><input id="l-nombre-lote" maxlength="100" placeholder="Nombre o referencia" aria-label="Nombre de la tanda"><button class="g" id="l-guardar-lote" type="button" disabled>Guardar nombre</button></div>
+      <p class="m" id="l-lote-m" role="status" aria-live="polite" hidden></p>
+    </div>
+    <div class="tw"><table id="l-t" hidden><thead><tr><th>Código</th><th>Tanda</th><th>Plan</th><th>Días / películas</th><th>Estado</th><th>Ubicación del canje</th><th></th></tr></thead><tbody></tbody></table></div>
   </div>
 
   <div class="c w" data-g="sugerencia">
@@ -1548,10 +1556,34 @@ $('an-go').onclick = () => con($('an-go'), 'an-m', async () => {
 
 function campoPlan(selId, diasL, pelL) { const f = () => { const v = $(selId).value; $(diasL).hidden = v === 'pedidos' || PLANES_SIN_VENCE.includes(v); $(pelL).hidden = v !== 'pedidos'; }; $(selId).addEventListener('change', f); f(); }
 campoPlan('g-plan', 'g-dias-l', 'g-pel-l'); campoPlan('c-plan', 'c-dias-l', 'c-pel-l');
+async function lotesCodigosCargar() {
+  const j = await admin({ op: 'lotes_codigos' }), sel = $('l-lote'), previo = sel.value;
+  sel.replaceChildren(new Option('Selecciona una tanda', ''));
+  (j.items || []).forEach(x => {
+    const fechaLote = new Date(Number(x.creado)).toLocaleString('es-MX');
+    const o = new Option(fechaLote + ' · ' + x.cantidad + ' código(s)' + (x.nombre ? ' · ' + x.nombre : ''), String(x.creado));
+    o.dataset.nombre = x.nombre || ''; sel.appendChild(o);
+  });
+  if ([...sel.options].some(o => o.value === previo)) sel.value = previo;
+  else if (sel.options.length > 1) sel.selectedIndex = 1;
+  $('l-nombre-lote').value = sel.selectedOptions[0] && sel.selectedOptions[0].dataset.nombre || '';
+  $('l-guardar-lote').disabled = !sel.value;
+}
+$('l-lote').addEventListener('change', () => {
+  $('l-nombre-lote').value = $('l-lote').selectedOptions[0] && $('l-lote').selectedOptions[0].dataset.nombre || '';
+  $('l-guardar-lote').disabled = !$('l-lote').value;
+});
+$('l-guardar-lote').addEventListener('click', () => con($('l-guardar-lote'), 'l-lote-m', async () => {
+  if (!$('l-lote').value) throw new Error('Selecciona una tanda de códigos.');
+  const r = await admin({ op: 'guardar_nombre_lote_codigos', creado: $('l-lote').value, nombre: $('l-nombre-lote').value });
+  await lotesCodigosCargar();
+  msg('l-lote-m', 'Nombre guardado para ' + r.cantidad + ' código(s).', true);
+}));
 $('g-go').onclick = () => con($('g-go'), 'g-m', async () => {
-  const j = await admin({ op: 'generar', plan: $('g-plan').value, dias: $('g-dias').value, peliculas: $('g-pel').value, cantidad: $('g-cant').value });
+  const j = await admin({ op: 'generar', plan: $('g-plan').value, dias: $('g-dias').value, peliculas: $('g-pel').value, cantidad: $('g-cant').value, nombre: $('g-nombre').value });
   $('g-out').value = j.codigos.join('\n'); $('g-out').hidden = false; $('g-acc').hidden = false;
   msg('g-m', j.codigos.length + ' código(s) ' + (j.plan === 'pedidos' ? 'válidos por ' + j.peliculas + ' película(s) cada uno' : j.sinVence ? 'sin vencimiento' : 'de ' + j.dias + ' días') + ', plan ' + nombrePlan(j.plan) + '. Cada uno se puede usar una sola vez.', true);
+  await lotesCodigosCargar();
 });
 $('g-cp').onclick = async () => {
   const t = $('g-out').value;
@@ -1569,6 +1601,7 @@ $('l-go').onclick = () => con($('l-go'), 'l-m', async () => {
   j.codigos.forEach(c => {
     const tr = document.createElement('tr');
     const k = document.createElement('td'); k.className = 'k'; k.textContent = c.codigo;
+    const lote = document.createElement('td'); lote.textContent = c.nombre || new Date(Number(c.creado)).toLocaleDateString('es-MX');
     const p = document.createElement('td'); p.textContent = nombrePlan(c.plan);
     const d = document.createElement('td'); d.textContent = c.plan === 'pedidos' && c.peliculas ? c.peliculas + (c.peliculas === 1 ? ' película' : ' películas') : PLANES_SIN_VENCE.includes(c.plan) ? 'Sin vencimiento' : c.dias;
     const e = document.createElement('td'), t = document.createElement('span');
@@ -1600,9 +1633,17 @@ $('l-go').onclick = () => con($('l-go'), 'l-m', async () => {
       const partes = [u.ciudad, u.pais ? (new Intl.DisplayNames(['es'], { type: 'region' }).of(u.pais) || u.pais) : ''].filter(Boolean);
       loc.textContent = partes.join(', ') || 'No disponible (canje anterior)';
     } else loc.textContent = '—';
-    tr.append(k, p, d, e, loc); tb.appendChild(tr);
+    const accion = document.createElement('td');
+    const quitarCodigo = document.createElement('button'); quitarCodigo.type = 'button'; quitarCodigo.className = 'g'; quitarCodigo.textContent = 'Eliminar código'; quitarCodigo.style.cssText = 'height:32px;padding:0 10px;font-size:12px';
+    quitarCodigo.onclick = () => {
+      if (!confirm('¿Eliminar el código ' + c.codigo + '? Se quitará de esta lista y ya no podrá canjearse. Si ya fue usado, el acceso de la cuenta se conserva.')) return;
+      con(quitarCodigo, 'l-m', async () => { await admin({ op: 'eliminar_codigo', codigo: c.codigo }); tr.remove(); if (!tb.rows.length) $('l-t').hidden = true; await lotesCodigosCargar(); msg('l-m', 'Código eliminado de la administración.', true); });
+    };
+    accion.appendChild(quitarCodigo);
+    tr.append(k, lote, p, d, e, loc, accion); tb.appendChild(tr);
   });
   $('l-t').hidden = !j.codigos.length;
+  await lotesCodigosCargar();
   msg('l-m', j.codigos.length ? '' : 'Todavía no hay códigos.', true);
 });
 
@@ -2917,7 +2958,8 @@ const dTodos = () => [...(dIdx || []), ...dPan];
 const shareSlug = titulo => String(titulo || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 120).replace(/-+$/g, '');
 async function shareCrearUrl(tipo, titulo, id) {
   const destino = tipo === 'coleccion' ? id : shareSlug(titulo);
-  const creado = await admin({ op: 'crear_enlace_compartido', tipo, destino, titulo });
+  const nombre = $('share-default-name').value.trim() || titulo;
+  const creado = await admin({ op: 'crear_enlace_compartido', tipo, destino, titulo, nombre });
   const url = new URL('index.html', location.href);
   url.searchParams.set('bb-share', creado.token);
   url.hash = tipo === 'coleccion' ? '/c/' + encodeURIComponent(creado.destino) : '/p/' + encodeURIComponent(creado.destino);
@@ -2975,8 +3017,13 @@ async function shareAccesosCargar() {
     const tipos = { coleccion: 'Colección', pelicula: 'Película', serie: 'Serie' };
     j.items.forEach(x => {
       const d = dEl('div', 'it v share-access-entry'), head = dEl('div', 'row'), tx = dEl('div', 'tx');
-      tx.append(dEl('b', '', x.titulo), dEl('small', '', tipos[x.tipo] + ' · Creado ' + shareFecha(x.creado) + ' · ' + (x.revocado ? 'Acceso eliminado' : 'Activo')));
+      tx.append(dEl('b', '', x.nombre || x.titulo), dEl('small', '', (x.nombre && x.nombre !== x.titulo ? x.titulo + ' · ' : '') + tipos[x.tipo] + ' · Creado ' + shareFecha(x.creado) + ' · ' + (x.revocado ? 'Acceso eliminado' : 'Activo')));
       head.appendChild(tx); d.appendChild(head);
+      const editarNombre = dEl('div', 'row'); editarNombre.style.marginTop = '8px';
+      const campoNombre = document.createElement('input'); campoNombre.maxLength = 100; campoNombre.value = x.nombre || ''; campoNombre.placeholder = 'Nombre o referencia (vacío = título)'; campoNombre.setAttribute('aria-label', 'Nombre del enlace compartido');
+      const guardarNombre = dEl('button', 'g', 'Guardar nombre'); guardarNombre.type = 'button';
+      guardarNombre.onclick = () => con(guardarNombre, 'share-access-status', async () => { await admin({ op: 'guardar_nombre_enlace', token: x.token, nombre: campoNombre.value }); await shareAccesosCargar(); msg('share-access-status', 'Nombre del enlace guardado.', true); });
+      editarNombre.append(campoNombre, guardarNombre); d.appendChild(editarNombre);
       if (!x.dispositivos.length) d.appendChild(dEl('p', 's', 'Ningún dispositivo ha abierto este enlace.'));
       else {
         d.appendChild(dEl('p', 's', x.dispositivos.length + ' dispositivo(s):'));
@@ -2993,6 +3040,12 @@ async function shareAccesosCargar() {
         };
         d.appendChild(quitar);
       }
+      const eliminar = dEl('button', 'g', 'Eliminar registro'); eliminar.type = 'button'; eliminar.style.marginTop = '8px';
+      eliminar.onclick = () => {
+        if (!confirm('¿Eliminar definitivamente el enlace de «' + x.titulo + '» y el historial de aperturas? El enlace dejará de funcionar y desaparecerá de Administración.')) return;
+        con(eliminar, 'share-access-status', async () => { await admin({ op: 'eliminar_enlace_compartido', token: x.token }); await shareAccesosCargar(); });
+      };
+      d.appendChild(eliminar);
       box.appendChild(d);
     });
     msg('share-access-status', j.items.length + ' enlace(s) compartido(s).', true);

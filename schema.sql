@@ -37,6 +37,7 @@ CREATE TABLE IF NOT EXISTS codigos (
   dias        INTEGER,
   peliculas   INTEGER,
   creado      INTEGER NOT NULL,
+  nombre      TEXT NOT NULL DEFAULT '',
   usado_por   TEXT,
   usado_fecha INTEGER
 ) WITHOUT ROWID;
@@ -155,7 +156,8 @@ CREATE TABLE IF NOT EXISTS enlaces_compartidos (
   destino TEXT NOT NULL,
   titulo  TEXT NOT NULL,
   creado  INTEGER NOT NULL,
-  revocado INTEGER NOT NULL DEFAULT 0
+  revocado INTEGER NOT NULL DEFAULT 0,
+  nombre  TEXT NOT NULL DEFAULT ''
 ) WITHOUT ROWID;
 CREATE TABLE IF NOT EXISTS aperturas_compartidas (
   token       TEXT NOT NULL,
