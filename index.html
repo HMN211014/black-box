@@ -310,6 +310,8 @@ svg.st text{fill:currentColor;stroke:none}
 #cols::-webkit-scrollbar{display:none}
 #cols[hidden]{display:none}
 #gen-w{margin-top:28px}#gen-w[hidden]{display:none}
+#recientes-anio-w{margin-top:28px}#recientes-anio-w[hidden]{display:none}
+#recientes-anio-w .track{padding-top:12px}
 #gens{display:grid;grid-auto-flow:column;grid-auto-columns:clamp(130px,16vw,200px);gap:14px;padding:12px 5vw 8px;overflow-x:auto;scroll-snap-type:x proximity;scroll-padding-inline:5vw;scrollbar-width:none}
 #gens::-webkit-scrollbar{display:none}
 .tile-row{position:relative}
@@ -1469,6 +1471,7 @@ html.en-pip #pcr{display:none}
 <aside id="anun" hidden aria-label="Publicidad"></aside>
 <div id="vacio" hidden><b>Pronto habrá series aquí</b>Todavía no se agrega ninguna.</div>
 <div id="cols-w"><div class="cols-sep" aria-hidden="true"></div><h3 class="cols-t">Colecciones</h3><section class="tile-row row" aria-label="Colecciones"><button class="nav prev" type="button" aria-label="Desplazar colecciones a la izquierda">‹</button><div id="cols" aria-label="Colecciones"></div><button class="nav next" type="button" aria-label="Desplazar colecciones a la derecha">›</button></section></div>
+<div id="recientes-anio-w" hidden><div class="cols-sep" aria-hidden="true"></div><h3 class="cols-t">Lo más reciente del año</h3><section class="row" aria-label="Lo más reciente del año"><button class="nav prev" type="button" aria-label="Películas anteriores">‹</button><div class="track" id="recientes-anio"></div><button class="nav next" type="button" aria-label="Más películas recientes">›</button></section></div>
 <div id="gen-w" hidden><div class="cols-sep" aria-hidden="true"></div><h3 class="cols-t">Géneros</h3><section class="tile-row row" aria-label="Géneros"><button class="nav prev" type="button" aria-label="Desplazar géneros a la izquierda">‹</button><div id="gens" aria-label="Géneros"></div><button class="nav next" type="button" aria-label="Desplazar géneros a la derecha">›</button></section></div>
 <div id="cont" hidden>
   <h3 class="rt">Continuar viendo</h3>
@@ -1948,12 +1951,14 @@ const peliculas = (window.PELICULAS_DB && window.PELICULAS_DB.length) ? window.P
   if (!x || !x.titulo) return;
   const existente = peliculas.find(p => p.tmdb && Number(p.tmdb) === Number(x.tmdb) && (p.tipo === 'serie') === sr);
   if (existente) {
+    if (x.creado) existente.creado = Number(x.creado) || existente.creado;
+    if (x.actualizado) existente.actualizado = Number(x.actualizado) || existente.actualizado;
     if (x.proximamente) { existente.link = ''; existente.enlace = ''; existente.plantilla = ''; delete existente.episodios; existente.proximamente = true; }
     if (x.version) existente.version = x.version;
     return;
   }
   if (x.link || x.proximamente || (sr && x.episodios))
-    peliculas.push(sr ? { titulo: x.titulo, tipo: 'serie', tmdb: x.tmdb, version: x.version, proximamente: !!x.proximamente, enlace: x.proximamente ? '' : (x.link || ''), ...(!x.proximamente && x.episodios ? { episodios: x.episodios } : {}) } : { titulo: x.titulo, tmdb: x.tmdb, version: x.version, proximamente: !!x.proximamente, link: x.proximamente ? '' : x.link });
+    peliculas.push(sr ? { titulo: x.titulo, tipo: 'serie', tmdb: x.tmdb, version: x.version, creado: x.creado, actualizado: x.actualizado, proximamente: !!x.proximamente, enlace: x.proximamente ? '' : (x.link || ''), ...(!x.proximamente && x.episodios ? { episodios: x.episodios } : {}) } : { titulo: x.titulo, tmdb: x.tmdb, version: x.version, creado: x.creado, actualizado: x.actualizado, proximamente: !!x.proximamente, link: x.proximamente ? '' : x.link });
 });
 /* Etiqueta CAM (película grabada en cine) elegida desde el panel: aplica a cualquier título, venga de index.html o del panel.
    cam:1 = lleva la etiqueta · cam:0 = se la quitaron (tapa un cam:true escrito en index.html) y q = cuándo, para subirla en "Recientes". */
@@ -2192,7 +2197,17 @@ async function cargarTopReproducciones() {
 function ordenar() {
   [peliculas, series].forEach(l => l.sort((a, b) => (esActual(b) - esActual(a)) || (a._i - b._i))); datosVer++;
   document.getElementById('grid').replaceChildren(...L().map(p => tarjetas.get(p)).filter(Boolean));
-  pintarPopulares(); pintarGeneros(); compactarGrid();
+  pintarPopulares(); pintarGeneros(); pintarRecientesAnio(); compactarGrid();
+}
+const fechaCatalogo = p => { const v = p.actualizado || p.creado || p.created_at || p.agregado || p.fecha_subida || p.subida || ''; return Number(v) || Date.parse(v) || 0; };
+function pintarRecientesAnio() {
+  const cont = H('recientes-anio'), wrap = H('recientes-anio-w');
+  if (!cont || !wrap) return;
+  const lista = peliculas.filter(p => !p.proximamente && +p.anio === ANIO_ACTUAL).sort((a, b) => fechaCatalogo(b) - fechaCatalogo(a) || b._i - a._i).slice(0, 24);
+  cont.replaceChildren(...lista.map(crearTarjeta));
+  wrap.hidden = modo === 'series' || !lista.length;
+  const nav = wrap.querySelectorAll('.nav');
+  if (nav.length === 2) { nav[0].onclick = () => cont.scrollBy({ left: -cont.clientWidth * .8, behavior: 'smooth' }); nav[1].onclick = () => cont.scrollBy({ left: cont.clientWidth * .8, behavior: 'smooth' }); }
 }
 const slugGen = g => String(g).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 function pintarGeneros() {                           // una fila (carrusel) por género: Acción, Comedia, Terror... armada con los datos de TMDB
