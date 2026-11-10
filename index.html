@@ -2201,7 +2201,7 @@ function ordenar() {
 }
 const fechaCatalogo = p => { const v = p.actualizado || p.creado || p.created_at || p.agregado || p.fecha_subida || p.subida || ''; return Number(v) || Date.parse(v) || 0; };
 function pintarRecientesAnio() {
-  const cont = H('recientes-anio'), wrap = H('recientes-anio-w');
+  const cont = document.getElementById('recientes-anio'), wrap = document.getElementById('recientes-anio-w');
   if (!cont || !wrap) return;
   const lista = peliculas.filter(p => !p.proximamente && +p.anio === ANIO_ACTUAL).sort((a, b) => fechaCatalogo(b) - fechaCatalogo(a) || b._i - a._i).slice(0, 24);
   cont.replaceChildren(...lista.map(crearTarjeta));
