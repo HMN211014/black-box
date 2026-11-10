@@ -764,6 +764,11 @@ body.detmode #top::before{display:none}
   ::view-transition-group(cuenta){animation:none}
   ::view-transition-old(cuenta){display:none}
 }
+/* En vertical, la búsqueda aparece debajo de la marca y la cuenta para dejar libre el encabezado. */
+@media(max-width:820px) and (orientation:portrait){
+  .sb{top:calc(env(safe-area-inset-top,0px) + 72px);bottom:auto;left:50%;width:calc(100vw - 32px);max-width:460px;height:54px;transform:translate(-50%,-190%)}
+  body.buscando .sb{transform:translate(-50%,0)}
+}
 
 /* ---- Interruptor de vibración (pie de página, solo en pantallas táctiles) ---- */
 .hapt-sw{margin-top:16px;background:rgba(255,255,255,.1);border:0;color:#fff;border-radius:999px;padding:11px 20px;font:inherit;font-size:14px;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent}
