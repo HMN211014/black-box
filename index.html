@@ -1398,6 +1398,7 @@ html.en-pip #pcr{display:none}
 .catalogo-view{position:fixed;z-index:1100;inset:0;display:flex;flex-direction:column;overflow:hidden;background:#050507;color:#fff;padding:calc(env(safe-area-inset-top,0px) + 10px) 14px calc(env(safe-area-inset-bottom,0px) + 10px)}
 .catalogo-view[hidden]{display:none}.catalogo-top{display:grid;grid-template-columns:44px 1fr;align-items:center;gap:10px;flex:none;max-width:640px;width:100%;margin:0 auto 10px}.catalogo-back{height:42px;width:42px;border:1px solid rgba(255,255,255,.16);border-radius:50%;background:rgba(255,255,255,.08);color:#fff;font-size:25px;cursor:pointer}.catalogo-search{min-width:0;width:100%;height:46px;padding:0 16px;border:1px solid rgba(255,255,255,.13);border-radius:999px;background:#19191d;color:#fff;font:inherit;font-size:16px;outline:none}.catalogo-search:focus{border-color:rgba(255,255,255,.5)}.catalogo-sub{flex:none;text-align:center;margin:0 0 8px;color:rgba(255,255,255,.58);font-size:12px}.catalogo-track{display:flex;align-items:center;gap:14px;flex:1;min-height:0;width:100%;overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x mandatory;scrollbar-width:none;padding:0 max(4vw,calc((100vw - 480px)/2));-webkit-overflow-scrolling:touch}.catalogo-track::-webkit-scrollbar{display:none}.catalogo-card{position:relative;flex:0 0 min(86vw,460px);height:min(100%,calc(100dvh - 132px));max-height:900px;min-height:0;overflow:hidden;padding:0;border:0;border-radius:24px;background:#17171b;color:#fff;text-align:left;scroll-snap-align:center;cursor:pointer;box-shadow:0 14px 44px rgba(0,0,0,.55)}.catalogo-card img{width:100%;height:100%;object-fit:cover}.catalogo-card::after{content:"";position:absolute;inset:45% 0 0;background:linear-gradient(transparent,rgba(0,0,0,.9))}.catalogo-card .catalogo-title{position:absolute;z-index:1;left:18px;right:18px;bottom:20px;font-size:clamp(20px,5vw,30px);font-weight:750;line-height:1.05;text-shadow:0 2px 16px #000}.catalogo-card .catalogo-year{position:absolute;z-index:1;top:12px;left:12px;padding:6px 10px;border-radius:999px;background:rgba(0,0,0,.68);font-size:13px}.catalogo-empty{align-self:center;margin:auto;color:rgba(255,255,255,.68);text-align:center}.catalogo-count{position:absolute;right:22px;top:calc(env(safe-area-inset-top,0px) + 72px);z-index:2;color:rgba(255,255,255,.65);font-size:12px;pointer-events:none}
 body.catmode{overflow:hidden}body.catmode>#top,body.catmode>#dock{display:none!important}
+.catalogo-card .catalogo-title{bottom:46px}.catalogo-status{position:absolute;z-index:2;left:0;right:0;bottom:0;display:grid;place-items:center;height:34px;font-size:11px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}.catalogo-status.disponible{background:linear-gradient(90deg,rgba(22,102,61,.82),rgba(25,132,73,.78));border-top:1px solid rgba(152,255,190,.24);color:#e5ffed}.catalogo-status.no-disponible{background:rgba(22,22,26,.88);border-top:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.75)}.catalogo-card.no-disponible{cursor:default;opacity:1;box-shadow:0 12px 34px rgba(0,0,0,.4)}.catalogo-card.no-disponible img{filter:brightness(.78)}.catalogo-card:focus-visible{outline:3px solid rgba(139,255,180,.72);outline-offset:4}.catalogo-top{grid-template-columns:44px minmax(0,1fr)}
 .cfg-sw{position:relative;flex:none;width:62px;height:38px;border-radius:999px;background:rgba(255,255,255,.2);transition:background .25s}
 .cfg-sw::after{content:"";position:absolute;top:3px;left:3px;width:32px;height:32px;border-radius:50%;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.35);transition:transform .3s cubic-bezier(.3,1.5,.5,1)}
 .cfg-fila.on .cfg-sw{background:#3478f6}.cfg-fila.on .cfg-sw::after{transform:translateX(24px)}
@@ -1565,7 +1566,7 @@ body.catmode{overflow:hidden}body.catmode>#top,body.catmode>#dock{display:none!i
 </section>
 
 <section id="vista-catalogo" class="catalogo-view" hidden aria-label="Catálogo de películas">
-  <div class="catalogo-top"><button class="catalogo-back" id="catalogo-back" type="button" aria-label="Volver">‹</button><input class="catalogo-search" id="catalogo-search" type="search" placeholder="Buscar una película" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Buscar una película"></div>
+  <div class="catalogo-top"><button class="catalogo-back" id="catalogo-back" type="button" aria-label="Volver">‹</button><input class="catalogo-search" id="catalogo-search" type="search" placeholder="Buscar en biblioteca o TMDB" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Buscar películas en biblioteca o TMDB"></div>
   <p class="catalogo-sub" id="catalogo-sub">Desliza para explorar · Más recientes primero</p>
   <div class="catalogo-track" id="catalogo-track" aria-label="Películas"></div>
   <p class="catalogo-empty" id="catalogo-empty" hidden>No encontramos películas con esa búsqueda.</p>
@@ -3730,28 +3731,72 @@ H('dk-ped').hidden = !PEDIDOS_EN_BARRA;
 const vistas = { inicio: H('vista-inicio'), ped: H('vista-ped'), rec: H('vista-rec'), col: H('vista-col'), det: H('vista-det'), sec: H('vista-sec'), cat: H('vista-catalogo') };
 let detActual = null, detHist = false, volverY = null;
 const slugDe = p => norm(p.titulo).replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
-function pintarCatalogo() {
+let catalogoBusquedaToken = 0, catalogoBusquedaTimer = 0, catalogoBusquedaAbort = null;
+const catalogoAnio = p => Number(p.anio || String(p.fecha || '').slice(0, 4) || String(p.release_date || '').slice(0, 4)) || 0;
+const catalogoId = p => Number(p.tmdbId || p.tmdb) || 0;
+function catalogoCoincidencia(tmdb) {
+  const id = Number(tmdb.id), nombre = norm(tmdb.title || tmdb.original_title || ''), year = String(tmdb.release_date || '').slice(0, 4);
+  return peliculas.find(p => id && catalogoId(p) === id) || peliculas.find(p => norm(p.titulo) === nombre && (!year || !catalogoAnio(p) || String(catalogoAnio(p)) === year)) || null;
+}
+function pintarCatalogo(lista, estado) {
   if (!vistas.cat || vistas.cat.hidden) return;
-  const q = norm(H('catalogo-search').value), lista = peliculas.filter(p => !q || norm([p.titulo, p.anio, p.fecha, p.genero].join(' ')).includes(q));
-  lista.sort((a, b) => (Number(b.anio || String(b.fecha || '').slice(0, 4)) || 0) - (Number(a.anio || String(a.fecha || '').slice(0, 4)) || 0) || a.titulo.localeCompare(b.titulo, 'es'));
   const track = H('catalogo-track'); track.replaceChildren();
-  lista.forEach(p => {
-    const card = document.createElement('button'); card.type = 'button'; card.className = 'catalogo-card'; card.setAttribute('aria-label', p.titulo + (p.anio ? ', ' + p.anio : ''));
-    if (p.poster) { const img = document.createElement('img'); img.src = p.poster; img.alt = ''; img.loading = 'lazy'; img.decoding = 'async'; img.onerror = () => img.remove(); card.appendChild(img); }
-    const year = Number(p.anio || String(p.fecha || '').slice(0, 4));
-    if (year) { const y = document.createElement('span'); y.className = 'catalogo-year'; y.textContent = year; card.appendChild(y); }
-    const title = document.createElement('span'); title.className = 'catalogo-title'; title.textContent = p.titulo; card.appendChild(title);
-    card.onclick = () => { const h = '#/p/' + encodeURIComponent(slugDe(p)); history.pushState(null, '', location.pathname + location.search + h); ruta(true); };
+  lista.forEach(item => {
+    const p = item.pelicula, disponible = !!p;
+    const card = document.createElement('button'); card.type = 'button'; card.className = 'catalogo-card' + (disponible ? '' : ' no-disponible'); card.disabled = !disponible;
+    card.setAttribute('aria-label', item.titulo + (item.anio ? ', ' + item.anio : '') + (disponible ? ', disponible' : ', no disponible'));
+    if (item.poster) { const img = document.createElement('img'); img.src = item.poster; img.alt = ''; img.loading = 'lazy'; img.decoding = 'async'; img.onerror = () => img.remove(); card.appendChild(img); }
+    if (item.anio) { const y = document.createElement('span'); y.className = 'catalogo-year'; y.textContent = item.anio; card.appendChild(y); }
+    const title = document.createElement('span'); title.className = 'catalogo-title'; title.textContent = item.titulo; card.appendChild(title);
+    const status = document.createElement('span'); status.className = 'catalogo-status ' + (disponible ? 'disponible' : 'no-disponible'); status.textContent = disponible ? 'Disponible' : 'No disponible'; card.appendChild(status);
+    if (disponible) card.onclick = () => { const h = '#/p/' + encodeURIComponent(slugDe(p)); history.pushState(null, '', location.pathname + location.search + h); ruta(true); };
     track.appendChild(card);
   });
-  H('catalogo-empty').hidden = !!lista.length; H('catalogo-sub').textContent = lista.length + (lista.length === 1 ? ' película · Más recientes primero' : ' películas · Más recientes primero');
+  H('catalogo-empty').hidden = !!lista.length; H('catalogo-sub').textContent = estado || (lista.length + (lista.length === 1 ? ' película disponible' : ' películas disponibles') + ' · Más recientes primero');
+}
+function catalogoBiblioteca(q) {
+  return peliculas.filter(p => !q || norm([p.titulo, p.anio, p.fecha, p.genero].join(' ')).includes(q))
+    .sort((a, b) => catalogoAnio(b) - catalogoAnio(a) || a.titulo.localeCompare(b.titulo, 'es'))
+    .map(p => ({ pelicula: p, titulo: p.titulo, anio: catalogoAnio(p), poster: p.poster || '' }));
+}
+function catalogoBuscar() {
+  if (!vistas.cat || vistas.cat.hidden) return;
+  clearTimeout(catalogoBusquedaTimer); if (catalogoBusquedaAbort) catalogoBusquedaAbort.abort();
+  const token = ++catalogoBusquedaToken, texto = H('catalogo-search').value.trim(), q = norm(texto), local = catalogoBiblioteca(q);
+  if (q.length < 2) { pintarCatalogo(local); return; }
+  pintarCatalogo(local, 'Buscando en biblioteca y TMDB…');
+  if (!TMDB_KEY || TMDB_KEY.startsWith('TU_')) return;
+  catalogoBusquedaTimer = setTimeout(async () => {
+    const controller = new AbortController(); catalogoBusquedaAbort = controller;
+    try {
+      const data = await fetch(`${TMDB}/search/movie?api_key=${TMDB_KEY}&language=es-MX&include_adult=false&query=${encodeURIComponent(texto)}&page=1`, { signal: controller.signal }).then(r => { if (!r.ok) throw Error('TMDB'); return r.json(); });
+      if (token !== catalogoBusquedaToken || !vistas.cat || vistas.cat.hidden) return;
+      const resultados = [], vistos = new Set();
+      (data.results || []).filter(x => x && (x.title || x.original_title) && x.poster_path).forEach(x => {
+        const disponible = catalogoCoincidencia(x), id = Number(x.id), k = id ? 'tmdb:' + id : norm(x.title);
+        if (vistos.has(k)) return; vistos.add(k);
+        resultados.push(disponible
+          ? { pelicula: disponible, titulo: disponible.titulo, anio: catalogoAnio(disponible), poster: disponible.poster || IMG + 'w500' + x.poster_path }
+          : { pelicula: null, titulo: x.title || x.original_title, anio: String(x.release_date || '').slice(0, 4), poster: IMG + 'w500' + x.poster_path });
+      });
+      local.forEach(x => {
+        const idLocal = catalogoId(x.pelicula), nombreLocal = norm(x.titulo);
+        const existe = resultados.some(r => (idLocal && r.pelicula && catalogoId(r.pelicula) === idLocal) || (norm(r.titulo) === nombreLocal && (!r.anio || !x.anio || String(r.anio) === String(x.anio))));
+        if (!existe) resultados.push(x);
+      });
+      pintarCatalogo(resultados, resultados.length + (resultados.length === 1 ? ' resultado de TMDB' : ' resultados de TMDB') + ' · Verde: disponible');
+    } catch (e) {
+      if (token !== catalogoBusquedaToken || e.name === 'AbortError') return;
+      pintarCatalogo(local, 'TMDB no respondió · Mostrando coincidencias de la biblioteca');
+    }
+  }, 260);
 }
 function abrirCatalogo() {
   clearInterval(cTimer); clearInterval(secTimer); document.body.classList.remove('colmode', 'detmode'); document.body.classList.add('catmode');
-  Object.values(vistas).forEach(v => { if (v !== vistas.cat) v.hidden = true; }); vistas.cat.hidden = false; detActual = null; marcarDock('inicio'); pintarCatalogo();
+  Object.values(vistas).forEach(v => { if (v !== vistas.cat) v.hidden = true; }); vistas.cat.hidden = false; detActual = null; marcarDock('inicio'); catalogoBuscar();
 }
 H('catalogo-back').onclick = () => { history.replaceState(null, '', location.pathname + location.search + '#/catalogo'); ruta(true); };
-H('catalogo-search').addEventListener('input', pintarCatalogo);
+H('catalogo-search').addEventListener('input', catalogoBuscar);
 function marcarDock(v) {
   document.querySelectorAll('#dock .dk[data-v]').forEach(b => {
     const on = b.dataset.v === v; b.classList.toggle('on', on);
