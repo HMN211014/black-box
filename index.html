@@ -4476,7 +4476,7 @@ function confirmarDescarga(mensaje) {
   });
 }
 async function descargarPelicula(p, boton) {
-  if (!p || p.tipo === 'serie' || !p.link || boton.disabled) return;
+  if (!puedeDescargarPelicula(p) || boton.disabled) return;
   boton.disabled = true; boton.title = 'Revisando el tamaño del archivo…';
   const endpoint = '/api/usuario/descargar?url=' + encodeURIComponent(p.link);
   let bytes = 0, tamanoConocido = false, href = endpoint, host = '';
@@ -4523,7 +4523,7 @@ function pintarDetalle(p) {
   H('dgen').textContent = (p.genero || '').split(',').map(x => x.trim()).filter(Boolean).slice(0, 3).join(' · ');
   H('dplayt').textContent = etiquetaPlay(p);
   H('dplay').disabled = !p.link; H('dplay').onclick = () => reproducir(p);
-  const descarga = H('ddownload'); descarga.hidden = serie || !p.link; descarga.disabled = false; descarga.onclick = () => descargarPelicula(p, descarga);
+  const descarga = H('ddownload'); descarga.hidden = !puedeDescargarPelicula(p); descarga.disabled = false; descarga.onclick = () => descargarPelicula(p, descarga);
   const ch = H('dchips'); ch.replaceChildren();
   if (p.anio) ch.appendChild(mk('span', '', p.anio));
   if (p.minutos || p.duracion) ch.appendChild(mk('span', '', p.minutos ? fmtMin(p.minutos) : p.duracion));
@@ -4736,6 +4736,12 @@ const PLANES = [
     items: ['Todo lo del plan Plus', 'Tu tiempo de acceso nunca se acaba', 'Solicita películas específicas'] }
 ];
 const uVigente = () => !!(U.acceso && U.acceso.vence > Date.now());
+const puedeDescargarPelicula = p => {
+  if (!p || p.tipo === 'serie' || !p.link) return false;
+  const plan = !!(U.correo && uVigente() && U.acceso && ['basico', 'plus'].includes(U.acceso.plan));
+  const compartido = !!(tokenCompartido && enlaceCompartidoListo && !enlaceCompartidoRevocado && permiteVistaCompartida(p));
+  return plan || compartido;
+};
 const porVales = () => ACCESO_POR_CUENTA && U.servicio === true && !!U.acceso && U.acceso.canje === true && !uVigente();   // plan "Películas por pedido": cada código es un vale por una película
 const soloLista = () => ACCESO_POR_CUENTA && U.servicio === true && ((uVigente() && U.acceso.plan === 'pedidos') || porVales());   // plan "Películas por pedido": solo reproduce lo de su lista
 const enLista = p => (U.lista || []).some(x => (x.t && x.t === p.titulo) || (x.id && p.tmdb && Number(x.id) === Number(p.tmdb)));
@@ -4777,7 +4783,7 @@ function pintarAnuncio() {
   if (!google) { propios(); return; }
   window.bbAds.mostrar(w, g).then(ok => { if (tok === anunTok && !ok) { window.bbAds.ocultar(); propios(); } }).catch(() => { if (tok === anunTok) propios(); });
 }
-function uPlan() { marcarCandados(); pintarAnuncio(); if (!vistas.ped.hidden) pintarPedidos(); }     // se llama cada vez que cambia el plan o la lista de la cuenta
+function uPlan() { marcarCandados(); pintarAnuncio(); if (!vistas.ped.hidden) pintarPedidos(); if (detActual && !vistas.det.hidden) pintarDetalle(detActual); }     // se llama cada vez que cambia el plan o la lista de la cuenta
 const uDias = () => Math.max(0, Math.ceil((U.acceso.vence - Date.now()) / 86400000));
 const uPlanNombre = id => (PLANES.find(x => x.id === id) || {}).nombre || 'Básico';
 const uFechaLarga = t => new Date(t).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' });
@@ -4966,6 +4972,7 @@ function infoDispositivoCompartido() {
 function mostrarEnlaceDenegado() {
   enlaceCompartidoRevocado = true; enlaceCompartidoListo = true;
   try { H('pv').pause(); } catch (e) {}
+  if (detActual && !vistas.det.hidden) pintarDetalle(detActual);
   H('share-denied').hidden = false;
 }
 async function validarEnlaceCompartido(op, extra = {}) {
