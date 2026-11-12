@@ -1736,7 +1736,7 @@ function pedidoDisponibleEn(pedido, catalogo) {
     || null;
 }
 async function pedidosAgregarDisponibles(pedidos) {
-  const porRevisar = pedidos.filter(x => x.estado === 'pendiente');
+  const porRevisar = pedidos.filter(x => x.estado === 'pendiente' && !x.anonimo);
   if (!porRevisar.length) return [];
   const fuentes = await Promise.allSettled([dIndice(true), dPanel()]);
   const catalogo = [
@@ -1768,18 +1768,23 @@ $('p-go').onclick = () => con($('p-go'), 'p-m', async () => {
     const tg = document.createElement('span'); tg.className = 'tag ' + (x.estado === 'listo' ? 'd' : x.estado === 'rechazado' ? 'r' : 'p'); tg.style.marginLeft = '8px';
     tg.textContent = x.estado === 'listo' ? 'Listo' : x.estado === 'rechazado' ? 'Rechazado' : 'Pendiente';
     t.append(b, tg);
-    const sm = document.createElement('small'); sm.textContent = x.correo + (x.distribuidor ? ' · Distribuidor' : '') + ' · ' + (x.tipo === 'tv' ? 'Serie' : 'Película') + ' · TMDB ' + x.tmdb + ' · ' + fecha(x.creado) + (x.vale ? ' · pagado con vale' : '');
+    const sm = document.createElement('small'); sm.textContent = (x.anonimo ? 'Catálogo compartido · Distribuidor · Sin cuenta' : x.correo + (x.distribuidor ? ' · Distribuidor' : '')) + ' · ' + (x.tipo === 'tv' ? 'Serie' : 'Película') + ' · TMDB ' + x.tmdb + ' · ' + fecha(x.creado) + (x.vale ? ' · pagado con vale' : '');
     d.append(t, sm);
     if (x.estado === 'pendiente') {
       const hit = pedidoDisponibleEn(x, dTodos()) || CAT.find(c => c.tmdb && Number(c.tmdb) === x.tmdb && (x.tipo === 'tv' ? c.tipo === 'serie' : c.tipo !== 'serie'));
       const inp = document.createElement('input'); inp.setAttribute('list', 'titulos'); inp.placeholder = 'Título tal como quedó en tu lista';
       inp.value = hit ? hit.titulo : x.titulo;
       const en = document.createElement('input'); en.type = 'url'; en.placeholder = 'Enlace del video (https://…)'; en.autocapitalize = 'off'; en.spellcheck = false;
-      const pub = document.createElement('button'); pub.type = 'button'; pub.textContent = 'Publicar y agregar a su cuenta';
+      const pub = document.createElement('button'); pub.type = 'button'; pub.textContent = x.anonimo ? 'Publicar para todos' : 'Publicar y agregar a su cuenta';
       if (x.tipo === 'tv') en.placeholder = 'Enlace con {t} y {e}: https://…/T{t}/E{e}.mp4';
-      const ok = document.createElement('button'); ok.type = 'button'; ok.className = 'g'; ok.textContent = 'Solo agregar a su cuenta (ya está en index.html)';
+      const ok = document.createElement('button'); ok.type = 'button'; ok.className = 'g'; ok.textContent = x.anonimo ? 'Marcar disponible para todos' : 'Solo agregar a su cuenta (ya está en index.html)'; ok.hidden = x.anonimo && !hit;
       const no = document.createElement('button'); no.type = 'button'; no.className = 'g'; no.textContent = 'Rechazar';
       ok.onclick = () => con(ok, 'p-m', async () => {
+        if (x.anonimo) {
+          await admin({ op: 'completar_pedido_compartido', pedido: x.id });
+          tg.className = 'tag d'; tg.textContent = 'Listo'; row.remove();
+          msg('p-m', 'La solicitud quedó marcada como disponible para todos.', true); return;
+        }
         const ti = inp.value.trim(); if (!ti) throw new Error('Escribe el título tal como está en el catálogo.');
         if (CAT.length && !enCat(ti) && !confirm('No encuentro "' + ti + '" tal cual en el catálogo. ¿Agregarla de todos modos?')) return;
         await admin({ op: 'asignar', correo: x.correo, titulo: ti, tmdb: x.tmdb, pedido: x.id });
@@ -1789,9 +1794,9 @@ $('p-go').onclick = () => con($('p-go'), 'p-m', async () => {
       pub.onclick = () => con(pub, 'p-m', async () => {
         const ti = inp.value.trim(); if (!ti) throw new Error('Escribe el título como quieres que se vea en la biblioteca.');
         if (!en.value.trim()) throw new Error('Pega el enlace del video.');
-        await admin({ op: 'publicar', correo: x.correo, titulo: ti, tmdb: x.tmdb, tipo: x.tipo === 'tv' ? 'serie' : 'pelicula', link: en.value.trim(), pedido: x.id });
+        await admin({ op: 'publicar', ...(x.anonimo ? {} : { correo: x.correo }), titulo: ti, tmdb: x.tmdb, tipo: x.tipo === 'tv' ? 'serie' : 'pelicula', link: en.value.trim(), pedido: x.id });
         row.remove(); en.remove(); inp.remove(); tg.className = 'tag d'; tg.textContent = 'Listo';
-        msg('p-m', 'Publicada y agregada a ' + x.correo + '. En menos de un minuto aparece en la biblioteca.', true);
+        msg('p-m', x.anonimo ? 'Publicada para todos en la biblioteca.' : 'Publicada y agregada a ' + x.correo + '. En menos de un minuto aparece en la biblioteca.', true);
       });
       no.onclick = () => con(no, 'p-m', async () => { await admin({ op: 'rechazar', pedido: x.id }); tg.className = 'tag r'; tg.textContent = 'Rechazado'; row.remove(); });
       const cl = document.createElement('button'); cl.type = 'button'; cl.className = 'g'; cl.textContent = 'Copiar línea para index.html'; cl.onclick = () => copiar(lineaIndex(x), cl, 'Copiar línea para index.html');

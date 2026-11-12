@@ -149,7 +149,7 @@ CREATE TABLE IF NOT EXISTS colecciones (
   creado INTEGER NOT NULL
 );
 
--- Enlaces de acceso compartido y dispositivos que los abrieron. No se guarda la IP ni una cuenta del visitante.
+-- Enlaces compartidos y aperturas. Los pedidos anónimos guardan una huella hash de IP (no la IP original).
 CREATE TABLE IF NOT EXISTS enlaces_compartidos (
   token   TEXT PRIMARY KEY,
   tipo    TEXT NOT NULL,
@@ -173,6 +173,16 @@ CREATE TABLE IF NOT EXISTS aperturas_compartidas (
   descargas   INTEGER NOT NULL DEFAULT 0,
   PRIMARY KEY (token, dispositivo)
 ) WITHOUT ROWID;
+CREATE TABLE IF NOT EXISTS solicitudes_compartidas (
+  token       TEXT NOT NULL,
+  tmdb        INTEGER NOT NULL,
+  dispositivo TEXT NOT NULL,
+  ip_hash     TEXT NOT NULL DEFAULT '',
+  pedido      TEXT NOT NULL UNIQUE,
+  creado      INTEGER NOT NULL,
+  PRIMARY KEY (token, tmdb)
+) WITHOUT ROWID;
+CREATE INDEX IF NOT EXISTS solicitudes_compartidas_dispositivo ON solicitudes_compartidas (token, dispositivo, creado);
 CREATE INDEX IF NOT EXISTS aperturas_compartidas_token ON aperturas_compartidas (token);
 
 -- Secciones temáticas del inicio o de una colección (como "Huluween"): franja con carrusel + página propia.

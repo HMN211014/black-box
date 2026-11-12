@@ -414,8 +414,10 @@ async function asignarLista(db, correo, titulo, tmdb, pedidoId, avisar) {
 /* ---- Pedidos ---- */
 const filaPedido = r => ({
   id: r.id, correo: r.correo, tmdb: r.tmdb, tipo: r.tipo, titulo: r.titulo, anio: r.anio, poster: r.poster,
-  estado: r.estado, creado: r.creado, ...(r.listo ? { listo: r.listo } : {}), ...(r.vale ? { vale: true } : {}), ...(r.plan_usuario === 'distribuidor' ? { distribuidor: true } : {}),
+  estado: r.estado, creado: r.creado, ...(r.listo ? { listo: r.listo } : {}), ...(r.vale ? { vale: true } : {}),
+  ...(esPedidoCatalogo(r.correo) ? { anonimo: true, distribuidor: true } : r.plan_usuario === 'distribuidor' ? { distribuidor: true } : {}),
 });
+const esPedidoCatalogo = correo => /^catalogo\+[A-Za-z0-9_-]{32,80}@blackbox\.invalid$/.test(String(correo || ''));
 async function pedidosDe(db, correo) {
   const q = correo
     ? db.prepare('SELECT p.*, u.plan AS plan_usuario FROM pedidos p LEFT JOIN usuarios u ON u.correo = p.correo WHERE p.correo = ?1 ORDER BY p.creado DESC LIMIT 3000').bind(correo)
@@ -675,13 +677,55 @@ async function prepararEnlacesCompartidos(db) {
   try { await db.prepare('ALTER TABLE aperturas_compartidas ADD COLUMN descargas INTEGER NOT NULL DEFAULT 0').run(); }
   catch (e) { if (!/duplicate column/i.test(String(e && e.message))) throw e; }
   await db.prepare('CREATE INDEX IF NOT EXISTS aperturas_compartidas_token ON aperturas_compartidas (token)').run();
+  await db.prepare('CREATE TABLE IF NOT EXISTS solicitudes_compartidas (token TEXT NOT NULL, tmdb INTEGER NOT NULL, dispositivo TEXT NOT NULL, ip_hash TEXT NOT NULL DEFAULT \'\', pedido TEXT NOT NULL UNIQUE, creado INTEGER NOT NULL, PRIMARY KEY (token, tmdb)) WITHOUT ROWID').run();
+  await db.prepare('CREATE INDEX IF NOT EXISTS solicitudes_compartidas_dispositivo ON solicitudes_compartidas (token, dispositivo, creado)').run();
 }
-async function manejarEnlaceCompartido(db, cuerpo, cf = {}) {
+async function manejarEnlaceCompartido(db, cuerpo, cf = {}, headers, env, waitUntil) {
   const token = String(cuerpo.token || '').trim();
   if (!/^[A-Za-z0-9_-]{32,80}$/.test(token)) return json({ error: 'El enlace no es válido o ya no está disponible.' }, 404);
   const enlace = await db.prepare('SELECT token, tipo, destino, titulo, revocado FROM enlaces_compartidos WHERE token = ?1').bind(token).first();
   if (!enlace || enlace.revocado) return json({ error: 'El enlace fue eliminado o ya no está disponible.' }, 410);
   if (cuerpo.op === 'validar') return json({ ok: true, tipo: enlace.tipo, destino: enlace.destino, titulo: enlace.titulo });
+  if (cuerpo.op === 'solicitar') {
+    if (enlace.tipo !== 'catalogo') return json({ error: 'Las solicitudes solo están habilitadas en el enlace del catálogo.' }, 403);
+    if (String(cuerpo.ruta || '') !== '#/catalogo') return json({ error: 'La solicitud debe enviarse desde el catálogo compartido.' }, 403);
+    const dispositivo = String(cuerpo.dispositivo || '').trim().toLowerCase();
+    if (!/^[a-f0-9]{32,64}$/.test(dispositivo)) return json({ error: 'No pude identificar este dispositivo.' }, 400);
+    const apertura = await db.prepare('SELECT 1 AS ok FROM aperturas_compartidas WHERE token = ?1 AND dispositivo = ?2').bind(token, dispositivo).first();
+    if (!apertura) return json({ error: 'Abre el catálogo desde su enlace antes de solicitar.' }, 403);
+    const tmdb = Math.floor(Number(cuerpo.tmdb)), titulo = String(cuerpo.titulo || '').trim().slice(0, 100);
+    const anio = /^\d{4}$/.test(String(cuerpo.anio || '')) ? String(cuerpo.anio) : '';
+    const poster = /^\/[\w.-]{1,60}$/.test(String(cuerpo.poster || '')) ? String(cuerpo.poster) : '';
+    if (!(tmdb > 0) || !titulo) return json({ error: 'Solicitud no válida.' }, 400);
+    await prepararEnlacesCompartidos(db);
+    const anterior = await db.prepare('SELECT pedido FROM solicitudes_compartidas WHERE token = ?1 AND tmdb = ?2').bind(token, tmdb).first();
+    if (anterior) return json({ error: 'Esta película ya fue solicitada desde este enlace.' }, 409);
+    const ahora = Date.now(), dia = ahora - 86400000;
+    const limiteDispositivo = await db.prepare('SELECT COUNT(*) AS n FROM solicitudes_compartidas WHERE token = ?1 AND dispositivo = ?2 AND creado > ?3').bind(token, dispositivo, dia).first();
+    if (Number(limiteDispositivo && limiteDispositivo.n) >= 5) return json({ error: 'Este dispositivo alcanzó el límite de 5 solicitudes por día.' }, 429);
+    const limiteEnlace = await db.prepare('SELECT COUNT(*) AS n FROM solicitudes_compartidas WHERE token = ?1 AND creado > ?2').bind(token, dia).first();
+    if (Number(limiteEnlace && limiteEnlace.n) >= 100) return json({ error: 'El catálogo alcanzó el límite diario de solicitudes.' }, 429);
+    const ip = String(headers && headers.get('CF-Connecting-IP') || ''), ipHash = ip ? Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', enc.encode(String(env.ADMIN_CLAVE || '') + '\0' + token + '\0' + ip))).slice(0, 16), b => b.toString(16).padStart(2, '0')).join('') : '';
+    if (ipHash) {
+      const limiteIp = await db.prepare('SELECT COUNT(*) AS n FROM solicitudes_compartidas WHERE token = ?1 AND ip_hash = ?2 AND creado > ?3').bind(token, ipHash, dia).first();
+      if (Number(limiteIp && limiteIp.n) >= 15) return json({ error: 'Esta conexión alcanzó el límite diario de solicitudes.' }, 429);
+    }
+    const correo = 'catalogo+' + token + '@blackbox.invalid', pedido = 'cat_' + token.slice(0, 24) + '_' + tmdb;
+    try {
+      await db.batch([
+        db.prepare('INSERT INTO solicitudes_compartidas (token, tmdb, dispositivo, ip_hash, pedido, creado) VALUES (?1, ?2, ?3, ?4, ?5, ?6)').bind(token, tmdb, dispositivo, ipHash, pedido, ahora),
+        db.prepare("INSERT INTO pedidos (id, correo, tmdb, tipo, titulo, anio, poster, estado, creado, vale) VALUES (?1, ?2, ?3, 'movie', ?4, ?5, ?6, 'pendiente', ?7, 0)").bind(pedido, correo, tmdb, titulo, anio, poster, ahora),
+      ]);
+    } catch (e) {
+      const duplicada = await db.prepare('SELECT pedido FROM solicitudes_compartidas WHERE token = ?1 AND tmdb = ?2').bind(token, tmdb).first();
+      if (duplicada) return json({ error: 'Esta película ya fue solicitada desde este enlace.' }, 409);
+      throw e;
+    }
+    let pendientes = 0; try { pendientes = Number((await db.prepare("SELECT COUNT(*) AS n FROM pedidos WHERE estado = 'pendiente'").first()).n || 0); } catch (e) {}
+    const aviso = avisarAdmins(env, { titulo: 'Solicitud del catálogo compartido', texto: '«' + titulo + '»' + (anio ? ' (' + anio + ')' : '') + ' · sin cuenta' + (pendientes > 1 ? ' · ' + pendientes + ' pendientes' : ''), datos: { tipo: 'pedido_nuevo', id: pedido } });
+    if (waitUntil) waitUntil(aviso);
+    return json({ ok: true, pedido: { id: pedido, titulo, estado: 'pendiente' } });
+  }
   if (cuerpo.op === 'descarga') {
     const dispositivo = String(cuerpo.dispositivo || '').trim().toLowerCase();
     if (!/^[a-f0-9]{32,64}$/.test(dispositivo)) return json({ error: 'No pude identificar este dispositivo.' }, 400);
@@ -730,7 +774,7 @@ async function manejar({ request, env, params, waitUntil }) {
   if (esPost) { try { cuerpo = await request.json(); } catch (e) { return json({ error: 'Solicitud no válida.' }, 400); } }
 
   if (accion === 'descargar') return descargarArchivo(env, request);
-  if (accion === 'compartido' && esPost) return manejarEnlaceCompartido(db, cuerpo, request.cf || {});
+  if (accion === 'compartido' && esPost) return manejarEnlaceCompartido(db, cuerpo, request.cf || {}, request.headers, env, waitUntil);
 
   if (accion === 'presencia' && esPost) {
     const dispositivo = String(cuerpo.dispositivo || '').toLowerCase(), plataforma = cuerpo.plataforma === 'app' ? 'app' : cuerpo.plataforma === 'web' ? 'web' : '';
@@ -1470,6 +1514,9 @@ async function manejar({ request, env, params, waitUntil }) {
         const r = await asignarLista(db, limpiarCorreo(cuerpo.correo), titulo, tmdb, cuerpo.pedido, avisarAprobado);
         if (r.error) return json({ error: 'Se publicó, pero: ' + r.error }, r.status);
         lista = r.lista;
+      } else if (cuerpo.pedido) {
+        const solicitud = await db.prepare('SELECT correo FROM pedidos WHERE id = ?1').bind(String(cuerpo.pedido)).first();
+        if (solicitud && esPedidoCatalogo(solicitud.correo)) await db.prepare("UPDATE pedidos SET estado = 'listo', listo = ?1 WHERE id = ?2").bind(actualizado, String(cuerpo.pedido)).run();
       }
       return json({ publicadas: await totalPublicados(db), lista });
     }
@@ -1775,7 +1822,7 @@ async function manejar({ request, env, params, waitUntil }) {
       const pasos = [db.prepare("UPDATE pedidos SET estado = 'rechazado', vale = 0 WHERE id = ?1").bind(q.id)];
       if (q.estado === 'pendiente' && q.vale) pasos.push(db.prepare('UPDATE usuarios SET vales = vales + 1, canje = 1 WHERE correo = ?1').bind(q.correo));   // pedido rechazado: se le devuelve la película
       await db.batch(pasos);
-      if (q.estado === 'pendiente') {
+      if (q.estado === 'pendiente' && !esPedidoCatalogo(q.correo)) {
         const texto = q.vale
           ? 'Tu solicitud de «' + q.titulo + '» fue rechazada. El vale usado se devolvió a tu cuenta.'
           : 'Tu solicitud de «' + q.titulo + '» fue rechazada.';
@@ -1783,6 +1830,14 @@ async function manejar({ request, env, params, waitUntil }) {
         const p = avisarUsuario(env, q.correo, { titulo: 'Pedido rechazado', texto, datos: { tipo: 'pedido_rechazado', titulo: q.titulo, valeDevuelto: !!q.vale, ...(imagen ? { poster: imagen } : {}) } });
         if (waitUntil) waitUntil(p);
       }
+      return json({ ok: true });
+    }
+
+    if (cuerpo.op === 'completar_pedido_compartido') {
+      const id = String(cuerpo.pedido || '');
+      const solicitud = await db.prepare('SELECT correo, estado FROM pedidos WHERE id = ?1').bind(id).first();
+      if (!solicitud || !esPedidoCatalogo(solicitud.correo)) return json({ error: 'Esa solicitud compartida no existe.' }, 404);
+      await db.prepare("UPDATE pedidos SET estado = 'listo', listo = ?1 WHERE id = ?2").bind(Date.now(), id).run();
       return json({ ok: true });
     }
 

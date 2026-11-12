@@ -3771,32 +3771,46 @@ function catalogoCoincidencia(tmdb) {
   const id = Number(tmdb.id), nombre = norm(tmdb.title || tmdb.original_title || ''), year = String(tmdb.release_date || '').slice(0, 4);
   return peliculas.find(p => id && catalogoId(p) === id) || peliculas.find(p => norm(p.titulo) === nombre && (!year || !catalogoAnio(p) || String(catalogoAnio(p)) === year)) || null;
 }
+let catalogoCentros = [];
+let catalogoActivo = -1;
+function catalogoMedirCentros() {
+  const track = H('catalogo-track');
+  if (catalogoActivo >= 0 && track.children[catalogoActivo]) track.children[catalogoActivo].classList.remove('is-center');
+  catalogoActivo = -1;
+  catalogoCentros = [...track.children].map(card => card.offsetLeft + card.offsetWidth / 2);
+}
 function catalogoCentrar() {
-  const track = H('catalogo-track'), cards = [...track.children]; if (!cards.length) return;
-  const centro = track.getBoundingClientRect().left + track.clientWidth / 2;
-  let activo = cards.reduce((mejor, card) => Math.abs(card.getBoundingClientRect().left + card.offsetWidth / 2 - centro) < Math.abs(mejor.getBoundingClientRect().left + mejor.offsetWidth / 2 - centro) ? card : mejor, cards[0]);
-  if (cards.length > 2 && (activo === cards[0] || activo === cards[cards.length - 1])) {
-    const destino = activo === cards[0] ? cards[cards.length - 2] : cards[1];
-    track.scrollLeft += destino.getBoundingClientRect().left + destino.offsetWidth / 2 - (activo.getBoundingClientRect().left + activo.offsetWidth / 2);
-    activo = destino;
+  const track = H('catalogo-track'), cards = track.children, n = cards.length; if (!n) return;
+  if (catalogoCentros.length !== n) catalogoMedirCentros();
+  const centro = track.scrollLeft + track.clientWidth / 2;
+  let lo = 0, hi = n;
+  while (lo < hi) { const m = (lo + hi) >> 1; if (catalogoCentros[m] < centro) lo = m + 1; else hi = m; }
+  let i = lo >= n ? n - 1 : lo;
+  if (i > 0 && Math.abs(catalogoCentros[i - 1] - centro) <= Math.abs(catalogoCentros[i] - centro)) i--;
+  if (n > 2 && (i === 0 || i === n - 1)) {
+    const destino = i === 0 ? n - 2 : 1;
+    track.scrollLeft += catalogoCentros[destino] - catalogoCentros[i]; i = destino;
   }
-  cards.forEach(card => card.classList.toggle('is-center', card === activo));
+  if (i !== catalogoActivo) {
+    if (catalogoActivo >= 0 && cards[catalogoActivo]) cards[catalogoActivo].classList.remove('is-center');
+    cards[i].classList.add('is-center'); catalogoActivo = i;
+  }
 }
 async function catalogoSolicitar(item, boton) {
   const estado = H('catalogo-copy-status');
-  if (!U.correo) { estado.textContent = 'Inicia sesión con una cuenta Distribuidor y vuelve a abrir este enlace para solicitar.'; return; }
-  if (!U.acceso || U.acceso.plan !== 'distribuidor') { estado.textContent = 'Solicitar desde este catálogo requiere una cuenta con plan Distribuidor.'; return; }
+  if (!tokenCompartido || !enlaceCompartidoListo || enlaceCompartidoRevocado) { estado.textContent = 'Este enlace ya no está disponible para recibir solicitudes.'; return; }
   boton.disabled = true; boton.textContent = 'Enviando…'; estado.textContent = '';
   try {
-    const j = await api('usuario/pedir', { tmdb: item.tmdb, tipo: 'movie', titulo: item.titulo, anio: String(item.anio || ''), poster: item.posterPath || '' });
+    const j = await validarEnlaceCompartido('solicitar', { tmdb: item.tmdb, titulo: item.titulo, anio: String(item.anio || ''), poster: item.posterPath || '' });
     if (j && j.pedido) { boton.textContent = 'Solicitado ✓'; estado.textContent = 'Solicitud enviada a Pedidos de distribuidor.'; HAPT.tocar('marcado'); return; }
-    estado.textContent = j && j.error || 'No se pudo enviar la solicitud.';
+    estado.textContent = 'No se pudo enviar la solicitud.';
   } catch (e) { estado.textContent = uError(e); }
   boton.disabled = false; boton.textContent = 'Solicitar';
 }
 let catalogoCentroFrame = 0;
 const catalogoTrack = H('catalogo-track');
 catalogoTrack.addEventListener('scroll', () => { if (catalogoCentroFrame) return; catalogoCentroFrame = requestAnimationFrame(() => { catalogoCentroFrame = 0; catalogoCentrar(); }); }, { passive: true });
+addEventListener('resize', () => { catalogoMedirCentros(); catalogoCentrar(); }, { passive: true });
 let catalogoArrastre = null;
 catalogoTrack.addEventListener('pointerdown', e => { if (e.pointerType !== 'mouse' || e.button !== 0) return; catalogoArrastre = { x: e.clientX, left: catalogoTrack.scrollLeft }; catalogoTrack.setPointerCapture(e.pointerId); catalogoTrack.style.scrollSnapType = 'none'; e.preventDefault(); });
 catalogoTrack.addEventListener('pointermove', e => { if (!catalogoArrastre) return; catalogoTrack.scrollLeft = catalogoArrastre.left - (e.clientX - catalogoArrastre.x); });
@@ -3804,7 +3818,7 @@ const catalogoSoltarArrastre = () => { if (!catalogoArrastre) return; catalogoAr
 catalogoTrack.addEventListener('pointerup', catalogoSoltarArrastre); catalogoTrack.addEventListener('pointercancel', catalogoSoltarArrastre); catalogoTrack.addEventListener('dragstart', e => e.preventDefault());
 function pintarCatalogo(lista, estado) {
   if (!vistas.cat || vistas.cat.hidden) return;
-  const track = H('catalogo-track'); track.replaceChildren();
+  const track = H('catalogo-track'); track.replaceChildren(); catalogoCentros = []; catalogoActivo = -1;
   const visual = lista.length > 1 ? [{ ...lista[lista.length - 1], catalogoClon: true }, ...lista, { ...lista[0], catalogoClon: true }] : lista;
   visual.forEach(item => {
     const p = item.pelicula, disponible = !!p;
@@ -3822,10 +3836,10 @@ function pintarCatalogo(lista, estado) {
     }
     track.appendChild(card);
   });
-  if (lista.length > 1) requestAnimationFrame(() => {
-    if (vistas.cat.hidden || !track.children[1]) return;
-    const primero = track.children[1], centro = track.getBoundingClientRect().left + track.clientWidth / 2;
-    track.scrollLeft += primero.getBoundingClientRect().left + primero.offsetWidth / 2 - centro;
+  requestAnimationFrame(() => {
+    if (vistas.cat.hidden || !track.children.length) return;
+    catalogoMedirCentros();
+    if (lista.length > 1 && track.children[1]) track.scrollLeft += catalogoCentros[1] - (track.scrollLeft + track.clientWidth / 2);
     catalogoCentrar();
   });
   H('catalogo-empty').hidden = !!lista.length; H('catalogo-sub').textContent = estado || (lista.length + (lista.length === 1 ? ' película disponible' : ' películas disponibles') + ' · Más recientes primero');
@@ -4954,10 +4968,10 @@ function mostrarEnlaceDenegado() {
   try { H('pv').pause(); } catch (e) {}
   H('share-denied').hidden = false;
 }
-async function validarEnlaceCompartido(op) {
+async function validarEnlaceCompartido(op, extra = {}) {
   const dispositivo = infoDispositivoCompartido();
   const respuesta = await fetch('/api/usuario/compartido', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ op, token: tokenCompartido, ruta: location.hash, ...dispositivo }) });
+    body: JSON.stringify({ ...extra, op, token: tokenCompartido, ruta: location.hash, ...dispositivo }) });
   const datos = await respuesta.json().catch(() => ({}));
   if (!respuesta.ok) throw new Error(datos.error || 'Enlace no disponible.');
   return datos;
