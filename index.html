@@ -1413,9 +1413,9 @@ html.catalogo-exclusivo.catalogo-listo #vista-catalogo{display:flex!important}
 .catalogo-heading{flex:none;margin:34px 14px 0;text-align:center;font-size:clamp(22px,5.4vw,48px);font-weight:400;letter-spacing:.025em;text-shadow:0 3px 18px rgba(0,0,0,.9)}
 .catalogo-sub{margin:8px 12px 0;text-align:center;color:rgba(255,255,255,.76);text-shadow:0 2px 8px #000}
 .catalogo-track{flex:1;min-height:0;align-items:center;margin:6px 0 4px;padding:0 max(16vw,calc((100vw - 600px)/2));gap:18px;scroll-padding-inline:max(16vw,calc((100vw - 600px)/2));perspective:1000px;touch-action:pan-x;cursor:grab}
-.catalogo-card{flex:0 0 auto;width:auto;height:min(68dvh,100%);aspect-ratio:2/3;max-width:min(68vw,600px);border-radius:28px;opacity:.56;filter:brightness(.68) saturate(.78);transform:scale(.86);transition:transform .32s ease,opacity .32s ease,filter .32s ease;box-shadow:0 20px 58px rgba(0,0,0,.55)}
+.catalogo-card{flex:0 0 auto;width:auto;height:min(68dvh,100%);aspect-ratio:2/3;max-width:min(68vw,600px);border-radius:28px;opacity:.68;filter:brightness(.78) saturate(.88);transform:scale(.94);transition:transform .42s cubic-bezier(.22,.61,.36,1),opacity .32s ease,filter .32s ease;box-shadow:0 20px 58px rgba(0,0,0,.55)}
 .catalogo-card img{display:block;border-radius:inherit;object-fit:cover}
-.catalogo-card.is-center{z-index:2;opacity:1;filter:none;transform:scale(1);box-shadow:0 26px 70px rgba(0,0,0,.65),0 0 0 1px rgba(255,255,255,.22)}
+.catalogo-card.is-center{z-index:2;opacity:1;filter:none;transform:scale(1.02);box-shadow:0 26px 70px rgba(0,0,0,.65),0 0 0 1px rgba(255,255,255,.22)}
 .catalogo-card.no-disponible:not(.is-center){opacity:.55;filter:brightness(.55) grayscale(.18)}.catalogo-card.no-disponible.is-center{opacity:1;filter:brightness(.8)}
 .catalogo-card::after{inset:48% 0 0;background:linear-gradient(transparent,rgba(0,0,0,.76))}
 .catalogo-card .catalogo-title{left:16px;right:16px;bottom:44px;font-size:clamp(17px,4vw,28px);text-align:center}
@@ -1426,8 +1426,8 @@ html.catalogo-exclusivo.catalogo-listo #vista-catalogo{display:flex!important}
 .catalogo-copy{align-self:center;flex:none;width:min(84vw,760px);min-height:64px;margin:14px auto 0;padding:12px 22px;border:1px solid rgba(255,255,255,.12);border-radius:999px;background:rgba(38,38,40,.94);box-shadow:0 16px 44px rgba(0,0,0,.44),inset 0 1px 0 rgba(255,255,255,.1);color:#fff;font:inherit;font-size:clamp(17px,3.4vw,27px);font-weight:750;letter-spacing:.035em;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .catalogo-copy:active{transform:scale(.98)}.catalogo-copy-status{min-height:16px;margin:6px 0 0;text-align:center;color:rgba(255,255,255,.78);font-size:12px;text-shadow:0 1px 7px #000}
 @media(max-height:650px){.catalogo-heading{margin-top:10px}.catalogo-card{height:min(62dvh,100%)}.catalogo-copy{min-height:48px;margin-top:6px}.catalogo-top{height:48px;margin-top:8px}.catalogo-sub{margin-top:4px}}
-@media(max-width:520px){.catalogo-top{width:88vw;padding:0 18px}.catalogo-heading{font-size:clamp(20px,5.4vw,32px);margin-top:24px}.catalogo-track{padding-inline:13vw;scroll-padding-inline:13vw;gap:14px}.catalogo-card{height:min(68dvh,100%);max-width:74vw;border-radius:24px}.catalogo-copy{width:88vw;min-height:58px;font-size:clamp(15px,4vw,21px)}}
-@media(max-width:390px){.catalogo-heading{margin-top:16px}.catalogo-card{height:min(64dvh,100%)}.catalogo-copy{min-height:52px;margin-top:8px}}
+@media(max-width:520px){.catalogo-top{width:88vw;padding:0 18px}.catalogo-heading{font-size:clamp(20px,5.4vw,32px);margin-top:24px}.catalogo-track{padding-inline:13vw;scroll-padding-inline:13vw;gap:14px}.catalogo-card{height:min(68dvh,100%,108vw);max-width:72vw;border-radius:24px}.catalogo-copy{width:88vw;min-height:58px;font-size:clamp(15px,4vw,21px)}}
+@media(max-width:390px){.catalogo-heading{margin-top:16px}.catalogo-card{height:min(64dvh,100%,108vw)}.catalogo-copy{min-height:52px;margin-top:8px}}
 .catalogo-card .catalogo-title{bottom:46px}.catalogo-status{position:absolute;z-index:2;left:0;right:0;bottom:0;display:grid;place-items:center;height:34px;font-size:11px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}.catalogo-status.disponible{background:linear-gradient(90deg,rgba(22,102,61,.82),rgba(25,132,73,.78));border-top:1px solid rgba(152,255,190,.24);color:#e5ffed}.catalogo-status.no-disponible{background:rgba(22,22,26,.88);border-top:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.75)}.catalogo-card.no-disponible{cursor:default;opacity:1;box-shadow:0 12px 34px rgba(0,0,0,.4)}.catalogo-card.no-disponible img{filter:brightness(.78)}.catalogo-card:focus-visible{outline:3px solid rgba(139,255,180,.72);outline-offset:4}.catalogo-top{grid-template-columns:1fr}
 .cfg-sw{position:relative;flex:none;width:62px;height:38px;border-radius:999px;background:rgba(255,255,255,.2);transition:background .25s}
 .cfg-sw::after{content:"";position:absolute;top:3px;left:3px;width:32px;height:32px;border-radius:50%;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.35);transition:transform .3s cubic-bezier(.3,1.5,.5,1)}
@@ -3794,9 +3794,9 @@ async function catalogoSolicitar(item, boton) {
   } catch (e) { estado.textContent = uError(e); }
   boton.disabled = false; boton.textContent = 'Solicitar';
 }
-let catalogoCentroTimer = 0;
+let catalogoCentroFrame = 0;
 const catalogoTrack = H('catalogo-track');
-catalogoTrack.addEventListener('scroll', () => { clearTimeout(catalogoCentroTimer); catalogoCentroTimer = setTimeout(catalogoCentrar, 100); }, { passive: true });
+catalogoTrack.addEventListener('scroll', () => { if (catalogoCentroFrame) return; catalogoCentroFrame = requestAnimationFrame(() => { catalogoCentroFrame = 0; catalogoCentrar(); }); }, { passive: true });
 let catalogoArrastre = null;
 catalogoTrack.addEventListener('pointerdown', e => { if (e.pointerType !== 'mouse' || e.button !== 0) return; catalogoArrastre = { x: e.clientX, left: catalogoTrack.scrollLeft }; catalogoTrack.setPointerCapture(e.pointerId); catalogoTrack.style.scrollSnapType = 'none'; e.preventDefault(); });
 catalogoTrack.addEventListener('pointermove', e => { if (!catalogoArrastre) return; catalogoTrack.scrollLeft = catalogoArrastre.left - (e.clientX - catalogoArrastre.x); });
