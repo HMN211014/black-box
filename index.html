@@ -345,6 +345,7 @@ svg.st text{fill:currentColor;stroke:none}
 .cp-hero h2{margin:0;font-size:clamp(28px,5vw,48px);text-shadow:0 2px 16px #000}.cp-hero p{margin:8px 0 0;color:#eee}
 .cp-body{padding:18px 28px 30px}.cp-body h3{margin:0 0 14px;font-size:13px;letter-spacing:.22em;color:#c4c4cb}
 .cp-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.cp-grid .ctile{width:100%;aspect-ratio:16/9;border:0;font:inherit;cursor:pointer}
+.cp-grid .cp-poster-img{position:absolute!important;inset:0;width:100%;height:100%;object-fit:cover;z-index:0!important;pointer-events:none}
 .cp-dialog.vertical{width:min(680px,94vw);height:min(94dvh,1100px)}
 .cp-dialog.vertical .cp-shell{overflow:auto}
 .cp-dialog.vertical .cp-hero{height:43%;min-height:300px;max-height:560px;flex:none;padding:28px 30px 26px;align-items:flex-end}
@@ -353,7 +354,7 @@ svg.st text{fill:currentColor;stroke:none}
 .cp-dialog.vertical .cp-body{border-top:1px solid rgba(255,255,255,.22);padding:20px 26px 30px}
 .cp-dialog.vertical .cp-body h3{font-size:12px;letter-spacing:.24em;margin-bottom:16px}
 .cp-dialog.vertical .cp-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
-.cp-dialog.vertical .cp-grid .ctile{aspect-ratio:16/10}
+.cp-dialog.vertical .cp-grid .ctile{aspect-ratio:2/3}
 @media(max-width:650px){.cp-dialog{width:96vw;height:94dvh;border-radius:20px}.cp-hero{min-height:190px;padding:20px}.cp-body{padding:16px}.cp-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.cp-grid .ctile{border-radius:14px}.cp-grid .ctile .wm{font-size:18px}}
 @media(max-width:650px){.cp-dialog.vertical{width:96vw;height:94dvh}.cp-dialog.vertical .cp-hero{height:42%;min-height:250px;max-height:none;padding:20px}.cp-dialog.vertical .cp-body{padding:16px}.cp-dialog.vertical .cp-grid{gap:10px}}
 
@@ -5849,13 +5850,27 @@ function abrirPanelColecciones(c) {
   const fondoPanel = c.panelFondo || '';
   const f = fondoPanel && /^https?:\/\/[^\s"'()\\]+$/.test(fondoPanel) ? 'url("' + fondoPanel.replace(/"/g, '%22') + '")' : 'linear-gradient(135deg,' + (c.a || '#26314b') + ',' + (c.b || '#101014') + ')';
   hero.style.setProperty('--cp-bg', f);
+  const columnas = Math.max(1, Math.min(6, Number(c.panelColumnas) || (c.panelVertical ? 2 : 3)));
+  grid.style.gridTemplateColumns = 'repeat(' + columnas + ',minmax(0,1fr))';
+  const estilos = new Map((c.panelItems || []).map(s => [s.id, s]));
   const hijos = (c.subcolecciones || []).map(coleccionPorId).filter(x => x && !x.panel);
   hijos.forEach(x => {
-    const b = document.createElement('button'); b.type = 'button'; b.className = 'ctile t-' + (x.tema || 'liso') + (x.fondo ? ' img' : '') + (x.sinNombre ? ' sin-nombre' : '');
+    const item = estilos.get(x.id) || {}, posterImg = item.imagen || x.fondo || '';
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'ctile t-' + (x.tema || 'liso') + (posterImg ? ' img' : '') + (x.sinNombre ? ' sin-nombre' : '');
     b.style.setProperty('--a', x.a || '#0b3d91'); b.style.setProperty('--b', x.b || '#020b1f'); b.style.setProperty('--tx', x.tx || '#fff');
-    if (x.fondo) b.style.setProperty('--fondo', urlCss(x.fondo));
-    b.setAttribute('aria-label', x.nombre + ', abrir colección');
-    if (!x.sinNombre) b.append(typeof marca === 'function' ? marca(x) : el('span', 'wm', x.nombre));
+    if (posterImg && /^https?:\/\/[^\s"'()\\]+$/.test(posterImg)) {
+      b.style.setProperty('--fondo', 'none');
+      const im = new Image(); im.className = 'cp-poster-img'; im.alt = ''; im.loading = 'lazy'; im.src = posterImg;
+      im.style.transform = 'scale(' + (Math.max(80, Math.min(160, Number(item.zoom) || 100)) / 100) + ')'; im.onerror = () => im.remove(); b.appendChild(im);
+    } else if (x.fondo) b.style.setProperty('--fondo', urlCss(x.fondo));
+    const textoVisible = item.texto || x.nombre;
+    b.setAttribute('aria-label', textoVisible + ', abrir colección');
+    if (item.texto) { const t = el('span', 'wm', item.texto); t.style.fontSize = (Math.max(12, Math.min(42, Number(item.textoSize) || 24))) + 'px'; b.appendChild(t); }
+    else if (!x.sinNombre) {
+      const marcaCol = typeof marca === 'function' ? marca(x) : el('span', 'wm', x.nombre);
+      if (item.textoSize && marcaCol.classList && marcaCol.classList.contains('wm')) marcaCol.style.fontSize = item.textoSize + 'px';
+      b.appendChild(marcaCol);
+    }
     b.onclick = () => { d.close(); location.hash = '#/c/' + x.id; };
     grid.appendChild(b);
   });
