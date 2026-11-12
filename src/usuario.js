@@ -595,6 +595,10 @@ function limpiarCol(c) {
     patron: PATRONES_COL.includes(c.patron) ? c.patron : '', patronColor: hexCol(c.patronColor, '#ffffff'),
     anuncio: { titulo: String(an.titulo || '').trim().slice(0, 100), texto: String(an.texto || '').trim().slice(0, 300), imagen: aImg, enlace: aEnl, boton: String(an.boton || '').trim().slice(0, 40) }
   };
+  if (c.panel === true) {
+    o.panel = true;
+    o.subcolecciones = [...new Set((Array.isArray(c.subcolecciones) ? c.subcolecciones : []).map(x => String(x || '').trim().toLowerCase()).filter(x => /^[a-z0-9][a-z0-9-]{0,39}$/.test(x) && x !== id))].slice(0, 60);
+  }
   if (fondo) { o.fondo = fondo; if (c.sinNombre) o.sinNombre = true; }
   if (logo) o.logo = logo;
   for (const k of ['tmdbEmpresas', 'tmdbPalabras', 'tmdbSagas', 'tmdbDirectores', 'tmdbReparto']) { const l = criteriosCol(c[k]); if (l.length) o[k] = l; }

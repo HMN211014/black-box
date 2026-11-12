@@ -583,6 +583,13 @@ body:not(.h) .nav button.on{background:#fff;color:#000}
     <label class="ck"><input type="checkbox" id="co-sin"> La imagen ya trae el nombre escrito (no repetirlo encima)</label>
     <label>Logo (opcional)<small class="h">Imagen del logo en lugar del nombre escrito.</small><input id="co-logo" type="url" autocapitalize="off" spellcheck="false" placeholder="https://…"></label>
 
+    <details class="dt" id="co-panel-box">
+      <summary>Subpanel de colecciones</summary>
+      <p class="s">Convierte esta colección en una ventana flotante que agrupa colecciones existentes. Al guardar, las colecciones seleccionadas se muestran dentro del panel y dejan de ocupar espacio en la fila principal.</p>
+      <label class="ck"><input type="checkbox" id="co-panel-check"> Abrir como subpanel al hacer clic</label>
+      <div id="co-panel-pick" hidden><h4 style="margin:12px 0 6px">Colecciones dentro del panel</h4><div id="co-panel-options"></div></div>
+    </details>
+
     <div id="co-pv" style="margin-top:14px;border-top:1px solid rgba(255,255,255,.1);padding-top:14px">
       <b>Contenido de la colección</b>
       <p class="s" style="margin:4px 0 0">Busca en TMDB para agregar películas, series o títulos próximos. Las series disponibles también se pueden elegir directamente desde la biblioteca. Con la ✕ quitas un título; si entraba por una regla, pasa a excluido.</p>
@@ -2244,6 +2251,7 @@ function coLeer() {
     tema: $('co-tema').value, fondo: $('co-fondo').value.trim(), logo: $('co-logo').value.trim(), sinNombre: $('co-sin').checked,
     fuente: $('co-fuente').value, peso: $('co-peso').value, esp: $('co-esp').value, mayus: $('co-mayus').checked,
     patron: $('co-patron').value, patronColor: $('co-pc').value,
+    panel: $('co-panel-check').checked, subcolecciones: [...document.querySelectorAll('#co-panel-options input:checked')].map(x => x.value),
     anuncio: { titulo: $('co-at').value.trim(), texto: $('co-ax').value.trim(), imagen: $('co-ai').value.trim(), enlace: $('co-ae').value.trim(), boton: $('co-ab').value.trim() },
     tmdbEmpresas: lin('co-emp'), tmdbEmpresasContiene: lin('co-empc'), tmdbPalabras: lin('co-pal'), tmdbSagas: lin('co-sag'), tmdbDirectores: lin('co-dir'), tmdbReparto: lin('co-rep'),
     auto: $('co-auto').checked, incluirSeries: $('co-series').checked, excluir: lin('co-exc'), peliculas: lin('co-pel'), series: coSeries.slice(), subcategorias: coSubsLeer(), proximamente: coProx.map(x => ({ ...x }))
@@ -2260,6 +2268,7 @@ function coPrev() {
 function coPoner(c) {                                  // c = null → formulario en blanco
   c = c || {}; const an = c.anuncio || {}, v = (id, x, d) => { $(id).value = x == null || x === '' ? d : x; }, L = (id, a) => { $(id).value = (a || []).join('\n'); };
   coEditando = c.id || null; coManual = !!c.id;
+  $('co-panel-check').checked = !!c.panel; $('co-panel-pick').hidden = !c.panel;
   const esp = c.esp || '.08em';                        // si trae un espaciado que no está en la lista (p. ej. .06em), se agrega
   if (![...$('co-esp').options].some(o => o.value === esp)) { const o = document.createElement('option'); o.value = o.textContent = esp; $('co-esp').appendChild(o); }
   v('co-nombre', c.nombre, ''); v('co-id', c.id, ''); $('co-id').readOnly = !!c.id;
@@ -2274,6 +2283,18 @@ function coPoner(c) {                                  // c = null → formulari
   coProx = (c.proximamente || []).map(x => ({ ...x }));
   coPrev(); coTiles();
 }
+function coPanelOpciones(c) {
+  const box = $('co-panel-options'); box.replaceChildren();
+  const all = [...delArchivo.map(x => coPanel.get(x.id) || x), ...[...coPanel.values()].filter(x => !delArchivo.some(a => a.id === x.id))];
+  const selected = new Set(c && c.subcolecciones || []);
+  all.filter(x => x.id !== (c && c.id) && !x.panel).forEach(x => {
+    const l = document.createElement('label'); l.className = 'ck'; l.style.cssText = 'padding:7px 0';
+    const cb = document.createElement('input'); cb.type = 'checkbox'; cb.value = x.id; cb.checked = selected.has(x.id);
+    l.append(cb, document.createTextNode(' ' + x.nombre)); box.appendChild(l);
+  });
+  if (!box.children.length) { const p = document.createElement('p'); p.className = 's'; p.textContent = 'Primero crea o guarda las colecciones que quieres agrupar.'; box.appendChild(p); }
+}
+$('co-panel-check').addEventListener('change', () => { $('co-panel-pick').hidden = !$('co-panel-check').checked; });
 document.querySelectorAll('#col-card input, #col-card select, #col-card textarea').forEach(e => e.addEventListener('input', coPrev));
 $('co-series').addEventListener('change', () => coTiles(true));
 $('co-nombre').addEventListener('input', () => { if (!coManual) $('co-id').value = slug($('co-nombre').value); });
@@ -2283,6 +2304,7 @@ function coEditar(c, aviso) { coPoner(c); msg('co-m', aviso, true); $('col-card'
 async function coLista() {
   const j = await admin({ op: 'colecciones' }), box = $('co-lista'); box.replaceChildren();
   coPanel = new Map(j.items.map(c => [c.id, c]));
+  coPanelOpciones(coEditando ? (coPanel.get(coEditando) || delArchivo.find(x => x.id === coEditando)) : null);
   const idsArchivo = new Set(delArchivo.map(c => c.id)), soloPanel = j.items.filter(c => !idsArchivo.has(c.id));
   const filas = [
     ...delArchivo.map(f => ({ id: f.id, ef: coPanel.get(f.id) || aFormaPanel(f), origen: coPanel.has(f.id) ? 'mod' : 'arch' })),
@@ -2310,7 +2332,7 @@ async function coLista() {
     const b = document.createElement('b'); b.textContent = c.nombre;
     const sm = document.createElement('small');
     const nSub = (c.subcategorias || []).length;
-    sm.textContent = '#/c/' + c.id + ' · ' + (f.origen === 'arch' ? 'de colecciones.js' : f.origen === 'mod' ? 'de colecciones.js, modificada desde el panel' : 'creada desde el panel') + (nSub ? ' · ' + nSub + ' subcategoría(s)' : '') + (nReglas(c) ? '' : ' · sin reglas: saldrá vacía');
+    sm.textContent = '#/c/' + c.id + ' · ' + (f.origen === 'arch' ? 'de colecciones.js' : f.origen === 'mod' ? 'de colecciones.js, modificada desde el panel' : 'creada desde el panel') + (c.panel ? ' · Panel con ' + (c.subcolecciones || []).length + ' colecciones' : nSub ? ' · ' + nSub + ' subcategoría(s)' : '') + (!c.panel && !nReglas(c) ? ' · sin reglas: saldrá vacía' : '');
     tx.append(b, sm);
     const r = document.createElement('div'); r.className = 'row';
     const up = document.createElement('button'); up.className = 'g'; up.type = 'button'; up.textContent = '↑'; up.title = 'Mover arriba'; up.setAttribute('aria-label', 'Mover ' + c.nombre + ' arriba'); up.dataset.move = 'up'; up.disabled = coOrden[0] === f.id; up.onclick = () => mover(f.id, -1);
