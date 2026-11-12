@@ -2445,6 +2445,17 @@ async function coLista() {
       ? 'Editando "' + c.nombre + '", que viene de colecciones.js. Al guardar, el panel crea una versión que la reemplaza; el archivo no se toca.'
       : 'Editando "' + c.nombre + '". Cambia lo que quieras y toca Guardar.');
     r.appendChild(e);
+    const visibleInicio = c.mostrarInicio !== false, vis = document.createElement('button');
+    vis.className = 'g'; vis.type = 'button'; vis.textContent = visibleInicio ? 'Ocultar' : 'Mostrar';
+    vis.title = (visibleInicio ? 'Ocultar ' : 'Mostrar ') + c.nombre + (visibleInicio ? ' de' : ' en') + ' la pantalla principal';
+    vis.setAttribute('aria-label', vis.title); vis.setAttribute('aria-pressed', String(visibleInicio));
+    vis.onclick = () => con(vis, 'co-m', async () => {
+      const mostrarInicio = c.mostrarInicio === false;
+      await admin({ op: 'guardar_col', col: { ...c, mostrarInicio } });
+      await coLista();
+      msg('co-m', mostrarInicio ? '"' + c.nombre + '" volverá a mostrarse en la pantalla principal.' : '"' + c.nombre + '" se ocultó de la pantalla principal. Sigue disponible en Admin y en los subpaneles.', true);
+    });
+    r.appendChild(vis);
     if (f.origen !== 'arch') {                         // quitar la versión del panel (nunca borra películas ni toca colecciones.js)
       const q = document.createElement('button'); q.className = 'g'; q.type = 'button'; q.textContent = f.origen === 'mod' ? 'Restaurar original' : 'Quitar';
       q.onclick = () => {
