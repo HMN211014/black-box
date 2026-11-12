@@ -61,9 +61,8 @@ td.k{font-family:ui-monospace,Menlo,Consolas,monospace;white-space:nowrap}
 @media(max-width:700px){#co-lista .it{align-items:flex-start}#co-lista .it .row{flex-wrap:wrap;justify-content:flex-end;max-width:48%}}
 .cp-admin-preview{margin-top:14px;padding:12px;border-radius:16px;background:#0b0b0f;border:1px solid rgba(255,255,255,.12)}
 .cp-admin-preview-h{display:flex;justify-content:space-between;gap:10px;color:#c7c7cc;font-size:12px;margin-bottom:10px}
-.cp-admin-frame{max-height:420px;overflow:auto;border-radius:12px;background:#141419}
-.cp-admin-hero{position:relative;isolation:isolate;height:112px;overflow:hidden;display:flex;align-items:flex-end;padding:12px;background:linear-gradient(135deg,#26314b,#101014)}
-.cp-admin-preview.vertical .cp-admin-hero{height:155px}
+.cp-admin-frame{height:360px;overflow:auto;border-radius:12px;background:#141419}
+.cp-admin-hero{position:relative;isolation:isolate;height:155px;overflow:hidden;display:flex;align-items:flex-end;padding:12px;background:linear-gradient(135deg,#26314b,#101014)}
 .cp-admin-hero img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0}
 .cp-admin-hero:after{content:"";position:absolute;inset:0;z-index:1;background:linear-gradient(0deg,#101014e8,transparent 80%);pointer-events:none}
 .cp-admin-hero-title{position:relative;z-index:2;color:#fff;line-height:1.05;text-shadow:0 2px 8px #000;word-break:break-word}
@@ -630,6 +629,7 @@ body:not(.h) .nav button.on{background:#fff;color:#000}
           <label class="cp-range">Zoom de la imagen superior<input id="co-panel-imagen-zoom" type="range" min="100" max="180" step="1" value="100"><output id="co-panel-imagen-zoom-val">100%</output></label>
         </div>
         <label class="cp-range">Encuadre vertical de la imagen<input id="co-panel-imagen-y" type="range" min="0" max="100" step="1" value="50"><output id="co-panel-imagen-y-val">50%</output></label>
+        <label class="cp-range">Espacio de la imagen superior<input id="co-panel-imagen-altura" type="range" min="30" max="70" step="1" value="43"><output id="co-panel-imagen-altura-val">43% de la subventana</output></label>
         <label class="ck" style="margin-top:12px"><input type="checkbox" id="co-panel-vertical"> Presentación vertical para el subpanel</label>
         <p class="s" style="margin:4px 0 12px">Usa una ventana alta, ajusta el título sobre la imagen y separa el área visual de las colecciones con una línea.</p>
         <h4 style="margin:14px 0 6px">Agregar colecciones existentes</h4>
@@ -2307,7 +2307,7 @@ function coLeer() {
     fuente: $('co-fuente').value, peso: $('co-peso').value, esp: $('co-esp').value, mayus: $('co-mayus').checked,
     patron: $('co-patron').value, patronColor: $('co-pc').value,
     mostrarInicio: $('co-mostrar-inicio').checked, panel: $('co-panel-check').checked, panelFondo: $('co-panel-fondo').value.trim(), panelVertical: $('co-panel-vertical').checked,
-    panelTitulo: $('co-panel-titulo').value.trim(), panelTituloSize: Number($('co-panel-titulo-size').value), panelImagenZoom: Number($('co-panel-imagen-zoom').value), panelImagenY: Number($('co-panel-imagen-y').value),
+    panelTitulo: $('co-panel-titulo').value.trim(), panelTituloSize: Number($('co-panel-titulo-size').value), panelImagenZoom: Number($('co-panel-imagen-zoom').value), panelImagenY: Number($('co-panel-imagen-y').value), panelImagenAltura: Number($('co-panel-imagen-altura').value),
     panelColumnas: Number($('co-panel-cols').value), subcolecciones: coPanelSeleccionados(),
     anuncio: { titulo: $('co-at').value.trim(), texto: $('co-ax').value.trim(), imagen: $('co-ai').value.trim(), enlace: $('co-ae').value.trim(), boton: $('co-ab').value.trim() },
     tmdbEmpresas: lin('co-emp'), tmdbEmpresasContiene: lin('co-empc'), tmdbPalabras: lin('co-pal'), tmdbSagas: lin('co-sag'), tmdbDirectores: lin('co-dir'), tmdbReparto: lin('co-rep'),
@@ -2331,6 +2331,7 @@ function coPoner(c) {                                  // c = null → formulari
   $('co-panel-titulo-size').value = Math.max(20, Math.min(60, Number(c.panelTituloSize) || 42));
   $('co-panel-imagen-zoom').value = Math.max(100, Math.min(180, Number(c.panelImagenZoom) || 100));
   $('co-panel-imagen-y').value = Math.max(0, Math.min(100, Number(c.panelImagenY == null ? 50 : c.panelImagenY)));
+  $('co-panel-imagen-altura').value = Math.max(30, Math.min(70, Number(c.panelImagenAltura) || 43));
   $('co-mostrar-inicio').checked = c.mostrarInicio !== false; $('co-panel-vertical').checked = !!c.panelVertical;
   const esp = c.esp || '.08em';                        // si trae un espaciado que no está en la lista (p. ej. .06em), se agrega
   if (![...$('co-esp').options].some(o => o.value === esp)) { const o = document.createElement('option'); o.value = o.textContent = esp; $('co-esp').appendChild(o); }
@@ -2356,6 +2357,7 @@ function coPanelPreview() {
   const titulo = $('co-panel-titulo').value.trim() || $('co-nombre').value.trim() || 'Colección';
   const heading = $('co-panel-preview-title'); heading.textContent = titulo; heading.style.fontSize = $('co-panel-titulo-size').value + 'px';
   const hero = $('co-panel-preview-hero'), image = $('co-panel-preview-image'), bg = $('co-panel-fondo').value.trim();
+  const altura = Number($('co-panel-imagen-altura').value) || 43; hero.style.height = (altura * 3.6) + 'px';
   hero.style.background = 'linear-gradient(135deg,' + $('co-a').value + ',' + $('co-b').value + ')';
   image.hidden = !(bg && (/^https?:\/\/[^\s"'()\\]+$/.test(bg) || /^\/(?!\/)[^\s"'()\\]+$/.test(bg)));
   image.onerror = () => { image.hidden = true; };
@@ -2363,6 +2365,7 @@ function coPanelPreview() {
   $('co-panel-titulo-size-val').textContent = $('co-panel-titulo-size').value + ' px';
   $('co-panel-imagen-zoom-val').textContent = $('co-panel-imagen-zoom').value + '%';
   $('co-panel-imagen-y-val').textContent = $('co-panel-imagen-y').value + '%';
+  $('co-panel-imagen-altura-val').textContent = altura + '% de la subventana';
   grid.replaceChildren(...ids.map(id => {
     const c = all.get(id); if (!c) return null;
     const card = document.createElement('div'); card.className = 'cp-admin-card';
@@ -2394,7 +2397,7 @@ function coPanelOpciones(c) {
   coPanelPreview();
 }
 $('co-panel-cols').addEventListener('input', coPanelPreview);
-['co-panel-fondo','co-panel-titulo','co-panel-titulo-size','co-panel-imagen-zoom','co-panel-imagen-y','co-nombre','co-a','co-b'].forEach(id => $(id).addEventListener('input', coPanelPreview));
+['co-panel-fondo','co-panel-titulo','co-panel-titulo-size','co-panel-imagen-zoom','co-panel-imagen-y','co-panel-imagen-altura','co-nombre','co-a','co-b'].forEach(id => $(id).addEventListener('input', coPanelPreview));
 $('co-panel-vertical').addEventListener('change', coPanelPreview);
 $('co-panel-check').addEventListener('change', () => { $('co-panel-pick').hidden = !$('co-panel-check').checked; });
 document.querySelectorAll('#col-card input, #col-card select, #col-card textarea').forEach(e => e.addEventListener('input', coPrev));

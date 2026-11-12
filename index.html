@@ -340,7 +340,7 @@ svg.st text{fill:currentColor;stroke:none}
 .cp-dialog{width:min(1100px,94vw);height:min(92dvh,1000px);max-width:none;max-height:none;padding:0;border:1px solid rgba(255,255,255,.13);border-radius:26px;background:#111;color:#fff;overflow:hidden;box-shadow:0 35px 100px #000b}
 .cp-dialog::backdrop{background:rgba(0,0,0,.76);backdrop-filter:blur(8px)}
 .cp-shell{height:100%;display:flex;flex-direction:column;overflow:auto;overscroll-behavior:contain}
-.cp-hero{position:relative;isolation:isolate;min-height:230px;padding:24px 30px 30px;display:flex;align-items:flex-end;background:var(--cp-bg,linear-gradient(135deg,#26314b,#101014));overflow:hidden}
+.cp-hero{position:relative;isolation:isolate;height:var(--cp-hero-height,43%);min-height:230px;max-height:70%;flex:none;padding:24px 30px 30px;display:flex;align-items:flex-end;background:var(--cp-bg,linear-gradient(135deg,#26314b,#101014));overflow:hidden}
 .cp-hero:before{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;background:linear-gradient(0deg,#101014 0%,rgba(16,16,20,.16) 100%)}
 .cp-cover{position:absolute;inset:0;z-index:-1;width:100%;height:100%;object-fit:cover;object-position:50% var(--cp-cover-y,50%);transform:scale(var(--cp-cover-zoom,1));pointer-events:none}
 .cp-close{position:absolute;z-index:3;left:20px;top:18px;border:0;border-radius:50px;padding:10px 16px;background:#17171bbd;color:#fff;font:inherit;cursor:pointer;backdrop-filter:blur(12px)}
@@ -350,7 +350,7 @@ svg.st text{fill:currentColor;stroke:none}
 .cp-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.cp-grid .ctile{width:100%;aspect-ratio:16/9;border:0;font:inherit;cursor:pointer}
 .cp-dialog.vertical{width:min(680px,94vw);height:min(94dvh,1100px)}
 .cp-dialog.vertical .cp-shell{overflow:auto}
-.cp-dialog.vertical .cp-hero{height:43%;min-height:300px;max-height:560px;flex:none;padding:28px 30px 26px;align-items:flex-end}
+.cp-dialog.vertical .cp-hero{height:var(--cp-hero-height,43%);min-height:230px;max-height:none;padding:28px 30px 26px;align-items:flex-end}
 .cp-dialog.vertical .cp-hero h2{max-width:95%;font-size:clamp(27px,4.8vw,42px);line-height:1.08;letter-spacing:.015em}
 .cp-dialog.vertical .cp-hero p{font-size:14px;letter-spacing:.08em}
 .cp-dialog.vertical .cp-body{border-top:1px solid rgba(255,255,255,.22);padding:20px 26px 30px}
@@ -358,7 +358,7 @@ svg.st text{fill:currentColor;stroke:none}
 .cp-dialog.vertical .cp-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 .cp-dialog.vertical .cp-grid .ctile{aspect-ratio:2/3}
 @media(max-width:650px){.cp-dialog{width:96vw;height:94dvh;border-radius:20px}.cp-hero{min-height:190px;padding:20px}.cp-body{padding:16px}.cp-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.cp-grid .ctile{border-radius:14px}.cp-grid .ctile .wm{font-size:18px}}
-@media(max-width:650px){.cp-dialog.vertical{width:96vw;height:94dvh}.cp-dialog.vertical .cp-hero{height:42%;min-height:250px;max-height:none;padding:20px}.cp-dialog.vertical .cp-body{padding:16px}.cp-dialog.vertical .cp-grid{gap:10px}}
+@media(max-width:650px){.cp-dialog.vertical{width:96vw;height:94dvh}.cp-dialog.vertical .cp-hero{height:var(--cp-hero-height,43%);min-height:230px;max-height:none;padding:20px}.cp-dialog.vertical .cp-body{padding:16px}.cp-dialog.vertical .cp-grid{gap:10px}}
 
 /* Marcas de género para las tarjetas de inicio */
 .genre-mark{display:grid;place-items:center;width:34px;height:26px;flex:none;border-radius:8px;color:rgba(255,255,255,.82);font-size:9px;font-weight:750;letter-spacing:.12em;background:linear-gradient(135deg,rgba(255,255,255,.14),rgba(255,255,255,.035));border:1px solid rgba(255,255,255,.12)}
@@ -5853,6 +5853,7 @@ function abrirPanelColecciones(c) {
   const fondoPanel = c.panelFondo || '';
   const tieneFondo = fondoPanel && (/^https?:\/\/[^\s"'()\\]+$/.test(fondoPanel) || /^\/(?!\/)[^\s"'()\\]+$/.test(fondoPanel));
   hero.style.setProperty('--cp-bg', 'linear-gradient(135deg,' + (c.a || '#26314b') + ',' + (c.b || '#101014') + ')');
+  hero.style.setProperty('--cp-hero-height', Math.max(30, Math.min(70, Number(c.panelImagenAltura) || 43)) + '%');
   cover.hidden = !tieneFondo;
   cover.onerror = () => { cover.hidden = true; };
   if (tieneFondo) { if (cover.getAttribute('src') !== fondoPanel) cover.src = fondoPanel; cover.style.setProperty('--cp-cover-zoom', Math.max(100, Math.min(180, Number(c.panelImagenZoom) || 100)) / 100); cover.style.setProperty('--cp-cover-y', Math.max(0, Math.min(100, Number(c.panelImagenY == null ? 50 : c.panelImagenY))) + '%'); }

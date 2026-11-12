@@ -606,6 +606,7 @@ function limpiarCol(c) {
     o.panelTituloSize = Math.max(20, Math.min(60, Math.round(Number(c.panelTituloSize) || 42)));
     o.panelImagenZoom = Math.max(100, Math.min(180, Math.round(Number(c.panelImagenZoom) || 100)));
     o.panelImagenY = Math.max(0, Math.min(100, Math.round(Number(c.panelImagenY == null ? 50 : c.panelImagenY) || 0)));
+    o.panelImagenAltura = Math.max(30, Math.min(70, Math.round(Number(c.panelImagenAltura) || 43)));
     const subcolecciones = [...new Set((Array.isArray(c.subcolecciones) ? c.subcolecciones : []).map(x => String(x || '').trim().toLowerCase()).filter(x => /^[a-z0-9][a-z0-9-]{0,39}$/.test(x) && x !== id))].slice(0, 60);
     o.subcolecciones = subcolecciones;
     o.panelColumnas = Math.max(1, Math.min(6, Math.round(Number(c.panelColumnas) || 3)));
