@@ -3895,7 +3895,7 @@ H('catalogo-copy').addEventListener('click', async () => {
     vistos.add(k); vistos.add('titulo:' + norm(p.titulo)); unicas.push(p);
   });
   unicas.sort((a, b) => catalogoAnio(b) - catalogoAnio(a) || a.titulo.localeCompare(b.titulo, 'es'));
-  const ok = await copiarTexto(unicas.map(p => p.titulo.trim()).join('\n'));
+  const ok = await copiarTexto(unicas.map(p => p.titulo.trim() + (catalogoAnio(p) ? ' (' + catalogoAnio(p) + ')' : '')).join('\n'));
   H('catalogo-copy-status').textContent = ok ? unicas.length + ' películas copiadas, ordenadas de la más reciente a la más antigua.' : 'No se pudo copiar la lista. Intenta de nuevo.';
 });
 function marcarDock(v) {
