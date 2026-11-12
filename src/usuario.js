@@ -601,18 +601,14 @@ function limpiarCol(c) {
     o.panel = true;
     if (panelFondo) o.panelFondo = panelFondo;
     if (c.panelVertical === true) o.panelVertical = true;
+    const panelTitulo = String(c.panelTitulo || '').trim().slice(0, 80);
+    if (panelTitulo) o.panelTitulo = panelTitulo;
+    o.panelTituloSize = Math.max(20, Math.min(60, Math.round(Number(c.panelTituloSize) || 42)));
+    o.panelImagenZoom = Math.max(100, Math.min(180, Math.round(Number(c.panelImagenZoom) || 100)));
+    o.panelImagenY = Math.max(0, Math.min(100, Math.round(Number(c.panelImagenY == null ? 50 : c.panelImagenY) || 0)));
     const subcolecciones = [...new Set((Array.isArray(c.subcolecciones) ? c.subcolecciones : []).map(x => String(x || '').trim().toLowerCase()).filter(x => /^[a-z0-9][a-z0-9-]{0,39}$/.test(x) && x !== id))].slice(0, 60);
     o.subcolecciones = subcolecciones;
     o.panelColumnas = Math.max(1, Math.min(6, Math.round(Number(c.panelColumnas) || 3)));
-    const panelItems = [];
-    for (const item of (Array.isArray(c.panelItems) ? c.panelItems : []).slice(0, 60)) {
-      if (!item || !subcolecciones.includes(String(item.id || ''))) continue;
-      const imagen = urlCol(item.imagen);
-      if (imagen === null) return { error: 'Las imágenes de los pósteres deben empezar con http:// o https://' };
-      panelItems.push({ id: String(item.id), imagen: imagen || '', texto: String(item.texto || '').trim().slice(0, 80),
-        textoSize: Math.max(12, Math.min(42, Math.round(Number(item.textoSize) || 24))), zoom: Math.max(80, Math.min(160, Math.round(Number(item.zoom) || 100))) });
-    }
-    if (panelItems.length) o.panelItems = panelItems;
   }
   if (c.mostrarInicio === false) o.mostrarInicio = false;
   if (fondo) { o.fondo = fondo; if (c.sinNombre) o.sinNombre = true; }

@@ -61,8 +61,16 @@ td.k{font-family:ui-monospace,Menlo,Consolas,monospace;white-space:nowrap}
 @media(max-width:700px){#co-lista .it{align-items:flex-start}#co-lista .it .row{flex-wrap:wrap;justify-content:flex-end;max-width:48%}}
 .cp-admin-preview{margin-top:14px;padding:12px;border-radius:16px;background:#0b0b0f;border:1px solid rgba(255,255,255,.12)}
 .cp-admin-preview-h{display:flex;justify-content:space-between;gap:10px;color:#c7c7cc;font-size:12px;margin-bottom:10px}
-.cp-admin-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
-.cp-admin-card{position:relative;isolation:isolate;overflow:hidden;display:grid;place-items:center;aspect-ratio:16/9;border-radius:10px;padding:6px;color:#fff;background:linear-gradient(135deg,#26314b,#101014);text-align:center}
+.cp-admin-frame{max-height:420px;overflow:auto;border-radius:12px;background:#141419}
+.cp-admin-hero{position:relative;isolation:isolate;height:112px;overflow:hidden;display:flex;align-items:flex-end;padding:12px;background:linear-gradient(135deg,#26314b,#101014)}
+.cp-admin-preview.vertical .cp-admin-hero{height:155px}
+.cp-admin-hero img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0}
+.cp-admin-hero:after{content:"";position:absolute;inset:0;z-index:1;background:linear-gradient(0deg,#101014e8,transparent 80%);pointer-events:none}
+.cp-admin-hero-title{position:relative;z-index:2;color:#fff;line-height:1.05;text-shadow:0 2px 8px #000;word-break:break-word}
+.cp-admin-divider{height:1px;background:rgba(255,255,255,.22)}
+.cp-admin-grid-title{margin:12px 10px 8px;font-size:9px;letter-spacing:.2em;color:#c7c7cc}
+.cp-admin-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:0 10px 12px}
+.cp-admin-card{position:relative;isolation:isolate;overflow:hidden;display:grid;place-items:center;aspect-ratio:16/9;border-radius:8px;padding:6px;color:#fff;background:linear-gradient(135deg,#26314b,#101014);text-align:center}
 .cp-admin-card img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0}
 .cp-admin-card:after{content:"";position:absolute;inset:0;z-index:1;background:linear-gradient(0deg,rgba(0,0,0,.62),transparent 65%);pointer-events:none}
 .cp-admin-card span{position:relative;z-index:2;font-size:18px;line-height:1.05;text-shadow:0 2px 8px #000;word-break:break-word}
@@ -614,22 +622,25 @@ body:not(.h) .nav button.on{background:#fff;color:#000}
       <p class="s">Convierte esta colección en una ventana flotante que agrupa colecciones existentes. Al guardar, las colecciones seleccionadas se muestran dentro del panel y dejan de ocupar espacio en la fila principal.</p>
       <label class="ck"><input type="checkbox" id="co-panel-check"> Abrir como subpanel al hacer clic</label>
       <div id="co-panel-pick" hidden>
-        <label style="margin-top:12px">Imagen de fondo de la ventana flotante<small class="h">Opcional. Pega una dirección http(s). Si la dejas vacía, se usan los colores del panel. Esta imagen es independiente del fondo del cuadro en el inicio.</small><input id="co-panel-fondo" type="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://…"></label>
+        <h4 style="margin:14px 0 6px">Encabezado superior de la subcarpeta</h4>
+        <label>Imagen superior<small class="h">Es la imagen grande que aparece arriba dentro de la subcarpeta, independiente del fondo del cuadro en el inicio.</small><input id="co-panel-fondo" type="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://…"></label>
+        <label>Título de la parte superior<small class="h">Vacío conserva el nombre de la colección.</small><input id="co-panel-titulo" maxlength="80" autocomplete="off" placeholder="Nombre del subpanel"></label>
+        <div class="f">
+          <label class="cp-range">Tamaño del título<input id="co-panel-titulo-size" type="range" min="20" max="60" step="1" value="42"><output id="co-panel-titulo-size-val">42 px</output></label>
+          <label class="cp-range">Zoom de la imagen superior<input id="co-panel-imagen-zoom" type="range" min="100" max="180" step="1" value="100"><output id="co-panel-imagen-zoom-val">100%</output></label>
+        </div>
+        <label class="cp-range">Encuadre vertical de la imagen<input id="co-panel-imagen-y" type="range" min="0" max="100" step="1" value="50"><output id="co-panel-imagen-y-val">50%</output></label>
         <label class="ck" style="margin-top:12px"><input type="checkbox" id="co-panel-vertical"> Presentación vertical para el subpanel</label>
         <p class="s" style="margin:4px 0 12px">Usa una ventana alta, ajusta el título sobre la imagen y separa el área visual de las colecciones con una línea.</p>
         <h4 style="margin:14px 0 6px">Agregar colecciones existentes</h4>
         <p class="s" style="margin:0 0 8px">Marca las colecciones que quieres mostrar en esta ventana. Puedes editar la selección cuando quieras.</p>
         <div id="co-panel-options" class="cp-choice-grid"></div>
-        <div id="co-panel-editor" hidden>
-          <label style="margin-top:14px">Personalizar póster<select id="co-panel-item"></select></label>
-          <label>Imagen del póster (opcional)<small class="h">Una imagen propia para esta colección dentro del subpanel. Vacío usa la imagen de la colección.</small><input id="co-panel-item-img" type="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://…"></label>
-          <label>Texto del póster<small class="h">Vacío conserva el nombre o logo original de la colección.</small><input id="co-panel-item-text" maxlength="80" autocomplete="off" placeholder="Nombre visible"></label>
-          <div class="f">
-            <label class="cp-range">Tamaño del texto<input id="co-panel-item-text-size" type="range" min="12" max="42" step="1" value="24"><output id="co-panel-item-text-size-val">24 px</output></label>
-            <label class="cp-range">Zoom de la imagen<input id="co-panel-item-zoom" type="range" min="80" max="160" step="1" value="100"><output id="co-panel-item-zoom-val">100%</output></label>
+        <label class="cp-range">Pósteres por fila<input id="co-panel-cols" type="range" min="1" max="6" step="1" value="3"><output id="co-panel-cols-val">3 por fila</output></label>
+        <div class="cp-admin-preview" id="co-panel-preview"><div class="cp-admin-preview-h"><span>Vista previa en vivo</span><span id="co-panel-preview-count"></span></div>
+          <div class="cp-admin-frame" id="co-panel-preview-frame">
+            <div class="cp-admin-hero" id="co-panel-preview-hero"><img id="co-panel-preview-image" alt=""><div class="cp-admin-hero-title"><span id="co-panel-preview-title"></span></div></div>
+            <div class="cp-admin-divider"></div><h4 class="cp-admin-grid-title">COLECCIONES</h4><div class="cp-admin-grid" id="co-panel-preview-grid"></div>
           </div>
-          <label class="cp-range">Pósteres por fila<input id="co-panel-cols" type="range" min="1" max="6" step="1" value="3"><output id="co-panel-cols-val">3 por fila</output></label>
-          <div class="cp-admin-preview" id="co-panel-preview"><div class="cp-admin-preview-h"><span>Vista previa en vivo</span><span id="co-panel-preview-count"></span></div><div class="cp-admin-grid" id="co-panel-preview-grid"></div></div>
         </div>
       </div>
     </div>
@@ -2262,7 +2273,7 @@ const aFormaPanel = c => ({ ...c, fuente: fuenteKey(c.fuente), peso: String(c.pe
 const REGLAS = ['peliculas', 'tmdbSagas', 'tmdbDirectores', 'tmdbReparto', 'tmdbEmpresas', 'tmdbEmpresasContiene', 'tmdbPalabras'];
 const SUB_REGLAS = ['peliculas', 'tmdbSagas', 'tmdbDirectores', 'tmdbReparto', 'tmdbEmpresas'];
 const nReglas = c => ((c.proximamente || []).length || (c.series || []).length ? 1 : 0) + REGLAS.filter(k => (c[k] || []).length).length + (c.subcategorias || []).filter(s => SUB_REGLAS.some(k => (s[k] || []).length)).length;
-let coManual = false, coEditando = null, coPanel = new Map(), coPanelEstilos = new Map(), coPanelItemActivo = '', coProx = [], coSeries = [];   // coPanel: las que están guardadas en la base (por id)
+let coManual = false, coEditando = null, coPanel = new Map(), coProx = [], coSeries = [];   // coPanel: las que están guardadas en la base (por id)
 let coOrden = [], coArrastre = null;
 
 /* subcategorías: tarjetas dentro del formulario; se guardan al tocar "Guardar colección" */
@@ -2290,14 +2301,14 @@ const coSubsLeer = () => [...document.querySelectorAll('#co-subs .sb')].map(d =>
 $('co-sub-add').onclick = () => coSubAgregar().focus();
 
 function coLeer() {
-  coPanelEstiloCaptura();
   return {
     id: $('co-id').value.trim(), nombre: $('co-nombre').value.trim(), a: $('co-a').value, b: $('co-b').value, tx: $('co-tx').value,
     tema: $('co-tema').value, fondo: $('co-fondo').value.trim(), logo: $('co-logo').value.trim(), sinNombre: $('co-sin').checked,
     fuente: $('co-fuente').value, peso: $('co-peso').value, esp: $('co-esp').value, mayus: $('co-mayus').checked,
     patron: $('co-patron').value, patronColor: $('co-pc').value,
     mostrarInicio: $('co-mostrar-inicio').checked, panel: $('co-panel-check').checked, panelFondo: $('co-panel-fondo').value.trim(), panelVertical: $('co-panel-vertical').checked,
-    panelColumnas: Number($('co-panel-cols').value), panelItems: [...coPanelEstilos.values()].filter(x => coPanelSeleccionados().includes(x.id)), subcolecciones: coPanelSeleccionados(),
+    panelTitulo: $('co-panel-titulo').value.trim(), panelTituloSize: Number($('co-panel-titulo-size').value), panelImagenZoom: Number($('co-panel-imagen-zoom').value), panelImagenY: Number($('co-panel-imagen-y').value),
+    panelColumnas: Number($('co-panel-cols').value), subcolecciones: coPanelSeleccionados(),
     anuncio: { titulo: $('co-at').value.trim(), texto: $('co-ax').value.trim(), imagen: $('co-ai').value.trim(), enlace: $('co-ae').value.trim(), boton: $('co-ab').value.trim() },
     tmdbEmpresas: lin('co-emp'), tmdbEmpresasContiene: lin('co-empc'), tmdbPalabras: lin('co-pal'), tmdbSagas: lin('co-sag'), tmdbDirectores: lin('co-dir'), tmdbReparto: lin('co-rep'),
     auto: $('co-auto').checked, incluirSeries: $('co-series').checked, excluir: lin('co-exc'), peliculas: lin('co-pel'), series: coSeries.slice(), subcategorias: coSubsLeer(), proximamente: coProx.map(x => ({ ...x }))
@@ -2314,9 +2325,12 @@ function coPrev() {
 function coPoner(c) {                                  // c = null → formulario en blanco
   c = c || {}; const an = c.anuncio || {}, v = (id, x, d) => { $(id).value = x == null || x === '' ? d : x; }, L = (id, a) => { $(id).value = (a || []).join('\n'); };
   coEditando = c.id || null; coManual = !!c.id;
-  coPanelEstilos = new Map((c.panelItems || []).filter(x => x && x.id).map(x => [x.id, { ...x }])); coPanelItemActivo = '';
   $('co-panel-cols').value = Math.max(1, Math.min(6, Number(c.panelColumnas) || 3));
   $('co-panel-check').checked = !!c.panel; $('co-panel-pick').hidden = !c.panel; $('co-panel-fondo').value = c.panelFondo || '';
+  $('co-panel-titulo').value = c.panelTitulo || '';
+  $('co-panel-titulo-size').value = Math.max(20, Math.min(60, Number(c.panelTituloSize) || 42));
+  $('co-panel-imagen-zoom').value = Math.max(100, Math.min(180, Number(c.panelImagenZoom) || 100));
+  $('co-panel-imagen-y').value = Math.max(0, Math.min(100, Number(c.panelImagenY == null ? 50 : c.panelImagenY)));
   $('co-mostrar-inicio').checked = c.mostrarInicio !== false; $('co-panel-vertical').checked = !!c.panelVertical;
   const esp = c.esp || '.08em';                        // si trae un espaciado que no está en la lista (p. ej. .06em), se agrega
   if (![...$('co-esp').options].some(o => o.value === esp)) { const o = document.createElement('option'); o.value = o.textContent = esp; $('co-esp').appendChild(o); }
@@ -2333,43 +2347,33 @@ function coPoner(c) {                                  // c = null → formulari
   coPrev(); coTiles(); coPanelOpciones(c.id ? c : { subcolecciones: [] });
 }
 function coPanelSeleccionados() { return [...document.querySelectorAll('#co-panel-options input:checked')].map(x => x.value); }
-function coPanelEstiloCaptura() {
-  if (!coPanelItemActivo || !$('co-panel-item-img')) return;
-  coPanelEstilos.set(coPanelItemActivo, { id: coPanelItemActivo, imagen: $('co-panel-item-img').value.trim(), texto: $('co-panel-item-text').value.trim(), textoSize: Number($('co-panel-item-text-size').value), zoom: Number($('co-panel-item-zoom').value) });
-}
-function coPanelEditorCargar() {
-  const d = coPanelEstilos.get(coPanelItemActivo) || {};
-  $('co-panel-item-img').value = d.imagen || ''; $('co-panel-item-text').value = d.texto || '';
-  $('co-panel-item-text-size').value = d.textoSize || 24; $('co-panel-item-zoom').value = d.zoom || 100;
-  $('co-panel-item-text-size-val').textContent = $('co-panel-item-text-size').value + ' px';
-  $('co-panel-item-zoom-val').textContent = $('co-panel-item-zoom').value + '%';
-}
 function coPanelPreview() {
   const grid = $('co-panel-preview-grid'), preview = $('co-panel-preview'), cols = Number($('co-panel-cols').value) || 3;
   const ids = coPanelSeleccionados(), all = new Map(delArchivo.map(x => [x.id, coPanel.get(x.id) || x]));
   coPanel.forEach(x => { if (!all.has(x.id)) all.set(x.id, x); });
   grid.style.gridTemplateColumns = 'repeat(' + cols + ',minmax(0,1fr))'; preview.classList.toggle('vertical', $('co-panel-vertical').checked);
   $('co-panel-cols-val').textContent = cols + ' por fila'; $('co-panel-preview-count').textContent = ids.length + (ids.length === 1 ? ' póster' : ' pósteres');
+  const titulo = $('co-panel-titulo').value.trim() || $('co-nombre').value.trim() || 'Colección';
+  const heading = $('co-panel-preview-title'); heading.textContent = titulo; heading.style.fontSize = $('co-panel-titulo-size').value + 'px';
+  const hero = $('co-panel-preview-hero'), image = $('co-panel-preview-image'), bg = $('co-panel-fondo').value.trim();
+  hero.style.background = 'linear-gradient(135deg,' + $('co-a').value + ',' + $('co-b').value + ')';
+  image.hidden = !(bg && (/^https?:\/\/[^\s"'()\\]+$/.test(bg) || /^\/(?!\/)[^\s"'()\\]+$/.test(bg)));
+  image.onerror = () => { image.hidden = true; };
+  if (!image.hidden) { if (image.getAttribute('src') !== bg) image.src = bg; image.style.transform = 'scale(' + (Number($('co-panel-imagen-zoom').value) / 100) + ')'; image.style.objectPosition = '50% ' + $('co-panel-imagen-y').value + '%'; }
+  $('co-panel-titulo-size-val').textContent = $('co-panel-titulo-size').value + ' px';
+  $('co-panel-imagen-zoom-val').textContent = $('co-panel-imagen-zoom').value + '%';
+  $('co-panel-imagen-y-val').textContent = $('co-panel-imagen-y').value + '%';
   grid.replaceChildren(...ids.map(id => {
     const c = all.get(id); if (!c) return null;
-    const s = coPanelEstilos.get(id) || {}, card = document.createElement('div'); card.className = 'cp-admin-card';
+    const card = document.createElement('div'); card.className = 'cp-admin-card';
     card.style.background = 'linear-gradient(135deg,' + (c.a || '#26314b') + ',' + (c.b || '#101014') + ')';
-    const src = s.imagen || c.fondo || '';
-    if (src && /^https?:\/\/[^\s"'()\\]+$/.test(src)) { const im = document.createElement('img'); im.alt = ''; im.src = src; im.style.transform = 'scale(' + (Number(s.zoom) || 100) / 100 + ')'; im.onerror = () => im.remove(); card.appendChild(im); }
-    if (s.texto) { const title = document.createElement('span'); title.textContent = s.texto; title.style.fontSize = (Number(s.textoSize) || 24) + 'px'; card.appendChild(title); }
-    else if (c.logo && /^https?:\/\/[^\s"'()\\]+$/.test(c.logo)) { const logo = new Image(); logo.className = 'logo'; logo.alt = ''; logo.src = c.logo; logo.onerror = () => logo.remove(); card.appendChild(logo); }
-    else if (!c.sinNombre) { const title = document.createElement('span'); title.textContent = c.nombre; title.style.fontSize = (Number(s.textoSize) || 24) + 'px'; card.appendChild(title); }
+    if (c.fondo) { const im = new Image(); im.alt = ''; im.src = c.fondo; im.onerror = () => im.remove(); card.appendChild(im); }
+    if (c.logo && /^https?:\/\/[^\s"'()\\]+$/.test(c.logo)) { const logo = new Image(); logo.className = 'logo'; logo.alt = ''; logo.src = c.logo; logo.onerror = () => logo.remove(); card.appendChild(logo); }
+    else if (!c.sinNombre) { const title = document.createElement('span'); title.textContent = c.nombre; card.appendChild(title); }
     return card;
   }).filter(Boolean));
 }
-function coPanelActualizarSelector() {
-  const select = $('co-panel-item'), ids = coPanelSeleccionados(), keep = ids.includes(coPanelItemActivo) ? coPanelItemActivo : ids[0] || '';
-  select.replaceChildren(...ids.map(id => { const c = coPanel.get(id) || delArchivo.find(x => x.id === id); const o = document.createElement('option'); o.value = id; o.textContent = c ? c.nombre : id; return o; }));
-  select.value = keep; coPanelItemActivo = keep; $('co-panel-editor').hidden = !ids.length;
-  if (keep) coPanelEditorCargar(); coPanelPreview();
-}
 function coPanelOpciones(c) {
-  coPanelEstiloCaptura();
   const box = $('co-panel-options'); box.replaceChildren();
   const all = [...delArchivo.map(x => coPanel.get(x.id) || x), ...[...coPanel.values()].filter(x => !delArchivo.some(a => a.id === x.id))];
   const selected = new Set(c && c.subcolecciones || []);
@@ -2383,18 +2387,14 @@ function coPanelOpciones(c) {
     else if (!x.sinNombre) { const title = document.createElement('b'); title.textContent = x.nombre; art.appendChild(title); }
     const tick = document.createElement('span'); tick.className = 'check'; tick.textContent = '✓'; art.appendChild(tick);
     const name = document.createElement('span'); name.className = 'cp-choice-label'; name.textContent = x.nombre;
-    cb.addEventListener('change', () => { coPanelEstiloCaptura(); coPanelActualizarSelector(); });
+    cb.addEventListener('change', coPanelPreview);
     l.append(cb, art, name); box.appendChild(l);
   });
   if (!box.children.length) { const p = document.createElement('p'); p.className = 's'; p.textContent = 'Primero crea o guarda las colecciones que quieres agrupar.'; box.appendChild(p); }
-  coPanelActualizarSelector();
+  coPanelPreview();
 }
-$('co-panel-item').addEventListener('change', () => { coPanelEstiloCaptura(); coPanelItemActivo = $('co-panel-item').value; coPanelEditorCargar(); coPanelPreview(); });
-['co-panel-item-img', 'co-panel-item-text', 'co-panel-item-text-size', 'co-panel-item-zoom'].forEach(id => $(id).addEventListener('input', () => {
-  $('co-panel-item-text-size-val').textContent = $('co-panel-item-text-size').value + ' px'; $('co-panel-item-zoom-val').textContent = $('co-panel-item-zoom').value + '%';
-  coPanelEstiloCaptura(); coPanelPreview();
-}));
 $('co-panel-cols').addEventListener('input', coPanelPreview);
+['co-panel-fondo','co-panel-titulo','co-panel-titulo-size','co-panel-imagen-zoom','co-panel-imagen-y','co-nombre','co-a','co-b'].forEach(id => $(id).addEventListener('input', coPanelPreview));
 $('co-panel-vertical').addEventListener('change', coPanelPreview);
 $('co-panel-check').addEventListener('change', () => { $('co-panel-pick').hidden = !$('co-panel-check').checked; });
 document.querySelectorAll('#col-card input, #col-card select, #col-card textarea').forEach(e => e.addEventListener('input', coPrev));

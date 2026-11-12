@@ -340,12 +340,14 @@ svg.st text{fill:currentColor;stroke:none}
 .cp-dialog{width:min(1100px,94vw);height:min(92dvh,1000px);max-width:none;max-height:none;padding:0;border:1px solid rgba(255,255,255,.13);border-radius:26px;background:#111;color:#fff;overflow:hidden;box-shadow:0 35px 100px #000b}
 .cp-dialog::backdrop{background:rgba(0,0,0,.76);backdrop-filter:blur(8px)}
 .cp-shell{height:100%;display:flex;flex-direction:column;overflow:auto;overscroll-behavior:contain}
-.cp-hero{position:relative;min-height:230px;padding:24px 30px 30px;display:flex;align-items:flex-end;background:linear-gradient(0deg,#101014 0%,rgba(16,16,20,.16) 100%),var(--cp-bg,linear-gradient(135deg,#26314b,#101014));background-position:center;background-size:cover}
-.cp-close{position:absolute;left:20px;top:18px;border:0;border-radius:50px;padding:10px 16px;background:#17171bbd;color:#fff;font:inherit;cursor:pointer;backdrop-filter:blur(12px)}
+.cp-hero{position:relative;isolation:isolate;min-height:230px;padding:24px 30px 30px;display:flex;align-items:flex-end;background:var(--cp-bg,linear-gradient(135deg,#26314b,#101014));overflow:hidden}
+.cp-hero:before{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;background:linear-gradient(0deg,#101014 0%,rgba(16,16,20,.16) 100%)}
+.cp-cover{position:absolute;inset:0;z-index:-1;width:100%;height:100%;object-fit:cover;object-position:50% var(--cp-cover-y,50%);transform:scale(var(--cp-cover-zoom,1));pointer-events:none}
+.cp-close{position:absolute;z-index:3;left:20px;top:18px;border:0;border-radius:50px;padding:10px 16px;background:#17171bbd;color:#fff;font:inherit;cursor:pointer;backdrop-filter:blur(12px)}
+.cp-hero>div{position:relative;z-index:2}
 .cp-hero h2{margin:0;font-size:clamp(28px,5vw,48px);text-shadow:0 2px 16px #000}.cp-hero p{margin:8px 0 0;color:#eee}
-.cp-body{padding:18px 28px 30px}.cp-body h3{margin:0 0 14px;font-size:13px;letter-spacing:.22em;color:#c4c4cb}
+.cp-body{border-top:1px solid rgba(255,255,255,.18);padding:18px 28px 30px}.cp-body h3{margin:0 0 14px;font-size:13px;letter-spacing:.22em;color:#c4c4cb}
 .cp-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.cp-grid .ctile{width:100%;aspect-ratio:16/9;border:0;font:inherit;cursor:pointer}
-.cp-grid .cp-poster-img{position:absolute!important;inset:0;width:100%;height:100%;object-fit:cover;z-index:0!important;pointer-events:none}
 .cp-dialog.vertical{width:min(680px,94vw);height:min(94dvh,1100px)}
 .cp-dialog.vertical .cp-shell{overflow:auto}
 .cp-dialog.vertical .cp-hero{height:43%;min-height:300px;max-height:560px;flex:none;padding:28px 30px 26px;align-items:flex-end}
@@ -1606,7 +1608,7 @@ html.catalogo-exclusivo.catalogo-listo #vista-catalogo{display:flex!important}
 
 <dialog id="coleccion-panel-dialog" class="cp-dialog" aria-label="Subpanel de colecciones">
   <div class="cp-shell">
-    <header class="cp-hero" id="cp-hero"><button class="cp-close" id="cp-close" type="button">‹ Volver</button><div><h2 id="cp-title"></h2><p>Explora sus colecciones</p></div></header>
+    <header class="cp-hero" id="cp-hero"><img id="cp-cover" class="cp-cover" alt="" hidden><button class="cp-close" id="cp-close" type="button">‹ Volver</button><div><h2 id="cp-title"></h2><p>Explora sus colecciones</p></div></header>
     <section class="cp-body"><h3>COLECCIONES</h3><div class="cp-grid" id="cp-grid"></div><p class="cvacio" id="cp-empty" hidden>Este panel todavía no tiene colecciones.</p></section>
   </div>
 </dialog>
@@ -5844,33 +5846,25 @@ function idsDePanel(c, vistos) {
   return [...new Set((c.subcolecciones || []).flatMap(id => { const child = coleccionPorId(id); return child ? [id, ...idsDePanel(child, vistos)] : []; }))];
 }
 function abrirPanelColecciones(c) {
-  const d = H('coleccion-panel-dialog'), hero = H('cp-hero'), grid = H('cp-grid');
+  const d = H('coleccion-panel-dialog'), hero = H('cp-hero'), grid = H('cp-grid'), cover = H('cp-cover');
   d.classList.toggle('vertical', !!c.panelVertical);
-  H('cp-title').textContent = c.nombre || 'Colecciones'; grid.replaceChildren();
+  const title = H('cp-title'); title.textContent = c.panelTitulo || c.nombre || 'Colecciones';
+  title.style.fontSize = Math.max(20, Math.min(60, Number(c.panelTituloSize) || 42)) + 'px'; grid.replaceChildren();
   const fondoPanel = c.panelFondo || '';
-  const f = fondoPanel && /^https?:\/\/[^\s"'()\\]+$/.test(fondoPanel) ? 'url("' + fondoPanel.replace(/"/g, '%22') + '")' : 'linear-gradient(135deg,' + (c.a || '#26314b') + ',' + (c.b || '#101014') + ')';
-  hero.style.setProperty('--cp-bg', f);
+  const tieneFondo = fondoPanel && (/^https?:\/\/[^\s"'()\\]+$/.test(fondoPanel) || /^\/(?!\/)[^\s"'()\\]+$/.test(fondoPanel));
+  hero.style.setProperty('--cp-bg', 'linear-gradient(135deg,' + (c.a || '#26314b') + ',' + (c.b || '#101014') + ')');
+  cover.hidden = !tieneFondo;
+  cover.onerror = () => { cover.hidden = true; };
+  if (tieneFondo) { if (cover.getAttribute('src') !== fondoPanel) cover.src = fondoPanel; cover.style.setProperty('--cp-cover-zoom', Math.max(100, Math.min(180, Number(c.panelImagenZoom) || 100)) / 100); cover.style.setProperty('--cp-cover-y', Math.max(0, Math.min(100, Number(c.panelImagenY == null ? 50 : c.panelImagenY))) + '%'); }
   const columnas = Math.max(1, Math.min(6, Number(c.panelColumnas) || (c.panelVertical ? 2 : 3)));
   grid.style.gridTemplateColumns = 'repeat(' + columnas + ',minmax(0,1fr))';
-  const estilos = new Map((c.panelItems || []).map(s => [s.id, s]));
   const hijos = (c.subcolecciones || []).map(coleccionPorId).filter(x => x && !x.panel);
   hijos.forEach(x => {
-    const item = estilos.get(x.id) || {}, posterImg = item.imagen || x.fondo || '';
-    const b = document.createElement('button'); b.type = 'button'; b.className = 'ctile t-' + (x.tema || 'liso') + (posterImg ? ' img' : '') + (x.sinNombre ? ' sin-nombre' : '');
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'ctile t-' + (x.tema || 'liso') + (x.fondo ? ' img' : '') + (x.sinNombre ? ' sin-nombre' : '');
     b.style.setProperty('--a', x.a || '#0b3d91'); b.style.setProperty('--b', x.b || '#020b1f'); b.style.setProperty('--tx', x.tx || '#fff');
-    if (posterImg && /^https?:\/\/[^\s"'()\\]+$/.test(posterImg)) {
-      b.style.setProperty('--fondo', 'none');
-      const im = new Image(); im.className = 'cp-poster-img'; im.alt = ''; im.loading = 'lazy'; im.src = posterImg;
-      im.style.transform = 'scale(' + (Math.max(80, Math.min(160, Number(item.zoom) || 100)) / 100) + ')'; im.onerror = () => im.remove(); b.appendChild(im);
-    } else if (x.fondo) b.style.setProperty('--fondo', urlCss(x.fondo));
-    const textoVisible = item.texto || x.nombre;
-    b.setAttribute('aria-label', textoVisible + ', abrir colección');
-    if (item.texto) { const t = el('span', 'wm', item.texto); t.style.fontSize = (Math.max(12, Math.min(42, Number(item.textoSize) || 24))) + 'px'; b.appendChild(t); }
-    else if (!x.sinNombre) {
-      const marcaCol = typeof marca === 'function' ? marca(x) : el('span', 'wm', x.nombre);
-      if (item.textoSize && marcaCol.classList && marcaCol.classList.contains('wm')) marcaCol.style.fontSize = item.textoSize + 'px';
-      b.appendChild(marcaCol);
-    }
+    if (x.fondo) b.style.setProperty('--fondo', urlCss(x.fondo));
+    b.setAttribute('aria-label', x.nombre + ', abrir colección');
+    if (!x.sinNombre) b.append(typeof marca === 'function' ? marca(x) : el('span', 'wm', x.nombre));
     b.onclick = () => { d.close(); location.hash = '#/c/' + x.id; };
     grid.appendChild(b);
   });
