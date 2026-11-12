@@ -389,6 +389,13 @@ body:not(.h) .nav button.on{background:#fff;color:#000}
   <div class="c w" data-g="compartir" id="share-card">
     <h2>Enlaces compartidos</h2>
     <p class="s">Comparte una película, una serie o una colección. Cada enlace crea un acceso individual que permite ver solo ese contenido sin iniciar sesión. Asigna un nombre predeterminado antes de compartir o edítalo después en «Accesos y dispositivos».</p>
+    <div class="it v" style="margin-top:14px">
+      <b>Catálogo vertical de películas</b>
+      <p class="s">Crea un enlace estable al carrusel de películas completo, ordenado por año de estreno y con búsqueda TMDB. Los accesos aparecen abajo. Solo cambia el enlace si eliges generar uno nuevo.</p>
+      <div class="row"><button class="g" id="catalog-link-show" type="button">Crear o mostrar enlace</button><button id="catalog-link-new" type="button">Generar enlace nuevo</button></div>
+      <p class="m" id="catalog-link-status" role="status" aria-live="polite" hidden></p>
+      <div id="catalog-link-box" hidden style="margin-top:8px"><a id="catalog-link-url" href="#" target="_blank" rel="noopener" style="overflow-wrap:anywhere;color:#9ec2ff"></a><div class="row" style="margin-top:8px"><button class="g" id="catalog-link-copy" type="button">Copiar enlace</button><button class="g" id="catalog-link-share" type="button">Compartir</button></div></div>
+    </div>
     <label>Nombre predeterminado para los próximos enlaces<input id="share-default-name" maxlength="100" placeholder="Vacío: usar el título del contenido"></label>
     <label style="margin-top:12px">Filtrar por nombre<input id="share-q" type="search" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Escribe un título o una colección"></label>
     <div class="row" style="margin-top:10px"><button class="g" id="share-refresh" type="button">Cargar o actualizar enlaces</button></div>
@@ -3025,7 +3032,7 @@ async function shareAccesosCargar() {
   try {
     const j = await admin({ op: 'enlaces_compartidos' }); box.replaceChildren();
     if (!j.items.length) { msg('share-access-status', 'Todavía no has creado enlaces compartidos.', true); return; }
-    const tipos = { coleccion: 'Colección', pelicula: 'Película', serie: 'Serie' };
+    const tipos = { catalogo: 'Catálogo vertical', coleccion: 'Colección', pelicula: 'Película', serie: 'Serie' };
     j.items.forEach(x => {
       const d = dEl('div', 'it v share-access-entry'), head = dEl('div', 'row'), tx = dEl('div', 'tx');
       tx.append(dEl('b', '', x.nombre || x.titulo), dEl('small', '', (x.nombre && x.nombre !== x.titulo ? x.titulo + ' · ' : '') + tipos[x.tipo] + ' · Creado ' + shareFecha(x.creado) + ' · ' + (x.revocado ? 'Acceso eliminado' : 'Activo')));
@@ -3097,6 +3104,29 @@ function shareFiltrar() {
 $('share-refresh').onclick = shareCargar;
 $('share-access-refresh').onclick = shareAccesosCargar;
 $('share-q').addEventListener('input', shareFiltrar);
+let catalogLink = '';
+async function catalogEnlace(nuevo) {
+  const j = await admin({ op: nuevo ? 'nuevo_enlace_catalogo' : 'enlace_catalogo' });
+  const url = new URL('index.html', location.href); url.searchParams.set('bb-share', j.token); url.hash = '/catalogo';
+  catalogLink = url.href; $('catalog-link-url').href = catalogLink; $('catalog-link-url').textContent = catalogLink; $('catalog-link-box').hidden = false;
+  msg('catalog-link-status', nuevo ? 'Enlace nuevo creado. El enlace anterior ya no permite entrar.' : 'Enlace estable listo. Se conservará hasta que generes uno nuevo.', true);
+  await shareAccesosCargar();
+}
+$('catalog-link-show').onclick = () => con($('catalog-link-show'), 'catalog-link-status', () => catalogEnlace(false));
+$('catalog-link-new').onclick = () => {
+  if (!confirm('¿Generar un enlace nuevo? El enlace actual dejará de funcionar para todos los que lo tengan.')) return;
+  con($('catalog-link-new'), 'catalog-link-status', () => catalogEnlace(true));
+};
+$('catalog-link-copy').onclick = async () => {
+  if (!catalogLink) return;
+  try { await navigator.clipboard.writeText(catalogLink); msg('catalog-link-status', 'Enlace copiado.', true); }
+  catch (e) { msg('catalog-link-status', 'No se pudo copiar. Selecciona el enlace y cópialo manualmente.', false); }
+};
+$('catalog-link-share').onclick = async () => {
+  if (!catalogLink) return;
+  try { if (navigator.share) await navigator.share({ title: 'Catálogo de películas · Black BOX', url: catalogLink }); else { await navigator.clipboard.writeText(catalogLink); msg('catalog-link-status', 'Enlace copiado.', true); } }
+  catch (e) { if (e.name !== 'AbortError') msg('catalog-link-status', 'No se pudo compartir el enlace.', false); }
+};
 const dIgn = () => { try { return new Set(JSON.parse(localStorage.getItem('bbDupOk') || '[]')); } catch (e) { return new Set(); } };
 const dIgnGuardar = s => { try { localStorage.setItem('bbDupOk', JSON.stringify([...s])); } catch (e) {} };
 const dEtiqueta = e => [e.o === 'panel' ? 'Publicada desde el panel' : 'En index.html', e.tipo === 'serie' ? 'Serie' : 'Película', e.tmdb ? 'TMDB ' + e.tmdb : 'sin TMDB', e.anio, e.link ? 'con enlace' : (e.eps ? e.eps + ' capítulo(s) sueltos' : 'sin enlace')].filter(Boolean).join(' · ');

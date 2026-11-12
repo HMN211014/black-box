@@ -691,7 +691,7 @@ async function manejarEnlaceCompartido(db, cuerpo, cf = {}) {
     return json({ ok: true });
   }
   if (cuerpo.op !== 'abrir') return json({ error: 'Operación no válida.' }, 400);
-  const ruta = enlace.tipo === 'coleccion' ? '#/c/' + enlace.destino : '#/p/' + enlace.destino;
+  const ruta = enlace.tipo === 'catalogo' ? '#/catalogo' : enlace.tipo === 'coleccion' ? '#/c/' + enlace.destino : '#/p/' + enlace.destino;
   if (String(cuerpo.ruta || '') !== ruta) return json({ error: 'El enlace no corresponde a este contenido.' }, 403);
   const dispositivo = String(cuerpo.dispositivo || '').trim(), plataforma = String(cuerpo.plataforma || 'Otro').trim().slice(0, 40), navegador = String(cuerpo.navegador || 'Navegador').trim().slice(0, 40);
   if (!/^[a-f0-9]{32,64}$/.test(dispositivo)) return json({ error: 'No pude identificar este dispositivo.' }, 400);
@@ -1204,6 +1204,16 @@ async function manejar({ request, env, params, waitUntil }) {
       await db.prepare('INSERT INTO enlaces_compartidos (token, tipo, destino, titulo, creado, revocado, nombre) VALUES (?1, ?2, ?3, ?4, ?5, 0, ?6)')
         .bind(token, tipo, destino, titulo, Date.now(), nombre).run();
       return json({ token, tipo, destino, titulo, nombre });
+    }
+    if (cuerpo.op === 'enlace_catalogo' || cuerpo.op === 'nuevo_enlace_catalogo') {
+      await prepararEnlacesCompartidos(db);
+      const nuevo = cuerpo.op === 'nuevo_enlace_catalogo';
+      const actual = await db.prepare("SELECT token, tipo, destino, titulo, creado, nombre FROM enlaces_compartidos WHERE tipo = 'catalogo' AND revocado = 0 ORDER BY creado DESC LIMIT 1").first();
+      if (actual && !nuevo) return json(actual);
+      if (nuevo) await db.prepare("UPDATE enlaces_compartidos SET revocado = 1 WHERE tipo = 'catalogo' AND revocado = 0").run();
+      const token = b64url(crypto.getRandomValues(new Uint8Array(24))), creado = Date.now();
+      await db.prepare('INSERT INTO enlaces_compartidos (token, tipo, destino, titulo, creado, revocado, nombre) VALUES (?1, \'catalogo\', \'todos\', \'Catálogo de películas\', ?2, 0, \'Catálogo de películas\')').bind(token, creado).run();
+      return json({ token, tipo: 'catalogo', destino: 'todos', titulo: 'Catálogo de películas', nombre: 'Catálogo de películas', creado });
     }
     if (cuerpo.op === 'enlaces_compartidos') {
       await prepararEnlacesCompartidos(db);
