@@ -582,6 +582,8 @@ body:not(.h) .nav button.on{background:#fff;color:#000}
     <label>Imagen de fondo del cuadro (opcional)<small class="h">Dirección de una imagen. Sustituye al dibujo.</small><input id="co-fondo" type="url" autocapitalize="off" spellcheck="false" placeholder="https://…"></label>
     <label class="ck"><input type="checkbox" id="co-sin"> La imagen ya trae el nombre escrito (no repetirlo encima)</label>
     <label>Logo (opcional)<small class="h">Imagen del logo en lugar del nombre escrito.</small><input id="co-logo" type="url" autocapitalize="off" spellcheck="false" placeholder="https://…"></label>
+    <label class="ck"><input type="checkbox" id="co-mostrar-inicio" checked> Mostrar esta colección en la pantalla principal</label>
+    <p class="s" style="margin:-8px 0 12px">Si la ocultas, sigue guardada y podrás agregarla a cualquier subpanel.</p>
 
     <div class="dt" id="co-panel-box">
       <h3 style="margin-top:0">Subpanel de colecciones</h3>
@@ -589,6 +591,8 @@ body:not(.h) .nav button.on{background:#fff;color:#000}
       <label class="ck"><input type="checkbox" id="co-panel-check"> Abrir como subpanel al hacer clic</label>
       <div id="co-panel-pick" hidden>
         <label style="margin-top:12px">Imagen de fondo de la ventana flotante<small class="h">Opcional. Pega una dirección http(s). Si la dejas vacía, se usan los colores del panel. Esta imagen es independiente del fondo del cuadro en el inicio.</small><input id="co-panel-fondo" type="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://…"></label>
+        <label class="ck" style="margin-top:12px"><input type="checkbox" id="co-panel-vertical"> Presentación vertical para el subpanel</label>
+        <p class="s" style="margin:4px 0 12px">Usa una ventana alta, ajusta el título sobre la imagen y separa el área visual de las colecciones con una línea.</p>
         <h4 style="margin:14px 0 6px">Agregar colecciones existentes</h4>
         <p class="s" style="margin:0 0 8px">Marca las colecciones que quieres mostrar en esta ventana. Puedes editar la selección cuando quieras.</p>
         <div id="co-panel-options"></div>
@@ -2256,7 +2260,7 @@ function coLeer() {
     tema: $('co-tema').value, fondo: $('co-fondo').value.trim(), logo: $('co-logo').value.trim(), sinNombre: $('co-sin').checked,
     fuente: $('co-fuente').value, peso: $('co-peso').value, esp: $('co-esp').value, mayus: $('co-mayus').checked,
     patron: $('co-patron').value, patronColor: $('co-pc').value,
-    panel: $('co-panel-check').checked, panelFondo: $('co-panel-fondo').value.trim(), subcolecciones: [...document.querySelectorAll('#co-panel-options input:checked')].map(x => x.value),
+    mostrarInicio: $('co-mostrar-inicio').checked, panel: $('co-panel-check').checked, panelFondo: $('co-panel-fondo').value.trim(), panelVertical: $('co-panel-vertical').checked, subcolecciones: [...document.querySelectorAll('#co-panel-options input:checked')].map(x => x.value),
     anuncio: { titulo: $('co-at').value.trim(), texto: $('co-ax').value.trim(), imagen: $('co-ai').value.trim(), enlace: $('co-ae').value.trim(), boton: $('co-ab').value.trim() },
     tmdbEmpresas: lin('co-emp'), tmdbEmpresasContiene: lin('co-empc'), tmdbPalabras: lin('co-pal'), tmdbSagas: lin('co-sag'), tmdbDirectores: lin('co-dir'), tmdbReparto: lin('co-rep'),
     auto: $('co-auto').checked, incluirSeries: $('co-series').checked, excluir: lin('co-exc'), peliculas: lin('co-pel'), series: coSeries.slice(), subcategorias: coSubsLeer(), proximamente: coProx.map(x => ({ ...x }))
@@ -2274,6 +2278,7 @@ function coPoner(c) {                                  // c = null → formulari
   c = c || {}; const an = c.anuncio || {}, v = (id, x, d) => { $(id).value = x == null || x === '' ? d : x; }, L = (id, a) => { $(id).value = (a || []).join('\n'); };
   coEditando = c.id || null; coManual = !!c.id;
   $('co-panel-check').checked = !!c.panel; $('co-panel-pick').hidden = !c.panel; $('co-panel-fondo').value = c.panelFondo || '';
+  $('co-mostrar-inicio').checked = c.mostrarInicio !== false; $('co-panel-vertical').checked = !!c.panelVertical;
   const esp = c.esp || '.08em';                        // si trae un espaciado que no está en la lista (p. ej. .06em), se agrega
   if (![...$('co-esp').options].some(o => o.value === esp)) { const o = document.createElement('option'); o.value = o.textContent = esp; $('co-esp').appendChild(o); }
   v('co-nombre', c.nombre, ''); v('co-id', c.id, ''); $('co-id').readOnly = !!c.id;
@@ -2337,7 +2342,7 @@ async function coLista() {
     const b = document.createElement('b'); b.textContent = c.nombre;
     const sm = document.createElement('small');
     const nSub = (c.subcategorias || []).length;
-    sm.textContent = '#/c/' + c.id + ' · ' + (f.origen === 'arch' ? 'de colecciones.js' : f.origen === 'mod' ? 'de colecciones.js, modificada desde el panel' : 'creada desde el panel') + (c.panel ? ' · Panel con ' + (c.subcolecciones || []).length + ' colecciones' : nSub ? ' · ' + nSub + ' subcategoría(s)' : '') + (!c.panel && !nReglas(c) ? ' · sin reglas: saldrá vacía' : '');
+    sm.textContent = '#/c/' + c.id + ' · ' + (f.origen === 'arch' ? 'de colecciones.js' : f.origen === 'mod' ? 'de colecciones.js, modificada desde el panel' : 'creada desde el panel') + (c.mostrarInicio === false ? ' · oculta del inicio' : '') + (c.panel ? ' · Panel con ' + (c.subcolecciones || []).length + ' colecciones' + (c.panelVertical ? ' · vertical' : '') : nSub ? ' · ' + nSub + ' subcategoría(s)' : '') + (!c.panel && !nReglas(c) ? ' · sin reglas: saldrá vacía' : '');
     tx.append(b, sm);
     const r = document.createElement('div'); r.className = 'row';
     const up = document.createElement('button'); up.className = 'g'; up.type = 'button'; up.textContent = '↑'; up.title = 'Mover arriba'; up.setAttribute('aria-label', 'Mover ' + c.nombre + ' arriba'); up.dataset.move = 'up'; up.disabled = coOrden[0] === f.id; up.onclick = () => mover(f.id, -1);

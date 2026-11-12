@@ -600,8 +600,10 @@ function limpiarCol(c) {
     if (panelFondo === null) return { error: 'La imagen de fondo del subpanel debe empezar con http:// o https://' };
     o.panel = true;
     if (panelFondo) o.panelFondo = panelFondo;
+    if (c.panelVertical === true) o.panelVertical = true;
     o.subcolecciones = [...new Set((Array.isArray(c.subcolecciones) ? c.subcolecciones : []).map(x => String(x || '').trim().toLowerCase()).filter(x => /^[a-z0-9][a-z0-9-]{0,39}$/.test(x) && x !== id))].slice(0, 60);
   }
+  if (c.mostrarInicio === false) o.mostrarInicio = false;
   if (fondo) { o.fondo = fondo; if (c.sinNombre) o.sinNombre = true; }
   if (logo) o.logo = logo;
   for (const k of ['tmdbEmpresas', 'tmdbPalabras', 'tmdbSagas', 'tmdbDirectores', 'tmdbReparto']) { const l = criteriosCol(c[k]); if (l.length) o[k] = l; }

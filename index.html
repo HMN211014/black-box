@@ -345,7 +345,17 @@ svg.st text{fill:currentColor;stroke:none}
 .cp-hero h2{margin:0;font-size:clamp(28px,5vw,48px);text-shadow:0 2px 16px #000}.cp-hero p{margin:8px 0 0;color:#eee}
 .cp-body{padding:18px 28px 30px}.cp-body h3{margin:0 0 14px;font-size:13px;letter-spacing:.22em;color:#c4c4cb}
 .cp-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.cp-grid .ctile{width:100%;aspect-ratio:16/9;border:0;font:inherit;cursor:pointer}
+.cp-dialog.vertical{width:min(680px,94vw);height:min(94dvh,1100px)}
+.cp-dialog.vertical .cp-shell{overflow:auto}
+.cp-dialog.vertical .cp-hero{height:43%;min-height:300px;max-height:560px;flex:none;padding:28px 30px 26px;align-items:flex-end}
+.cp-dialog.vertical .cp-hero h2{max-width:95%;font-size:clamp(27px,4.8vw,42px);line-height:1.08;letter-spacing:.015em}
+.cp-dialog.vertical .cp-hero p{font-size:14px;letter-spacing:.08em}
+.cp-dialog.vertical .cp-body{border-top:1px solid rgba(255,255,255,.22);padding:20px 26px 30px}
+.cp-dialog.vertical .cp-body h3{font-size:12px;letter-spacing:.24em;margin-bottom:16px}
+.cp-dialog.vertical .cp-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.cp-dialog.vertical .cp-grid .ctile{aspect-ratio:16/10}
 @media(max-width:650px){.cp-dialog{width:96vw;height:94dvh;border-radius:20px}.cp-hero{min-height:190px;padding:20px}.cp-body{padding:16px}.cp-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.cp-grid .ctile{border-radius:14px}.cp-grid .ctile .wm{font-size:18px}}
+@media(max-width:650px){.cp-dialog.vertical{width:96vw;height:94dvh}.cp-dialog.vertical .cp-hero{height:42%;min-height:250px;max-height:none;padding:20px}.cp-dialog.vertical .cp-body{padding:16px}.cp-dialog.vertical .cp-grid{gap:10px}}
 
 /* Marcas de género para las tarjetas de inicio */
 .genre-mark{display:grid;place-items:center;width:34px;height:26px;flex:none;border-radius:8px;color:rgba(255,255,255,.82);font-size:9px;font-weight:750;letter-spacing:.12em;background:linear-gradient(135deg,rgba(255,255,255,.14),rgba(255,255,255,.035));border:1px solid rgba(255,255,255,.12)}
@@ -5834,6 +5844,7 @@ function idsDePanel(c, vistos) {
 }
 function abrirPanelColecciones(c) {
   const d = H('coleccion-panel-dialog'), hero = H('cp-hero'), grid = H('cp-grid');
+  d.classList.toggle('vertical', !!c.panelVertical);
   H('cp-title').textContent = c.nombre || 'Colecciones'; grid.replaceChildren();
   const fondoPanel = c.panelFondo || '';
   const f = fondoPanel && /^https?:\/\/[^\s"'()\\]+$/.test(fondoPanel) ? 'url("' + fondoPanel.replace(/"/g, '%22') + '")' : 'linear-gradient(135deg,' + (c.a || '#26314b') + ',' + (c.b || '#101014') + ')';
@@ -5973,7 +5984,7 @@ function pintarTiles() {
   const cols = H('cols'); cols.replaceChildren(); enlazarNavTiles('cols');
   if (typeof COLECCIONES === 'undefined' || !COLECCIONES.length) { cols.hidden = H('cols-w').hidden = true; return; }
   const anidadas = new Set(COLECCIONES.filter(c => c.panel).flatMap(c => c.subcolecciones || []));
-  const principales = COLECCIONES.filter(c => !anidadas.has(c.id));
+  const principales = COLECCIONES.filter(c => c.mostrarInicio !== false && !anidadas.has(c.id));
   H('cols-w').hidden = !principales.length;
   principales.forEach(c => {
     const a = document.createElement('a');
