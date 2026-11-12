@@ -1404,7 +1404,7 @@ html.catalogo-exclusivo body>*:not(#vista-catalogo):not(#share-denied):not(scrip
 html.catalogo-exclusivo #intro{display:none!important}
 html.catalogo-exclusivo.catalogo-listo #vista-catalogo{display:flex!important}
 .catalogo-card{cursor:grab;user-select:none;-webkit-user-select:none}
-.catalogo-view{justify-content:space-between;gap:0;padding:calc(env(safe-area-inset-top,0px) + 22px) 0 calc(env(safe-area-inset-bottom,0px) + 20px);background:#090a09}
+.catalogo-view{box-sizing:border-box;width:100vw;height:100vh;height:100dvh;min-height:100svh;justify-content:space-between;gap:0;padding:calc(env(safe-area-inset-top,0px) + 16px) 0 calc(env(safe-area-inset-bottom,0px) + 12px);background:#090a09}
 .catalogo-view::before{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;background:linear-gradient(180deg,rgba(0,0,0,.55),rgba(0,0,0,.22) 36%,rgba(0,0,0,.38) 68%,rgba(0,0,0,.86)),url('/assets/catalogo-fondo.webp') center/cover no-repeat;filter:saturate(.8)}
 .catalogo-view>*{position:relative;z-index:1}
 .catalogo-top{display:flex;align-items:center;width:min(82vw,760px);height:58px;flex:none;margin:18px auto 0;padding:0 22px;border:1px solid rgba(255,255,255,.22);border-radius:999px;background:rgba(24,25,24,.58);box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 12px 36px rgba(0,0,0,.3);backdrop-filter:blur(24px) saturate(1.35);-webkit-backdrop-filter:blur(24px) saturate(1.35)}
@@ -1413,15 +1413,21 @@ html.catalogo-exclusivo.catalogo-listo #vista-catalogo{display:flex!important}
 .catalogo-heading{flex:none;margin:34px 14px 0;text-align:center;font-size:clamp(22px,5.4vw,48px);font-weight:400;letter-spacing:.025em;text-shadow:0 3px 18px rgba(0,0,0,.9)}
 .catalogo-sub{margin:8px 12px 0;text-align:center;color:rgba(255,255,255,.76);text-shadow:0 2px 8px #000}
 .catalogo-track{flex:1;min-height:0;align-items:center;margin:6px 0 4px;padding:0 max(16vw,calc((100vw - 600px)/2));gap:18px;scroll-padding-inline:max(16vw,calc((100vw - 600px)/2));perspective:1000px;touch-action:pan-x;cursor:grab}
-.catalogo-card{flex:0 0 min(68vw,600px);height:auto;aspect-ratio:.58;max-height:66dvh;border-radius:24px;opacity:.56;filter:brightness(.68) saturate(.78);transform:scale(.86);transition:transform .32s ease,opacity .32s ease,filter .32s ease;box-shadow:0 20px 58px rgba(0,0,0,.55)}
+.catalogo-card{flex:0 0 auto;width:auto;height:min(68dvh,100%);aspect-ratio:2/3;max-width:min(68vw,600px);border-radius:28px;opacity:.56;filter:brightness(.68) saturate(.78);transform:scale(.86);transition:transform .32s ease,opacity .32s ease,filter .32s ease;box-shadow:0 20px 58px rgba(0,0,0,.55)}
+.catalogo-card img{display:block;border-radius:inherit;object-fit:cover}
 .catalogo-card.is-center{z-index:2;opacity:1;filter:none;transform:scale(1);box-shadow:0 26px 70px rgba(0,0,0,.65),0 0 0 1px rgba(255,255,255,.22)}
 .catalogo-card.no-disponible:not(.is-center){opacity:.55;filter:brightness(.55) grayscale(.18)}.catalogo-card.no-disponible.is-center{opacity:1;filter:brightness(.8)}
 .catalogo-card::after{inset:48% 0 0;background:linear-gradient(transparent,rgba(0,0,0,.76))}
 .catalogo-card .catalogo-title{left:16px;right:16px;bottom:44px;font-size:clamp(17px,4vw,28px);text-align:center}
 .catalogo-status{height:32px;font-size:10px;letter-spacing:.16em}
+.catalogo-card.no-disponible .catalogo-status{display:none}
+.catalogo-solicitar{position:absolute;z-index:4;top:50%;left:50%;min-width:150px;min-height:54px;padding:12px 28px;transform:translate(-50%,-50%);border:1px solid rgba(255,255,255,.25);border-radius:999px;background:rgba(25,25,28,.86);box-shadow:0 10px 32px rgba(0,0,0,.48);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);color:#fff;font:inherit;font-size:18px;font-weight:700;cursor:pointer}
+.catalogo-solicitar:disabled{cursor:default;opacity:.9}
 .catalogo-copy{align-self:center;flex:none;width:min(84vw,760px);min-height:64px;margin:14px auto 0;padding:12px 22px;border:1px solid rgba(255,255,255,.12);border-radius:999px;background:rgba(38,38,40,.94);box-shadow:0 16px 44px rgba(0,0,0,.44),inset 0 1px 0 rgba(255,255,255,.1);color:#fff;font:inherit;font-size:clamp(17px,3.4vw,27px);font-weight:750;letter-spacing:.035em;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .catalogo-copy:active{transform:scale(.98)}.catalogo-copy-status{min-height:16px;margin:6px 0 0;text-align:center;color:rgba(255,255,255,.78);font-size:12px;text-shadow:0 1px 7px #000}
-@media(max-height:650px){.catalogo-heading{margin-top:14px}.catalogo-card{max-height:54dvh}.catalogo-copy{min-height:52px;margin-top:8px}.catalogo-top{height:48px;margin-top:8px}}
+@media(max-height:650px){.catalogo-heading{margin-top:10px}.catalogo-card{height:min(62dvh,100%)}.catalogo-copy{min-height:48px;margin-top:6px}.catalogo-top{height:48px;margin-top:8px}.catalogo-sub{margin-top:4px}}
+@media(max-width:520px){.catalogo-top{width:88vw;padding:0 18px}.catalogo-heading{font-size:clamp(20px,5.4vw,32px);margin-top:24px}.catalogo-track{padding-inline:13vw;scroll-padding-inline:13vw;gap:14px}.catalogo-card{height:min(68dvh,100%);max-width:74vw;border-radius:24px}.catalogo-copy{width:88vw;min-height:58px;font-size:clamp(15px,4vw,21px)}}
+@media(max-width:390px){.catalogo-heading{margin-top:16px}.catalogo-card{height:min(64dvh,100%)}.catalogo-copy{min-height:52px;margin-top:8px}}
 .catalogo-card .catalogo-title{bottom:46px}.catalogo-status{position:absolute;z-index:2;left:0;right:0;bottom:0;display:grid;place-items:center;height:34px;font-size:11px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}.catalogo-status.disponible{background:linear-gradient(90deg,rgba(22,102,61,.82),rgba(25,132,73,.78));border-top:1px solid rgba(152,255,190,.24);color:#e5ffed}.catalogo-status.no-disponible{background:rgba(22,22,26,.88);border-top:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.75)}.catalogo-card.no-disponible{cursor:default;opacity:1;box-shadow:0 12px 34px rgba(0,0,0,.4)}.catalogo-card.no-disponible img{filter:brightness(.78)}.catalogo-card:focus-visible{outline:3px solid rgba(139,255,180,.72);outline-offset:4}.catalogo-top{grid-template-columns:1fr}
 .cfg-sw{position:relative;flex:none;width:62px;height:38px;border-radius:999px;background:rgba(255,255,255,.2);transition:background .25s}
 .cfg-sw::after{content:"";position:absolute;top:3px;left:3px;width:32px;height:32px;border-radius:50%;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.35);transition:transform .3s cubic-bezier(.3,1.5,.5,1)}
@@ -3776,6 +3782,18 @@ function catalogoCentrar() {
   }
   cards.forEach(card => card.classList.toggle('is-center', card === activo));
 }
+async function catalogoSolicitar(item, boton) {
+  const estado = H('catalogo-copy-status');
+  if (!U.correo) { estado.textContent = 'Inicia sesión con una cuenta Distribuidor y vuelve a abrir este enlace para solicitar.'; return; }
+  if (!U.acceso || U.acceso.plan !== 'distribuidor') { estado.textContent = 'Solicitar desde este catálogo requiere una cuenta con plan Distribuidor.'; return; }
+  boton.disabled = true; boton.textContent = 'Enviando…'; estado.textContent = '';
+  try {
+    const j = await api('usuario/pedir', { tmdb: item.tmdb, tipo: 'movie', titulo: item.titulo, anio: String(item.anio || ''), poster: item.posterPath || '' });
+    if (j && j.pedido) { boton.textContent = 'Solicitado ✓'; estado.textContent = 'Solicitud enviada a Pedidos de distribuidor.'; HAPT.tocar('marcado'); return; }
+    estado.textContent = j && j.error || 'No se pudo enviar la solicitud.';
+  } catch (e) { estado.textContent = uError(e); }
+  boton.disabled = false; boton.textContent = 'Solicitar';
+}
 let catalogoCentroTimer = 0;
 const catalogoTrack = H('catalogo-track');
 catalogoTrack.addEventListener('scroll', () => { clearTimeout(catalogoCentroTimer); catalogoCentroTimer = setTimeout(catalogoCentrar, 100); }, { passive: true });
@@ -3796,6 +3814,12 @@ function pintarCatalogo(lista, estado) {
     if (item.anio) { const y = document.createElement('span'); y.className = 'catalogo-year'; y.textContent = item.anio; card.appendChild(y); }
     const title = document.createElement('span'); title.className = 'catalogo-title'; title.textContent = item.titulo; card.appendChild(title);
     const status = document.createElement('span'); status.className = 'catalogo-status ' + (disponible ? 'disponible' : 'no-disponible'); status.textContent = disponible ? 'Disponible' : 'No disponible'; card.appendChild(status);
+    if (!disponible && item.tmdb) {
+      const solicitar = document.createElement('button'); solicitar.type = 'button'; solicitar.className = 'catalogo-solicitar'; solicitar.textContent = 'Solicitar';
+      solicitar.addEventListener('pointerdown', e => e.stopPropagation());
+      solicitar.addEventListener('click', e => { e.stopPropagation(); catalogoSolicitar(item, solicitar); });
+      card.appendChild(solicitar);
+    }
     track.appendChild(card);
   });
   if (lista.length > 1) requestAnimationFrame(() => {
@@ -3829,7 +3853,7 @@ function catalogoBuscar() {
         if (vistos.has(k)) return; vistos.add(k);
         resultados.push(disponible
           ? { pelicula: disponible, titulo: disponible.titulo, anio: catalogoAnio(disponible), poster: disponible.poster || IMG + 'w500' + x.poster_path }
-          : { pelicula: null, titulo: x.title || x.original_title, anio: String(x.release_date || '').slice(0, 4), poster: IMG + 'w500' + x.poster_path });
+          : { pelicula: null, tmdb: id, titulo: x.title || x.original_title, anio: String(x.release_date || '').slice(0, 4), posterPath: x.poster_path, poster: IMG + 'w500' + x.poster_path });
       });
       local.forEach(x => {
         const idLocal = catalogoId(x.pelicula), nombreLocal = norm(x.titulo);

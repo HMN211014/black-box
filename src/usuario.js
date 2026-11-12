@@ -414,12 +414,12 @@ async function asignarLista(db, correo, titulo, tmdb, pedidoId, avisar) {
 /* ---- Pedidos ---- */
 const filaPedido = r => ({
   id: r.id, correo: r.correo, tmdb: r.tmdb, tipo: r.tipo, titulo: r.titulo, anio: r.anio, poster: r.poster,
-  estado: r.estado, creado: r.creado, ...(r.listo ? { listo: r.listo } : {}), ...(r.vale ? { vale: true } : {}),
+  estado: r.estado, creado: r.creado, ...(r.listo ? { listo: r.listo } : {}), ...(r.vale ? { vale: true } : {}), ...(r.plan_usuario === 'distribuidor' ? { distribuidor: true } : {}),
 });
 async function pedidosDe(db, correo) {
   const q = correo
-    ? db.prepare('SELECT * FROM pedidos WHERE correo = ?1 ORDER BY creado DESC LIMIT 3000').bind(correo)
-    : db.prepare('SELECT * FROM pedidos ORDER BY creado DESC LIMIT 3000');
+    ? db.prepare('SELECT p.*, u.plan AS plan_usuario FROM pedidos p LEFT JOIN usuarios u ON u.correo = p.correo WHERE p.correo = ?1 ORDER BY p.creado DESC LIMIT 3000').bind(correo)
+    : db.prepare('SELECT p.*, u.plan AS plan_usuario FROM pedidos p LEFT JOIN usuarios u ON u.correo = p.correo ORDER BY p.creado DESC LIMIT 3000');
   return (await q.all()).results.map(filaPedido);
 }
 

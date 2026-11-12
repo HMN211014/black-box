@@ -1768,7 +1768,7 @@ $('p-go').onclick = () => con($('p-go'), 'p-m', async () => {
     const tg = document.createElement('span'); tg.className = 'tag ' + (x.estado === 'listo' ? 'd' : x.estado === 'rechazado' ? 'r' : 'p'); tg.style.marginLeft = '8px';
     tg.textContent = x.estado === 'listo' ? 'Listo' : x.estado === 'rechazado' ? 'Rechazado' : 'Pendiente';
     t.append(b, tg);
-    const sm = document.createElement('small'); sm.textContent = x.correo + ' · ' + (x.tipo === 'tv' ? 'Serie' : 'Película') + ' · TMDB ' + x.tmdb + ' · ' + fecha(x.creado) + (x.vale ? ' · pagado con vale' : '');
+    const sm = document.createElement('small'); sm.textContent = x.correo + (x.distribuidor ? ' · Distribuidor' : '') + ' · ' + (x.tipo === 'tv' ? 'Serie' : 'Película') + ' · TMDB ' + x.tmdb + ' · ' + fecha(x.creado) + (x.vale ? ' · pagado con vale' : '');
     d.append(t, sm);
     if (x.estado === 'pendiente') {
       const hit = pedidoDisponibleEn(x, dTodos()) || CAT.find(c => c.tmdb && Number(c.tmdb) === x.tmdb && (x.tipo === 'tv' ? c.tipo === 'serie' : c.tipo !== 'serie'));
