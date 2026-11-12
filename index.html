@@ -5835,7 +5835,8 @@ function idsDePanel(c, vistos) {
 function abrirPanelColecciones(c) {
   const d = H('coleccion-panel-dialog'), hero = H('cp-hero'), grid = H('cp-grid');
   H('cp-title').textContent = c.nombre || 'Colecciones'; grid.replaceChildren();
-  const f = c.fondo && /^https?:\/\/[^\s"'()\\]+$/.test(c.fondo) ? 'url("' + c.fondo.replace(/"/g, '%22') + '")' : 'linear-gradient(135deg,' + (c.a || '#26314b') + ',' + (c.b || '#101014') + ')';
+  const fondoPanel = c.panelFondo || '';
+  const f = fondoPanel && /^https?:\/\/[^\s"'()\\]+$/.test(fondoPanel) ? 'url("' + fondoPanel.replace(/"/g, '%22') + '")' : 'linear-gradient(135deg,' + (c.a || '#26314b') + ',' + (c.b || '#101014') + ')';
   hero.style.setProperty('--cp-bg', f);
   const hijos = (c.subcolecciones || []).map(coleccionPorId).filter(x => x && !x.panel);
   hijos.forEach(x => {

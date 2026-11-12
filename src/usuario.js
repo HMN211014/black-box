@@ -596,7 +596,10 @@ function limpiarCol(c) {
     anuncio: { titulo: String(an.titulo || '').trim().slice(0, 100), texto: String(an.texto || '').trim().slice(0, 300), imagen: aImg, enlace: aEnl, boton: String(an.boton || '').trim().slice(0, 40) }
   };
   if (c.panel === true) {
+    const panelFondo = urlCol(c.panelFondo);
+    if (panelFondo === null) return { error: 'La imagen de fondo del subpanel debe empezar con http:// o https://' };
     o.panel = true;
+    if (panelFondo) o.panelFondo = panelFondo;
     o.subcolecciones = [...new Set((Array.isArray(c.subcolecciones) ? c.subcolecciones : []).map(x => String(x || '').trim().toLowerCase()).filter(x => /^[a-z0-9][a-z0-9-]{0,39}$/.test(x) && x !== id))].slice(0, 60);
   }
   if (fondo) { o.fondo = fondo; if (c.sinNombre) o.sinNombre = true; }

@@ -583,12 +583,17 @@ body:not(.h) .nav button.on{background:#fff;color:#000}
     <label class="ck"><input type="checkbox" id="co-sin"> La imagen ya trae el nombre escrito (no repetirlo encima)</label>
     <label>Logo (opcional)<small class="h">Imagen del logo en lugar del nombre escrito.</small><input id="co-logo" type="url" autocapitalize="off" spellcheck="false" placeholder="https://…"></label>
 
-    <details class="dt" id="co-panel-box">
-      <summary>Subpanel de colecciones</summary>
+    <div class="dt" id="co-panel-box">
+      <h3 style="margin-top:0">Subpanel de colecciones</h3>
       <p class="s">Convierte esta colección en una ventana flotante que agrupa colecciones existentes. Al guardar, las colecciones seleccionadas se muestran dentro del panel y dejan de ocupar espacio en la fila principal.</p>
       <label class="ck"><input type="checkbox" id="co-panel-check"> Abrir como subpanel al hacer clic</label>
-      <div id="co-panel-pick" hidden><h4 style="margin:12px 0 6px">Colecciones dentro del panel</h4><div id="co-panel-options"></div></div>
-    </details>
+      <div id="co-panel-pick" hidden>
+        <label style="margin-top:12px">Imagen de fondo de la ventana flotante<small class="h">Opcional. Pega una dirección http(s). Si la dejas vacía, se usan los colores del panel. Esta imagen es independiente del fondo del cuadro en el inicio.</small><input id="co-panel-fondo" type="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://…"></label>
+        <h4 style="margin:14px 0 6px">Agregar colecciones existentes</h4>
+        <p class="s" style="margin:0 0 8px">Marca las colecciones que quieres mostrar en esta ventana. Puedes editar la selección cuando quieras.</p>
+        <div id="co-panel-options"></div>
+      </div>
+    </div>
 
     <div id="co-pv" style="margin-top:14px;border-top:1px solid rgba(255,255,255,.1);padding-top:14px">
       <b>Contenido de la colección</b>
@@ -2251,7 +2256,7 @@ function coLeer() {
     tema: $('co-tema').value, fondo: $('co-fondo').value.trim(), logo: $('co-logo').value.trim(), sinNombre: $('co-sin').checked,
     fuente: $('co-fuente').value, peso: $('co-peso').value, esp: $('co-esp').value, mayus: $('co-mayus').checked,
     patron: $('co-patron').value, patronColor: $('co-pc').value,
-    panel: $('co-panel-check').checked, subcolecciones: [...document.querySelectorAll('#co-panel-options input:checked')].map(x => x.value),
+    panel: $('co-panel-check').checked, panelFondo: $('co-panel-fondo').value.trim(), subcolecciones: [...document.querySelectorAll('#co-panel-options input:checked')].map(x => x.value),
     anuncio: { titulo: $('co-at').value.trim(), texto: $('co-ax').value.trim(), imagen: $('co-ai').value.trim(), enlace: $('co-ae').value.trim(), boton: $('co-ab').value.trim() },
     tmdbEmpresas: lin('co-emp'), tmdbEmpresasContiene: lin('co-empc'), tmdbPalabras: lin('co-pal'), tmdbSagas: lin('co-sag'), tmdbDirectores: lin('co-dir'), tmdbReparto: lin('co-rep'),
     auto: $('co-auto').checked, incluirSeries: $('co-series').checked, excluir: lin('co-exc'), peliculas: lin('co-pel'), series: coSeries.slice(), subcategorias: coSubsLeer(), proximamente: coProx.map(x => ({ ...x }))
@@ -2268,7 +2273,7 @@ function coPrev() {
 function coPoner(c) {                                  // c = null → formulario en blanco
   c = c || {}; const an = c.anuncio || {}, v = (id, x, d) => { $(id).value = x == null || x === '' ? d : x; }, L = (id, a) => { $(id).value = (a || []).join('\n'); };
   coEditando = c.id || null; coManual = !!c.id;
-  $('co-panel-check').checked = !!c.panel; $('co-panel-pick').hidden = !c.panel;
+  $('co-panel-check').checked = !!c.panel; $('co-panel-pick').hidden = !c.panel; $('co-panel-fondo').value = c.panelFondo || '';
   const esp = c.esp || '.08em';                        // si trae un espaciado que no está en la lista (p. ej. .06em), se agrega
   if (![...$('co-esp').options].some(o => o.value === esp)) { const o = document.createElement('option'); o.value = o.textContent = esp; $('co-esp').appendChild(o); }
   v('co-nombre', c.nombre, ''); v('co-id', c.id, ''); $('co-id').readOnly = !!c.id;
