@@ -61,7 +61,9 @@ td.k{font-family:ui-monospace,Menlo,Consolas,monospace;white-space:nowrap}
 @media(max-width:700px){#co-lista .it{align-items:flex-start}#co-lista .it .row{flex-wrap:wrap;justify-content:flex-end;max-width:48%}}
 .cp-admin-preview{margin-top:14px;padding:12px;border-radius:16px;background:#0b0b0f;border:1px solid rgba(255,255,255,.12)}
 .cp-admin-preview-h{display:flex;justify-content:space-between;gap:10px;color:#c7c7cc;font-size:12px;margin-bottom:10px}
-.cp-admin-frame{height:440px;overflow:auto;scrollbar-gutter:stable;border-radius:12px;background:#141419}
+.cp-admin-frame{width:100%;aspect-ratio:1100/900;overflow:auto;scrollbar-gutter:stable;border-radius:12px;background:#141419;margin:0 auto}
+.cp-admin-preview.vertical .cp-admin-frame{width:min(100%,380px);aspect-ratio:680/940}
+.cp-or{display:flex;gap:6px}.cp-or button{height:28px;padding:0 12px;font-size:12px;border-radius:14px}
 .cp-admin-hero{position:relative;isolation:isolate;height:155px;overflow:hidden;display:flex;align-items:flex-end;padding:12px;background:linear-gradient(135deg,#26314b,#101014);cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
 .cp-admin-hero:active{cursor:grabbing}
 .cp-admin-hero>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;pointer-events:none;-webkit-user-drag:none}
@@ -80,10 +82,10 @@ td.k{font-family:ui-monospace,Menlo,Consolas,monospace;white-space:nowrap}
 .cp-admin-divider{height:1px;background:rgba(255,255,255,.22)}
 .cp-admin-grid-title{margin:12px 10px 8px;font-size:9px;letter-spacing:.2em;color:#c7c7cc}
 .cp-admin-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:0 10px 12px}
-.cp-admin-card{position:relative;isolation:isolate;overflow:hidden;display:grid;place-items:center;aspect-ratio:16/9;border-radius:8px;padding:6px;color:#fff;background:linear-gradient(135deg,#26314b,#101014);text-align:center}
+.cp-admin-card{position:relative;isolation:isolate;overflow:hidden;display:grid;place-items:center;aspect-ratio:16/9;border-radius:calc(18px * var(--e,.4));padding:6px;color:#fff;background:linear-gradient(135deg,#26314b,#101014);text-align:center}
 .cp-admin-card img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0}
 .cp-admin-card:after{content:"";position:absolute;inset:0;z-index:1;background:linear-gradient(0deg,rgba(0,0,0,.62),transparent 65%);pointer-events:none}
-.cp-admin-card span{position:relative;z-index:2;font-size:18px;line-height:1.05;text-shadow:0 2px 8px #000;word-break:break-word}
+.cp-admin-card span{position:relative;z-index:2;font-size:calc(24px * var(--e,.4));line-height:1.05;text-shadow:0 2px 8px #000;word-break:break-word}
 .cp-admin-card img.logo{position:relative;z-index:2;width:84%;height:auto;max-height:48%;object-fit:contain;filter:drop-shadow(0 2px 8px #000)}
 .cp-admin-preview.vertical .cp-admin-card{aspect-ratio:2/3}
 .cp-range{margin-top:6px}.cp-range input[type=range]{height:24px;padding:0;accent-color:#fff}.cp-range output{display:block;color:#a1a1a6;font-size:12px;margin-top:2px}
@@ -638,7 +640,7 @@ body:not(.h) .nav button.on{background:#fff;color:#000}
         <label>Título como imagen PNG (opcional)<small class="h">Un logo o título con fondo transparente. Sustituye al texto del título y al subtítulo.</small><input id="co-panel-titulo-logo" type="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://…/titulo.png"></label>
         <label class="ck" style="margin-top:12px"><input type="checkbox" id="co-panel-vertical"> Presentación vertical para el subpanel</label>
 
-        <div class="cp-admin-preview" id="co-panel-preview"><div class="cp-admin-preview-h"><span>Vista previa en vivo</span><span id="co-panel-preview-count"></span></div>
+        <div class="cp-admin-preview" id="co-panel-preview"><div class="cp-admin-preview-h"><span>Vista previa en vivo</span><span class="cp-or" role="group" aria-label="Orientación de la ventana"><button type="button" id="co-panel-or-h">Horizontal</button><button type="button" id="co-panel-or-v">Vertical</button></span><span id="co-panel-preview-count"></span></div>
           <div class="cp-admin-frame" id="co-panel-preview-frame">
             <div class="cp-admin-hero" id="co-panel-preview-hero">
               <img id="co-panel-preview-image" alt="" draggable="false">
@@ -670,7 +672,7 @@ body:not(.h) .nav button.on{background:#fff;color:#000}
             <label class="cp-range">Posición vertical del título<input id="co-panel-titulo-y" type="range" min="0" max="100" step="0.1" value="100"><output id="co-panel-titulo-y-val">Como antes</output></label>
           </div>
         </details>
-        <p class="s" style="margin:12px 0">La vista previa sigue las proporciones de la ventana en una pantalla de computadora; en un celular se ve más angosta y el texto se verá relativamente más grande.</p>
+        <p class="s" style="margin:12px 0">La vista previa mantiene la proporción de la ventana en una pantalla de computadora, en horizontal o en vertical. En un celular la ventana ocupa casi toda la pantalla, así que se ve más angosta y el texto relativamente más grande.</p>
         <h4 style="margin:14px 0 6px">Agregar colecciones existentes</h4>
         <p class="s" style="margin:0 0 8px">Marca las colecciones que quieres mostrar en esta ventana. Puedes editar la selección cuando quieras.</p>
         <div id="co-panel-options" class="cp-choice-grid"></div>
@@ -2402,11 +2404,16 @@ function coPanelPreview() {
   const titulo = $('co-panel-titulo').value.trim() || $('co-nombre').value.trim() || 'Colección';
   const hero = $('co-panel-preview-hero'), image = $('co-panel-preview-image'), bg = $('co-panel-fondo').value.trim(), tbox = $('co-panel-preview-tbox');
   const vert = $('co-panel-vertical').checked, real = vert ? { w: 680, h: 940 } : { w: 1100, h: 900 };      // medidas aproximadas de la ventana real en computadora
-  const hw = hero.clientWidth || $('co-panel-preview-frame').clientWidth || 360, e = hw / real.w;
-  /* Alto, márgenes y letras a escala de la ventana real, para que lo que se arrastra aquí quede igual en el sitio. */
+  /* El marco tiene la proporción de la ventana real (horizontal o vertical); todo lo de adentro va a esa escala,
+     para que lo que se arrastra aquí quede igual en el sitio. */
+  const frame = $('co-panel-preview-frame'), fw = frame.clientWidth || 360, fh = frame.clientHeight || fw * real.h / real.w, e = fw / real.w;
   const altura = Number($('co-panel-imagen-altura').value) || 43;
-  hero.style.height = Math.round(Math.max(230 * e, hw * altura / 100 * real.h / real.w)) + 'px';
+  hero.style.height = Math.round(Math.max(230 * e, fh * altura / 100)) + 'px';
   hero.style.padding = (24 * e) + 'px ' + (30 * e) + 'px ' + (30 * e) + 'px';
+  const cuerpoX = (vert ? 26 : 28) * e, gridTitle = frame.querySelector('.cp-admin-grid-title');
+  gridTitle.style.cssText = 'margin:' + (vert ? 20 : 18) * e + 'px ' + cuerpoX + 'px ' + (vert ? 16 : 14) * e + 'px;font-size:' + (vert ? 12 : 13) * e + 'px;letter-spacing:.22em';
+  grid.style.padding = '0 ' + cuerpoX + 'px ' + 30 * e + 'px'; grid.style.gap = (vert ? 12 : 14) * e + 'px'; grid.style.setProperty('--e', e);
+  $('co-panel-or-h').className = vert ? 'g' : ''; $('co-panel-or-v').className = vert ? '' : 'g';
   hero.style.background = 'linear-gradient(135deg,' + $('co-a').value + ',' + $('co-b').value + ')';
   image.hidden = !coUrlOk(bg);
   image.onerror = () => { image.hidden = true; };
@@ -2473,6 +2480,8 @@ $('co-panel-imagen-x').addEventListener('input', () => { coImgX = Number($('co-p
 ['co-panel-titulo-x', 'co-panel-titulo-y'].forEach(id => $(id).addEventListener('input', () => { coTitPos = { x: Number($('co-panel-titulo-x').value), y: Number($('co-panel-titulo-y').value) }; }));
 ['co-panel-fondo','co-panel-titulo','co-panel-titulo-logo','co-panel-titulo-size','co-panel-titulo-logo-size','co-panel-imagen-zoom','co-panel-imagen-x','co-panel-imagen-y','co-panel-imagen-altura','co-panel-titulo-x','co-panel-titulo-y','co-nombre','co-a','co-b'].forEach(id => $(id).addEventListener('input', coPanelPreview));
 $('co-panel-vertical').addEventListener('change', coPanelPreview);
+$('co-panel-or-h').addEventListener('click', () => { $('co-panel-vertical').checked = false; coPanelPreview(); });
+$('co-panel-or-v').addEventListener('click', () => { $('co-panel-vertical').checked = true; coPanelPreview(); });
 $('co-panel-check').addEventListener('change', () => { $('co-panel-pick').hidden = !$('co-panel-check').checked; coPanelPreview(); });
 $('co-panel-reset-img').addEventListener('click', () => {
   coImgX = null; $('co-panel-imagen-x').value = 50; $('co-panel-imagen-y').value = 50; $('co-panel-imagen-zoom').value = 100; $('co-panel-imagen-altura').value = 43; coPanelPreview();
@@ -2490,7 +2499,6 @@ if (typeof ResizeObserver === 'function') new ResizeObserver(() => { if (!$('co-
 (function coPanelInteractivo() {
   const hero = $('co-panel-preview-hero'), tbox = $('co-panel-preview-tbox'), image = $('co-panel-preview-image'), hTam = $('co-panel-preview-handle'), hAlto = $('co-panel-preview-hhandle');
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v)), r1 = v => Math.round(v * 10) / 10, poner = (id, v) => { $(id).value = v; };
-  const realDe = () => $('co-panel-vertical').checked ? { w: 680, h: 940 } : { w: 1100, h: 900 };
   const ptrs = new Map(); let ig = null, td = null, ts = null, ha = null;
 
   /* Imagen: px que se mueve la imagen por cada unidad (0–1) del encuadre, con el zoom actual. */
@@ -2576,8 +2584,8 @@ if (typeof ResizeObserver === 'function') new ResizeObserver(() => { if (!$('co-
   });
   hAlto.addEventListener('pointermove', ev => {
     if (!ha || ev.pointerId !== ha.id) return;
-    const real = realDe(), hw = hero.clientWidth || 360;
-    poner('co-panel-imagen-altura', Math.round(clamp((ha.h + ev.clientY - ha.sy) / (hw * real.h / real.w) * 100, 30, 70))); coPanelPreview();
+    const fh = $('co-panel-preview-frame').clientHeight || 1;
+    poner('co-panel-imagen-altura', Math.round(clamp((ha.h + ev.clientY - ha.sy) / fh * 100, 30, 70))); coPanelPreview();
   });
   const haFin = ev => { if (ha && ev.pointerId === ha.id) ha = null; };
   hAlto.addEventListener('pointerup', haFin); hAlto.addEventListener('pointercancel', haFin);
