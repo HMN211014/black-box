@@ -61,8 +61,11 @@ td.k{font-family:ui-monospace,Menlo,Consolas,monospace;white-space:nowrap}
 @media(max-width:700px){#co-lista .it{align-items:flex-start}#co-lista .it .row{flex-wrap:wrap;justify-content:flex-end;max-width:48%}}
 .cp-admin-preview{margin-top:14px;padding:12px;border-radius:16px;background:#0b0b0f;border:1px solid rgba(255,255,255,.12)}
 .cp-admin-preview-h{display:flex;justify-content:space-between;gap:10px;color:#c7c7cc;font-size:12px;margin-bottom:10px}
-.cp-admin-frame{width:100%;aspect-ratio:1100/900;overflow:auto;scrollbar-gutter:stable;border-radius:12px;background:#141419;margin:0 auto}
-.cp-admin-preview.vertical .cp-admin-frame{width:min(100%,380px);aspect-ratio:680/940}
+.cp-admin-preview.fija{position:sticky;top:8px;z-index:20;box-shadow:0 14px 40px #000d}
+.cp-admin-frame{width:min(100%,calc(46vh * 1.2222));aspect-ratio:1100/900;overflow:auto;scrollbar-gutter:stable;border-radius:12px;background:#141419;margin:0 auto}
+.cp-admin-preview.vertical .cp-admin-frame{width:min(100%,380px,calc(46vh * .7234));aspect-ratio:680/940}
+.cp-fijar{margin:10px 0 0;font-size:12px}
+.cp-admin-preview.fija ~ .cp-fino input{scroll-margin-top:calc(46vh + 100px)}
 .cp-or{display:flex;gap:6px}.cp-or button{height:28px;padding:0 12px;font-size:12px;border-radius:14px}
 .cp-admin-hero{position:relative;isolation:isolate;height:155px;overflow:hidden;display:flex;align-items:flex-end;padding:12px;background:linear-gradient(135deg,#26314b,#101014);cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
 .cp-admin-hero:active{cursor:grabbing}
@@ -651,6 +654,7 @@ body:not(.h) .nav button.on{background:#fff;color:#000}
           </div>
         </div>
         <p class="cp-hint"><b>Imagen:</b> arrástrala para encuadrarla; pellizca (o Ctrl + rueda) para acercar; arrastra la barra blanca de abajo para cambiar su alto. <b>Título:</b> arrástralo para moverlo y usa el círculo de su esquina para cambiar el tamaño.</p>
+        <label class="ck cp-fijar"><input type="checkbox" id="co-panel-fijar" checked> Mantener la vista previa visible mientras ajusto (se queda fija arriba al bajar la página)</label>
         <div class="row" style="margin-top:10px"><button class="g" id="co-panel-reset-img" type="button">Restablecer imagen</button><button class="g" id="co-panel-reset-tit" type="button">Restablecer título</button></div>
 
         <details class="cp-fino">
@@ -2399,7 +2403,7 @@ function coPanelPreview() {
   const grid = $('co-panel-preview-grid'), preview = $('co-panel-preview'), cols = Number($('co-panel-cols').value) || 3;
   const ids = coPanelSeleccionados(), all = new Map(delArchivo.map(x => [x.id, coPanel.get(x.id) || x]));
   coPanel.forEach(x => { if (!all.has(x.id)) all.set(x.id, x); });
-  grid.style.gridTemplateColumns = 'repeat(' + cols + ',minmax(0,1fr))'; preview.classList.toggle('vertical', $('co-panel-vertical').checked);
+  grid.style.gridTemplateColumns = 'repeat(' + cols + ',minmax(0,1fr))'; preview.classList.toggle('vertical', $('co-panel-vertical').checked); preview.classList.toggle('fija', $('co-panel-fijar').checked);
   $('co-panel-cols-val').textContent = cols + ' por fila'; $('co-panel-preview-count').textContent = ids.length + (ids.length === 1 ? ' póster' : ' pósteres');
   const titulo = $('co-panel-titulo').value.trim() || $('co-nombre').value.trim() || 'Colección';
   const hero = $('co-panel-preview-hero'), image = $('co-panel-preview-image'), bg = $('co-panel-fondo').value.trim(), tbox = $('co-panel-preview-tbox');
@@ -2480,6 +2484,7 @@ $('co-panel-imagen-x').addEventListener('input', () => { coImgX = Number($('co-p
 ['co-panel-titulo-x', 'co-panel-titulo-y'].forEach(id => $(id).addEventListener('input', () => { coTitPos = { x: Number($('co-panel-titulo-x').value), y: Number($('co-panel-titulo-y').value) }; }));
 ['co-panel-fondo','co-panel-titulo','co-panel-titulo-logo','co-panel-titulo-size','co-panel-titulo-logo-size','co-panel-imagen-zoom','co-panel-imagen-x','co-panel-imagen-y','co-panel-imagen-altura','co-panel-titulo-x','co-panel-titulo-y','co-nombre','co-a','co-b'].forEach(id => $(id).addEventListener('input', coPanelPreview));
 $('co-panel-vertical').addEventListener('change', coPanelPreview);
+$('co-panel-fijar').addEventListener('change', coPanelPreview);
 $('co-panel-or-h').addEventListener('click', () => { $('co-panel-vertical').checked = false; coPanelPreview(); });
 $('co-panel-or-v').addEventListener('click', () => { $('co-panel-vertical').checked = true; coPanelPreview(); });
 $('co-panel-check').addEventListener('change', () => { $('co-panel-pick').hidden = !$('co-panel-check').checked; coPanelPreview(); });
