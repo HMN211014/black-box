@@ -61,11 +61,22 @@ td.k{font-family:ui-monospace,Menlo,Consolas,monospace;white-space:nowrap}
 @media(max-width:700px){#co-lista .it{align-items:flex-start}#co-lista .it .row{flex-wrap:wrap;justify-content:flex-end;max-width:48%}}
 .cp-admin-preview{margin-top:14px;padding:12px;border-radius:16px;background:#0b0b0f;border:1px solid rgba(255,255,255,.12)}
 .cp-admin-preview-h{display:flex;justify-content:space-between;gap:10px;color:#c7c7cc;font-size:12px;margin-bottom:10px}
-.cp-admin-frame{height:360px;overflow:auto;border-radius:12px;background:#141419}
-.cp-admin-hero{position:relative;isolation:isolate;height:155px;overflow:hidden;display:flex;align-items:flex-end;padding:12px;background:linear-gradient(135deg,#26314b,#101014)}
-.cp-admin-hero img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0}
+.cp-admin-frame{height:440px;overflow:auto;scrollbar-gutter:stable;border-radius:12px;background:#141419}
+.cp-admin-hero{position:relative;isolation:isolate;height:155px;overflow:hidden;display:flex;align-items:flex-end;padding:12px;background:linear-gradient(135deg,#26314b,#101014);cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
+.cp-admin-hero:active{cursor:grabbing}
+.cp-admin-hero>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;pointer-events:none;-webkit-user-drag:none}
 .cp-admin-hero:after{content:"";position:absolute;inset:0;z-index:1;background:linear-gradient(0deg,#101014e8,transparent 80%);pointer-events:none}
-.cp-admin-hero-title{position:relative;z-index:2;color:#fff;line-height:1.05;text-shadow:0 2px 8px #000;word-break:break-word}
+.cp-admin-hero-title{position:relative;z-index:2;color:#fff;line-height:normal;text-shadow:0 2px 8px #000;word-break:break-word;cursor:move;outline:1px dashed rgba(255,255,255,.4);outline-offset:3px;touch-action:none}
+.cp-admin-hero-title:hover,.cp-admin-hero-title.on{outline-color:#fff}
+.cp-admin-hero-title span,.cp-admin-hero-title p{pointer-events:none}.cp-admin-hero-title span{display:block}.cp-admin-hero-title p{margin:0;color:#eee}
+.cp-admin-hero-title img{display:block;width:100%;height:auto;pointer-events:none;-webkit-user-drag:none;filter:drop-shadow(0 2px 8px #000a)}
+.cp-admin-hero-title img[hidden],.cp-admin-hero-title span[hidden],.cp-admin-hero-title p[hidden]{display:none}
+.cp-admin-hero-title.libre{position:absolute;max-width:92%}.cp-admin-hero-title.libre:not(.logo){width:max-content}
+.cp-admin-handle{position:absolute;right:-2px;bottom:-2px;width:18px;height:18px;border-radius:50%;background:#fff;border:2px solid #0b0b0f;cursor:nwse-resize;z-index:4;touch-action:none}
+.cp-admin-hhandle{position:absolute;left:0;right:0;bottom:0;height:18px;cursor:ns-resize;z-index:3;touch-action:none}
+.cp-admin-hhandle:before{content:"";position:absolute;left:50%;bottom:5px;width:44px;height:5px;margin-left:-22px;border-radius:5px;background:rgba(255,255,255,.75)}
+.cp-fino{margin:12px 0 4px}.cp-fino>summary{cursor:pointer;font-weight:600;color:#d1d1d6;font-size:13px}
+.cp-hint{margin:10px 0 0;color:#a1a1a6;font-size:12px;line-height:1.45}
 .cp-admin-divider{height:1px;background:rgba(255,255,255,.22)}
 .cp-admin-grid-title{margin:12px 10px 8px;font-size:9px;letter-spacing:.2em;color:#c7c7cc}
 .cp-admin-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:0 10px 12px}
@@ -624,24 +635,46 @@ body:not(.h) .nav button.on{background:#fff;color:#000}
         <h4 style="margin:14px 0 6px">Encabezado superior de la subcarpeta</h4>
         <label>Imagen superior<small class="h">Es la imagen grande que aparece arriba dentro de la subcarpeta, independiente del fondo del cuadro en el inicio.</small><input id="co-panel-fondo" type="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://…"></label>
         <label>Título de la parte superior<small class="h">Vacío conserva el nombre de la colección.</small><input id="co-panel-titulo" maxlength="80" autocomplete="off" placeholder="Nombre del subpanel"></label>
-        <div class="f">
-          <label class="cp-range">Tamaño del título<input id="co-panel-titulo-size" type="range" min="20" max="60" step="1" value="42"><output id="co-panel-titulo-size-val">42 px</output></label>
-          <label class="cp-range">Zoom de la imagen superior<input id="co-panel-imagen-zoom" type="range" min="100" max="180" step="1" value="100"><output id="co-panel-imagen-zoom-val">100%</output></label>
-        </div>
-        <label class="cp-range">Encuadre vertical de la imagen<input id="co-panel-imagen-y" type="range" min="0" max="100" step="1" value="50"><output id="co-panel-imagen-y-val">50%</output></label>
-        <label class="cp-range">Espacio de la imagen superior<input id="co-panel-imagen-altura" type="range" min="30" max="70" step="1" value="43"><output id="co-panel-imagen-altura-val">43% de la subventana</output></label>
+        <label>Título como imagen PNG (opcional)<small class="h">Un logo o título con fondo transparente. Sustituye al texto del título y al subtítulo.</small><input id="co-panel-titulo-logo" type="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://…/titulo.png"></label>
         <label class="ck" style="margin-top:12px"><input type="checkbox" id="co-panel-vertical"> Presentación vertical para el subpanel</label>
-        <p class="s" style="margin:4px 0 12px">Usa una ventana alta, ajusta el título sobre la imagen y separa el área visual de las colecciones con una línea.</p>
+
+        <div class="cp-admin-preview" id="co-panel-preview"><div class="cp-admin-preview-h"><span>Vista previa en vivo</span><span id="co-panel-preview-count"></span></div>
+          <div class="cp-admin-frame" id="co-panel-preview-frame">
+            <div class="cp-admin-hero" id="co-panel-preview-hero">
+              <img id="co-panel-preview-image" alt="" draggable="false">
+              <div class="cp-admin-hero-title" id="co-panel-preview-tbox" title="Arrástralo para moverlo"><span id="co-panel-preview-title"></span><img id="co-panel-preview-tlogo" alt="" draggable="false" hidden><p id="co-panel-preview-sub">Explora sus colecciones</p><i class="cp-admin-handle" id="co-panel-preview-handle" title="Arrastra para cambiar el tamaño del título"></i></div>
+              <i class="cp-admin-hhandle" id="co-panel-preview-hhandle" title="Arrastra para cambiar el alto de la imagen"></i>
+            </div>
+            <div class="cp-admin-divider"></div><h4 class="cp-admin-grid-title">COLECCIONES</h4><div class="cp-admin-grid" id="co-panel-preview-grid"></div>
+          </div>
+        </div>
+        <p class="cp-hint"><b>Imagen:</b> arrástrala para encuadrarla; pellizca (o Ctrl + rueda) para acercar; arrastra la barra blanca de abajo para cambiar su alto. <b>Título:</b> arrástralo para moverlo y usa el círculo de su esquina para cambiar el tamaño.</p>
+        <div class="row" style="margin-top:10px"><button class="g" id="co-panel-reset-img" type="button">Restablecer imagen</button><button class="g" id="co-panel-reset-tit" type="button">Restablecer título</button></div>
+
+        <details class="cp-fino">
+          <summary>Ajuste fino con deslizadores</summary>
+          <div class="f">
+            <label class="cp-range">Zoom de la imagen<input id="co-panel-imagen-zoom" type="range" min="100" max="300" step="1" value="100"><output id="co-panel-imagen-zoom-val">100%</output></label>
+            <label class="cp-range">Alto de la imagen<input id="co-panel-imagen-altura" type="range" min="30" max="70" step="1" value="43"><output id="co-panel-imagen-altura-val">43% de la subventana</output></label>
+          </div>
+          <div class="f">
+            <label class="cp-range">Encuadre horizontal<input id="co-panel-imagen-x" type="range" min="0" max="100" step="0.1" value="50"><output id="co-panel-imagen-x-val">50%</output></label>
+            <label class="cp-range">Encuadre vertical<input id="co-panel-imagen-y" type="range" min="0" max="100" step="0.1" value="50"><output id="co-panel-imagen-y-val">50%</output></label>
+          </div>
+          <div class="f">
+            <label class="cp-range">Tamaño del título (texto)<input id="co-panel-titulo-size" type="range" min="20" max="90" step="1" value="42"><output id="co-panel-titulo-size-val">42 px</output></label>
+            <label class="cp-range">Tamaño del título (PNG)<input id="co-panel-titulo-logo-size" type="range" min="10" max="90" step="1" value="40"><output id="co-panel-titulo-logo-size-val">40% del ancho</output></label>
+          </div>
+          <div class="f">
+            <label class="cp-range">Posición horizontal del título<input id="co-panel-titulo-x" type="range" min="0" max="100" step="0.1" value="0"><output id="co-panel-titulo-x-val">Como antes</output></label>
+            <label class="cp-range">Posición vertical del título<input id="co-panel-titulo-y" type="range" min="0" max="100" step="0.1" value="100"><output id="co-panel-titulo-y-val">Como antes</output></label>
+          </div>
+        </details>
+        <p class="s" style="margin:12px 0">La vista previa sigue las proporciones de la ventana en una pantalla de computadora; en un celular se ve más angosta y el texto se verá relativamente más grande.</p>
         <h4 style="margin:14px 0 6px">Agregar colecciones existentes</h4>
         <p class="s" style="margin:0 0 8px">Marca las colecciones que quieres mostrar en esta ventana. Puedes editar la selección cuando quieras.</p>
         <div id="co-panel-options" class="cp-choice-grid"></div>
         <label class="cp-range">Pósteres por fila<input id="co-panel-cols" type="range" min="1" max="6" step="1" value="3"><output id="co-panel-cols-val">3 por fila</output></label>
-        <div class="cp-admin-preview" id="co-panel-preview"><div class="cp-admin-preview-h"><span>Vista previa en vivo</span><span id="co-panel-preview-count"></span></div>
-          <div class="cp-admin-frame" id="co-panel-preview-frame">
-            <div class="cp-admin-hero" id="co-panel-preview-hero"><img id="co-panel-preview-image" alt=""><div class="cp-admin-hero-title"><span id="co-panel-preview-title"></span></div></div>
-            <div class="cp-admin-divider"></div><h4 class="cp-admin-grid-title">COLECCIONES</h4><div class="cp-admin-grid" id="co-panel-preview-grid"></div>
-          </div>
-        </div>
       </div>
     </div>
 
@@ -2300,6 +2333,8 @@ const coSubsLeer = () => [...document.querySelectorAll('#co-subs .sb')].map(d =>
 }).filter(s => s.nombre);
 $('co-sub-add').onclick = () => coSubAgregar().focus();
 
+/* Subpanel: null = "como estaba antes" (encuadre solo vertical / título abajo a la izquierda). Se llenan al mover la imagen o el título. */
+let coImgX = null, coTitPos = null;
 function coLeer() {
   return {
     id: $('co-id').value.trim(), nombre: $('co-nombre').value.trim(), a: $('co-a').value, b: $('co-b').value, tx: $('co-tx').value,
@@ -2308,6 +2343,8 @@ function coLeer() {
     patron: $('co-patron').value, patronColor: $('co-pc').value,
     mostrarInicio: $('co-mostrar-inicio').checked, panel: $('co-panel-check').checked, panelFondo: $('co-panel-fondo').value.trim(), panelVertical: $('co-panel-vertical').checked,
     panelTitulo: $('co-panel-titulo').value.trim(), panelTituloSize: Number($('co-panel-titulo-size').value), panelImagenZoom: Number($('co-panel-imagen-zoom').value), panelImagenY: Number($('co-panel-imagen-y').value), panelImagenAltura: Number($('co-panel-imagen-altura').value),
+    panelImagenX: coImgX, panelTituloLogo: $('co-panel-titulo-logo').value.trim(), panelTituloLogoSize: Number($('co-panel-titulo-logo-size').value),
+    panelTituloX: coTitPos ? coTitPos.x : null, panelTituloY: coTitPos ? coTitPos.y : null,
     panelColumnas: Number($('co-panel-cols').value), subcolecciones: coPanelSeleccionados(),
     anuncio: { titulo: $('co-at').value.trim(), texto: $('co-ax').value.trim(), imagen: $('co-ai').value.trim(), enlace: $('co-ae').value.trim(), boton: $('co-ab').value.trim() },
     tmdbEmpresas: lin('co-emp'), tmdbEmpresasContiene: lin('co-empc'), tmdbPalabras: lin('co-pal'), tmdbSagas: lin('co-sag'), tmdbDirectores: lin('co-dir'), tmdbReparto: lin('co-rep'),
@@ -2328,10 +2365,17 @@ function coPoner(c) {                                  // c = null → formulari
   $('co-panel-cols').value = Math.max(1, Math.min(6, Number(c.panelColumnas) || 3));
   $('co-panel-check').checked = !!c.panel; $('co-panel-pick').hidden = !c.panel; $('co-panel-fondo').value = c.panelFondo || '';
   $('co-panel-titulo').value = c.panelTitulo || '';
-  $('co-panel-titulo-size').value = Math.max(20, Math.min(60, Number(c.panelTituloSize) || 42));
-  $('co-panel-imagen-zoom').value = Math.max(100, Math.min(180, Number(c.panelImagenZoom) || 100));
+  $('co-panel-titulo-size').value = Math.max(20, Math.min(90, Number(c.panelTituloSize) || 42));
+  $('co-panel-imagen-zoom').value = Math.max(100, Math.min(300, Number(c.panelImagenZoom) || 100));
   $('co-panel-imagen-y').value = Math.max(0, Math.min(100, Number(c.panelImagenY == null ? 50 : c.panelImagenY)));
   $('co-panel-imagen-altura').value = Math.max(30, Math.min(70, Number(c.panelImagenAltura) || 43));
+  coImgX = c.panelImagenX == null || !Number.isFinite(Number(c.panelImagenX)) ? null : Math.max(0, Math.min(100, Number(c.panelImagenX)));
+  $('co-panel-imagen-x').value = coImgX == null ? 50 : coImgX;
+  $('co-panel-titulo-logo').value = c.panelTituloLogo || '';
+  $('co-panel-titulo-logo-size').value = Math.max(10, Math.min(90, Number(c.panelTituloLogoSize) || 40));
+  coTitPos = c.panelTituloX != null && c.panelTituloY != null && Number.isFinite(Number(c.panelTituloX)) && Number.isFinite(Number(c.panelTituloY))
+    ? { x: Math.max(0, Math.min(100, Number(c.panelTituloX))), y: Math.max(0, Math.min(100, Number(c.panelTituloY))) } : null;
+  $('co-panel-titulo-x').value = coTitPos ? coTitPos.x : 0; $('co-panel-titulo-y').value = coTitPos ? coTitPos.y : 100;
   $('co-mostrar-inicio').checked = c.mostrarInicio !== false; $('co-panel-vertical').checked = !!c.panelVertical;
   const esp = c.esp || '.08em';                        // si trae un espaciado que no está en la lista (p. ej. .06em), se agrega
   if (![...$('co-esp').options].some(o => o.value === esp)) { const o = document.createElement('option'); o.value = o.textContent = esp; $('co-esp').appendChild(o); }
@@ -2348,6 +2392,7 @@ function coPoner(c) {                                  // c = null → formulari
   coPrev(); coTiles(); coPanelOpciones(c.id ? c : { subcolecciones: [] });
 }
 function coPanelSeleccionados() { return [...document.querySelectorAll('#co-panel-options input:checked')].map(x => x.value); }
+const coUrlOk = u => !!u && (/^https?:\/\/[^\s"'()\\]+$/.test(u) || /^\/(?!\/)[^\s"'()\\]+$/.test(u));
 function coPanelPreview() {
   const grid = $('co-panel-preview-grid'), preview = $('co-panel-preview'), cols = Number($('co-panel-cols').value) || 3;
   const ids = coPanelSeleccionados(), all = new Map(delArchivo.map(x => [x.id, coPanel.get(x.id) || x]));
@@ -2355,17 +2400,43 @@ function coPanelPreview() {
   grid.style.gridTemplateColumns = 'repeat(' + cols + ',minmax(0,1fr))'; preview.classList.toggle('vertical', $('co-panel-vertical').checked);
   $('co-panel-cols-val').textContent = cols + ' por fila'; $('co-panel-preview-count').textContent = ids.length + (ids.length === 1 ? ' póster' : ' pósteres');
   const titulo = $('co-panel-titulo').value.trim() || $('co-nombre').value.trim() || 'Colección';
-  const heading = $('co-panel-preview-title'); heading.textContent = titulo; heading.style.fontSize = $('co-panel-titulo-size').value + 'px';
-  const hero = $('co-panel-preview-hero'), image = $('co-panel-preview-image'), bg = $('co-panel-fondo').value.trim();
-  const altura = Number($('co-panel-imagen-altura').value) || 43; hero.style.height = (altura * 3.6) + 'px';
+  const hero = $('co-panel-preview-hero'), image = $('co-panel-preview-image'), bg = $('co-panel-fondo').value.trim(), tbox = $('co-panel-preview-tbox');
+  const vert = $('co-panel-vertical').checked, real = vert ? { w: 680, h: 940 } : { w: 1100, h: 900 };      // medidas aproximadas de la ventana real en computadora
+  const hw = hero.clientWidth || $('co-panel-preview-frame').clientWidth || 360, e = hw / real.w;
+  /* Alto, márgenes y letras a escala de la ventana real, para que lo que se arrastra aquí quede igual en el sitio. */
+  const altura = Number($('co-panel-imagen-altura').value) || 43;
+  hero.style.height = Math.round(Math.max(230 * e, hw * altura / 100 * real.h / real.w)) + 'px';
+  hero.style.padding = (24 * e) + 'px ' + (30 * e) + 'px ' + (30 * e) + 'px';
   hero.style.background = 'linear-gradient(135deg,' + $('co-a').value + ',' + $('co-b').value + ')';
-  image.hidden = !(bg && (/^https?:\/\/[^\s"'()\\]+$/.test(bg) || /^\/(?!\/)[^\s"'()\\]+$/.test(bg)));
+  image.hidden = !coUrlOk(bg);
   image.onerror = () => { image.hidden = true; };
-  if (!image.hidden) { if (image.getAttribute('src') !== bg) image.src = bg; image.style.transform = 'scale(' + (Number($('co-panel-imagen-zoom').value) / 100) + ')'; image.style.objectPosition = '50% ' + $('co-panel-imagen-y').value + '%'; }
-  $('co-panel-titulo-size-val').textContent = $('co-panel-titulo-size').value + ' px';
-  $('co-panel-imagen-zoom-val').textContent = $('co-panel-imagen-zoom').value + '%';
-  $('co-panel-imagen-y-val').textContent = $('co-panel-imagen-y').value + '%';
+  const zoom = Number($('co-panel-imagen-zoom').value) || 100, iy = Number($('co-panel-imagen-y').value), ix = Number($('co-panel-imagen-x').value);
+  if (!image.hidden) {
+    if (image.getAttribute('src') !== bg) image.src = bg;
+    image.style.transform = 'scale(' + (zoom / 100) + ')';
+    image.style.objectPosition = (coImgX === null ? 50 : ix) + '% ' + iy + '%';
+    image.style.transformOrigin = coImgX === null ? '50% 50%' : ix + '% ' + iy + '%';       // igual que el sitio: con encuadre horizontal guardado el zoom se hace sobre ese punto
+  }
+  /* Título: texto o PNG, en su sitio de siempre (abajo a la izquierda) o en la posición elegida */
+  const heading = $('co-panel-preview-title'), tlogo = $('co-panel-preview-tlogo'), sub = $('co-panel-preview-sub');
+  const logoUrl = $('co-panel-titulo-logo').value.trim(), conLogo = coUrlOk(logoUrl), tam = Number($('co-panel-titulo-size').value), logoTam = Number($('co-panel-titulo-logo-size').value);
+  heading.textContent = titulo; heading.style.fontSize = (tam * e) + 'px'; heading.style.lineHeight = vert ? '1.08' : 'normal';
+  sub.style.fontSize = (16 * e) + 'px'; sub.style.marginTop = (8 * e) + 'px';
+  tlogo.onerror = () => { tlogo.hidden = true; heading.hidden = false; sub.hidden = false; tbox.classList.remove('logo'); };
+  heading.hidden = conLogo; sub.hidden = conLogo; tlogo.hidden = !conLogo; tbox.classList.toggle('logo', conLogo);
+  if (conLogo) { if (tlogo.getAttribute('src') !== logoUrl) tlogo.src = logoUrl; tlogo.alt = titulo; }
+  tbox.style.width = conLogo ? logoTam + '%' : '';
+  tbox.classList.toggle('libre', !!coTitPos);
+  if (coTitPos) { tbox.style.left = coTitPos.x + '%'; tbox.style.top = coTitPos.y + '%'; tbox.style.transform = 'translate(-' + coTitPos.x + '%,-' + coTitPos.y + '%)'; }
+  else { tbox.style.left = tbox.style.top = tbox.style.transform = ''; }
+  $('co-panel-titulo-size-val').textContent = tam + ' px';
+  $('co-panel-titulo-logo-size-val').textContent = logoTam + '% del ancho';
+  $('co-panel-imagen-zoom-val').textContent = zoom + '%';
+  $('co-panel-imagen-x-val').textContent = (coImgX === null ? 'Centro (como antes)' : ix + '%');
+  $('co-panel-imagen-y-val').textContent = iy + '%';
   $('co-panel-imagen-altura-val').textContent = altura + '% de la subventana';
+  $('co-panel-titulo-x-val').textContent = coTitPos ? coTitPos.x + '%' : 'Como antes';
+  $('co-panel-titulo-y-val').textContent = coTitPos ? coTitPos.y + '%' : 'Como antes';
   grid.replaceChildren(...ids.map(id => {
     const c = all.get(id); if (!c) return null;
     const card = document.createElement('div'); card.className = 'cp-admin-card';
@@ -2397,9 +2468,120 @@ function coPanelOpciones(c) {
   coPanelPreview();
 }
 $('co-panel-cols').addEventListener('input', coPanelPreview);
-['co-panel-fondo','co-panel-titulo','co-panel-titulo-size','co-panel-imagen-zoom','co-panel-imagen-y','co-panel-imagen-altura','co-nombre','co-a','co-b'].forEach(id => $(id).addEventListener('input', coPanelPreview));
+/* Los deslizadores de encuadre horizontal y de posición del título pasan de "como antes" (null) a un valor propio al tocarlos. */
+$('co-panel-imagen-x').addEventListener('input', () => { coImgX = Number($('co-panel-imagen-x').value); });
+['co-panel-titulo-x', 'co-panel-titulo-y'].forEach(id => $(id).addEventListener('input', () => { coTitPos = { x: Number($('co-panel-titulo-x').value), y: Number($('co-panel-titulo-y').value) }; }));
+['co-panel-fondo','co-panel-titulo','co-panel-titulo-logo','co-panel-titulo-size','co-panel-titulo-logo-size','co-panel-imagen-zoom','co-panel-imagen-x','co-panel-imagen-y','co-panel-imagen-altura','co-panel-titulo-x','co-panel-titulo-y','co-nombre','co-a','co-b'].forEach(id => $(id).addEventListener('input', coPanelPreview));
 $('co-panel-vertical').addEventListener('change', coPanelPreview);
-$('co-panel-check').addEventListener('change', () => { $('co-panel-pick').hidden = !$('co-panel-check').checked; });
+$('co-panel-check').addEventListener('change', () => { $('co-panel-pick').hidden = !$('co-panel-check').checked; coPanelPreview(); });
+$('co-panel-reset-img').addEventListener('click', () => {
+  coImgX = null; $('co-panel-imagen-x').value = 50; $('co-panel-imagen-y').value = 50; $('co-panel-imagen-zoom').value = 100; $('co-panel-imagen-altura').value = 43; coPanelPreview();
+});
+$('co-panel-reset-tit').addEventListener('click', () => {
+  coTitPos = null; $('co-panel-titulo-x').value = 0; $('co-panel-titulo-y').value = 100; $('co-panel-titulo-size').value = 42; $('co-panel-titulo-logo-size').value = 40; coPanelPreview();
+});
+if (typeof ResizeObserver === 'function') new ResizeObserver(() => { if (!$('co-panel-pick').hidden) coPanelPreview(); }).observe($('co-panel-preview-frame'), { box: 'border-box' });
+
+/* ---- Vista previa interactiva del encabezado ----
+   · Arrastrar la imagen: la encuadra (en horizontal y vertical). Pellizcar o Ctrl + rueda: zoom.
+   · Arrastrar el título: lo mueve a cualquier punto del encabezado. El círculo de su esquina cambia su tamaño.
+   · Arrastrar la barra blanca de abajo: cambia el alto de la imagen.
+   Todo se escribe en los mismos deslizadores de "Ajuste fino", que siguen funcionando. */
+(function coPanelInteractivo() {
+  const hero = $('co-panel-preview-hero'), tbox = $('co-panel-preview-tbox'), image = $('co-panel-preview-image'), hTam = $('co-panel-preview-handle'), hAlto = $('co-panel-preview-hhandle');
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v)), r1 = v => Math.round(v * 10) / 10, poner = (id, v) => { $(id).value = v; };
+  const realDe = () => $('co-panel-vertical').checked ? { w: 680, h: 940 } : { w: 1100, h: 900 };
+  const ptrs = new Map(); let ig = null, td = null, ts = null, ha = null;
+
+  /* Imagen: px que se mueve la imagen por cada unidad (0–1) del encuadre, con el zoom actual. */
+  function recorrido(eje) {
+    const hw = hero.clientWidth, hh = hero.clientHeight, nw = image.naturalWidth, nh = image.naturalHeight, z = (Number($('co-panel-imagen-zoom').value) || 100) / 100;
+    const caja = eje === 'x' ? hw : hh;
+    if (!nw || !nh) return caja;
+    const total = (eje === 'x' ? nw : nh) * Math.max(hw / nw, hh / nh);     // tamaño de la imagen ya ajustada al cuadro
+    return z * total - caja;
+  }
+  const ponerZoom = v => poner('co-panel-imagen-zoom', Math.round(clamp(v, 100, 300)));
+  const igInicio = () => {
+    const p = [...ptrs.values()];
+    ig = { x: Number($('co-panel-imagen-x').value), y: Number($('co-panel-imagen-y').value), zoom: Number($('co-panel-imagen-zoom').value) || 100, p0: p[0] ? { ...p[0] } : null, dist: p.length > 1 ? Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y) : 0 };
+  };
+  hero.addEventListener('pointerdown', ev => {
+    if ((ev.pointerType === 'mouse' && ev.button !== 0) || image.hidden) return;
+    try { hero.setPointerCapture(ev.pointerId); } catch (x) {}
+    ptrs.set(ev.pointerId, { x: ev.clientX, y: ev.clientY }); igInicio();
+  });
+  hero.addEventListener('pointermove', ev => {
+    if (!ptrs.has(ev.pointerId) || !ig) return;
+    ptrs.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
+    const p = [...ptrs.values()];
+    if (coImgX === null) coImgX = Number($('co-panel-imagen-x').value);      // desde aquí el encuadre ya es horizontal y vertical
+    if (p.length >= 2 && ig.dist > 0) ponerZoom(ig.zoom * Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y) / ig.dist);
+    else if (ig.p0) {
+      const dx = p[0].x - ig.p0.x, dy = p[0].y - ig.p0.y, Dx = recorrido('x'), Dy = recorrido('y');
+      if (Dx > 2) { coImgX = r1(clamp(ig.x - dx / Dx * 100, 0, 100)); poner('co-panel-imagen-x', coImgX); }
+      if (Dy > 2) poner('co-panel-imagen-y', r1(clamp(ig.y - dy / Dy * 100, 0, 100)));
+    }
+    coPanelPreview();
+  });
+  const igFin = ev => { ptrs.delete(ev.pointerId); if (ptrs.size) igInicio(); else ig = null; };
+  hero.addEventListener('pointerup', igFin); hero.addEventListener('pointercancel', igFin);
+  hero.addEventListener('wheel', ev => {
+    if (!(ev.ctrlKey || ev.metaKey) || image.hidden) return;       // sin Ctrl la rueda sigue desplazando la página
+    ev.preventDefault();
+    ponerZoom((Number($('co-panel-imagen-zoom').value) || 100) * Math.exp(-ev.deltaY * 0.003)); coPanelPreview();
+  }, { passive: false });
+
+  /* Título: mover. La posición se guarda como fracción del espacio libre, para que nunca se salga del encabezado. */
+  tbox.addEventListener('pointerdown', ev => {
+    if (ev.target === hTam || (ev.pointerType === 'mouse' && ev.button !== 0)) return;
+    ev.stopPropagation(); ev.preventDefault();
+    try { tbox.setPointerCapture(ev.pointerId); } catch (x) {}
+    const hr = hero.getBoundingClientRect(), br = tbox.getBoundingClientRect();
+    td = { id: ev.pointerId, sx: ev.clientX, sy: ev.clientY, left: br.left - hr.left, top: br.top - hr.top, bw: br.width, bh: br.height, hw: hr.width, hh: hr.height };
+    tbox.classList.add('on');
+  });
+  tbox.addEventListener('pointermove', ev => {
+    if (!td || ev.pointerId !== td.id) return;
+    const nl = td.left + ev.clientX - td.sx, nt = td.top + ev.clientY - td.sy;
+    const fx = td.hw - td.bw > 1 ? nl / (td.hw - td.bw) : .5, fy = td.hh - td.bh > 1 ? nt / (td.hh - td.bh) : .5;
+    coTitPos = { x: r1(clamp(fx * 100, 0, 100)), y: r1(clamp(fy * 100, 0, 100)) };
+    poner('co-panel-titulo-x', coTitPos.x); poner('co-panel-titulo-y', coTitPos.y); coPanelPreview();
+  });
+  const tdFin = ev => { if (td && ev.pointerId === td.id) { td = null; tbox.classList.remove('on'); } };
+  tbox.addEventListener('pointerup', tdFin); tbox.addEventListener('pointercancel', tdFin);
+
+  /* Título: tamaño (el círculo de la esquina). Escala el texto o el PNG en la misma proporción que el ancho del cuadro. */
+  hTam.addEventListener('pointerdown', ev => {
+    if (ev.pointerType === 'mouse' && ev.button !== 0) return;
+    ev.stopPropagation(); ev.preventDefault();
+    try { hTam.setPointerCapture(ev.pointerId); } catch (x) {}
+    const conLogo = tbox.classList.contains('logo');
+    ts = { id: ev.pointerId, sx: ev.clientX, bw: Math.max(20, tbox.getBoundingClientRect().width), logo: conLogo, id2: conLogo ? 'co-panel-titulo-logo-size' : 'co-panel-titulo-size', v: Number($(conLogo ? 'co-panel-titulo-logo-size' : 'co-panel-titulo-size').value) };
+  });
+  hTam.addEventListener('pointermove', ev => {
+    if (!ts || ev.pointerId !== ts.id) return;
+    const k = clamp((ts.bw + ev.clientX - ts.sx) / ts.bw, .2, 5);
+    poner(ts.id2, Math.round(ts.logo ? clamp(ts.v * k, 10, 90) : clamp(ts.v * k, 20, 90))); coPanelPreview();
+  });
+  const tsFin = ev => { if (ts && ev.pointerId === ts.id) ts = null; };
+  hTam.addEventListener('pointerup', tsFin); hTam.addEventListener('pointercancel', tsFin);
+
+  /* Alto de la imagen: la barra blanca de abajo. */
+  hAlto.addEventListener('pointerdown', ev => {
+    if (ev.pointerType === 'mouse' && ev.button !== 0) return;
+    ev.stopPropagation(); ev.preventDefault();
+    try { hAlto.setPointerCapture(ev.pointerId); } catch (x) {}
+    ha = { id: ev.pointerId, sy: ev.clientY, h: hero.getBoundingClientRect().height };
+  });
+  hAlto.addEventListener('pointermove', ev => {
+    if (!ha || ev.pointerId !== ha.id) return;
+    const real = realDe(), hw = hero.clientWidth || 360;
+    poner('co-panel-imagen-altura', Math.round(clamp((ha.h + ev.clientY - ha.sy) / (hw * real.h / real.w) * 100, 30, 70))); coPanelPreview();
+  });
+  const haFin = ev => { if (ha && ev.pointerId === ha.id) ha = null; };
+  hAlto.addEventListener('pointerup', haFin); hAlto.addEventListener('pointercancel', haFin);
+})();
 document.querySelectorAll('#col-card input, #col-card select, #col-card textarea').forEach(e => e.addEventListener('input', coPrev));
 $('co-series').addEventListener('change', () => coTiles(true));
 $('co-nombre').addEventListener('input', () => { if (!coManual) $('co-id').value = slug($('co-nombre').value); });

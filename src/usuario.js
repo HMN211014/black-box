@@ -574,6 +574,7 @@ const FUENTES_COL = { impact: "Impact,'Arial Narrow Bold','Helvetica Neue',sans-
 const TEMAS_COL = ['puntos', 'rayos', 'estrellas', 'liso'], PATRONES_COL = ['', 'aranas', 'murcielagos'], ESP_COL = ['normal', '.03em', '.08em', '.16em'];
 const hexCol = (v, d) => /^#[0-9a-fA-F]{6}$/.test(String(v || '')) ? String(v).toLowerCase() : d;
 const urlCol = v => { v = String(v == null ? '' : v).trim(); return v === '' ? '' : (v.length <= 2000 && /^(https?:\/\/|\/)\S+$/.test(v)) ? v : null; };      // null = no válida
+const numCol = (v, min, max) => { if (v == null || v === '') return null; v = Number(v); return Number.isFinite(v) ? Math.max(min, Math.min(max, Math.round(v * 10) / 10)) : null; };      // null = sin valor; un decimal
 const textosCol = v => (Array.isArray(v) ? v : []).map(x => String(x == null ? '' : x).trim().slice(0, 200)).filter(Boolean).slice(0, 200);
 const criteriosCol = v => textosCol(v).slice(0, 80).map(x => /^\d{1,9}$/.test(x) ? Number(x) : x);                  // "125574" → número de TMDB; lo demás, nombre
 function limpiarCol(c) {
@@ -596,17 +597,24 @@ function limpiarCol(c) {
     anuncio: { titulo: String(an.titulo || '').trim().slice(0, 100), texto: String(an.texto || '').trim().slice(0, 300), imagen: aImg, enlace: aEnl, boton: String(an.boton || '').trim().slice(0, 40) }
   };
   if (c.panel === true) {
-    const panelFondo = urlCol(c.panelFondo);
+    const panelFondo = urlCol(c.panelFondo), panelLogo = urlCol(c.panelTituloLogo);
     if (panelFondo === null) return { error: 'La imagen de fondo del subpanel debe empezar con http:// o https://' };
+    if (panelLogo === null) return { error: 'La imagen PNG del título debe empezar con http:// o https://' };
     o.panel = true;
     if (panelFondo) o.panelFondo = panelFondo;
     if (c.panelVertical === true) o.panelVertical = true;
     const panelTitulo = String(c.panelTitulo || '').trim().slice(0, 80);
     if (panelTitulo) o.panelTitulo = panelTitulo;
-    o.panelTituloSize = Math.max(20, Math.min(60, Math.round(Number(c.panelTituloSize) || 42)));
-    o.panelImagenZoom = Math.max(100, Math.min(180, Math.round(Number(c.panelImagenZoom) || 100)));
-    o.panelImagenY = Math.max(0, Math.min(100, Math.round(Number(c.panelImagenY == null ? 50 : c.panelImagenY) || 0)));
+    o.panelTituloSize = Math.max(20, Math.min(90, Math.round(Number(c.panelTituloSize) || 42)));
+    o.panelImagenZoom = Math.max(100, Math.min(300, Math.round(Number(c.panelImagenZoom) || 100)));
+    o.panelImagenY = numCol(c.panelImagenY == null ? 50 : c.panelImagenY, 0, 100) ?? 50;
     o.panelImagenAltura = Math.max(30, Math.min(70, Math.round(Number(c.panelImagenAltura) || 43)));
+    /* Encuadre horizontal de la imagen: si no viene, el sitio conserva el encuadre de antes (solo vertical). */
+    const imgX = numCol(c.panelImagenX, 0, 100); if (imgX !== null) o.panelImagenX = imgX;
+    /* Título como imagen PNG (sustituye al texto) y posición libre del título: X/Y van juntos o no se guardan. */
+    if (panelLogo) { o.panelTituloLogo = panelLogo; o.panelTituloLogoSize = numCol(c.panelTituloLogoSize, 10, 90) ?? 40; }
+    const titX = numCol(c.panelTituloX, 0, 100), titY = numCol(c.panelTituloY, 0, 100);
+    if (titX !== null && titY !== null) { o.panelTituloX = titX; o.panelTituloY = titY; }
     const subcolecciones = [...new Set((Array.isArray(c.subcolecciones) ? c.subcolecciones : []).map(x => String(x || '').trim().toLowerCase()).filter(x => /^[a-z0-9][a-z0-9-]{0,39}$/.test(x) && x !== id))].slice(0, 60);
     o.subcolecciones = subcolecciones;
     o.panelColumnas = Math.max(1, Math.min(6, Math.round(Number(c.panelColumnas) || 3)));

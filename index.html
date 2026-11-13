@@ -342,10 +342,13 @@ svg.st text{fill:currentColor;stroke:none}
 .cp-shell{height:100%;display:flex;flex-direction:column;overflow:auto;overscroll-behavior:contain}
 .cp-hero{position:relative;isolation:isolate;height:var(--cp-hero-height,43%);min-height:230px;max-height:70%;flex:none;padding:24px 30px 30px;display:flex;align-items:flex-end;background:var(--cp-bg,linear-gradient(135deg,#26314b,#101014));overflow:hidden}
 .cp-hero:before{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;background:linear-gradient(0deg,#101014 0%,rgba(16,16,20,.16) 100%)}
-.cp-cover{position:absolute;inset:0;z-index:-1;width:100%;height:100%;object-fit:cover;object-position:50% var(--cp-cover-y,50%);transform:scale(var(--cp-cover-zoom,1));pointer-events:none}
+.cp-cover{position:absolute;inset:0;z-index:-1;width:100%;height:100%;object-fit:cover;object-position:var(--cp-cover-x,50%) var(--cp-cover-y,50%);transform:scale(var(--cp-cover-zoom,1));transform-origin:var(--cp-cover-ox,50%) var(--cp-cover-oy,50%);pointer-events:none}
 .cp-close{position:absolute;z-index:3;left:20px;top:18px;border:0;border-radius:50px;padding:10px 16px;background:#17171bbd;color:#fff;font:inherit;cursor:pointer;backdrop-filter:blur(12px)}
 .cp-hero>div{position:relative;z-index:2}
 .cp-hero h2{margin:0;font-size:clamp(28px,5vw,48px);text-shadow:0 2px 16px #000}.cp-hero p{margin:8px 0 0;color:#eee}
+.cp-hero>div.logo{width:var(--cp-tlogo-w,40%)}.cp-tlogo{display:block;width:100%;height:auto;filter:drop-shadow(0 2px 14px #000a)}.cp-tlogo[hidden]{display:none}
+.cp-hero>div.cp-pos{position:absolute;left:var(--cp-tx);top:var(--cp-ty);transform:translate(calc(var(--cp-tx) * -1),calc(var(--cp-ty) * -1));max-width:92%}
+.cp-hero>div.cp-pos:not(.logo){width:max-content}
 .cp-body{border-top:1px solid rgba(255,255,255,.18);padding:18px 28px 30px}.cp-body h3{margin:0 0 14px;font-size:13px;letter-spacing:.22em;color:#c4c4cb}
 .cp-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.cp-grid .ctile{width:100%;aspect-ratio:16/9;border:0;font:inherit;cursor:pointer}
 .cp-dialog.vertical{width:min(680px,94vw);height:min(94dvh,1100px)}
@@ -1608,7 +1611,7 @@ html.catalogo-exclusivo.catalogo-listo #vista-catalogo{display:flex!important}
 
 <dialog id="coleccion-panel-dialog" class="cp-dialog" aria-label="Subpanel de colecciones">
   <div class="cp-shell">
-    <header class="cp-hero" id="cp-hero"><img id="cp-cover" class="cp-cover" alt="" hidden><button class="cp-close" id="cp-close" type="button">‹ Volver</button><div><h2 id="cp-title"></h2><p>Explora sus colecciones</p></div></header>
+    <header class="cp-hero" id="cp-hero"><img id="cp-cover" class="cp-cover" alt="" hidden><button class="cp-close" id="cp-close" type="button">‹ Volver</button><div id="cp-tbox"><h2 id="cp-title"></h2><img id="cp-tlogo" class="cp-tlogo" alt="" hidden><p id="cp-sub">Explora sus colecciones</p></div></header>
     <section class="cp-body"><h3>COLECCIONES</h3><div class="cp-grid" id="cp-grid"></div><p class="cvacio" id="cp-empty" hidden>Este panel todavía no tiene colecciones.</p></section>
   </div>
 </dialog>
@@ -5848,15 +5851,35 @@ function idsDePanel(c, vistos) {
 function abrirPanelColecciones(c) {
   const d = H('coleccion-panel-dialog'), hero = H('cp-hero'), grid = H('cp-grid'), cover = H('cp-cover');
   d.classList.toggle('vertical', !!c.panelVertical);
-  const title = H('cp-title'); title.textContent = c.panelTitulo || c.nombre || 'Colecciones';
-  title.style.fontSize = Math.max(20, Math.min(60, Number(c.panelTituloSize) || 42)) + 'px'; grid.replaceChildren();
+  const okImg = u => !!u && (/^https?:\/\/[^\s"'()\\]+$/.test(u) || /^\/(?!\/)[^\s"'()\\]+$/.test(u));
+  const num = (v, min, max, def) => { const n = v == null || v === '' ? NaN : Number(v); return Number.isFinite(n) ? Math.max(min, Math.min(max, n)) : def; };
+  const title = H('cp-title'), tbox = H('cp-tbox'), tlogo = H('cp-tlogo'), sub = H('cp-sub'), nombrePanel = c.panelTitulo || c.nombre || 'Colecciones';
+  title.textContent = nombrePanel;
+  title.style.fontSize = num(c.panelTituloSize, 20, 90, 42) + 'px'; grid.replaceChildren();
+  /* Título como imagen PNG: sustituye al texto (y al subtítulo). Si la imagen no carga, vuelve el texto. */
+  const conLogo = okImg(c.panelTituloLogo);
+  tlogo.onerror = () => { tlogo.hidden = true; title.hidden = false; sub.hidden = false; tbox.classList.remove('logo'); };
+  title.hidden = conLogo; sub.hidden = conLogo; tlogo.hidden = !conLogo; tbox.classList.toggle('logo', conLogo);
+  if (conLogo) { if (tlogo.getAttribute('src') !== c.panelTituloLogo) tlogo.src = c.panelTituloLogo; tlogo.alt = nombrePanel; tbox.style.setProperty('--cp-tlogo-w', num(c.panelTituloLogoSize, 10, 90, 40) + '%'); }
+  /* Posición libre del título (en % del banner); sin ella queda abajo a la izquierda, como antes. */
+  const libre = c.panelTituloX != null && c.panelTituloY != null && Number.isFinite(Number(c.panelTituloX)) && Number.isFinite(Number(c.panelTituloY));
+  tbox.classList.toggle('cp-pos', libre);
+  if (libre) { tbox.style.setProperty('--cp-tx', num(c.panelTituloX, 0, 100, 0) + '%'); tbox.style.setProperty('--cp-ty', num(c.panelTituloY, 0, 100, 100) + '%'); }
+  else { tbox.style.removeProperty('--cp-tx'); tbox.style.removeProperty('--cp-ty'); }
   const fondoPanel = c.panelFondo || '';
-  const tieneFondo = fondoPanel && (/^https?:\/\/[^\s"'()\\]+$/.test(fondoPanel) || /^\/(?!\/)[^\s"'()\\]+$/.test(fondoPanel));
+  const tieneFondo = okImg(fondoPanel);
   hero.style.setProperty('--cp-bg', 'linear-gradient(135deg,' + (c.a || '#26314b') + ',' + (c.b || '#101014') + ')');
   hero.style.setProperty('--cp-hero-height', Math.max(30, Math.min(70, Number(c.panelImagenAltura) || 43)) + '%');
   cover.hidden = !tieneFondo;
   cover.onerror = () => { cover.hidden = true; };
-  if (tieneFondo) { if (cover.getAttribute('src') !== fondoPanel) cover.src = fondoPanel; cover.style.setProperty('--cp-cover-zoom', Math.max(100, Math.min(180, Number(c.panelImagenZoom) || 100)) / 100); cover.style.setProperty('--cp-cover-y', Math.max(0, Math.min(100, Number(c.panelImagenY == null ? 50 : c.panelImagenY))) + '%'); }
+  if (tieneFondo) {
+    if (cover.getAttribute('src') !== fondoPanel) cover.src = fondoPanel;
+    const ix = c.panelImagenX == null ? null : num(c.panelImagenX, 0, 100, 50), iy = num(c.panelImagenY, 0, 100, 50);
+    cover.style.setProperty('--cp-cover-zoom', num(c.panelImagenZoom, 100, 300, 100) / 100);
+    cover.style.setProperty('--cp-cover-x', (ix == null ? 50 : ix) + '%'); cover.style.setProperty('--cp-cover-y', iy + '%');
+    /* Con encuadre horizontal guardado, el zoom se hace sobre el punto elegido; sin él, sobre el centro como antes. */
+    cover.style.setProperty('--cp-cover-ox', ix == null ? '50%' : ix + '%'); cover.style.setProperty('--cp-cover-oy', ix == null ? '50%' : iy + '%');
+  }
   const columnas = Math.max(1, Math.min(6, Number(c.panelColumnas) || (c.panelVertical ? 2 : 3)));
   grid.style.gridTemplateColumns = 'repeat(' + columnas + ',minmax(0,1fr))';
   const hijos = (c.subcolecciones || []).map(coleccionPorId).filter(x => x && !x.panel);
