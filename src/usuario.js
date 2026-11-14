@@ -20,6 +20,9 @@ const json = (o, status = 200, extra = {}) => new Response(JSON.stringify(o), {
   status,
   headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', ...extra },
 });
+/* Huella de una cuenta en la tabla de presencia: SHA-256 de (clave de admin + correo). En la tabla nunca se guarda el correo;
+   el admin enlaza la actividad con cuentas conocidas (las que canjearon códigos) calculando la misma huella. */
+const huellaCuenta = async (env, correo) => Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', enc.encode(String(env.ADMIN_CLAVE || '') + '\0' + correo))).slice(0, 16), x => x.toString(16).padStart(2, '0')).join('');
 let presenciaTablas = null, presenciaLimpieza = 0;
 function asegurarPresencia(db) {
   if (!presenciaTablas) presenciaTablas = db.batch([
@@ -862,7 +865,7 @@ async function manejar({ request, env, params, waitUntil }) {
     if (!/^[a-f0-9]{32,64}$/.test(dispositivo) || !plataforma) return json({ error: 'Identificador de actividad no válido.' }, 400);
     await asegurarPresencia(db);
     const correo = await correoDeSesion(request, db);
-    const usuarioHash = correo ? Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', enc.encode(String(env.ADMIN_CLAVE || '') + '\0' + correo))).slice(0, 16), x => x.toString(16).padStart(2, '0')).join('') : null;
+    const usuarioHash = correo ? await huellaCuenta(env, correo) : null;
     const ahora = Date.now();
     await db.prepare(`INSERT INTO presencia (dispositivo, plataforma, usuario_hash, actividad) VALUES (?1, ?2, ?3, ?4)
       ON CONFLICT(dispositivo, plataforma) DO UPDATE SET usuario_hash = ?3, actividad = ?4`).bind(dispositivo, plataforma, usuarioHash, ahora).run();
@@ -1284,17 +1287,50 @@ async function manejar({ request, env, params, waitUntil }) {
     if (cuerpo.op === 'presencia') {
       await asegurarPresencia(db);
       const ahora = Date.now(), desde = ahora - 180000;
-      const r = await db.prepare('SELECT dispositivo, plataforma, usuario_hash FROM presencia WHERE actividad >= ?1').bind(desde).all();
+      const r = await db.prepare('SELECT dispositivo, plataforma, usuario_hash, actividad FROM presencia WHERE actividad >= ?1').bind(desde).all();
       const filas = r.results || [], tomar = (plataforma, campo) => new Set(filas.filter(x => x.plataforma === plataforma && x[campo]).map(x => x[campo]));
       const dispositivosWeb = tomar('web', 'dispositivo'), dispositivosApp = tomar('app', 'dispositivo');
       const cuentasWeb = tomar('web', 'usuario_hash'), cuentasApp = tomar('app', 'usuario_hash');
       const anonimosWeb = tomar('web', 'dispositivo'); filas.filter(x => x.plataforma === 'web' && x.usuario_hash).forEach(x => anonimosWeb.delete(x.dispositivo));
       const anonimosApp = tomar('app', 'dispositivo'); filas.filter(x => x.plataforma === 'app' && x.usuario_hash).forEach(x => anonimosApp.delete(x.dispositivo));
       const interseccion = (a, b) => [...a].filter(x => b.has(x)).length;
+
+      /* Enlace con las cuentas que canjearon códigos: de cada una se calcula la misma huella que guarda la presencia y se busca entre las activas. */
+      const activas = new Map();                                      // huella → { plataformas, última actividad }
+      filas.forEach(x => {
+        if (!x.usuario_hash) return;
+        const a = activas.get(x.usuario_hash) || { plataformas: new Set(), actividad: 0 };
+        a.plataformas.add(x.plataforma); a.actividad = Math.max(a.actividad, Number(x.actividad) || 0); activas.set(x.usuario_hash, a);
+      });
+      const LIMITE_CODIGOS = 5000, LIMITE_LISTA = 300;
+      const enlace = { cuentasActivas: activas.size, conCodigo: 0, sinCodigo: activas.size, cuentas: [], parcial: false };
+      if (activas.size) {
+        await asegurarBloqueos(db);
+        const rc = await db.prepare('SELECT c.usado_por AS correo, c.codigo, c.plan, c.dias, c.peliculas, c.usado_fecha, u.plan AS plan_actual, u.vence, u.vales, u.canje FROM codigos c JOIN usuarios u ON u.correo = c.usado_por WHERE c.usado_por IS NOT NULL ORDER BY c.usado_fecha DESC LIMIT ?1').bind(LIMITE_CODIGOS).all();
+        const filasCodigos = rc.results || [], porCorreo = new Map();
+        enlace.parcial = filasCodigos.length >= LIMITE_CODIGOS;       // hay más códigos canjeados de los que se revisan: alguna cuenta antigua podría faltar
+        for (const k of filasCodigos) {
+          let c = porCorreo.get(k.correo);
+          if (!c) porCorreo.set(k.correo, c = { correo: k.correo, plan: k.plan_actual || null, vence: k.vence || 0, vales: k.vales | 0, canje: !!k.canje, total: 0, codigos: [] });
+          c.total++;
+          if (c.codigos.length < 5) c.codigos.push({ codigo: k.codigo, plan: k.plan, ...(k.dias != null ? { dias: k.dias } : {}), ...(k.peliculas != null ? { peliculas: k.peliculas } : {}), fecha: k.usado_fecha || 0 });
+        }
+        const correos = [...porCorreo.keys()], huellas = await Promise.all(correos.map(c => huellaCuenta(env, c)));
+        const bloqueados = new Set(((await db.prepare('SELECT correo FROM usuarios_bloqueados').all()).results || []).map(x => x.correo));
+        const encontradas = [];
+        correos.forEach((correo, i) => {
+          const a = activas.get(huellas[i]); if (!a) return;
+          const c = porCorreo.get(correo), sinVence = PLANES_SIN_VENCE.includes(c.plan), vence = sinVence ? SIN_FIN : c.vence;
+          encontradas.push({ correo, plataformas: [...a.plataformas].sort(), actividad: a.actividad, plan: c.plan, sinVence, vence, vigente: sinVence || vence > ahora, vales: c.vales, canje: c.canje, bloqueado: bloqueados.has(correo), totalCodigos: c.total, codigos: c.codigos });
+        });
+        encontradas.sort((a, b) => b.actividad - a.actividad);
+        enlace.conCodigo = encontradas.length; enlace.sinCodigo = activas.size - encontradas.length; enlace.cuentas = encontradas.slice(0, LIMITE_LISTA);
+      }
       return json({
         web: { cuentas: cuentasWeb.size, anonimos: anonimosWeb.size, dispositivos: dispositivosWeb.size, usuarios: cuentasWeb.size + anonimosWeb.size },
         app: { cuentas: cuentasApp.size, anonimos: anonimosApp.size, dispositivos: dispositivosApp.size, usuarios: cuentasApp.size + anonimosApp.size },
         ambos: { cuentas: interseccion(cuentasWeb, cuentasApp), dispositivos: interseccion(dispositivosWeb, dispositivosApp) },
+        enlace,
         actualizado: ahora, ventanaSegundos: 180
       });
     }

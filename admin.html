@@ -293,15 +293,23 @@ body:not(.h) .nav button.on{background:#fff;color:#000}
 
   <div class="c w" data-g="actividad" id="actividad-card">
     <h2>Usuarios activos</h2>
-    <p class="s">Muestra actividad de los últimos tres minutos. Se cuentan las cuentas activas y las visitas sin sesión; no se muestran correos ni direcciones IP. La actividad se actualiza automáticamente cada 30 segundos mientras esta sección está abierta.</p>
+    <p class="s">Muestra actividad de los últimos tres minutos. Se cuentan las cuentas activas y las visitas sin sesión; no se guardan correos ni direcciones IP en la actividad. Las cuentas activas que ya canjearon al menos un código se enlazan y se listan abajo (solo tú las ves). La actividad se actualiza automáticamente cada 30 segundos mientras esta sección está abierta.</p>
     <div id="actividad-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin-top:14px">
       <div class="c"><small>Web</small><h3 id="act-web">—</h3><p class="s" id="act-web-info">Esperando datos…</p></div>
       <div class="c"><small>App</small><h3 id="act-app">—</h3><p class="s" id="act-app-info">Esperando datos…</p></div>
       <div class="c"><small>Cuentas activas en ambos</small><h3 id="act-ambos-cuentas">—</h3><p class="s">La misma cuenta con actividad en web y app.</p></div>
       <div class="c"><small>Dispositivos detectados en ambos</small><h3 id="act-ambos-dispositivos">—</h3><p class="s">El mismo identificador local registró web y app.</p></div>
+      <div class="c"><small>Activos con código canjeado</small><h3 id="act-con-codigo">—</h3><p class="s" id="act-con-codigo-info">Esperando datos…</p></div>
+      <div class="c"><small>Activos sin código canjeado</small><h3 id="act-sin-codigo">—</h3><p class="s">Cuentas con sesión que no han canjeado ningún código (prueba gratis, Google, concedidas…).</p></div>
     </div>
     <div class="row" style="margin-top:12px"><button class="g" id="act-refresh" type="button">Actualizar ahora</button></div>
     <p class="m" id="act-m" role="status" aria-live="polite" hidden></p>
+    <div class="c" style="margin-top:14px">
+      <h3>Cuentas activas con códigos</h3>
+      <p class="s">Cuentas con actividad ahora mismo que canjearon al menos un código, con su plan, vencimiento y los códigos que usaron.</p>
+      <div id="act-cuentas" style="display:grid;gap:7px;margin-top:10px"></div>
+      <p class="m" id="act-cuentas-m" role="status" aria-live="polite" hidden></p>
+    </div>
     <div class="c" style="margin-top:14px">
       <h3>Más reproducidas</h3>
       <p class="s">Top 10 acumulado de películas y series. El desglose compacto muestra reproducciones y dispositivos únicos por web y app; se recopila a partir de esta actualización.</p>
@@ -3682,6 +3690,34 @@ async function actTopRefrescar() {
     msg('act-top-m', j.items.length ? 'Reproducciones totales acumuladas.' : '', true);
   } catch (e) { msg('act-top-m', e.message || 'No se pudo cargar el ranking.', false); }
 }
+/* Cuentas activas ahora que canjearon códigos. Todo se escribe con textContent (los correos vienen de usuarios, nunca como HTML). */
+function actCuentasPintar(e, ahora) {
+  e = e || { cuentasActivas: 0, conCodigo: 0, sinCodigo: 0, cuentas: [] };
+  const n = x => Number(x || 0).toLocaleString('es-MX'), box = $('act-cuentas');
+  $('act-con-codigo').textContent = n(e.conCodigo); $('act-sin-codigo').textContent = n(e.sinCodigo);
+  $('act-con-codigo-info').textContent = e.cuentasActivas ? Math.round(e.conCodigo / e.cuentasActivas * 100) + '% de las ' + n(e.cuentasActivas) + ' cuentas activas' : 'No hay cuentas activas ahora';
+  const hace = t => { const s = Math.max(0, Math.round((ahora - t) / 1000)); return s < 10 ? 'ahora mismo' : s < 60 ? 'hace ' + s + ' s' : 'hace ' + Math.round(s / 60) + ' min'; };
+  const etiqueta = (txt, color) => { const b = document.createElement('span'); b.textContent = txt; b.style.cssText = 'display:inline-block;padding:1px 8px;border-radius:999px;font-size:11px;font-weight:600;background:' + color + ';color:#fff;margin-right:5px'; return b; };
+  box.replaceChildren();
+  (e.cuentas || []).forEach(x => {
+    const row = document.createElement('div'); row.style.cssText = 'padding:9px 11px;border:1px solid rgba(255,255,255,.1);border-radius:10px;background:rgba(255,255,255,.04)';
+    const top = document.createElement('div'); top.style.cssText = 'display:flex;justify-content:space-between;gap:10px;align-items:baseline';
+    const correo = document.createElement('b'); correo.textContent = x.correo; correo.style.cssText = 'min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
+    const cuando = document.createElement('small'); cuando.textContent = hace(x.actividad); cuando.style.cssText = 'color:#8fd19e;white-space:nowrap';
+    top.append(correo, cuando);
+    const chips = document.createElement('div'); chips.style.marginTop = '5px';
+    (x.plataformas || []).forEach(p => chips.appendChild(etiqueta(p === 'app' ? 'App' : 'Web', p === 'app' ? '#3a6fd8' : '#2f8f5b')));
+    chips.appendChild(etiqueta('Plan ' + nombrePlan(x.plan), '#555a66'));
+    chips.appendChild(etiqueta(x.sinVence ? 'Sin vencimiento' : x.vence ? (x.vigente ? 'Vence ' : 'Venció ') + fecha(x.vence) : 'Sin acceso', x.vigente ? '#555a66' : '#a8453f'));
+    if (x.bloqueado) chips.appendChild(etiqueta('Bloqueada', '#a8453f'));
+    const det = document.createElement('small'); det.style.cssText = 'display:block;color:#b4c8e8;font-size:11px;margin-top:5px;word-break:break-all';
+    det.textContent = x.codigos.map(k => k.codigo + ' (' + nombrePlan(k.plan) + (k.peliculas != null ? ', ' + k.peliculas + ' pel.' : k.dias != null ? ', ' + k.dias + ' d' : '') + (k.fecha ? ', canjeado ' + fecha(k.fecha) : '') + ')').join('  ·  ') + (x.totalCodigos > x.codigos.length ? '  ·  +' + (x.totalCodigos - x.codigos.length) + ' más' : '');
+    row.append(top, chips, det); box.appendChild(row);
+  });
+  msg('act-cuentas-m', e.cuentas && e.cuentas.length
+    ? (e.cuentas.length < e.conCodigo ? 'Se muestran las ' + n(e.cuentas.length) + ' más recientes de ' + n(e.conCodigo) + '. ' : '') + (e.parcial ? 'Hay muchos códigos canjeados: puede faltar alguna cuenta antigua.' : '')
+    : e.cuentasActivas ? 'Ninguna de las cuentas activas ahora ha canjeado un código.' : 'No hay cuentas activas en este momento.', true);
+}
 async function actRefrescar() {
   try {
     const j = await admin({ op: 'presencia' }), n = x => Number(x || 0).toLocaleString('es-MX');
@@ -3691,6 +3727,7 @@ async function actRefrescar() {
     $('act-app-info').textContent = n(j.app.cuentas) + ' cuentas · ' + n(j.app.anonimos) + ' sin sesión · ' + n(j.app.dispositivos) + ' dispositivos';
     $('act-ambos-cuentas').textContent = n(j.ambos.cuentas);
     $('act-ambos-dispositivos').textContent = n(j.ambos.dispositivos);
+    actCuentasPintar(j.enlace, j.actualizado);
     msg('act-m', 'Actualizado ' + new Date(j.actualizado).toLocaleTimeString('es-MX') + ' · actividad de los últimos ' + Math.round(j.ventanaSegundos / 60) + ' min.', true);
   } catch (e) { msg('act-m', e.message || 'No se pudo cargar la actividad.', false); }
   await actTopRefrescar();
