@@ -68,6 +68,8 @@ td.k{font-family:ui-monospace,Menlo,Consolas,monospace;white-space:nowrap}
 .tv-home-row{margin:0;padding:12px;border:1px solid rgba(255,255,255,.1);border-radius:14px;background:rgba(255,255,255,.035)}
 .tv-home-row b{display:block;margin-bottom:4px;font-size:14px}.tv-home-row small{display:block;color:#a1a1a6;font-size:12px;line-height:1.4}
 .tv-home-row select{margin-top:8px}.tv-home-gap{margin-top:16px}
+.tv-home-order{display:grid;gap:7px;margin-top:16px}.tv-home-order-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border:1px solid rgba(255,255,255,.11);border-radius:12px;background:rgba(255,255,255,.035);touch-action:pan-y}.tv-home-order-item[aria-grabbed="true"]{opacity:.5}.tv-home-order-item.drag-over{border-color:#8ab4ff;background:rgba(95,145,255,.13)}
+.tv-home-order-item .tv-home-grip{color:#a1a1a6;cursor:grab;font-size:18px;user-select:none}.tv-home-order-item b{flex:1}.tv-home-order-item .tv-home-move{width:34px;height:32px;min-height:32px;padding:0;font-size:16px}.tv-home-banner{margin-top:16px}
 @media(max-width:700px){.tv-home-controls{grid-template-columns:1fr}.tv-home-frame{width:100%}}
 .cp-admin-preview-h{display:flex;justify-content:space-between;gap:10px;color:#c7c7cc;font-size:12px;margin-bottom:10px}
 .cp-admin-preview.fija{position:sticky;top:8px;z-index:20;box-shadow:0 14px 40px #000d}
@@ -999,7 +1001,11 @@ body:not(.h) .nav button.on{background:#fff;color:#000}
       <div class="tv-home-preview-head"><span>Vista previa en vivo · Android TV</span><a class="g" href="/android-tv-preview" target="_blank" rel="noopener">Abrir previsualizador</a></div>
       <div class="tv-home-frame" id="tv-home-frame"><iframe id="tv-home-iframe" title="Vista previa del inicio de Android TV" loading="lazy"></iframe></div>
     </div>
+    <h3 style="margin:18px 0 6px">Orden de las filas</h3>
+    <p class="s" style="margin:0">Arrastra las filas para cambiar su posición o usa las flechas. Las selecciones temáticas se mueven como un grupo.</p>
+    <div id="tv-home-order" class="tv-home-order" aria-label="Orden de las filas del inicio"></div>
     <label class="cp-range tv-home-gap">Separación entre filas<input id="tv-home-gap" type="range" min="8" max="80" step="1" value="30"><output id="tv-home-gap-val">30 px</output></label>
+    <label class="cp-range tv-home-banner">Altura del banner principal<input id="tv-home-banner" type="range" min="560" max="900" step="10" value="650"><output id="tv-home-banner-val">650 px</output><small>Aumenta el área de la imagen destacada en Android TV.</small></label>
     <div class="tv-home-controls">
       <label class="tv-home-row"><b>Continúa viendo</b><small>Formato de las tarjetas con progreso.</small><select id="tv-home-continue"><option value="vertical">Pósters verticales</option><option value="horizontal">Tarjetas horizontales</option></select></label>
       <label class="tv-home-row"><b>Populares</b><small>Formato de la fila de títulos populares.</small><select id="tv-home-popular"><option value="vertical">Pósters verticales</option><option value="horizontal">Tarjetas horizontales</option></select></label>
@@ -3995,22 +4001,51 @@ $('cg-download').onclick = () => con($('cg-download'), 'cg-m', async () => {
 <script>
 (() => {
   const ids = { continuar: 'tv-home-continue', populares: 'tv-home-popular', recientes: 'tv-home-recent', generos: 'tv-home-genres' };
-  const defaults = () => ({ gap: 30, filas: { continuar: 'vertical', populares: 'vertical', recientes: 'vertical', generos: 'vertical' } });
+  const orderItems = [
+    ['hero', 'Banner principal'], ['continuar', 'Continúa viendo'], ['popular', 'Populares'], ['collections', 'Colecciones'], ['recent', 'Lo más reciente'],
+    ['genreTiles', 'Selecciones por género'], ['platforms', 'Plataformas'], ['genres', 'Filas por género'], ['thematic', 'Selecciones temáticas'], ['all', 'Todas las películas']
+  ];
+  let themeSections = [];
+  const defaults = () => ({ gap: 30, banner: 650, orden: orderItems.map(x => x[0]), filas: { continuar: 'vertical', populares: 'vertical', recientes: 'vertical', generos: 'vertical' } });
   let cfg = defaults(), dirty = false;
   const fr = $('tv-home-iframe'), frame = $('tv-home-frame');
   const send = () => { try { fr.contentWindow?.postMessage({ t: 'bb-tv-home', cfg }, location.origin); } catch (e) {} };
   const fit = () => { const scale = Math.min(frame.clientWidth / 1280, frame.clientHeight / 720); fr.style.transform = 'scale(' + scale + ')'; };
-  const paint = () => { $('tv-home-gap').value = cfg.gap; $('tv-home-gap-val').textContent = cfg.gap + ' px'; Object.entries(ids).forEach(([k, id]) => { $(id).value = cfg.filas[k]; }); send(); };
-  const normalize = x => { const d = defaults(), f = x && x.filas || {}, n = Number(x && x.gap); return { gap: Number.isFinite(n) ? Math.max(8, Math.min(80, Math.round(n))) : d.gap, filas: Object.fromEntries(Object.keys(ids).map(k => [k, f[k] === 'horizontal' ? 'horizontal' : 'vertical'])) }; };
-  async function load() { const j = await admin({ op: 'tv_home' }); cfg = normalize(j.item); dirty = false; paint(); }
+  const normalize = x => { const d = defaults(), f = x && x.filas || {}, n = Number(x && x.gap), banner = Number(x && x.banner), valid = k => d.orden.includes(k) || /^theme:[a-z0-9][a-z0-9-]{0,39}$/.test(k), orden = Array.isArray(x && x.orden) ? x.orden.filter((k, i, a) => valid(k) && a.indexOf(k) === i).slice(0, 70) : []; d.orden.forEach(k => { if (!orden.includes(k)) orden.push(k); }); return { gap: Number.isFinite(n) ? Math.max(8, Math.min(80, Math.round(n))) : d.gap, banner: Number.isFinite(banner) ? Math.max(560, Math.min(900, Math.round(banner / 10) * 10)) : d.banner, orden, filas: Object.fromEntries(Object.keys(ids).map(k => [k, f[k] === 'horizontal' ? 'horizontal' : 'vertical'])) }; };
+  const integrarTematicas = () => {
+    const keys = themeSections.map(s => 'theme:' + s.id), old = cfg.orden, indices = old.map((k, i) => k === 'thematic' || k.startsWith('theme:') ? i : -1).filter(i => i >= 0), at = indices.length ? Math.min(...indices) : old.length;
+    const saved = old.filter(k => k.startsWith('theme:') && keys.includes(k)), thematic = [...new Set([...saved, ...keys])], base = old.filter(k => k !== 'thematic' && !k.startsWith('theme:'));
+    base.splice(Math.min(at, base.length), 0, ...thematic); cfg.orden = base;
+  };
+  const move = (from, to) => { if (from < 0 || to < 0 || from >= cfg.orden.length || to >= cfg.orden.length || from === to) return; const [key] = cfg.orden.splice(from, 1); cfg.orden.splice(to, 0, key); dirty = true; paint(); };
+  const paintOrder = () => {
+    const box = $('tv-home-order'); box.replaceChildren();
+    cfg.orden.forEach((key, i) => {
+      const item = document.createElement('div'); item.className = 'tv-home-order-item'; item.draggable = true; item.dataset.key = key; item.setAttribute('aria-grabbed', 'false');
+      const grip = document.createElement('span'); grip.className = 'tv-home-grip'; grip.textContent = '⠿'; grip.setAttribute('aria-hidden', 'true');
+      const label = document.createElement('b'); label.textContent = key.startsWith('theme:') ? (themeSections.find(s => s.id === key.slice(6))?.nombre || 'Selección temática') : (orderItems.find(x => x[0] === key)?.[1] || key);
+      const up = document.createElement('button'); up.type = 'button'; up.className = 'g tv-home-move'; up.textContent = '↑'; up.disabled = i === 0; up.setAttribute('aria-label', 'Mover ' + label.textContent + ' hacia arriba'); up.onclick = () => move(i, i - 1);
+      const down = document.createElement('button'); down.type = 'button'; down.className = 'g tv-home-move'; down.textContent = '↓'; down.disabled = i === cfg.orden.length - 1; down.setAttribute('aria-label', 'Mover ' + label.textContent + ' hacia abajo'); down.onclick = () => move(i, i + 1);
+      item.append(grip, label, up, down);
+      item.addEventListener('dragstart', e => { item.setAttribute('aria-grabbed', 'true'); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', key); });
+      item.addEventListener('dragend', () => { item.setAttribute('aria-grabbed', 'false'); box.querySelectorAll('.drag-over').forEach(n => n.classList.remove('drag-over')); });
+      item.addEventListener('dragover', e => { e.preventDefault(); item.classList.add('drag-over'); });
+      item.addEventListener('dragleave', () => item.classList.remove('drag-over'));
+      item.addEventListener('drop', e => { e.preventDefault(); const from = cfg.orden.indexOf(e.dataTransfer.getData('text/plain')); move(from, i); });
+      box.appendChild(item);
+    });
+  };
+  const paint = () => { $('tv-home-gap').value = cfg.gap; $('tv-home-gap-val').textContent = cfg.gap + ' px'; $('tv-home-banner').value = cfg.banner; $('tv-home-banner-val').textContent = cfg.banner + ' px'; Object.entries(ids).forEach(([k, id]) => { $(id).value = cfg.filas[k]; }); paintOrder(); send(); };
+  async function load() { const [j, sec] = await Promise.all([admin({ op: 'tv_home' }), admin({ op: 'secciones' })]); cfg = normalize(j.item); themeSections = (sec.items || []).filter(s => s && s.id && s.nombre && (s.ubicacion || 'inicio') === 'inicio' && s.franja !== false); integrarTematicas(); dirty = false; paint(); }
   fr.addEventListener('load', () => { fit(); send(); setTimeout(send, 700); setTimeout(send, 1800); });
   if ('IntersectionObserver' in window) new IntersectionObserver(es => { if (es.some(e => e.isIntersecting) && !fr.getAttribute('src')) fr.src = '/index.html?bbpreview=1&bbtvpreview=1'; }, { rootMargin: '180px' }).observe(frame); else fr.src = '/index.html?bbpreview=1&bbtvpreview=1';
   if ('ResizeObserver' in window) new ResizeObserver(fit).observe(frame); else addEventListener('resize', fit);
   $('tv-home-gap').addEventListener('input', e => { cfg.gap = +e.target.value; dirty = true; paint(); });
+  $('tv-home-banner').addEventListener('input', e => { cfg.banner = +e.target.value; dirty = true; paint(); });
   Object.entries(ids).forEach(([k, id]) => $(id).addEventListener('change', e => { cfg.filas[k] = e.target.value; dirty = true; paint(); }));
-  $('tv-home-save').onclick = () => con($('tv-home-save'), 'tv-home-message', async () => { const j = await admin({ op: 'guardar_tv_home', ajustes: cfg }); cfg = normalize(j.item || cfg); dirty = false; paint(); msg('tv-home-message', 'Ajustes guardados para Android TV.', true); });
+  $('tv-home-save').onclick = () => con($('tv-home-save'), 'tv-home-message', async () => { const j = await admin({ op: 'guardar_tv_home', ajustes: cfg }); cfg = normalize(j.item || cfg); integrarTematicas(); dirty = false; paint(); msg('tv-home-message', 'Ajustes guardados para Android TV.', true); });
   $('tv-home-load').onclick = () => con($('tv-home-load'), 'tv-home-message', async () => { await load(); msg('tv-home-message', 'Se cargaron los ajustes guardados.', true); });
-  $('tv-home-reset').onclick = () => { cfg = defaults(); dirty = true; paint(); msg('tv-home-message', 'Valores predeterminados cargados. Guarda para aplicarlos.', true); };
+  $('tv-home-reset').onclick = () => { cfg = defaults(); integrarTematicas(); dirty = true; paint(); msg('tv-home-message', 'Valores predeterminados cargados. Guarda para aplicarlos.', true); };
   document.querySelector('#nav button[data-g="android-tv"]').addEventListener('click', () => { fit(); if (!dirty) load().catch(e => msg('tv-home-message', e.message, false)); });
   paint(); fit();
 })();
