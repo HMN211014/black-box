@@ -4009,7 +4009,17 @@ $('cg-download').onclick = () => con($('cg-download'), 'cg-m', async () => {
   const defaults = () => ({ gap: 30, banner: 650, orden: orderItems.map(x => x[0]), filas: { continuar: 'vertical', populares: 'vertical', recientes: 'vertical', generos: 'vertical' } });
   let cfg = defaults(), dirty = false;
   const fr = $('tv-home-iframe'), frame = $('tv-home-frame');
-  const send = () => { try { fr.contentWindow?.postMessage({ t: 'bb-tv-home', cfg }, location.origin); } catch (e) {} };
+  let tvChannel = null;
+  try {
+    tvChannel = new BroadcastChannel('blackbox-android-tv-preview');
+    tvChannel.onmessage = e => { if (e.data && e.data.t === 'request') send(); };
+  } catch (e) {}
+  const send = () => {
+    const packet = { t: 'bb-tv-home', cfg, at: Date.now() };
+    try { fr.contentWindow?.postMessage(packet, location.origin); } catch (e) {}
+    try { tvChannel?.postMessage(packet); } catch (e) {}
+    try { localStorage.setItem('bb-tv-home-live-preview', JSON.stringify(packet)); } catch (e) {}
+  };
   const fit = () => { const scale = Math.min(frame.clientWidth / 1280, frame.clientHeight / 720); fr.style.transform = 'scale(' + scale + ')'; };
   const normalize = x => { const d = defaults(), f = x && x.filas || {}, n = Number(x && x.gap), banner = Number(x && x.banner), valid = k => d.orden.includes(k) || /^theme:[a-z0-9][a-z0-9-]{0,39}$/.test(k), orden = Array.isArray(x && x.orden) ? x.orden.filter((k, i, a) => valid(k) && a.indexOf(k) === i).slice(0, 70) : []; d.orden.forEach(k => { if (!orden.includes(k)) orden.push(k); }); return { gap: Number.isFinite(n) ? Math.max(8, Math.min(80, Math.round(n))) : d.gap, banner: Number.isFinite(banner) ? Math.max(560, Math.min(900, Math.round(banner / 10) * 10)) : d.banner, orden, filas: Object.fromEntries(Object.keys(ids).map(k => [k, f[k] === 'horizontal' ? 'horizontal' : 'vertical'])) }; };
   const integrarTematicas = () => {

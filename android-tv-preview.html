@@ -28,14 +28,36 @@
   <header><div class="brand">BLACK <span>BOX</span></div><div class="tag">Previsualizador · Android TV</div></header>
   <main>
     <section class="intro">
-      <div><h1>Así se vería en tu televisor</h1><p>Vista previa de la interfaz principal, con navegación direccional y selector de perfiles de muestra.</p></div>
+      <div><h1>Así se vería en tu televisor</h1><p>Vista previa de la interfaz principal con navegación direccional.</p></div>
       <button class="open" id="fullscreen" type="button">Ver a pantalla completa</button>
     </section>
     <div class="screen" id="screen"><iframe src="./?bbtvpreview=1" title="Vista previa de Black BOX para Android TV" allow="fullscreen"></iframe></div>
-    <div class="help"><span>Selecciona la pantalla y navega con <kbd>↑</kbd> <kbd>↓</kbd> <kbd>←</kbd> <kbd>→</kbd>; confirma con <kbd>Enter</kbd>.</span><span>Los perfiles de esta vista son de demostración.</span></div>
+    <div class="help"><span>Selecciona la pantalla y navega con <kbd>↑</kbd> <kbd>↓</kbd> <kbd>←</kbd> <kbd>→</kbd>; confirma con <kbd>Enter</kbd>.</span><span>Los ajustes del editor se reflejan en vivo mientras está abierto.</span></div>
   </main>
   <script>
     const screen = document.getElementById('screen');
+    const preview = screen.querySelector('iframe');
+    const channelName = 'blackbox-android-tv-preview', storageKey = 'bb-tv-home-live-preview';
+    let channel = null, latest = null;
+    const apply = data => {
+      if (!data || data.t !== 'bb-tv-home' || !data.cfg) return;
+      latest = data;
+      try { preview.contentWindow?.postMessage({ t: 'bb-tv-home', cfg: data.cfg }, location.origin); } catch (_) {}
+    };
+    preview.addEventListener('load', () => apply(latest));
+    try {
+      channel = new BroadcastChannel(channelName);
+      channel.onmessage = e => apply(e.data);
+      channel.postMessage({ t: 'request' });
+    } catch (_) {}
+    addEventListener('storage', e => {
+      if (e.key !== storageKey || !e.newValue) return;
+      try { apply(JSON.parse(e.newValue)); } catch (_) {}
+    });
+    try {
+      const saved = JSON.parse(localStorage.getItem(storageKey) || 'null');
+      if (saved && Date.now() - Number(saved.at || 0) < 10 * 60 * 1000) apply(saved);
+    } catch (_) {}
     document.getElementById('fullscreen').addEventListener('click', async () => {
       try {
         if (!document.fullscreenElement) await screen.requestFullscreen();
