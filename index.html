@@ -1475,12 +1475,12 @@ html.android-tv,html.android-tv body{min-width:960px;background:#08090c;color:#f
 html.android-tv body{overflow-x:hidden}
 html.android-tv #top{padding:24px 38px 0;align-items:center}
 html.android-tv #top::before{height:120px}
-html.android-tv #tv-clock{position:fixed;z-index:56;top:37px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,.9);font-size:14px;font-variant-numeric:tabular-nums;text-shadow:0 1px 8px #000;pointer-events:none}
+html.android-tv #tv-clock{position:fixed;z-index:56;top:37px;left:auto;right:40px;transform:none;color:rgba(255,255,255,.9);font-size:14px;font-variant-numeric:tabular-nums;text-shadow:0 1px 8px #000;pointer-events:none}
 html.android-tv #tv-preview-note{display:none}
 html.android-tv.tv-preview-mode #tv-preview-note{display:block;position:fixed;z-index:56;right:32px;bottom:26px;padding:9px 14px;border-radius:999px;background:rgba(18,19,22,.82);border:1px solid rgba(255,255,255,.16);color:#d9d9dd;font-size:11px;font-weight:700;letter-spacing:.08em;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
 html.android-tv .brand{height:48px;padding:0 19px 0 10px;gap:10px;border-radius:999px;background:rgba(25,26,29,.68);border:1px solid rgba(255,255,255,.12);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);font-size:17px}
 html.android-tv .brand img{width:30px;height:30px;border-radius:50%}
-html.android-tv #dock{top:24px;right:40px;bottom:auto;left:auto;transform:none;width:auto;height:48px;padding:3px 6px;gap:2px;background:rgba(24,25,28,.58);border:1px solid rgba(255,255,255,.12);box-shadow:0 8px 30px rgba(0,0,0,.25)}
+html.android-tv #dock{top:var(--tv-top-y,24px);left:var(--tv-top-x,50%);right:auto;bottom:auto;transform:translateX(-50%);width:auto;height:48px;padding:3px 6px;gap:2px;background:rgba(24,25,28,.58);border:1px solid rgba(255,255,255,.12);box-shadow:0 8px 30px rgba(0,0,0,.25)}
 html.android-tv #dock .dk{min-width:86px;padding:0 15px;flex-direction:row;gap:8px;font-size:14px}
 html.android-tv #dock .dk svg{width:20px;height:20px}
 html.android-tv #dock .dk.on{background:rgba(255,255,255,.18)}
@@ -6413,13 +6413,15 @@ setTimeout(() => { vtOK = true; }, 600);              // las transiciones empiez
   if (!root.classList.contains('android-tv')) return;
 
   const tvOrderDefault = ['hero', 'continuar', 'popular', 'collections', 'recent', 'genreTiles', 'platforms', 'genres', 'thematic', 'all'];
-  const tvDefault = { gap: 30, banner: 650, orden: tvOrderDefault, filas: { continuar: 'horizontal', populares: 'vertical', recientes: 'vertical', generos: 'vertical' } };
-  const tvNormalizar = x => { const d = tvDefault, f = x && x.filas || {}, n = Number(x && x.gap), b = Number(x && x.banner), valid = k => tvOrderDefault.includes(k) || /^theme:[a-z0-9][a-z0-9-]{0,39}$/.test(k), orden = Array.isArray(x && x.orden) ? x.orden.filter((k, i, a) => valid(k) && a.indexOf(k) === i).slice(0, 70) : []; tvOrderDefault.forEach(k => { if (!orden.includes(k)) orden.push(k); }); return { gap: Number.isFinite(n) ? Math.max(8, Math.min(80, Math.round(n))) : d.gap, banner: Number.isFinite(b) ? Math.max(560, Math.min(900, Math.round(b / 10) * 10)) : d.banner, orden, filas: Object.fromEntries(Object.keys(d.filas).map(k => [k, f[k] === 'horizontal' ? 'horizontal' : d.filas[k]])) }; };
+  const tvDefault = { gap: 30, banner: 650, topX: 50, topY: 24, orden: tvOrderDefault, filas: { continuar: 'horizontal', populares: 'vertical', recientes: 'vertical', generos: 'vertical' } };
+  const tvNormalizar = x => { const d = tvDefault, f = x && x.filas || {}, n = Number(x && x.gap), b = Number(x && x.banner), tx = Number(x && x.topX), ty = Number(x && x.topY), valid = k => tvOrderDefault.includes(k) || /^theme:[a-z0-9][a-z0-9-]{0,39}$/.test(k), orden = Array.isArray(x && x.orden) ? x.orden.filter((k, i, a) => valid(k) && a.indexOf(k) === i).slice(0, 70) : []; tvOrderDefault.forEach(k => { if (!orden.includes(k)) orden.push(k); }); return { gap: Number.isFinite(n) ? Math.max(8, Math.min(80, Math.round(n))) : d.gap, banner: Number.isFinite(b) ? Math.max(560, Math.min(900, Math.round(b / 10) * 10)) : d.banner, topX: Number.isFinite(tx) ? Math.max(30, Math.min(70, Math.round(tx))) : d.topX, topY: Number.isFinite(ty) ? Math.max(0, Math.min(120, Math.round(ty))) : d.topY, orden, filas: Object.fromEntries(Object.keys(d.filas).map(k => [k, f[k] === 'horizontal' ? 'horizontal' : d.filas[k]])) }; };
   let tvCfg = tvNormalizar(window.TV_HOME_AJUSTES || tvDefault);
   const tvRows = { continuar: 'cont', populares: 'pop', recientes: 'recientes-anio-w', generos: 'gen' };
   const aplicarTv = () => {
     root.style.setProperty('--tv-row-gap', tvCfg.gap + 'px');
     root.style.setProperty('--tv-hero-height', tvCfg.banner + 'px');
+    root.style.setProperty('--tv-top-x', tvCfg.topX + '%');
+    root.style.setProperty('--tv-top-y', tvCfg.topY + 'px');
     const itemIds = { hero: 'herowrap', continuar: 'cont', popular: 'pop', collections: 'cols-w', recent: 'recientes-anio-w', genreTiles: 'gen-w', platforms: 'plat', genres: 'gen', all: 'todas-w' };
     tvCfg.orden.forEach((key, index) => { const item = document.getElementById(itemIds[key]); if (item) item.style.order = String(index); });
     const thematicGroup = tvCfg.orden.indexOf('thematic');

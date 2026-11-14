@@ -604,12 +604,12 @@ function limpiarBannerAjustes(o) {
 }
 function limpiarTvHome(o) {
   const src = o && typeof o === 'object' ? o : {}, filas = src.filas && typeof src.filas === 'object' ? src.filas : {};
-  const gap = Number(src.gap), banner = Number(src.banner);
+  const gap = Number(src.gap), banner = Number(src.banner), topX = Number(src.topX), topY = Number(src.topY);
   const ordenDefault = ['hero', 'continuar', 'popular', 'collections', 'recent', 'genreTiles', 'platforms', 'genres', 'thematic', 'all'];
   const orden = Array.isArray(src.orden) ? src.orden.filter((k, i, a) => (ordenDefault.includes(k) || /^theme:[a-z0-9][a-z0-9-]{0,39}$/.test(k)) && a.indexOf(k) === i).slice(0, 70) : [];
   ordenDefault.forEach(k => { if (!orden.includes(k)) orden.push(k); });
   const orientacion = v => v === 'horizontal' ? 'horizontal' : 'vertical';
-  return { gap: Number.isFinite(gap) ? Math.max(8, Math.min(80, Math.round(gap))) : 30, banner: Number.isFinite(banner) ? Math.max(560, Math.min(900, Math.round(banner / 10) * 10)) : 650, orden, filas: {
+  return { gap: Number.isFinite(gap) ? Math.max(8, Math.min(80, Math.round(gap))) : 30, banner: Number.isFinite(banner) ? Math.max(560, Math.min(900, Math.round(banner / 10) * 10)) : 650, topX: Number.isFinite(topX) ? Math.max(30, Math.min(70, Math.round(topX))) : 50, topY: Number.isFinite(topY) ? Math.max(0, Math.min(120, Math.round(topY))) : 24, orden, filas: {
     continuar: orientacion(filas.continuar), populares: orientacion(filas.populares), recientes: orientacion(filas.recientes), generos: orientacion(filas.generos)
   } };
 }
