@@ -1008,6 +1008,10 @@ html.acceso-app #acceso,#acceso.on{display:flex}
 .uic{position:relative;display:grid;place-items:center;flex:none;font-style:normal}
 #ajustes span{white-space:normal;text-align:center;line-height:1.05}
 #ajustes.ses .uic::after{content:"";position:absolute;top:-1px;right:-3px;width:9px;height:9px;border-radius:50%;background:#30d158;border:2px solid #1a1a1e}
+.ua-o{display:flex;flex-direction:column;align-items:center;gap:14px;margin:20px 0 6px}.ua-o[hidden]{display:none}
+.ua-o>span{display:flex;align-items:center;gap:12px;width:100%;color:rgba(255,255,255,.55);font-size:13px}
+.ua-o>span:before,.ua-o>span:after{content:"";flex:1;height:1px;background:rgba(255,255,255,.16)}
+.ua-o .ua-g{display:flex;justify-content:center;width:100%;min-height:44px;color-scheme:light}
 .ua-tabs{display:flex;gap:4px;padding:4px;margin:4px 0 18px;border-radius:999px;background:rgba(255,255,255,.1)}
 .ua-tabs button{flex:1;height:38px;border:0;border-radius:999px;background:none;color:rgba(255,255,255,.7);font:inherit;font-size:15px;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .ua-tabs button.on{background:rgba(255,255,255,.22);color:#fff}
@@ -4747,7 +4751,7 @@ H('sheet').addEventListener('click', e => { if (e.target === H('sheet')) cerrarH
 /* ---------- Cuenta de usuario (correo + contraseña) ----------
    Se abre desde el botón de configuración (engrane) del encabezado. Guarda en la cuenta lo que hoy vive solo en este
    dispositivo: "Continuar viendo" (bbprog) y los capítulos vistos (bbsvis). El servidor está en functions/api/usuario. */
-const U = { correo: '', acceso: null, lista: [], servicio: null, codigoCanjeado: false };   // servicio: null = comprobando · true = cuentas activas · false = sin servidor
+const U = { correo: '', acceso: null, lista: [], servicio: null, codigoCanjeado: false, google: '' };   // servicio: null = comprobando · true = cuentas activas · false = sin servidor
 let uModo = 'entrar', uPush = 0;
 /* ---------- Planes y acceso por tiempo ----------
    Cada cuenta tiene una fecha de vencimiento (la manejas en /admin.html con códigos canjeables).
@@ -5084,6 +5088,18 @@ function decidirAcceso() {                                  // con sesión (o si
 }
 H('ac-exp').onclick = () => { explorando = true; ocultarAcceso(); };
 H('ac-exp').addEventListener('mousedown', e => e.preventDefault());          // igual: tocar Explorar no cierra el teclado antes de tiempo
+/* Google (Google Identity Services). El script solo se descarga si hay ID de cliente y se abre la pantalla de acceso.
+   En la app de Android no se ofrece: Google no permite iniciar sesión dentro de un WebView. */
+let gsiPromesa = null, gsiIniciado = '', gsiAlRecibir = null;
+const gsiDisponible = () => !!U.google && !(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+function gsiCargar() {
+  if (!gsiPromesa) gsiPromesa = new Promise((ok, mal) => {
+    const s = document.createElement('script'); s.src = 'https://accounts.google.com/gsi/client'; s.async = true;
+    s.onload = () => (window.google && google.accounts && google.accounts.id ? ok() : mal(new Error('gsi')));
+    s.onerror = () => mal(new Error('gsi')); document.head.appendChild(s);
+  }).catch(e => { gsiPromesa = null; throw e; });
+  return gsiPromesa;
+}
 function uVistaAcceso(pant) {
   const w = el('div', 'ua');
   w.innerHTML = (pant ? '' : '<h2>Tu cuenta</h2><p class="ssub">Inicia sesión para guardar tu progreso y lo que has visto, y retomarlo en cualquier dispositivo.</p>') +
@@ -5092,6 +5108,7 @@ function uVistaAcceso(pant) {
     '<label>Contraseña<span class="pw"><input name="clave" type="password" autocomplete="current-password" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="go" minlength="8" required>' +
     '<button type="button" class="ojo" aria-label="Mostrar contraseña" aria-pressed="false">' + OJO_ON + '</button></span></label>' +
     '<p class="serr" id="ua-err" role="alert" hidden></p><button class="sbtn" id="ua-go" type="submit"></button></form>' +
+    (gsiDisponible() ? '<div class="ua-o" id="ua-og" hidden><span>o</span><div class="ua-g" id="ua-g"></div></div>' : '') +
     (pant ? '' : '<button class="sbtn sec" id="ua-planes" type="button">Ver planes</button>');
   const f = w.querySelector('#ua-f'), err = w.querySelector('#ua-err'), go = w.querySelector('#ua-go');
   const ojo = w.querySelector('.ojo');
@@ -5117,11 +5134,37 @@ function uVistaAcceso(pant) {
   const vp = w.querySelector('#ua-planes'); if (vp) vp.onclick = () => { cerrarHoja(); abrirPlanes(null); };
   /* Ningún botón del formulario le quita el foco al campo: el teclado no se cierra ni el contenido se reacomoda debajo del dedo (el clic sigue funcionando). */
   w.querySelectorAll('button').forEach(b => b.addEventListener('mousedown', e => e.preventDefault()));
+  const mal = t => { err.style.color = ''; err.textContent = t; err.hidden = false; };
+  const info = t => { err.style.color = '#d1d1d6'; err.textContent = t; err.hidden = false; };
+  const listo = j => {                                                      // sesión abierta (con contraseña o con Google)
+    U.correo = j.correo; U.acceso = j.acceso || null; U.lista = j.lista || []; U.servicio = true; uBtn(); uPlan(); HAPT.tocar('marcado'); uBajar().catch(() => {});
+    if (pant) { explorando = false; ocultarAcceso(); } else abrirAjustes();
+  };
+  /* Continuar con Google: el botón lo dibuja Google; aquí solo se manda al servidor lo que Google firma y se abre la sesión. */
+  const og = w.querySelector('#ua-og');
+  if (og) {
+    let ocupado = false;
+    const alRecibir = async r => {
+      if (ocupado || !r || !r.credential) return;
+      ocupado = true; err.hidden = true; info('Conectando con tu cuenta de Google…');
+      try {
+        const j = await api('usuario/google', { credencial: r.credential });
+        if (j.correo) return listo(j);
+        mal(j.error || 'No se pudo entrar con Google.');
+      } catch (x) { mal(uError(x)); }
+      finally { ocupado = false; }
+    };
+    gsiCargar().then(() => {
+      if (gsiIniciado !== U.google) { google.accounts.id.initialize({ client_id: U.google, callback: r => gsiAlRecibir && gsiAlRecibir(r), ux_mode: 'popup', auto_select: false, cancel_on_tap_outside: true }); gsiIniciado = U.google; }
+      gsiAlRecibir = alRecibir;                                              // el último formulario abierto es el que recibe la respuesta
+      og.hidden = false;
+      const ancho = Math.round(Math.max(200, Math.min(400, w.clientWidth || og.clientWidth || 320)));
+      google.accounts.id.renderButton(w.querySelector('#ua-g'), { type: 'standard', theme: 'filled_black', size: 'large', text: 'continue_with', shape: 'pill', logo_alignment: 'left', width: ancho, locale: 'es' });
+    }).catch(() => { og.hidden = true; });                                   // sin conexión con Google: queda solo el formulario de siempre
+  }
   f.addEventListener('submit', async e => {
     e.preventDefault(); err.hidden = true;
     const correo = f.correo.value.trim(), clave = f.clave.value;
-    const mal = t => { err.style.color = ''; err.textContent = t; err.hidden = false; };
-    const info = t => { err.style.color = '#d1d1d6'; err.textContent = t; err.hidden = false; };
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(correo)) return mal('Escribe un correo válido.');
     if (uModo === 'registro' && clave.length < 8) return mal('La contraseña debe tener al menos 8 caracteres.');
     if (!clave) return mal('Escribe tu contraseña.');
@@ -5130,7 +5173,7 @@ function uVistaAcceso(pant) {
     const lento = setTimeout(() => info('Sigue trabajando… el servidor está tardando más de lo normal.'), 6000);
     try {
       const j = await api('usuario/' + (uModo === 'registro' ? 'registro' : 'entrar'), { correo, clave });
-      if (j.correo) { U.correo = j.correo; U.acceso = j.acceso || null; U.lista = j.lista || []; U.servicio = true; uBtn(); uPlan(); HAPT.tocar('marcado'); uBajar().catch(() => {}); if (pant) { explorando = false; ocultarAcceso(); } else abrirAjustes(); return; }
+      if (j.correo) return listo(j);
       mal(j.error || 'No se pudo completar la solicitud.');
     } catch (x) { mal(uError(x)); }
     finally { clearTimeout(lento); }
@@ -5681,6 +5724,7 @@ H('ajustes').addEventListener('click', () => { if (perfOn()) abrirMenuPerfil(); 
     const j = await api('usuario/yo');
     U.servicio = j.servicio === true;                  // el servidor de cuentas respondió bien
     U.codigoCanjeado = j.codigoCanjeado === true;
+    U.google = typeof j.google === 'string' ? j.google : '';      // ID de cliente de Google (vacío = sin acceso con Google)
     if (j.correo) { U.correo = j.correo; U.acceso = j.acceso || null; U.lista = j.lista || []; uBtn(); uPlan(); await uBajar(); }
   } catch (e) { U.servicio = false; }
   finally { decidirAcceso(); setTimeout(mensajeEmergenteMostrar, 1200); }

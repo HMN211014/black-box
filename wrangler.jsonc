@@ -37,7 +37,13 @@
   ],
 
   "vars": {
-    "ADMIN_CLAVE": "CTMYOSOYELADMIN1111"
+    "ADMIN_CLAVE": "CTMYOSOYELADMIN1111",
+
+    // Iniciar sesión / crear cuenta con Google. Pega aquí el "ID de cliente" (termina en .apps.googleusercontent.com).
+    // Mientras esté vacío, el botón de Google no aparece. Es un dato público, no es una clave secreta.
+    // Cómo obtenerlo: Google Cloud Console > APIs y servicios > Credenciales > Crear credenciales > ID de cliente de OAuth > "Aplicación web"
+    //   y en "Orígenes de JavaScript autorizados" agrega el dominio de tu sitio (por ejemplo https://tu-sitio.workers.dev).
+    "GOOGLE_CLIENT_ID": ""
   },
 
   // Muestra los errores reales del Worker en: Cloudflare > Workers > black-box > Logs

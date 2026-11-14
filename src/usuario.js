@@ -1,7 +1,7 @@
 /* Cuentas de usuario (correo + contraseña), tiempo de acceso y códigos canjeables para Black BOX.
    Los datos viven en D1 (binding DB). El progreso va a R2 (binding DATOS) y, si no está conectado, a D1.
    Las películas publicadas desde el panel viven en D1 (tablas publicados y meta). El KV (binding USUARIOS) solo se lee una vez para copiarlas.
-   Ruta:  /api/usuario/registro | entrar | salir | yo | datos | canjear | pedir | pedidos | extras | compartir | push | pushquitar | admin */
+   Ruta:  /api/usuario/registro | entrar | google | salir | yo | datos | canjear | pedir | pedidos | extras | compartir | push | pushquitar | admin */
 
 import { avisarUsuario, asegurarPush, avisarAdmins, asegurarPushAdmin } from './push.js';
 
@@ -372,6 +372,62 @@ async function correoDeSesion(request, db) {
   await asegurarBloqueos(db);       // una cuenta bloqueada deja de tener sesión válida en todo (cuenta, progreso, pedidos, códigos…)
   const r = await db.prepare('SELECT s.correo FROM sesiones s WHERE s.token = ?1 AND s.expira > ?2 AND NOT EXISTS (SELECT 1 FROM usuarios_bloqueados b WHERE b.correo = s.correo)').bind(t, Date.now()).first();
   return r ? r.correo : null;
+}
+
+/* ---- Google: iniciar sesión o crear cuenta con una cuenta de Google ----
+   El navegador manda el "ID token" firmado por Google. Aquí se comprueba la firma con las claves públicas de Google,
+   que el token sea para ESTA app (variable GOOGLE_CLIENT_ID), que no haya vencido y que el correo esté verificado.
+   Nunca se confía en el correo que diga el navegador: solo en lo que trae el token firmado. */
+const deb64url = s => { s = String(s).replace(/-/g, '+').replace(/_/g, '/'); return deb64(s + '='.repeat((4 - s.length % 4) % 4)); };
+let clavesGoogle = [], clavesGoogleHasta = 0, clavesGoogleForzada = 0;
+async function leerClavesGoogle(forzar) {
+  if (!forzar && clavesGoogle.length && Date.now() < clavesGoogleHasta) return clavesGoogle;
+  const r = await fetch('https://www.googleapis.com/oauth2/v3/certs', { cf: { cacheTtl: 3600, cacheEverything: true } });
+  if (!r.ok) throw new Error('No se pudieron leer las claves de Google.');
+  const j = await r.json();
+  clavesGoogle = Array.isArray(j.keys) ? j.keys : []; clavesGoogleHasta = Date.now() + 3600e3;
+  return clavesGoogle;
+}
+async function verificarGoogle(env, credencial) {
+  const clienteId = String(env.GOOGLE_CLIENT_ID || '').trim();
+  if (!clienteId) return { error: 'El acceso con Google todavía no está configurado.', status: 503 };
+  const malo = { error: 'No se pudo verificar tu cuenta de Google. Inténtalo de nuevo.', status: 401 };
+  credencial = String(credencial || '');
+  const partes = credencial.split('.');
+  if (partes.length !== 3 || credencial.length > 4096) return malo;
+  let cab, datos;
+  try { cab = JSON.parse(new TextDecoder().decode(deb64url(partes[0]))); datos = JSON.parse(new TextDecoder().decode(deb64url(partes[1]))); } catch (e) { return malo; }
+  if (!cab || cab.alg !== 'RS256' || typeof cab.kid !== 'string' || !datos || typeof datos !== 'object') return malo;
+  let claves = await leerClavesGoogle(false), k = claves.find(x => x.kid === cab.kid);
+  if (!k && Date.now() - clavesGoogleForzada > 60000) {            // Google cambia sus claves de vez en cuando; se vuelve a leer, máximo una vez por minuto
+    clavesGoogleForzada = Date.now(); claves = await leerClavesGoogle(true); k = claves.find(x => x.kid === cab.kid);
+  }
+  if (!k) return malo;
+  let firmaOk = false;
+  try {
+    const clave = await crypto.subtle.importKey('jwk', k, { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['verify']);
+    firmaOk = await crypto.subtle.verify('RSASSA-PKCS1-v1_5', clave, deb64url(partes[2]), enc.encode(partes[0] + '.' + partes[1]));
+  } catch (e) { return malo; }
+  if (!firmaOk) return malo;
+  if (datos.iss !== 'accounts.google.com' && datos.iss !== 'https://accounts.google.com') return malo;
+  if (datos.aud !== clienteId) return malo;                          // un token pedido para otra app no sirve aquí
+  const ahora = Date.now() / 1000;
+  if (!(Number(datos.exp) > ahora)) return { error: 'La verificación de Google venció. Inténtalo de nuevo.', status: 401 };
+  if (datos.nbf && Number(datos.nbf) > ahora + 60) return malo;
+  const sub = String(datos.sub || ''), correo = limpiarCorreo(datos.email);
+  if (!/^\d{5,40}$/.test(sub)) return malo;
+  if (!(datos.email_verified === true || datos.email_verified === 'true')) return { error: 'Tu correo de Google no está verificado.', status: 403 };
+  if (correo.length > 254 || !/^[^\s@]{1,64}@[^\s@]+\.[^\s@]{2,}$/.test(correo)) return malo;
+  return { sub, correo };
+}
+/* Qué cuentas se crearon / vincularon con Google. La tabla se crea sola la primera vez; no hace falta ejecutar nada en D1. */
+let googleListo = null;
+function asegurarGoogle(db) {
+  if (!googleListo) googleListo = db.batch([
+    db.prepare('CREATE TABLE IF NOT EXISTS cuentas_google (sub TEXT PRIMARY KEY, correo TEXT NOT NULL, creado INTEGER NOT NULL) WITHOUT ROWID'),
+    db.prepare('CREATE INDEX IF NOT EXISTS cuentas_google_correo ON cuentas_google (correo)'),
+  ]).catch(e => { googleListo = null; throw e; });
+  return googleListo;
 }
 
 /* ---- Códigos ---- */
@@ -912,6 +968,49 @@ async function manejar({ request, env, params, waitUntil }) {
     return json({ correo, ...(await estadoDe(db, correo)) }, 200, { 'Set-Cookie': cookieSesion(token, SESION_DIAS) });
   }
 
+  /* ---- Continuar con Google (entra si ya tiene cuenta con Google; si no, la crea) ---- */
+  if (accion === 'google' && esPost) {
+    const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+    const huella = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', enc.encode(ip))).slice(0, 12), x => x.toString(16).padStart(2, '0')).join('');
+    const kGoogle = 'g:' + huella;
+    if (await intentosDe(db, kGoogle) >= 60) return json({ error: 'Demasiados intentos. Espera unos minutos e inténtalo de nuevo.' }, 429);
+    await sumarIntento(db, kGoogle, 600);
+
+    let g;
+    try { g = await verificarGoogle(env, cuerpo.credencial); }
+    catch (e) { return json({ error: 'No se pudo conectar con Google. Inténtalo de nuevo en un momento.' }, 502); }
+    if (g.error) return json({ error: g.error }, g.status || 401);
+
+    await asegurarGoogle(db); await asegurarBloqueos(db);
+    let correo = null, nuevo = false;
+    const previa = await db.prepare('SELECT correo FROM cuentas_google WHERE sub = ?1').bind(g.sub).first();
+    if (previa) {
+      if (await db.prepare('SELECT 1 AS x FROM usuarios WHERE correo = ?1').bind(previa.correo).first()) correo = previa.correo;
+      else await db.prepare('DELETE FROM cuentas_google WHERE sub = ?1').bind(g.sub).run();      // la cuenta ya no existe (la eliminaron): se puede crear de nuevo
+    }
+    if (!correo) {
+      /* Un correo que ya tiene cuenta con contraseña NO se une aquí: el registro normal no verifica el correo, así que alguien pudo
+         crearla antes con un correo ajeno y quedarse con la contraseña. Esa persona debe entrar con su contraseña. */
+      if (await db.prepare('SELECT 1 AS x FROM usuarios WHERE correo = ?1').bind(g.correo).first()) return json({ error: 'Ese correo ya tiene una cuenta con contraseña. Inicia sesión con tu correo y contraseña.' }, 409);
+      const salt = crypto.getRandomValues(new Uint8Array(16)), sinClave = crypto.getRandomValues(new Uint8Array(32));   // sin contraseña: nadie puede entrar a esta cuenta con una
+      try {
+        await db.batch([
+          db.prepare('INSERT INTO usuarios (correo, salt, hash, creado) VALUES (?1, ?2, ?3, ?4)').bind(g.correo, b64(salt), b64(sinClave), Date.now()),
+          db.prepare('INSERT INTO cuentas_google (sub, correo, creado) VALUES (?1, ?2, ?3)').bind(g.sub, g.correo, Date.now()),
+        ]);
+      } catch (e) {
+        if (!/unique|constraint/i.test(String(e && e.message))) throw e;
+        const otra = await db.prepare('SELECT correo FROM cuentas_google WHERE sub = ?1').bind(g.sub).first();     // dos solicitudes a la vez: gana la primera
+        if (!otra) return json({ error: 'Ese correo ya tiene una cuenta con contraseña. Inicia sesión con tu correo y contraseña.' }, 409);
+      }
+      correo = g.correo; nuevo = true;
+      if (PRUEBA_DIAS > 0) await sumarDias(db, correo, PRUEBA_DIAS, 'basico');
+    }
+    if (await db.prepare('SELECT 1 AS x FROM usuarios_bloqueados WHERE correo = ?1').bind(correo).first()) return json({ error: 'Esta cuenta está bloqueada. Comunícate con el administrador.' }, 403);
+    const token = await crearSesion(db, correo);
+    return json({ correo, nuevo, ...(await estadoDe(db, correo)) }, 200, { 'Set-Cookie': cookieSesion(token, SESION_DIAS) });
+  }
+
   /* ---- Iniciar sesión ---- */
   if (accion === 'entrar' && esPost) {
     const correo = limpiarCorreo(cuerpo.correo);
@@ -927,6 +1026,10 @@ async function manejar({ request, env, params, waitUntil }) {
     if (u) ok = iguales(await hashClave(clave, deb64(u.salt)), deb64(u.hash));
     else await hashClave(clave, new Uint8Array(16));
     if (!ok) {
+      if (u) {                                       // una cuenta creada con Google no tiene contraseña: se le dice cómo entrar en vez de "incorrectos"
+        await asegurarGoogle(db);
+        if (await db.prepare('SELECT 1 AS x FROM cuentas_google WHERE correo = ?1').bind(correo).first()) return json({ error: 'Esta cuenta se creó con Google. Usa «Continuar con Google» para entrar.' }, 401);
+      }
       await sumarIntento(db, kFallos, 900);
       return json({ error: 'Correo o contraseña incorrectos.' }, 401);
     }
@@ -983,9 +1086,10 @@ async function manejar({ request, env, params, waitUntil }) {
   /* ---- Estado ---- */
   if (accion === 'yo' && request.method === 'GET') {
     const correo = await correoDeSesion(request, db);
-    if (!correo) return json({ servicio: true, correo: '', codigoCanjeado: false });
+    const google = String(env.GOOGLE_CLIENT_ID || '').trim();       // el ID de cliente es público: el navegador lo necesita para mostrar el botón de Google
+    if (!correo) return json({ servicio: true, correo: '', codigoCanjeado: false, google });
     const codigoCanjeado = !!(await db.prepare('SELECT 1 AS x FROM codigos WHERE usado_por = ?1 LIMIT 1').bind(correo).first());
-    return json({ servicio: true, correo, codigoCanjeado, ...(await estadoDe(db, correo)) });
+    return json({ servicio: true, correo, codigoCanjeado, google, ...(await estadoDe(db, correo)) });
   }
 
   /* ---- Datos de la cuenta (progreso y capítulos vistos) ---- */
@@ -1493,7 +1597,9 @@ async function manejar({ request, env, params, waitUntil }) {
       }
 
       /* Eliminar: se borra la cuenta y todo lo suyo (sesiones, lista, pedidos, progreso, teléfonos). Los códigos canjeados se conservan como historial. */
+      await asegurarGoogle(db);
       await db.batch([
+        db.prepare('DELETE FROM cuentas_google WHERE correo = ?1').bind(correo),
         db.prepare('DELETE FROM sesiones WHERE correo = ?1').bind(correo),
         db.prepare('DELETE FROM lista WHERE correo = ?1').bind(correo),
         db.prepare('DELETE FROM pedidos WHERE correo = ?1').bind(correo),

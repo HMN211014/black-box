@@ -208,3 +208,11 @@ CREATE TABLE IF NOT EXISTS usuarios_bloqueados (
   correo TEXT PRIMARY KEY,
   fecha  INTEGER NOT NULL
 ) WITHOUT ROWID;
+
+-- Cuentas creadas o vinculadas con Google ("Continuar con Google"). El servidor también crea esta tabla solo la primera vez.
+CREATE TABLE IF NOT EXISTS cuentas_google (
+  sub     TEXT PRIMARY KEY,               -- identificador estable de la persona en Google
+  correo  TEXT NOT NULL,                  -- correo de la cuenta en Black BOX
+  creado  INTEGER NOT NULL
+) WITHOUT ROWID;
+CREATE INDEX IF NOT EXISTS cuentas_google_correo ON cuentas_google (correo);
