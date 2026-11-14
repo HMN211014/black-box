@@ -6435,10 +6435,10 @@ setTimeout(() => { vtOK = true; }, 600);              // las transiciones empiez
     const img = el.querySelector('img');
     if (img) { const src = mode === 'horizontal' ? (img.dataset.tvBackdrop || img.dataset.tvPoster) : (img.dataset.tvPoster || img.dataset.tvBackdrop); if (src && img.src !== new URL(src, location.href).href) img.src = src; }
   };
-  applyTv();
+  aplicarTv();
   addEventListener('message', e => {
     if (e.origin !== location.origin || e.source !== parent || !e.data || e.data.t !== 'bb-tv-home') return;
-    tvCfg = tvNormalizar(e.data.cfg); applyTv();
+    tvCfg = tvNormalizar(e.data.cfg); aplicarTv();
   });
   const home = document.getElementById('vista-inicio');
   if (home && 'MutationObserver' in window) new MutationObserver(() => {
