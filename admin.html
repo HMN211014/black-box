@@ -194,10 +194,10 @@ label[hidden]{display:none}
 .nav button:hover{background:rgba(255,255,255,.07)}
 .nav button.on{background:rgba(255,255,255,.15);color:#fff}
 body.h{padding:18px 22px 40px}
-body.h main{max-width:1320px;grid-template-columns:260px minmax(0,1fr);gap:22px;align-items:start}
+body.h main{max-width:none;width:100%;margin:0;grid-template-columns:260px minmax(0,1fr);gap:22px;align-items:start}
 body.h .side{position:sticky;top:18px;max-height:calc(100vh - 36px);overflow-y:auto;gap:14px;scrollbar-width:thin}
 body.h .nav{display:grid;gap:4px}
-body.h .pan{grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}
+body.h .pan{grid-template-columns:repeat(auto-fit,minmax(min(100%,520px),1fr));align-items:start}
 body.h .pan>.c{display:none}
 body.h .pan>.c.on{display:block}
 body.h .pan>.c.on.w{grid-column:1/-1}
