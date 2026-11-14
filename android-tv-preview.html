@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#08090c">
+  <title>Black BOX · Vista previa Android TV</title>
+  <style>
+    :root{color-scheme:dark;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#08090c;color:#f4f4f6}
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100vh;background:radial-gradient(70% 70% at 50% -10%,#252a36 0,transparent 70%),#08090c}
+    header{height:86px;display:flex;align-items:center;justify-content:space-between;gap:20px;padding:0 clamp(22px,5vw,76px);border-bottom:1px solid rgba(255,255,255,.08)}
+    .brand{font-size:18px;font-weight:750;letter-spacing:.11em}.brand span{color:#aebaff}
+    .tag{padding:9px 13px;border:1px solid rgba(255,255,255,.14);border-radius:999px;color:#d4d5dc;font-size:12px;letter-spacing:.08em;text-transform:uppercase}
+    main{width:min(1500px,94vw);margin:0 auto;padding:44px 0 30px}
+    .intro{display:flex;align-items:end;justify-content:space-between;gap:28px;margin:0 auto 24px;max-width:1360px}
+    h1{margin:0 0 8px;font-size:clamp(26px,4vw,42px);letter-spacing:-.04em}
+    p{margin:0;color:#aeb0ba;font-size:15px;line-height:1.55}
+    .open{flex:none;min-height:44px;padding:0 18px;border:1px solid rgba(255,255,255,.18);border-radius:999px;background:rgba(255,255,255,.1);color:#fff;font:inherit;font-weight:650;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+    .screen{position:relative;width:min(100%,1360px);margin:auto;aspect-ratio:16/9;overflow:hidden;border-radius:22px;background:#000;box-shadow:0 34px 100px rgba(0,0,0,.58),0 0 0 1px rgba(255,255,255,.13)}
+    iframe{display:block;width:100%;height:100%;border:0;background:#08090c}
+    .help{display:flex;justify-content:space-between;gap:20px;width:min(100%,1360px);margin:18px auto 0;font-size:13px;color:#8e909a}
+    kbd{display:inline-block;padding:3px 7px;border:1px solid #4b4d55;border-radius:5px;background:#191a1e;color:#e7e7ea;font:inherit;font-size:12px}
+    @media(max-width:700px){header{height:68px}.intro{align-items:start;flex-direction:column}main{padding-top:28px}.screen{width:100%;aspect-ratio:16/9;border-radius:12px}.help{flex-direction:column}}
+  </style>
+</head>
+<body>
+  <header><div class="brand">BLACK <span>BOX</span></div><div class="tag">Previsualizador · Android TV</div></header>
+  <main>
+    <section class="intro">
+      <div><h1>Así se vería en tu televisor</h1><p>Vista previa de la interfaz principal, con navegación direccional y selector de perfiles de muestra.</p></div>
+      <button class="open" id="fullscreen" type="button">Ver a pantalla completa</button>
+    </section>
+    <div class="screen" id="screen"><iframe src="./?bbtvpreview=1" title="Vista previa de Black BOX para Android TV" allow="fullscreen"></iframe></div>
+    <div class="help"><span>Selecciona la pantalla y navega con <kbd>↑</kbd> <kbd>↓</kbd> <kbd>←</kbd> <kbd>→</kbd>; confirma con <kbd>Enter</kbd>.</span><span>Los perfiles de esta vista son de demostración.</span></div>
+  </main>
+  <script>
+    const screen = document.getElementById('screen');
+    document.getElementById('fullscreen').addEventListener('click', async () => {
+      try {
+        if (!document.fullscreenElement) await screen.requestFullscreen();
+        else await document.exitFullscreen();
+      } catch (_) {}
+    });
+  </script>
+</body>
+</html>

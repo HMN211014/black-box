@@ -6,6 +6,7 @@
 <script>try{const u=new URL(location.href);if(u.hash==='#/catalogo'&&/^[A-Za-z0-9_-]{32,80}$/.test(u.searchParams.get('bb-share')||''))document.documentElement.classList.add('catalogo-exclusivo','sin-intro')}catch(e){}</script>
 <title>Black BOX</title>
 <script>try{if(window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform()){document.documentElement.classList.add('acceso-app','en-app');setTimeout(function(){if(!window.__accesoListo)document.documentElement.classList.remove('acceso-app')},9000)}}catch(e){}</script>
+<script>try{const vistaTv=new URLSearchParams(location.search).get('bbtvpreview')==='1';if(/BlackBoxTV\/1/i.test(navigator.userAgent)||vistaTv){document.documentElement.classList.add('android-tv','sin-intro');if(vistaTv)document.documentElement.classList.add('tv-preview-mode')}}catch(e){}</script>
 <style>
 :root{--bg:#000;--fg:#f5f5f7;--muted:#98989d;--glass:rgba(40,40,44,.72);--r:22px}
 *{box-sizing:border-box;margin:0}
@@ -1468,6 +1469,61 @@ html.catalogo-exclusivo.catalogo-listo #vista-catalogo{display:flex!important}
 .cfg-perfil .cfg-gt{margin-top:14px;margin-bottom:8px}
 .cfg-cuenta{padding:4px 2px}
 .cfg-cuenta>h2,.cfg-cuenta>.ua-ok{display:none}
+
+/* Interfaz de sala: solo se activa con la marca nativa del WebView Android TV. */
+html.android-tv,html.android-tv body{min-width:960px;background:#08090c;color:#f7f7f8}
+html.android-tv body{overflow-x:hidden}
+html.android-tv #top{padding:24px 38px 0;align-items:center}
+html.android-tv #top::before{height:120px}
+html.android-tv #tv-clock{position:fixed;z-index:56;top:37px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,.9);font-size:14px;font-variant-numeric:tabular-nums;text-shadow:0 1px 8px #000;pointer-events:none}
+html.android-tv #tv-preview-note{display:none}
+html.android-tv.tv-preview-mode #tv-preview-note{display:block;position:fixed;z-index:56;right:32px;bottom:26px;padding:9px 14px;border-radius:999px;background:rgba(18,19,22,.82);border:1px solid rgba(255,255,255,.16);color:#d9d9dd;font-size:11px;font-weight:700;letter-spacing:.08em;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+html.android-tv .brand{height:48px;padding:0 19px 0 10px;gap:10px;border-radius:999px;background:rgba(25,26,29,.68);border:1px solid rgba(255,255,255,.12);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);font-size:17px}
+html.android-tv .brand img{width:30px;height:30px;border-radius:50%}
+html.android-tv #dock{top:24px;right:40px;bottom:auto;left:auto;transform:none;width:auto;height:48px;padding:3px 6px;gap:2px;background:rgba(24,25,28,.58);border:1px solid rgba(255,255,255,.12);box-shadow:0 8px 30px rgba(0,0,0,.25)}
+html.android-tv #dock .dk{min-width:86px;padding:0 15px;flex-direction:row;gap:8px;font-size:14px}
+html.android-tv #dock .dk svg{width:20px;height:20px}
+html.android-tv #dock .dk.on{background:rgba(255,255,255,.18)}
+html.android-tv #herowrap{height:auto;overflow:visible}
+html.android-tv #herowrap::before,html.android-tv #herowrap .hext{display:none}
+html.android-tv #hero{height:72vh;height:72svh;min-height:560px;max-height:760px;margin:0;border-radius:0;overflow:hidden}
+html.android-tv #hero::before{background-position:center 28%;-webkit-mask-image:none;mask-image:none}
+html.android-tv #hero video{-webkit-mask-image:none;mask-image:none}
+html.android-tv #hero::after{background:linear-gradient(180deg,rgba(0,0,0,.5),transparent 23%),linear-gradient(0deg,#08090c 0,rgba(8,9,12,.72) 13%,rgba(8,9,12,.16) 52%,transparent 78%),linear-gradient(90deg,rgba(0,0,0,.72),rgba(0,0,0,.28) 38%,transparent 68%,rgba(0,0,0,.22))}
+html.android-tv #hero .hcopy{left:5.2vw;right:36vw;bottom:clamp(74px,9vh,112px);max-width:760px}
+html.android-tv #hero .hcopy h2{font-size:clamp(48px,5.3vw,78px);line-height:1.02;margin:8px 0 12px}
+html.android-tv #hero .hmeta{font-size:16px}
+html.android-tv #hero .hd{font-size:18px;max-width:58ch;-webkit-line-clamp:2}
+html.android-tv #hero .hact{margin-top:20px}
+html.android-tv #hero .hplay{height:54px;padding:0 30px;font-size:17px}
+html.android-tv #hero .hinfo{width:54px;height:54px}
+html.android-tv #hero .dots{bottom:32px;right:50%;transform:translateX(50%)}
+html.android-tv #vista-inicio{display:flex;flex-direction:column}
+html.android-tv #herowrap{order:0}
+html.android-tv #cont{order:1}
+html.android-tv #pop{order:2}
+html.android-tv #cols-w{order:3}
+html.android-tv #recientes-anio-w{order:4}
+html.android-tv #gen-w{order:5}
+html.android-tv #plat{order:6}
+html.android-tv #gen{order:7}
+html.android-tv #todas-w{order:8}
+html.android-tv #cont .rt,html.android-tv #pop .rt,html.android-tv #cols-w .cols-t,html.android-tv #recientes-anio-w .cols-t,html.android-tv #gen-w .cols-t,html.android-tv #plat .rt{padding-left:5.2vw;padding-right:5.2vw;margin-top:10px;font-size:22px}
+html.android-tv #cont .track,html.android-tv #pop .track,html.android-tv #recientes-anio-w .track,html.android-tv #plat .track{padding-left:5.2vw;padding-right:5.2vw;gap:22px;scroll-padding-inline:5.2vw;scroll-snap-type:x mandatory}
+html.android-tv .card{flex-basis:clamp(190px,18vw,270px);scroll-snap-align:start}
+html.android-tv .card:focus-visible,html.android-tv .ct-card:focus-visible,html.android-tv .plat:focus-visible{outline:3px solid #fff;outline-offset:5px;transform:scale(1.045);z-index:8;box-shadow:0 22px 54px rgba(0,0,0,.78),0 0 0 2px rgba(255,255,255,.28)}
+html.android-tv button:focus-visible,html.android-tv a:focus-visible,input:focus-visible{outline:3px solid #fff;outline-offset:4px}
+html.android-tv .nav{display:grid;place-items:center;opacity:.72;width:54px;height:54px}
+html.android-tv .row:hover .nav,html.android-tv .nav:focus-visible{opacity:1}
+html.android-tv #tv-profiles{position:absolute;z-index:5;top:15%;right:6.2vw;width:min(330px,25vw);display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px 18px;text-align:center}
+html.android-tv #tv-profiles[hidden]{display:none}
+html.android-tv .tv-profile{display:grid;justify-items:center;gap:9px;min-width:0;padding:0;border:0;background:none;color:#fff;font:inherit;font-size:14px;cursor:pointer}
+html.android-tv .tv-profile .pav{width:clamp(74px,7.1vw,104px)!important;height:clamp(74px,7.1vw,104px)!important;display:grid;place-items:center;border:3px solid rgba(255,255,255,.28);border-radius:50%;font-size:clamp(38px,4vw,58px);box-shadow:0 8px 24px rgba(0,0,0,.3)}
+html.android-tv .tv-profile.activo .pav{border-color:#fff;box-shadow:0 0 0 4px rgba(255,255,255,.18),0 10px 28px rgba(0,0,0,.42)}
+html.android-tv .tv-profile:focus-visible .pav{outline:4px solid #fff;outline-offset:5px;transform:scale(1.06)}
+html.android-tv .tv-profile-nombre{max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-shadow:0 2px 8px #000}
+html.android-tv .tv-profile-add .pav{background:rgba(27,28,30,.74);color:#eee;font-weight:300}
+@media(max-height:760px) and (min-width:1000px){html.android-tv #hero{height:68vh;height:68svh;min-height:500px}html.android-tv #tv-profiles{top:13%;gap:12px 14px}html.android-tv .tv-profile .pav{width:68px!important;height:68px!important}}
 </style>
 <link rel="manifest" href="/manifest.webmanifest">
 <meta name="theme-color" content="#000000">
@@ -1506,6 +1562,8 @@ html.catalogo-exclusivo.catalogo-listo #vista-catalogo{display:flex!important}
   <button class="hback" id="hback" type="button" aria-label="Volver"><svg viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg></button>
   <a class="brand" id="brand" href="./" aria-label="Black BOX, inicio"><img src="/icon-192.png" alt="" onerror="this.remove()"><b>Black BOX</b></a>
 </header>
+<div id="tv-clock" aria-label="Hora local"></div>
+<div id="tv-preview-note" aria-hidden="true">VISTA PREVIA · ANDROID TV</div>
 <nav id="dock" aria-label="Secciones">
   <button type="button" class="dk on" data-v="inicio" aria-label="Películas" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h16v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><path d="M4 9l2-5 3.5.8L7.5 9.5M10 9l2-5 3.5.8-2 4.7M16 9l2-5 3 .7"/></svg><span>Películas</span></button>
   <button type="button" class="dk" data-v="series" aria-label="Series"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="2.5"/><path d="M8 3l4 3.5L16 3"/></svg><span>Series</span></button>
@@ -1538,6 +1596,7 @@ html.catalogo-exclusivo.catalogo-listo #vista-catalogo{display:flex!important}
     </div>
   </div>
   <div class="dots" id="dots"></div>
+  <aside id="tv-profiles" aria-label="Perfiles" hidden></aside>
 </section>
 <i class="hext" aria-hidden="true"></i>
 </div>
@@ -4890,6 +4949,7 @@ function perfBtn() {                                        // el botón de cuen
   const u = document.querySelector('#ajustes .uic'); if (!u) return;
   if (perfOn()) { u.classList.add('pf'); u.replaceChildren(perfAvatar(perfActual(), 30)); H('aj-t').textContent = perfActual().nombre; }
   else if (u.classList.contains('pf')) { u.classList.remove('pf'); u.innerHTML = ICO_USR; }
+  if (window.bbTvRenderProfiles) window.bbTvRenderProfiles();
 }
 function perfCambiar(id) {
   if (id === PERF.activo || !PERF.lista.some(p => p.id === id)) return;
@@ -6337,6 +6397,118 @@ setTimeout(() => { vtOK = true; }, 600);              // las transiciones empiez
       if (enVistaAdmitida && !document.hidden) promo.hidden = false;
     }, 3500);
   }).catch(() => {});
+})();
+</script>
+<script>
+(() => {
+  const root = document.documentElement;
+  if (!root.classList.contains('android-tv')) return;
+
+  const clock = document.getElementById('tv-clock');
+  const renderClock = () => {
+    if (clock) clock.textContent = new Intl.DateTimeFormat('es-MX', { hour: 'numeric', minute: '2-digit' }).format(new Date());
+  };
+  renderClock();
+  setInterval(renderClock, 30000);
+
+  const rail = document.getElementById('tv-profiles');
+  const preview = root.classList.contains('tv-preview-mode');
+  const demoProfiles = [
+    { id: 'demo-you', nombre: 'Gustavo', av: '🦊', c: 3 },
+    { id: 'demo-family', nombre: 'Familia', av: '🐼', c: 6 },
+    { id: 'demo-guest', nombre: 'Invitado', av: '🐯', c: 2 },
+    { id: 'demo-kids', nombre: 'Niños', av: '🦄', c: 1 }
+  ];
+  let demoActive = 0;
+  window.bbTvRenderProfiles = () => {
+    if (!rail || (!preview && (typeof PERF === 'undefined' || typeof perfOn !== 'function' || !perfOn()))) {
+      if (rail) rail.hidden = true;
+      return;
+    }
+    rail.replaceChildren();
+    const profiles = preview ? demoProfiles : PERF.lista;
+    const activeId = preview ? demoProfiles[demoActive]?.id : PERF.activo;
+    profiles.forEach(p => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'tv-profile' + (p.id === activeId ? ' activo' : '');
+      b.setAttribute('aria-label', 'Perfil ' + p.nombre + (p.id === activeId ? ', activo' : ''));
+      const avatar = perfAvatar(p, 96);
+      b.append(avatar);
+      const nombre = document.createElement('span');
+      nombre.className = 'tv-profile-nombre';
+      nombre.textContent = p.nombre;
+      b.append(nombre);
+      b.addEventListener('click', () => {
+        if (preview) demoActive = demoProfiles.findIndex(x => x.id === p.id);
+        else if (p.id !== PERF.activo) perfCambiar(p.id);
+        window.bbTvRenderProfiles();
+      });
+      rail.append(b);
+    });
+    if (profiles.length < PERF_MAX) {
+      const add = document.createElement('button');
+      add.type = 'button';
+      add.className = 'tv-profile tv-profile-add';
+      add.setAttribute('aria-label', 'Agregar perfil');
+      const avatar = document.createElement('span');
+      avatar.className = 'pav';
+      avatar.textContent = '+';
+      add.append(avatar);
+      const nombre = document.createElement('span');
+      nombre.className = 'tv-profile-nombre';
+      nombre.textContent = 'Agregar perfil';
+      add.append(nombre);
+      add.addEventListener('click', () => {
+        if (preview) {
+          const n = demoProfiles.length + 1;
+          demoProfiles.push({ id: 'demo-' + n, nombre: 'Perfil ' + n, av: PERF_AV[n % PERF_AV.length], c: n % PERF_COL.length });
+          demoActive = demoProfiles.length - 1;
+          window.bbTvRenderProfiles();
+        } else perfElegir();
+      });
+      rail.append(add);
+    }
+    rail.hidden = false;
+  };
+  window.bbTvRenderProfiles();
+
+  const editable = el => el && (el.matches('input,textarea,select,[contenteditable="true"]') || el.isContentEditable);
+  const visibles = () => [...document.querySelectorAll('a[href],button:not(:disabled),input:not(:disabled),select:not(:disabled),textarea:not(:disabled),[tabindex]:not([tabindex="-1"])')]
+    .filter(el => !el.closest('[hidden],[inert],[aria-hidden="true"]') && el.getClientRects().length && getComputedStyle(el).visibility !== 'hidden');
+
+  document.addEventListener('keydown', e => {
+    if (editable(e.target) || (typeof pl !== 'undefined' && !pl.hidden)) return;
+    const vector = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[e.key];
+    if (!vector) return;
+    const [dx, dy] = vector, items = visibles();
+    if (!items.length) return;
+    const active = document.activeElement;
+    const origin = active && active !== document.body && active.getClientRects().length
+      ? active.getBoundingClientRect()
+      : (document.getElementById('hl') || items[0]).getBoundingClientRect();
+    const ox = origin.left + origin.width / 2, oy = origin.top + origin.height / 2;
+    let best = null, bestScore = Infinity;
+    for (const item of items) {
+      if (item === active) continue;
+      const r = item.getBoundingClientRect(), x = r.left + r.width / 2, y = r.top + r.height / 2;
+      const primary = dx ? (x - ox) * dx : (y - oy) * dy;
+      if (primary < 8) continue;
+      const cross = dx ? Math.abs(y - oy) : Math.abs(x - ox);
+      const score = primary + cross * 1.7 + (cross > primary * 1.5 ? primary * .8 : 0);
+      if (score < bestScore) { best = item; bestScore = score; }
+    }
+    if (best) {
+      e.preventDefault();
+      best.focus({ preventScroll: true });
+      best.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+    }
+  });
+
+  setTimeout(() => {
+    const play = document.getElementById('hl');
+    if (play && !document.activeElement?.matches('input,textarea,button,a')) play.focus({ preventScroll: true });
+  }, 450);
 })();
 </script>
 </body>
