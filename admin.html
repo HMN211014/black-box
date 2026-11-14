@@ -197,7 +197,7 @@ body.h{padding:18px 22px 40px}
 body.h main{max-width:none;width:100%;margin:0;grid-template-columns:260px minmax(0,1fr);gap:22px;align-items:start}
 body.h .side{position:sticky;top:18px;max-height:calc(100vh - 36px);overflow-y:auto;gap:14px;scrollbar-width:thin}
 body.h .nav{display:grid;gap:4px}
-body.h .pan{grid-template-columns:repeat(auto-fit,minmax(min(100%,520px),1fr));align-items:start}
+body.h .pan{grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-flow:row dense;align-items:start}
 body.h .pan>.c{display:none}
 body.h .pan>.c.on{display:block}
 body.h .pan>.c.on.w{grid-column:1/-1}
@@ -213,6 +213,8 @@ body.h .pan>.c.on.w{grid-column:1/-1}
   body.h .pan>.c{padding:16px}
 }
 @media(max-width:900px){body.h .pan{grid-template-columns:minmax(0,1fr)}}
+/* ventanas anchas: las tarjetas angostas pasan a una tercera columna; las .w siguen ocupando todo el ancho */
+@media(min-width:1500px){body.h .pan{grid-template-columns:repeat(3,minmax(0,1fr))}}
 /* ---- Vista vertical (teléfono, navegador y app Black BOX Admin): una sección a la vez y barra de secciones abajo ---- */
 body:not(.h){padding:calc(env(safe-area-inset-top,0px) + 14px) 12px calc(env(safe-area-inset-bottom,0px) + 86px)}
 body:not(.h) .side>p.s{display:none}
