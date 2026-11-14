@@ -361,7 +361,10 @@ async function crearSesion(db, correo) {
 }
 function tokenDe(request) {
   const m = (request.headers.get('Cookie') || '').match(/(?:^|;\s*)bb_sesion=([\w-]+)/);
-  return m ? m[1] : null;
+  if (m) return m[1];
+  // respaldo: si el navegador o la app borró la cookie, el dispositivo manda su copia del token en Authorization
+  const b = (request.headers.get('Authorization') || '').match(/^Bearer\s+([\w-]+)$/);
+  return b ? b[1] : null;
 }
 /* Cuentas bloqueadas desde el panel (lista de códigos). La tabla se crea sola la primera vez; ejecutar algo en D1 no hace falta. */
 let bloqueosListo = null;
@@ -968,7 +971,7 @@ async function manejar({ request, env, params, waitUntil }) {
     }
     if (PRUEBA_DIAS > 0) await sumarDias(db, correo, PRUEBA_DIAS, 'basico');
     const token = await crearSesion(db, correo);
-    return json({ correo, ...(await estadoDe(db, correo)) }, 200, { 'Set-Cookie': cookieSesion(token, SESION_DIAS) });
+    return json({ correo, token, ...(await estadoDe(db, correo)) }, 200, { 'Set-Cookie': cookieSesion(token, SESION_DIAS) });
   }
 
   /* ---- Continuar con Google (entra si ya tiene cuenta con Google; si no, la crea) ---- */
@@ -1011,7 +1014,7 @@ async function manejar({ request, env, params, waitUntil }) {
     }
     if (await db.prepare('SELECT 1 AS x FROM usuarios_bloqueados WHERE correo = ?1').bind(correo).first()) return json({ error: 'Esta cuenta está bloqueada. Comunícate con el administrador.' }, 403);
     const token = await crearSesion(db, correo);
-    return json({ correo, nuevo, ...(await estadoDe(db, correo)) }, 200, { 'Set-Cookie': cookieSesion(token, SESION_DIAS) });
+    return json({ correo, nuevo, token, ...(await estadoDe(db, correo)) }, 200, { 'Set-Cookie': cookieSesion(token, SESION_DIAS) });
   }
 
   /* ---- Iniciar sesión ---- */
@@ -1040,7 +1043,7 @@ async function manejar({ request, env, params, waitUntil }) {
     await asegurarBloqueos(db);
     if (await db.prepare('SELECT 1 AS x FROM usuarios_bloqueados WHERE correo = ?1').bind(correo).first()) return json({ error: 'Esta cuenta está bloqueada. Comunícate con el administrador.' }, 403);
     const token = await crearSesion(db, correo);
-    return json({ correo, ...(await estadoDe(db, correo)) }, 200, { 'Set-Cookie': cookieSesion(token, SESION_DIAS) });
+    return json({ correo, token, ...(await estadoDe(db, correo)) }, 200, { 'Set-Cookie': cookieSesion(token, SESION_DIAS) });
   }
 
   /* ---- Notificaciones push: guardar / quitar el teléfono de esta cuenta ---- */
@@ -1092,7 +1095,10 @@ async function manejar({ request, env, params, waitUntil }) {
     const google = String(env.GOOGLE_CLIENT_ID || '').trim();       // el ID de cliente es público: el navegador lo necesita para mostrar el botón de Google
     if (!correo) return json({ servicio: true, correo: '', codigoCanjeado: false, google });
     const codigoCanjeado = !!(await db.prepare('SELECT 1 AS x FROM codigos WHERE usado_por = ?1 LIMIT 1').bind(correo).first());
-    return json({ servicio: true, correo, codigoCanjeado, google, ...(await estadoDe(db, correo)) });
+    // la sesión se renueva sola mientras se use: otros 30 días desde hoy (como mucho una escritura al día por sesión)
+    const t = tokenDe(request), ahora = Date.now();
+    if (t) await db.prepare('UPDATE sesiones SET expira = ?1 WHERE token = ?2 AND expira < ?3').bind(ahora + SESION_DIAS * DIA, t, ahora + (SESION_DIAS - 1) * DIA).run();
+    return json({ servicio: true, correo, codigoCanjeado, google, ...(await estadoDe(db, correo)) }, 200, t ? { 'Set-Cookie': cookieSesion(t, SESION_DIAS) } : {});
   }
 
   /* ---- Datos de la cuenta (progreso y capítulos vistos) ---- */

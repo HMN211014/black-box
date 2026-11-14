@@ -4667,13 +4667,19 @@ H('hback').onclick = () => {
 addEventListener('resize', () => { if (detActual && !vistas.det.hidden) { const bg = heroImg(detActual); H('dbg').style.setProperty('--img', bg ? `url("${bg}")` : 'none'); } });
 
 /* ---------- Conexión con el servidor de cuentas ---------- */
+const tokenGuardado = () => { try { return localStorage.getItem('bb_tok') || ''; } catch (e) { return ''; } };
+const guardarToken = t => { try { if (t) localStorage.setItem('bb_tok', t); else localStorage.removeItem('bb_tok'); } catch (e) {} };
 async function api(ruta, cuerpo) {
   const ctl = new AbortController(), reloj = setTimeout(() => ctl.abort(), 20000);   // nunca se queda esperando para siempre
   let r, j = null;
   try {
+    const cab = cuerpo ? { 'Content-Type': 'application/json' } : {}, tk = tokenGuardado();
+    if (tk) cab.Authorization = 'Bearer ' + tk;                     // respaldo por si el navegador o la app pierde la cookie
     r = await fetch('/api/' + ruta, { method: cuerpo ? 'POST' : 'GET', credentials: 'same-origin', signal: ctl.signal,
-      headers: cuerpo ? { 'Content-Type': 'application/json' } : {}, body: cuerpo ? JSON.stringify(cuerpo) : undefined });
+      headers: cab, body: cuerpo ? JSON.stringify(cuerpo) : undefined });
     try { j = await r.json(); } catch (e) {}
+    if (j && typeof j.token === 'string') { guardarToken(j.token); delete j.token; }
+    if (ruta === 'usuario/salir' && r.ok) guardarToken('');
   } catch (e) {
     console.error('[api] ' + ruta, e);
     throw new Error(e && e.name === 'AbortError' ? 'timeout' : 'red');
@@ -5719,16 +5725,35 @@ H('ajustes').addEventListener('click', () => { if (perfOn()) abrirMenuPerfil(); 
   const b = H('ajustes');
   if (b.parentNode !== document.body) document.body.appendChild(b);
 })();
-(async () => {                                          // si ya había una sesión abierta en este navegador, se retoma sola
-  try {
-    const j = await api('usuario/yo');
-    U.servicio = j.servicio === true;                  // el servidor de cuentas respondió bien
+/* Retoma la sesión al abrir. Si el servidor o la red fallan un momento NO se da la sesión por perdida: se reintenta,
+   y solo se cierra cuando el servidor responde de verdad que no hay sesión. */
+let sesionRetomada = false;
+async function retomarSesion() {
+  for (const ms of [0, 1500, 4000]) {
+    if (ms) await new Promise(r => setTimeout(r, ms));
+    let j;
+    try { j = await api('usuario/yo'); } catch (e) { continue; }
+    if (!j || j.servicio !== true) continue;                      // 5xx u otro fallo: reintentar
+    U.servicio = true;
     U.codigoCanjeado = j.codigoCanjeado === true;
-    U.google = typeof j.google === 'string' ? j.google : '';      // ID de cliente de Google (vacío = sin acceso con Google)
-    if (j.correo) { U.correo = j.correo; U.acceso = j.acceso || null; U.lista = j.lista || []; uBtn(); uPlan(); await uBajar(); }
-  } catch (e) { U.servicio = false; }
+    U.google = typeof j.google === 'string' ? j.google : '';
+    if (j.correo) { U.correo = j.correo; U.acceso = j.acceso || null; U.lista = j.lista || []; uBtn(); uPlan(); await uBajar().catch(() => {}); }
+    else guardarToken('');                                        // el servidor confirmó que esa sesión ya no existe
+    sesionRetomada = true; return true;
+  }
+  return false;
+}
+(async () => {
+  try { if (!(await retomarSesion())) U.servicio = false; }
   finally { decidirAcceso(); setTimeout(mensajeEmergenteMostrar, 1200); }
 })();
+/* Si no se pudo al abrir, se reintenta al volver la conexión o al volver a la app. */
+const reintentarSesion = async () => {
+  if (sesionRetomada || U.correo) return;
+  if (await retomarSesion()) { uBtn(); uPlan(); decidirAcceso(); }
+};
+window.addEventListener('online', reintentarSesion);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') reintentarSesion(); });
 
 /* ---------- Colecciones por temática ----------
    Los cuadros salen de colecciones.js. Cada uno abre  #/c/<id>  (otra "página" dentro de la app, con su propio botón Volver). */
