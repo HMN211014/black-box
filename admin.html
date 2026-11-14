@@ -513,9 +513,12 @@ body:not(.h) .nav button.on{background:#fff;color:#000}
   </div>
 
   <div class="c" data-g="biblioteca" id="r2-hoy-card">
-    <h2>Agregados hoy a R2</h2>
-    <p class="s">Muestra los videos que se subieron al bucket hoy, también los que están dentro de carpetas. Cada uno solo permite copiar su enlace.</p>
-    <div class="row"><button class="g" id="r2-hoy-go" type="button">Ver agregados de hoy</button></div>
+    <h2>Últimos agregados a R2</h2>
+    <p class="s">Muestra los videos más recientes del bucket, sin importar el día en que se subieron, también los que están dentro de carpetas. Cada uno solo permite copiar su enlace.</p>
+    <div class="f" style="grid-template-columns:minmax(0,1fr) auto;align-items:end">
+      <label>Cuántos mostrar<select id="r2-hoy-n"><option value="10">Últimos 10</option><option value="25" selected>Últimos 25</option><option value="50">Últimos 50</option><option value="100">Últimos 100</option><option value="200">Últimos 200</option></select></label>
+      <button class="g" id="r2-hoy-go" type="button">Ver últimos agregados</button>
+    </div>
     <p class="m" id="r2-hoy-m" hidden></p>
     <div id="r2-hoy-out"></div>
   </div>
@@ -2177,15 +2180,17 @@ $('r2-go').onclick = () => r2Buscar(false);
 $('r2-refresh').onclick = () => r2Buscar(true);
 $('r2-q').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); r2Buscar(false); } });
 
-/* ---- archivos agregados hoy al bucket R2 (se consultan al pulsar el botón) ---- */
+/* ---- últimos archivos agregados al bucket R2, de cualquier día (se consultan al pulsar el botón) ---- */
+try { const g = localStorage.getItem('bbR2Ultimos'); if (g && [...$('r2-hoy-n').options].some(o => o.value === g)) $('r2-hoy-n').value = g; } catch (e) {}
+$('r2-hoy-n').addEventListener('change', () => { try { localStorage.setItem('bbR2Ultimos', $('r2-hoy-n').value); } catch (e) {} });
 $('r2-hoy-go').onclick = () => con($('r2-hoy-go'), 'r2-hoy-m', async () => {
-  const out = $('r2-hoy-out'), inicio = new Date(); inicio.setHours(0, 0, 0, 0);       // medianoche de hoy en la hora de este dispositivo
-  out.replaceChildren(); msg('r2-hoy-m', 'Consultando los archivos de hoy…', true);
-  const j = await admin({ op: 'r2_buscar', q: '', actualizar: true, desde: inicio.getTime() });
+  const out = $('r2-hoy-out'), n = Number($('r2-hoy-n').value) || 25;
+  out.replaceChildren(); msg('r2-hoy-m', 'Consultando los últimos archivos agregados…', true);
+  const j = await admin({ op: 'r2_buscar', q: '', actualizar: true, ultimos: n });
   (j.items || []).forEach(x => out.appendChild(r2Fila(x)));
-  const n = j.items ? j.items.length : 0;
-  msg('r2-hoy-m', (n ? 'Hoy se agregaron ' + n + ' archivo(s).' : 'Hoy todavía no se ha agregado ningún video.') + r2Cuando(j) + r2Parcial(j), !j.parcial);
-  $('r2-hoy-go').textContent = 'Actualizar agregados de hoy';
+  const t = j.items ? j.items.length : 0;
+  msg('r2-hoy-m', (t ? 'Estos son los últimos ' + t + ' archivo(s) agregados, del más reciente al más antiguo.' : 'Todavía no hay videos en el bucket.') + r2Cuando(j) + r2Parcial(j), !j.parcial);
+  $('r2-hoy-go').textContent = 'Actualizar últimos agregados';
 });
 
 /* ---- Biblioteca: comprimir o cerrar las listas una vez revisados los datos ---- */
@@ -2215,7 +2220,7 @@ listaPlegable('x-lista', () => msg('x-m', '', true));
 listaPlegable('d-lista', () => msg('d-m', '', true));
 listaPlegable('l-out', () => { lConsulta++; lElegido = null; $('l-out').hidden = true; $('l-copy-box').hidden = true; msg('l-m', '', true); });
 listaPlegable('r2-out', () => msg('r2-m', '', true));
-listaPlegable('r2-hoy-out', () => { msg('r2-hoy-m', '', true); $('r2-hoy-go').textContent = 'Ver agregados de hoy'; });
+listaPlegable('r2-hoy-out', () => { msg('r2-hoy-m', '', true); $('r2-hoy-go').textContent = 'Ver últimos agregados'; });
 listaPlegable('idb-list', null);
 
 /* ---- Banner principal: carrusel editable (orden, quitar, títulos recientes y agregar a mano) ---- */

@@ -113,7 +113,7 @@ function adsTxtDe(g) {
   return [...pubs].map(p => 'google.com, ' + p + ', DIRECT, f08c47fec0942fa0').join('\n') + (pubs.size ? '\n' : '');
 }
 
-async function buscarArchivosR2(env, request, consulta, actualizar, desde) {
+async function buscarArchivosR2(env, request, consulta, actualizar, desde, ultimos = 0) {
   if (!env.DATOS) throw new Error('El binding DATOS de R2 no está conectado a este Worker.');
   const ahora = Date.now();
   let indice = null;
@@ -153,6 +153,10 @@ async function buscarArchivosR2(env, request, consulta, actualizar, desde) {
 
   const q = normalizarNombreR2(consulta);
   const aItem = x => ({ nombre: x.key.split('/').pop(), key: x.key, size: x.size, subido: x.subido || 0, url: base + x.key.split('/').map(encodeURIComponent).join('/') });
+  if (ultimos > 0) {    // los N archivos más recientes del bucket, sin importar el día en que se subieron (también los de dentro de carpetas)
+    const items = indice.items.filter(x => (x.subido || 0) > 0).sort((a, b) => b.subido - a.subido).slice(0, Math.min(ultimos, R2_MAX_HOY)).map(aItem);
+    return { items, ultimos: true, actualizado: indice.actualizado, parcial: !!indice.parcial };
+  }
   if (desde > 0) {      // archivos agregados desde esa hora (el panel manda el inicio del día), también los de dentro de carpetas
     const items = indice.items.filter(x => (x.subido || 0) >= desde).sort((a, b) => (b.subido || 0) - (a.subido || 0)).slice(0, R2_MAX_HOY).map(aItem);
     return { items, hoy: true, actualizado: indice.actualizado, parcial: !!indice.parcial };
@@ -1707,7 +1711,7 @@ async function manejar({ request, env, params, waitUntil }) {
     }
 
     if (cuerpo.op === 'r2_buscar') {
-      try { return json(await buscarArchivosR2(env, request, cuerpo.q, cuerpo.actualizar === true, Math.floor(Number(cuerpo.desde)) || 0)); }
+      try { return json(await buscarArchivosR2(env, request, cuerpo.q, cuerpo.actualizar === true, Math.floor(Number(cuerpo.desde)) || 0, Math.max(0, Math.min(R2_MAX_HOY, Math.floor(Number(cuerpo.ultimos)) || 0)))); }
       catch (e) { return json({ error: e && e.message ? e.message : 'No se pudieron consultar los archivos de R2.' }, 400); }
     }
 
