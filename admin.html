@@ -60,6 +60,15 @@ td.k{font-family:ui-monospace,Menlo,Consolas,monospace;white-space:nowrap}
 #co-lista .it .row button[data-move]{min-width:36px;padding:0}
 @media(max-width:700px){#co-lista .it{align-items:flex-start}#co-lista .it .row{flex-wrap:wrap;justify-content:flex-end;max-width:48%}}
 .cp-admin-preview{margin-top:14px;padding:12px;border-radius:16px;background:#0b0b0f;border:1px solid rgba(255,255,255,.12)}
+.tv-home-preview{position:sticky;top:8px;z-index:20;margin:14px 0;padding:12px;border:1px solid rgba(255,255,255,.12);border-radius:16px;background:#0b0b0f;box-shadow:0 14px 40px #000d}
+.tv-home-preview-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;color:#c7c7cc;font-size:12px}
+.tv-home-frame{position:relative;width:min(100%,calc(52vh * 1.7778));aspect-ratio:16/9;margin:0 auto;overflow:hidden;border:1px solid rgba(255,255,255,.15);border-radius:12px;background:#08090c}
+.tv-home-frame iframe{position:absolute;top:0;left:0;width:1280px;height:720px;border:0;transform-origin:top left;background:#08090c}
+.tv-home-controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}
+.tv-home-row{margin:0;padding:12px;border:1px solid rgba(255,255,255,.1);border-radius:14px;background:rgba(255,255,255,.035)}
+.tv-home-row b{display:block;margin-bottom:4px;font-size:14px}.tv-home-row small{display:block;color:#a1a1a6;font-size:12px;line-height:1.4}
+.tv-home-row select{margin-top:8px}.tv-home-gap{margin-top:16px}
+@media(max-width:700px){.tv-home-controls{grid-template-columns:1fr}.tv-home-frame{width:100%}}
 .cp-admin-preview-h{display:flex;justify-content:space-between;gap:10px;color:#c7c7cc;font-size:12px;margin-bottom:10px}
 .cp-admin-preview.fija{position:sticky;top:8px;z-index:20;box-shadow:0 14px 40px #000d}
 .cp-admin-frame{width:min(100%,calc(46vh * 1.2222));aspect-ratio:1100/900;overflow:auto;scrollbar-gutter:stable;border-radius:12px;background:#141419;margin:0 auto}
@@ -267,6 +276,7 @@ body:not(.h) .nav button.on{background:#fff;color:#000}
     <button type="button" data-g="collage">Collage</button>
     <button type="button" data-g="pedidos">Pedidos</button>
     <button type="button" data-g="colecciones">Colecciones</button>
+    <button type="button" data-g="android-tv">Android TV</button>
     <button type="button" data-g="secciones">Secciones temáticas</button>
     <button type="button" data-g="acceso">Pantalla de acceso</button>
     <button type="button" data-g="anuncios">Anuncios (plan Gratis)</button>
@@ -980,6 +990,25 @@ body:not(.h) .nav button.on{background:#fff;color:#000}
     <div class="row" style="margin-top:16px"><button id="se-go" type="button">Guardar sección</button><button class="g" id="se-nuevo" type="button">Nueva</button><button class="g" id="se-ver" type="button">Ver secciones</button></div>
     <p class="m" id="se-m" hidden></p>
     <div id="se-lista"></div>
+  </div>
+
+  <div class="c w" data-g="android-tv" id="tv-home-card">
+    <h2>Inicio de Android TV</h2>
+    <p class="s">Ajusta el espacio entre filas y el formato de los pósters. En horizontal se usa la imagen de fondo ancha cuando está disponible; si no, se recorta el póster. Estos cambios solo afectan a Android TV.</p>
+    <div class="tv-home-preview" id="tv-home-preview">
+      <div class="tv-home-preview-head"><span>Vista previa en vivo · Android TV</span><a class="g" href="/android-tv-preview" target="_blank" rel="noopener">Abrir previsualizador</a></div>
+      <div class="tv-home-frame" id="tv-home-frame"><iframe id="tv-home-iframe" title="Vista previa del inicio de Android TV" loading="lazy"></iframe></div>
+    </div>
+    <label class="cp-range tv-home-gap">Separación entre filas<input id="tv-home-gap" type="range" min="8" max="80" step="1" value="30"><output id="tv-home-gap-val">30 px</output></label>
+    <div class="tv-home-controls">
+      <label class="tv-home-row"><b>Continúa viendo</b><small>Formato de las tarjetas con progreso.</small><select id="tv-home-continue"><option value="vertical">Pósters verticales</option><option value="horizontal">Tarjetas horizontales</option></select></label>
+      <label class="tv-home-row"><b>Populares</b><small>Formato de la fila de títulos populares.</small><select id="tv-home-popular"><option value="vertical">Pósters verticales</option><option value="horizontal">Tarjetas horizontales</option></select></label>
+      <label class="tv-home-row"><b>Lo más reciente</b><small>Formato de los estrenos del año.</small><select id="tv-home-recent"><option value="vertical">Pósters verticales</option><option value="horizontal">Tarjetas horizontales</option></select></label>
+      <label class="tv-home-row"><b>Géneros</b><small>Formato de las filas por género.</small><select id="tv-home-genres"><option value="vertical">Pósters verticales</option><option value="horizontal">Tarjetas horizontales</option></select></label>
+    </div>
+    <p class="s" style="margin-top:10px">El espacio y los formatos se aplican a las filas del inicio. El reproductor, la ficha de títulos y otras plataformas conservan su diseño.</p>
+    <div class="row" style="margin-top:16px"><button id="tv-home-save" type="button">Guardar ajustes</button><button class="g" id="tv-home-load" type="button">Cargar guardados</button><button class="g" id="tv-home-reset" type="button">Restablecer</button></div>
+    <p class="m" id="tv-home-message" role="status" aria-live="polite" hidden></p>
   </div>
 
 
@@ -3962,6 +3991,29 @@ $('cg-download').onclick = () => con($('cg-download'), 'cg-m', async () => {
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'black-box-collage-' + cgYear + '.jpg'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 30000);
   msg('cg-m', 'Collage descargado en formato vertical 1080 × 1920.', true);
 });
+</script>
+<script>
+(() => {
+  const ids = { continuar: 'tv-home-continue', populares: 'tv-home-popular', recientes: 'tv-home-recent', generos: 'tv-home-genres' };
+  const defaults = () => ({ gap: 30, filas: { continuar: 'vertical', populares: 'vertical', recientes: 'vertical', generos: 'vertical' } });
+  let cfg = defaults(), dirty = false;
+  const fr = $('tv-home-iframe'), frame = $('tv-home-frame');
+  const send = () => { try { fr.contentWindow?.postMessage({ t: 'bb-tv-home', cfg }, location.origin); } catch (e) {} };
+  const fit = () => { const scale = Math.min(frame.clientWidth / 1280, frame.clientHeight / 720); fr.style.transform = 'scale(' + scale + ')'; };
+  const paint = () => { $('tv-home-gap').value = cfg.gap; $('tv-home-gap-val').textContent = cfg.gap + ' px'; Object.entries(ids).forEach(([k, id]) => { $(id).value = cfg.filas[k]; }); send(); };
+  const normalize = x => { const d = defaults(), f = x && x.filas || {}, n = Number(x && x.gap); return { gap: Number.isFinite(n) ? Math.max(8, Math.min(80, Math.round(n))) : d.gap, filas: Object.fromEntries(Object.keys(ids).map(k => [k, f[k] === 'horizontal' ? 'horizontal' : 'vertical'])) }; };
+  async function load() { const j = await admin({ op: 'tv_home' }); cfg = normalize(j.item); dirty = false; paint(); }
+  fr.addEventListener('load', () => { fit(); send(); setTimeout(send, 700); setTimeout(send, 1800); });
+  if ('IntersectionObserver' in window) new IntersectionObserver(es => { if (es.some(e => e.isIntersecting) && !fr.getAttribute('src')) fr.src = '/index.html?bbpreview=1&bbtvpreview=1'; }, { rootMargin: '180px' }).observe(frame); else fr.src = '/index.html?bbpreview=1&bbtvpreview=1';
+  if ('ResizeObserver' in window) new ResizeObserver(fit).observe(frame); else addEventListener('resize', fit);
+  $('tv-home-gap').addEventListener('input', e => { cfg.gap = +e.target.value; dirty = true; paint(); });
+  Object.entries(ids).forEach(([k, id]) => $(id).addEventListener('change', e => { cfg.filas[k] = e.target.value; dirty = true; paint(); }));
+  $('tv-home-save').onclick = () => con($('tv-home-save'), 'tv-home-message', async () => { const j = await admin({ op: 'guardar_tv_home', ajustes: cfg }); cfg = normalize(j.item || cfg); dirty = false; paint(); msg('tv-home-message', 'Ajustes guardados para Android TV.', true); });
+  $('tv-home-load').onclick = () => con($('tv-home-load'), 'tv-home-message', async () => { await load(); msg('tv-home-message', 'Se cargaron los ajustes guardados.', true); });
+  $('tv-home-reset').onclick = () => { cfg = defaults(); dirty = true; paint(); msg('tv-home-message', 'Valores predeterminados cargados. Guarda para aplicarlos.', true); };
+  document.querySelector('#nav button[data-g="android-tv"]').addEventListener('click', () => { fit(); if (!dirty) load().catch(e => msg('tv-home-message', e.message, false)); });
+  paint(); fit();
+})();
 </script>
 <script src="/teclado.js"></script>
 <script src="/admin-app.js"></script>

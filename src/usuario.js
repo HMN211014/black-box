@@ -602,6 +602,14 @@ function limpiarBannerAjustes(o) {
   }
   return out;
 }
+function limpiarTvHome(o) {
+  const src = o && typeof o === 'object' ? o : {}, filas = src.filas && typeof src.filas === 'object' ? src.filas : {};
+  const gap = Number(src.gap);
+  const orientacion = v => v === 'horizontal' ? 'horizontal' : 'vertical';
+  return { gap: Number.isFinite(gap) ? Math.max(8, Math.min(80, Math.round(gap))) : 30, filas: {
+    continuar: orientacion(filas.continuar), populares: orientacion(filas.populares), recientes: orientacion(filas.recientes), generos: orientacion(filas.generos)
+  } };
+}
 const totalPublicados = async db => (await db.prepare('SELECT COUNT(*) AS n FROM publicados').first()).n;
 let catListo = null;      // promesa: tablas creadas y copia desde KV hecha (una vez por instancia del Worker)
 function prepararCatalogo(db, kv) {
@@ -1281,12 +1289,14 @@ async function manejar({ request, env, params, waitUntil }) {
     try { if (db) { const r = await db.prepare("SELECT valor FROM meta WHERE clave = 'banner_excluidos'").first(); if (r && r.valor) banEx = limpiarBannerExcluidos(JSON.parse(r.valor)); } } catch (e) {}
     let banAj = { h: {}, v: {} };
     try { if (db) { const r = await db.prepare("SELECT valor FROM meta WHERE clave = 'banner_ajustes'").first(); if (r && r.valor) banAj = limpiarBannerAjustes(JSON.parse(r.valor)); } } catch (e) {}
+    let tvHome = limpiarTvHome({});
+    try { if (db) { const r = await db.prepare("SELECT valor FROM meta WHERE clave = 'android_tv_home'").first(); if (r && r.valor) tvHome = limpiarTvHome(JSON.parse(r.valor)); } } catch (e) {}
     let ban = [];
     try { if (db) { const r = await db.prepare("SELECT valor FROM meta WHERE clave = 'banner'").first(); if (r && r.valor) ban = limpiarBanner(JSON.parse(r.valor)); } } catch (e) {}
     let anun = limpiarAnuncios({});
     try { if (db) { const r = await db.prepare("SELECT valor FROM meta WHERE clave = 'anuncios'").first(); if (r && r.valor) anun = limpiarAnuncios(JSON.parse(r.valor)); } } catch (e) {}
     anun = { activo: anun.activo, items: anun.items.filter(x => x.activo), google: anun.google };
-    const js ='window.ANUNCIOS_EXTRA=' + JSON.stringify(anun).replace(/</g, '\\u003c') + ';window.PELICULAS_EXTRA=' + JSON.stringify(items).replace(/</g, '\\u003c') + ';window.COLECCIONES_EXTRA=' + JSON.stringify(cols).replace(/</g, '\\u003c') + ';window.COLECCIONES_ORDEN=' + JSON.stringify(ordenCols) + ';window.SECCIONES_EXTRA=' + JSON.stringify(secs).replace(/</g, '\\u003c') + ';window.ACCESO_EXTRA=' + JSON.stringify(acc).replace(/</g, '\\u003c') + ';window.EFECTOS_EXTRA=' + JSON.stringify(efe).replace(/</g, '\\u003c') + ';window.INTERACCIONES_EXTRA=' + JSON.stringify(inter).replace(/</g, '\\u003c') + ';window.INTRODB_EXTRA=' + JSON.stringify(introdb).replace(/</g, '\\u003c') + ';window.INTRODB_AVISO_EXTRA=' + JSON.stringify(introdbAviso) + ';window.SUGERENCIA_EXTRA=' + JSON.stringify(sug).replace(/</g, '\\u003c') + ';window.MENSAJE_EMERGENTE=' + JSON.stringify(mensajeEmergente).replace(/</g, '\\u003c') + ';window.BANNER_EXTRA=' + JSON.stringify(ban).replace(/</g, '\\u003c') + ';window.BANNER_AJUSTES=' + JSON.stringify(banAj) + ';window.BANNER_EXCLUIDOS=' + JSON.stringify(banEx).replace(/</g, '\\u003c') + ';window.CAM_EXTRA=' + JSON.stringify(camEx).replace(/</g, '\\u003c') + ';';
+    const js ='window.ANUNCIOS_EXTRA=' + JSON.stringify(anun).replace(/</g, '\\u003c') + ';window.PELICULAS_EXTRA=' + JSON.stringify(items).replace(/</g, '\\u003c') + ';window.COLECCIONES_EXTRA=' + JSON.stringify(cols).replace(/</g, '\\u003c') + ';window.COLECCIONES_ORDEN=' + JSON.stringify(ordenCols) + ';window.SECCIONES_EXTRA=' + JSON.stringify(secs).replace(/</g, '\\u003c') + ';window.ACCESO_EXTRA=' + JSON.stringify(acc).replace(/</g, '\\u003c') + ';window.EFECTOS_EXTRA=' + JSON.stringify(efe).replace(/</g, '\\u003c') + ';window.INTERACCIONES_EXTRA=' + JSON.stringify(inter).replace(/</g, '\\u003c') + ';window.INTRODB_EXTRA=' + JSON.stringify(introdb).replace(/</g, '\\u003c') + ';window.INTRODB_AVISO_EXTRA=' + JSON.stringify(introdbAviso) + ';window.SUGERENCIA_EXTRA=' + JSON.stringify(sug).replace(/</g, '\\u003c') + ';window.MENSAJE_EMERGENTE=' + JSON.stringify(mensajeEmergente).replace(/</g, '\\u003c') + ';window.BANNER_EXTRA=' + JSON.stringify(ban).replace(/</g, '\\u003c') + ';window.BANNER_AJUSTES=' + JSON.stringify(banAj) + ';window.TV_HOME_AJUSTES=' + JSON.stringify(tvHome) + ';window.BANNER_EXCLUIDOS=' + JSON.stringify(banEx).replace(/</g, '\\u003c') + ';window.CAM_EXTRA=' + JSON.stringify(camEx).replace(/</g, '\\u003c') + ';';
     return new Response(js, { headers: { 'Content-Type': 'application/javascript; charset=utf-8', 'Cache-Control': 'public, max-age=30' } });
   }
 
@@ -1837,6 +1847,17 @@ async function manejar({ request, env, params, waitUntil }) {
       await db.prepare('CREATE TABLE IF NOT EXISTS meta (clave TEXT PRIMARY KEY, valor TEXT) WITHOUT ROWID').run();
       await db.prepare("INSERT INTO meta (clave, valor) VALUES ('banner_ajustes', ?1) ON CONFLICT(clave) DO UPDATE SET valor = ?1").bind(JSON.stringify(v)).run();
       return json({ ok: true });
+    }
+    if (cuerpo.op === 'tv_home') {
+      let v = limpiarTvHome({});
+      try { const r = await db.prepare("SELECT valor FROM meta WHERE clave = 'android_tv_home'").first(); if (r && r.valor) v = limpiarTvHome(JSON.parse(r.valor)); } catch (e) {}
+      return json({ item: v });
+    }
+    if (cuerpo.op === 'guardar_tv_home') {
+      const v = limpiarTvHome(cuerpo.ajustes);
+      await db.prepare('CREATE TABLE IF NOT EXISTS meta (clave TEXT PRIMARY KEY, valor TEXT) WITHOUT ROWID').run();
+      await db.prepare("INSERT INTO meta (clave, valor) VALUES ('android_tv_home', ?1) ON CONFLICT(clave) DO UPDATE SET valor = ?1").bind(JSON.stringify(v)).run();
+      return json({ ok: true, item: v });
     }
 
     /* Efectos visuales (cristal de la barra inferior y del panel de acceso): valores de los deslizadores */

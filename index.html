@@ -1498,7 +1498,8 @@ html.android-tv #hero .hact{margin-top:20px}
 html.android-tv #hero .hplay{height:54px;padding:0 30px;font-size:17px}
 html.android-tv #hero .hinfo{width:54px;height:54px}
 html.android-tv #hero .dots{bottom:32px;right:50%;transform:translateX(50%)}
-html.android-tv #vista-inicio{display:flex;flex-direction:column}
+html.android-tv #tv-profiles{display:none!important}
+html.android-tv #vista-inicio{display:flex;flex-direction:column;row-gap:var(--tv-row-gap,22px)}
 html.android-tv #herowrap{order:0}
 html.android-tv #cont{order:1}
 html.android-tv #pop{order:2}
@@ -1510,6 +1511,13 @@ html.android-tv #gen{order:7}
 html.android-tv #todas-w{order:8}
 html.android-tv #cont .rt,html.android-tv #pop .rt,html.android-tv #cols-w .cols-t,html.android-tv #recientes-anio-w .cols-t,html.android-tv #gen-w .cols-t,html.android-tv #plat .rt{padding-left:5.2vw;padding-right:5.2vw;margin-top:10px;font-size:22px}
 html.android-tv #cont .track,html.android-tv #pop .track,html.android-tv #recientes-anio-w .track,html.android-tv #plat .track{padding-left:5.2vw;padding-right:5.2vw;gap:22px;scroll-padding-inline:5.2vw;scroll-snap-type:x mandatory}
+html.android-tv #gen{display:flex;flex-direction:column;gap:var(--tv-row-gap,22px)}
+html.android-tv #gen .track{padding-left:5.2vw;padding-right:5.2vw;gap:22px;scroll-padding-inline:5.2vw;scroll-snap-type:x mandatory}
+html.android-tv #cont[data-tv-orientation="horizontal"] .cc-wrap{flex-basis:clamp(260px,27vw,420px);aspect-ratio:16/9}
+html.android-tv #cont[data-tv-orientation="vertical"] .cc-wrap{flex-basis:clamp(190px,18vw,270px);aspect-ratio:2/3}
+html.android-tv #cont[data-tv-orientation="horizontal"] .card.cc{aspect-ratio:16/9}
+html.android-tv #pop[data-tv-orientation="horizontal"] .card,html.android-tv #recientes-anio-w[data-tv-orientation="horizontal"] .card,html.android-tv #gen[data-tv-orientation="horizontal"] .card{flex-basis:clamp(260px,27vw,420px);aspect-ratio:16/9;border-radius:16px;margin-bottom:56px}
+html.android-tv #pop[data-tv-orientation="vertical"] .card,html.android-tv #recientes-anio-w[data-tv-orientation="vertical"] .card,html.android-tv #gen[data-tv-orientation="vertical"] .card{flex-basis:clamp(190px,18vw,270px);aspect-ratio:2/3;border-radius:18px;margin-bottom:56px}
 html.android-tv .card{flex-basis:clamp(190px,18vw,270px);scroll-snap-align:start}
 html.android-tv .card:focus-visible,html.android-tv .ct-card:focus-visible,html.android-tv .plat:focus-visible{outline:3px solid #fff;outline-offset:5px;transform:scale(1.045);z-index:8;box-shadow:0 22px 54px rgba(0,0,0,.78),0 0 0 2px rgba(255,255,255,.28)}
 html.android-tv button:focus-visible,html.android-tv a:focus-visible,input:focus-visible{outline:3px solid #fff;outline-offset:4px}
@@ -2264,7 +2272,7 @@ const grad = t => { let h = 0; for (const c of t) h = (h*31 + c.charCodeAt(0)) %
   return `linear-gradient(155deg,hsl(${h} 55% 38%),hsl(${(h+50)%360} 60% 14%))`; };
 const poster = (p, el) => {
   el.style.setProperty('--g', grad(p.titulo));
-  if (p.poster) { const i = new Image(); i.alt = ''; i.decoding = 'async'; i.onload = () => { if (i.animate && !matchMedia('(prefers-reduced-motion:reduce)').matches) i.animate([{ opacity: 0, transform: 'scale(1.04)' }, { opacity: 1, transform: 'none' }], { duration: 420, easing: 'cubic-bezier(.2,.8,.2,1)' }); }; i.src = p.poster; i.onerror = () => i.remove(); el.prepend(i); }
+  if (p.poster) { const i = new Image(); i.alt = ''; i.decoding = 'async'; i.dataset.tvPoster = p.poster; i.dataset.tvBackdrop = p.fondo || p.backdrop || ''; i.onload = () => { if (i.animate && !matchMedia('(prefers-reduced-motion:reduce)').matches) i.animate([{ opacity: 0, transform: 'scale(1.04)' }, { opacity: 1, transform: 'none' }], { duration: 420, easing: 'cubic-bezier(.2,.8,.5,1)' }); }; i.src = p.poster; i.onerror = () => i.remove(); el.prepend(i); if (window.bbTvAplicarTarjeta) requestAnimationFrame(() => window.bbTvAplicarTarjeta(el)); }
 };
 
 function insigniaSerie() {}                           // ya no se muestra el recuadro de "N temporadas" sobre los pósters (se deja vacía porque otras partes la llaman)
@@ -6403,6 +6411,29 @@ setTimeout(() => { vtOK = true; }, 600);              // las transiciones empiez
 (() => {
   const root = document.documentElement;
   if (!root.classList.contains('android-tv')) return;
+
+  const tvDefault = { gap: 30, filas: { continuar: 'horizontal', populares: 'vertical', recientes: 'vertical', generos: 'vertical' } };
+  const tvNormalizar = x => { const d = tvDefault, f = x && x.filas || {}, n = Number(x && x.gap); return { gap: Number.isFinite(n) ? Math.max(8, Math.min(80, Math.round(n))) : d.gap, filas: Object.fromEntries(Object.keys(d.filas).map(k => [k, f[k] === 'horizontal' ? 'horizontal' : d.filas[k]])) }; };
+  let tvCfg = tvNormalizar(window.TV_HOME_AJUSTES || tvDefault);
+  const tvRows = { continuar: 'cont', populares: 'pop', recientes: 'recientes-anio-w', generos: 'gen' };
+  const aplicarTv = () => {
+    root.style.setProperty('--tv-row-gap', tvCfg.gap + 'px');
+    Object.entries(tvRows).forEach(([k, id]) => { const row = document.getElementById(id); if (row) row.dataset.tvOrientation = tvCfg.filas[k]; });
+    document.querySelectorAll('#cont .card,#pop .card,#recientes-anio-w .card,#gen .card').forEach(window.bbTvAplicarTarjeta);
+  };
+  window.bbTvAplicarTarjeta = el => {
+    if (!el || !el.querySelector) return;
+    const row = el.closest('#cont,#pop,#recientes-anio-w,#gen'), mode = row?.dataset.tvOrientation;
+    if (!mode) return;
+    el.classList.toggle('hz', mode === 'horizontal');
+    const img = el.querySelector('img');
+    if (img) { const src = mode === 'horizontal' ? (img.dataset.tvBackdrop || img.dataset.tvPoster) : (img.dataset.tvPoster || img.dataset.tvBackdrop); if (src && img.src !== new URL(src, location.href).href) img.src = src; }
+  };
+  applyTv();
+  addEventListener('message', e => {
+    if (e.origin !== location.origin || e.source !== parent || !e.data || e.data.t !== 'bb-tv-home') return;
+    tvCfg = tvNormalizar(e.data.cfg); applyTv();
+  });
 
   const clock = document.getElementById('tv-clock');
   const renderClock = () => {
