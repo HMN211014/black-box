@@ -126,7 +126,7 @@ td.k{font-family:ui-monospace,Menlo,Consolas,monospace;white-space:nowrap}
 .ep .er input{margin:0;height:42px;font-size:15px;flex:1;min-width:0}
 .ep .er button{height:42px;width:46px;padding:0;font-size:22px;flex:none}
 .cp{display:grid;place-items:center;aspect-ratio:16/10;max-width:300px;margin:0 auto 16px;border-radius:22px;overflow:hidden;box-shadow:inset 0 0 0 1px rgba(255,255,255,.16),0 14px 34px rgba(0,0,0,.55)}
-.cp span{font-size:28px;line-height:1.05;text-align:center;padding:0 12px;filter:drop-shadow(0 2px 10px rgba(0,0,0,.4))}
+.cp{position:relative}.cp span{font-size:28px;line-height:1.05;text-align:center;padding:0 12px;filter:drop-shadow(0 2px 10px rgba(0,0,0,.4))}
 input[type=color]{padding:4px;cursor:pointer}
 label.ck{display:flex;gap:10px;align-items:center;font-weight:500;margin-bottom:12px}
 label.ck input{width:22px;height:22px;margin:0;padding:0;flex:none}
@@ -636,6 +636,16 @@ body:not(.h) .nav button.on{background:#fff;color:#000}
       <label>Color de ese fondo<input type="color" id="co-pc" value="#ffffff"></label>
     </div>
     <label class="ck"><input type="checkbox" id="co-mayus" checked> Nombre en MAYÚSCULAS</label>
+    <div class="dt" id="co-texto-box">
+      <h4 style="margin:0 0 6px">Tamaño y posición del nombre</h4>
+      <p class="s" style="margin:0 0 8px">Arrastra el nombre dentro de la vista previa de arriba para moverlo, o usa los deslizadores. También aplica al logo si usas uno.</p>
+      <div class="f">
+        <label class="cp-range">Tamaño del texto<input id="co-texto-size" type="range" min="50" max="250" step="1" value="100"><output id="co-texto-size-val">100%</output></label>
+        <label class="cp-range">Posición horizontal<input id="co-texto-x" type="range" min="0" max="100" step="0.5" value="50"><output id="co-texto-x-val">Centrado</output></label>
+        <label class="cp-range">Posición vertical<input id="co-texto-y" type="range" min="0" max="100" step="0.5" value="50"><output id="co-texto-y-val">Centrado</output></label>
+      </div>
+      <div class="row" style="margin-top:8px"><button class="g" id="co-texto-reset" type="button">Restablecer texto</button></div>
+    </div>
     <label>Imagen de fondo del cuadro (opcional)<small class="h">Dirección de una imagen. Sustituye al dibujo.</small><input id="co-fondo" type="url" autocapitalize="off" spellcheck="false" placeholder="https://…"></label>
     <label class="ck"><input type="checkbox" id="co-sin"> La imagen ya trae el nombre escrito (no repetirlo encima)</label>
     <label>Logo (opcional)<small class="h">Imagen del logo en lugar del nombre escrito.</small><input id="co-logo" type="url" autocapitalize="off" spellcheck="false" placeholder="https://…"></label>
@@ -2350,13 +2360,14 @@ const coSubsLeer = () => [...document.querySelectorAll('#co-subs .sb')].map(d =>
 $('co-sub-add').onclick = () => coSubAgregar().focus();
 
 /* Subpanel: null = "como estaba antes" (encuadre solo vertical / título abajo a la izquierda). Se llenan al mover la imagen o el título. */
-let coImgX = null, coTitPos = null;
+let coImgX = null, coTitPos = null, coTxtPos = null;   // coTxtPos: posición del nombre en el cuadro (null = centrado)
 function coLeer() {
   return {
     id: $('co-id').value.trim(), nombre: $('co-nombre').value.trim(), a: $('co-a').value, b: $('co-b').value, tx: $('co-tx').value,
     tema: $('co-tema').value, fondo: $('co-fondo').value.trim(), logo: $('co-logo').value.trim(), sinNombre: $('co-sin').checked,
     fuente: $('co-fuente').value, peso: $('co-peso').value, esp: $('co-esp').value, mayus: $('co-mayus').checked,
     patron: $('co-patron').value, patronColor: $('co-pc').value,
+    textoSize: Number($('co-texto-size').value) || 100, textoX: coTxtPos ? coTxtPos.x : null, textoY: coTxtPos ? coTxtPos.y : null,
     mostrarInicio: $('co-mostrar-inicio').checked, panel: $('co-panel-check').checked, panelFondo: $('co-panel-fondo').value.trim(), panelVertical: $('co-panel-vertical').checked,
     panelTitulo: $('co-panel-titulo').value.trim(), panelTituloSize: Number($('co-panel-titulo-size').value), panelImagenZoom: Number($('co-panel-imagen-zoom').value), panelImagenY: Number($('co-panel-imagen-y').value), panelImagenAltura: Number($('co-panel-imagen-altura').value),
     panelImagenX: coImgX, panelTituloLogo: $('co-panel-titulo-logo').value.trim(), panelTituloLogoSize: Number($('co-panel-titulo-logo-size').value),
@@ -2374,6 +2385,11 @@ function coPrev() {
   p.style.color = c.tx;
   n.textContent = c.nombre || 'Nombre'; n.hidden = !!(c.sinNombre && f);
   n.style.fontFamily = COL_FUENTES[c.fuente]; n.style.fontWeight = c.peso; n.style.letterSpacing = c.esp === 'normal' ? 'normal' : c.esp; n.style.textTransform = c.mayus ? 'uppercase' : 'none';
+  n.style.fontSize = (28 * c.textoSize / 100) + 'px';
+  if (coTxtPos) { n.style.position = 'absolute'; n.style.left = coTxtPos.x + '%'; n.style.top = coTxtPos.y + '%'; n.style.transform = 'translate(-50%,-50%)'; n.style.width = 'max-content'; n.style.maxWidth = '92%'; n.style.cursor = 'grab'; n.style.touchAction = 'none'; }
+  else { ['position', 'left', 'top', 'transform', 'width', 'maxWidth'].forEach(k => { n.style[k] = ''; }); n.style.cursor = 'grab'; n.style.touchAction = 'none'; }
+  $('co-texto-size-val').textContent = c.textoSize + '%';
+  $('co-texto-x-val').textContent = coTxtPos ? coTxtPos.x + '%' : 'Centrado'; $('co-texto-y-val').textContent = coTxtPos ? coTxtPos.y + '%' : 'Centrado';
 }
 function coPoner(c) {                                  // c = null → formulario en blanco
   c = c || {}; const an = c.anuncio || {}, v = (id, x, d) => { $(id).value = x == null || x === '' ? d : x; }, L = (id, a) => { $(id).value = (a || []).join('\n'); };
@@ -2392,6 +2408,10 @@ function coPoner(c) {                                  // c = null → formulari
   coTitPos = c.panelTituloX != null && c.panelTituloY != null && Number.isFinite(Number(c.panelTituloX)) && Number.isFinite(Number(c.panelTituloY))
     ? { x: Math.max(0, Math.min(100, Number(c.panelTituloX))), y: Math.max(0, Math.min(100, Number(c.panelTituloY))) } : null;
   $('co-panel-titulo-x').value = coTitPos ? coTitPos.x : 0; $('co-panel-titulo-y').value = coTitPos ? coTitPos.y : 100;
+  $('co-texto-size').value = Math.max(50, Math.min(250, Number(c.textoSize) || 100));
+  coTxtPos = c.textoX != null && c.textoY != null && Number.isFinite(Number(c.textoX)) && Number.isFinite(Number(c.textoY))
+    ? { x: Math.max(0, Math.min(100, Number(c.textoX))), y: Math.max(0, Math.min(100, Number(c.textoY))) } : null;
+  $('co-texto-x').value = coTxtPos ? coTxtPos.x : 50; $('co-texto-y').value = coTxtPos ? coTxtPos.y : 50;
   $('co-mostrar-inicio').checked = c.mostrarInicio !== false; $('co-panel-vertical').checked = !!c.panelVertical;
   const esp = c.esp || '.08em';                        // si trae un espaciado que no está en la lista (p. ej. .06em), se agrega
   if (![...$('co-esp').options].some(o => o.value === esp)) { const o = document.createElement('option'); o.value = o.textContent = esp; $('co-esp').appendChild(o); }
@@ -2604,6 +2624,19 @@ if (typeof ResizeObserver === 'function') new ResizeObserver(() => { if (!$('co-
   });
   const haFin = ev => { if (ha && ev.pointerId === ha.id) ha = null; };
   hAlto.addEventListener('pointerup', haFin); hAlto.addEventListener('pointercancel', haFin);
+})();
+['co-texto-x', 'co-texto-y'].forEach(id => $(id).addEventListener('input', () => { coTxtPos = { x: Number($('co-texto-x').value), y: Number($('co-texto-y').value) }; }));
+$('co-texto-reset').onclick = () => { coTxtPos = null; $('co-texto-size').value = 100; $('co-texto-x').value = 50; $('co-texto-y').value = 50; coPrev(); };
+(function () {                                          // arrastrar el nombre dentro de la vista previa del cuadro
+  const prev = $('co-prev'), nom = $('co-pn'); let arr = false;
+  const mover = e => {
+    const r = prev.getBoundingClientRect(), cl = (v) => Math.max(0, Math.min(100, Math.round(v * 2) / 2));
+    coTxtPos = { x: cl((e.clientX - r.left) / r.width * 100), y: cl((e.clientY - r.top) / r.height * 100) };
+    $('co-texto-x').value = coTxtPos.x; $('co-texto-y').value = coTxtPos.y; coPrev();
+  };
+  nom.addEventListener('pointerdown', e => { arr = true; try { nom.setPointerCapture(e.pointerId); } catch (x) {} e.preventDefault(); mover(e); });
+  nom.addEventListener('pointermove', e => { if (arr) mover(e); });
+  ['pointerup', 'pointercancel'].forEach(t => nom.addEventListener(t, () => { arr = false; }));
 })();
 document.querySelectorAll('#col-card input, #col-card select, #col-card textarea').forEach(e => e.addEventListener('input', coPrev));
 $('co-series').addEventListener('change', () => coTiles(true));

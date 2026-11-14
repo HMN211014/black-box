@@ -13,6 +13,7 @@
      logo        -> OPCIONAL: imagen del logo, p. ej. "/logos/marvel.png" (sustituye al nombre escrito)
      sinNombre   -> OPCIONAL: pon  sinNombre: true  si la imagen de "fondo" ya trae el nombre escrito; así no se repite encima.
      fuente, peso, esp, mayus -> estilo de las letras del nombre
+     textoSize (50–250, % del tamaño normal), textoX y textoY (0–100, posición del nombre en el cuadro; van juntos) -> tamaño y lugar del nombre
      anuncio     -> el banner de arriba de la página de la colección. Llena lo que quieras:
                     titulo, texto, imagen (foto de fondo) y enlace (a dónde lleva al tocarlo).
                     Si lo dejas todo vacío ("") el banner no aparece.

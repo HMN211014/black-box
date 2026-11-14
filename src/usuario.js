@@ -658,6 +658,11 @@ function limpiarCol(c) {
     patron: PATRONES_COL.includes(c.patron) ? c.patron : '', patronColor: hexCol(c.patronColor, '#ffffff'),
     anuncio: { titulo: String(an.titulo || '').trim().slice(0, 100), texto: String(an.texto || '').trim().slice(0, 300), imagen: aImg, enlace: aEnl, boton: String(an.boton || '').trim().slice(0, 40) }
   };
+  /* Texto del cuadro (opcional): tamaño en % (50–250, 100 = normal) y posición del centro del nombre en % del cuadro (solo se guarda el par X+Y). */
+  const textoSize = numCol(c.textoSize, 50, 250);
+  if (textoSize != null && Math.round(textoSize) !== 100) o.textoSize = Math.round(textoSize);
+  const textoX = numCol(c.textoX, 0, 100), textoY = numCol(c.textoY, 0, 100);
+  if (textoX != null && textoY != null) { o.textoX = textoX; o.textoY = textoY; }
   if (c.panel === true) {
     const panelFondo = urlCol(c.panelFondo), panelLogo = urlCol(c.panelTituloLogo);
     if (panelFondo === null) return { error: 'La imagen de fondo del subpanel debe empezar con http:// o https://' };
