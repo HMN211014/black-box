@@ -6,7 +6,7 @@
 <script>try{const u=new URL(location.href);if(u.hash==='#/catalogo'&&/^[A-Za-z0-9_-]{32,80}$/.test(u.searchParams.get('bb-share')||''))document.documentElement.classList.add('catalogo-exclusivo','sin-intro')}catch(e){}</script>
 <title>Black BOX</title>
 <script>try{if(window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform()){document.documentElement.classList.add('acceso-app','en-app');setTimeout(function(){if(!window.__accesoListo)document.documentElement.classList.remove('acceso-app')},9000)}}catch(e){}</script>
-<script>try{const params=new URLSearchParams(location.search),vistaTv=params.get('bbtvpreview')==='1',vistaWeb=params.get('bbwebpreview')==='1',esTv=!vistaWeb&&(/BlackBoxTV\/1/i.test(navigator.userAgent)||vistaTv),webHorizontal=!esTv&&(vistaWeb||matchMedia('(min-width:1000px) and (orientation:landscape) and (pointer:fine)').matches),raiz=document.documentElement;if(esTv){raiz.classList.add('android-tv','sin-intro');raiz.dataset.androidTvDevice='true';if(vistaTv)raiz.classList.add('tv-preview-mode')}else if(webHorizontal)raiz.classList.add('web-wide-home')}catch(e){}</script>
+<script>try{const params=new URLSearchParams(location.search),vistaTv=params.get('bbtvpreview')==='1',vistaWeb=params.get('bbwebpreview')==='1',esTv=!vistaWeb&&(/BlackBoxTV\/1/i.test(navigator.userAgent)||vistaTv),webHorizontal=!esTv&&(vistaWeb||matchMedia('(min-width:1000px) and (orientation:landscape) and (pointer:fine)').matches),raiz=document.documentElement;if(esTv){raiz.classList.add('android-tv','sin-intro');raiz.dataset.androidTvDevice='true';if(vistaTv)raiz.classList.add('tv-preview-mode','bb-panel-preview')}else if(webHorizontal){raiz.classList.add('web-wide-home');if(vistaWeb)raiz.classList.add('bb-panel-preview')}}catch(e){}</script>
 <style>
 :root{--bg:#000;--fg:#f5f5f7;--muted:#98989d;--glass:rgba(40,40,44,.72);--r:22px}
 *{box-sizing:border-box;margin:0}
@@ -1476,8 +1476,8 @@ html.android-tv body{overflow-x:hidden}
 :is(html.android-tv,html.web-wide-home) #top{padding:24px 38px 0;align-items:center}
 :is(html.android-tv,html.web-wide-home) #top::before{height:120px}
 :is(html.android-tv,html.web-wide-home) #tv-clock{position:fixed;z-index:56;top:37px;left:auto;right:40px;transform:none;color:rgba(255,255,255,.9);font-size:14px;font-variant-numeric:tabular-nums;text-shadow:0 1px 8px #000;pointer-events:none}
-:is(html.android-tv,html.web-wide-home) #tv-preview-note{display:none}
-:is(html.android-tv,html.web-wide-home).tv-preview-mode #tv-preview-note{display:block;position:fixed;z-index:56;right:32px;bottom:26px;padding:9px 14px;border-radius:999px;background:rgba(18,19,22,.82);border:1px solid rgba(255,255,255,.16);color:#d9d9dd;font-size:11px;font-weight:700;letter-spacing:.08em;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+#tv-preview-note{display:none}
+html.bb-panel-preview #tv-preview-note{display:block;position:fixed;z-index:56;right:32px;bottom:26px;padding:9px 14px;border-radius:999px;background:rgba(18,19,22,.82);border:1px solid rgba(255,255,255,.16);color:#d9d9dd;font-size:11px;font-weight:700;letter-spacing:.08em;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
 :is(html.android-tv,html.web-wide-home) .brand{height:48px;padding:0 19px 0 10px;gap:10px;border-radius:999px;background:rgba(25,26,29,.68);border:1px solid rgba(255,255,255,.12);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);font-size:17px}
 :is(html.android-tv,html.web-wide-home) .brand img{width:30px;height:30px;border-radius:50%}
 :is(html.android-tv,html.web-wide-home) #dock{top:var(--tv-top-y,24px);left:var(--tv-top-x,50%);right:auto;bottom:auto;transform:translateX(-50%);width:auto;height:48px;padding:3px 6px;gap:2px;background:rgba(24,25,28,.58);border:1px solid rgba(255,255,255,.12);box-shadow:0 8px 30px rgba(0,0,0,.25)}
@@ -1584,7 +1584,7 @@ html.android-tv body{overflow-x:hidden}
   <a class="brand" id="brand" href="./" aria-label="Black BOX, inicio"><img src="/icon-192.png" alt="" onerror="this.remove()"><b>Black BOX</b></a>
 </header>
 <div id="tv-clock" aria-label="Hora local"></div>
-<div id="tv-preview-note" aria-hidden="true">VISTA PREVIA · ANDROID TV</div>
+<div id="tv-preview-note" aria-hidden="true">VISTA PREVIA</div>
 <nav id="dock" aria-label="Secciones">
   <button type="button" class="dk on" data-v="inicio" aria-label="Películas" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h16v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><path d="M4 9l2-5 3.5.8L7.5 9.5M10 9l2-5 3.5.8-2 4.7M16 9l2-5 3 .7"/></svg><span>Películas</span></button>
   <button type="button" class="dk" data-v="series" aria-label="Series"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="2.5"/><path d="M8 3l4 3.5L16 3"/></svg><span>Series</span></button>
