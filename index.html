@@ -2276,6 +2276,14 @@ async function completar(p) {
 }
 todas().forEach(deCache);          // lo que ya se guardó sale al instante
 const tarjetas = new Map();
+const ordenAzar = new WeakMap();
+function ordenarAlAzar(lista) {
+  return [...lista].sort((a, b) => {
+    if (!ordenAzar.has(a)) ordenAzar.set(a, Math.random());
+    if (!ordenAzar.has(b)) ordenAzar.set(b, Math.random());
+    return ordenAzar.get(a) - ordenAzar.get(b);
+  });
+}
 
 const track = document.getElementById('track'), dlg = document.getElementById('dlg');
 const grad = t => { let h = 0; for (const c of t) h = (h*31 + c.charCodeAt(0)) % 360;
@@ -2363,7 +2371,7 @@ async function cargarTopReproducciones() {
 }
 function ordenar() {
   [peliculas, series].forEach(l => l.sort((a, b) => (esActual(b) - esActual(a)) || (a._i - b._i))); datosVer++;
-  document.getElementById('grid').replaceChildren(...L().map(p => tarjetas.get(p)).filter(Boolean));
+  document.getElementById('grid').replaceChildren(...ordenarAlAzar(L()).map(p => tarjetas.get(p)).filter(Boolean));
   pintarPopulares(); pintarGeneros(); pintarRecientesAnio(); compactarGrid();
 }
 const fechaCatalogo = p => { const v = p.actualizado || p.creado || p.created_at || p.agregado || p.fecha_subida || p.subida || ''; return Number(v) || Date.parse(v) || 0; };
@@ -2387,7 +2395,7 @@ function pintarGeneros() {                           // una fila (carrusel) por 
   [...por.entries()].filter(([, l]) => l.length >= (s ? 2 : 3)).sort((a, b) => b[1].length - a[1].length).slice(0, s ? 6 : 12).forEach(([g, l]) => {
     const sec = E('section', 'row'), tr = E('div', 'track'), pv = E('button', 'nav prev', '‹'), nx = E('button', 'nav next', '›'), h = E('h3', 'rt gt');
     pv.type = nx.type = 'button'; pv.setAttribute('aria-label', 'Anterior'); nx.setAttribute('aria-label', 'Siguiente');
-    l.slice(0, 24).forEach(p => { const b = crearTarjeta(p); tr.appendChild(b); if (!tarjetasG.has(p)) tarjetasG.set(p, []); tarjetasG.get(p).push(b); });
+    ordenarAlAzar(l).slice(0, 24).forEach(p => { const b = crearTarjeta(p); tr.appendChild(b); if (!tarjetasG.has(p)) tarjetasG.set(p, []); tarjetasG.get(p).push(b); });
     pv.onclick = () => tr.scrollBy({ left: -tr.clientWidth * .8, behavior: 'smooth' }); nx.onclick = () => tr.scrollBy({ left: tr.clientWidth * .8, behavior: 'smooth' });
     h.append(E('span', '', g));
     if (!s) { const a = E('a', '', 'Ver todo ›'); a.href = '#/c/g-' + slugGen(g); a.setAttribute('aria-label', 'Ver todas las de ' + g); h.append(a); }      // abre la página del género
