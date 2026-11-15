@@ -591,6 +591,9 @@ body:not(.h) .nav button.on{background:#fff;color:#000}
       .bx-t.ex img{filter:grayscale(1) brightness(.45)}
       .bx-t.ex::after{content:"Excluida";position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);text-align:center;font-weight:700;font-size:13px;color:#ff6961}
     </style>
+    <div class="row" style="margin-top:12px;align-items:center"><button class="g" id="bx-anio" type="button" aria-pressed="false">Usar todos los del año en curso: desactivado</button></div>
+    <p class="s" id="bx-anio-info" style="margin:6px 0 0">Desactivado: el banner al azar muestra hasta 9 (primero del año actual, luego del anterior y después el resto).</p>
+    <p class="m" id="bx-anio-m" role="status" aria-live="polite" hidden></p>
     <p class="m" id="bx-aviso" hidden></p>
     <div class="bp-seg" id="bx-tipo"><button class="g on" type="button" data-t="peliculas">Películas</button><button class="g" type="button" data-t="series">Series</button></div>
     <label>Buscar<input id="bx-q" type="search" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Nombre del título"></label>
@@ -1294,7 +1297,19 @@ async function bxCargarPosters() {
 async function bxCargarExcluidos() {
   const j = await admin({ op: 'banner_excluidos' });
   bxEx = (j.items || []).map(x => ({ ...x })); bxGuardado = JSON.stringify(bxLimpio()); bxCargado = true; bxPintar();
+  bxAnioPintar(j.azarAnio === true);
 }
+let bxAnio = false;
+function bxAnioPintar(on) {
+  bxAnio = !!on; const b = $('bx-anio'); b.setAttribute('aria-pressed', String(bxAnio)); b.classList.toggle('on', bxAnio);
+  b.textContent = 'Usar todos los del año en curso: ' + (bxAnio ? 'activado' : 'desactivado');
+  $('bx-anio-info').textContent = bxAnio ? 'Activado: cuando la lista de arriba está vacía, el banner al azar usa todos los títulos de ' + new Date().getFullYear() + ' (menos los excluidos). Si no hay ninguno de este año, vuelve al comportamiento normal.' : 'Desactivado: el banner al azar muestra hasta 9 (primero del año actual, luego del anterior y después el resto).';
+}
+$('bx-anio').onclick = () => con($('bx-anio'), 'bx-anio-m', async () => {
+  const j = await admin({ op: 'guardar_banner_azar', azarAnio: !bxAnio });
+  bxAnioPintar(j.azarAnio === true);
+  msg('bx-anio-m', 'Guardado. En la app se actualiza en menos de un minuto.', true);
+});
 window.bxCargarExcluidos = bxCargarExcluidos; window.bxEsSucio = bxSucio;
 $('bx-cargar').onclick = () => con($('bx-cargar'), 'bx-m', async () => { await bxCargarPosters(); if (!bxCargado || !bxSucio()) await bxCargarExcluidos(); });
 $('bx-save').onclick = async () => { await con($('bx-save'), 'bx-m', async () => {

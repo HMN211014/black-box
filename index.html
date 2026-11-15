@@ -39,6 +39,9 @@ header p{color:var(--muted);font-size:17px}
 .dots button{position:relative;width:8px;height:8px;border-radius:8px;border:0;padding:0;background:rgba(255,255,255,.4);cursor:pointer;transition:width .25s,background .25s}
 .dots button::after{content:"";position:absolute;inset:-10px}
 .dots button.on{width:26px;background:#fff}
+/* muchos títulos (banner al azar con todo el año): puntos más chicos y en varias filas para que no se salgan de la pantalla */
+.dots.mu{gap:6px;flex-wrap:wrap;max-width:min(560px,calc(100vw - 48px));justify-content:flex-end}
+.dots.mu button{width:6px;height:6px}.dots.mu button.on{width:16px}
 .rt{padding:0 5vw;margin-top:40px;font-size:22px;letter-spacing:-.02em}
 .end{margin-top:56px;padding:110px 5vw calc(56px + env(safe-area-inset-bottom,0px));text-align:center;background:radial-gradient(90% 100% at 50% 130%,#1f80e0 0,#113CCF 35%,rgba(17,60,207,0) 72%),radial-gradient(45% 70% at 12% 110%,rgba(28,207,211,.55),transparent 70%),radial-gradient(45% 70% at 90% 110%,rgba(120,80,255,.4),transparent 70%)}
 .end b{display:block;font-size:clamp(28px,5vw,44px);letter-spacing:-.03em;margin-bottom:6px}
@@ -2778,6 +2781,10 @@ function elegirBanner() {
   if (delPanel.length) return delPanel;             // lista elegida en el panel; si no hay ninguna para esta sección, sigue el azar de abajo
   const out = [], base = () => L().filter(p => !bannerExcluido(p));
   const llenar = lista => azar(lista).forEach(p => { if (out.length < BANNER_N && !out.includes(p)) out.push(p); });
+  if (window.BANNER_AZAR_ANIO === true) {            // interruptor del panel: entran TODOS los títulos del año en curso (sin el tope de 9)
+    const delAnio = azar(base().filter(p => +p.anio === ANIO_ACTUAL));
+    if (delAnio.length) return delAnio;
+  }
   llenar(base().filter(p => +p.anio === ANIO_ACTUAL));
   llenar(base().filter(p => +p.anio === ANIO_ACTUAL - 1));
   llenar(base());
@@ -2785,7 +2792,7 @@ function elegirBanner() {
 }
 function armarBanner() {
   orden = elegirBanner(); idx = 0;
-  H('dots').innerHTML = '';
+  H('dots').innerHTML = ''; H('dots').classList.toggle('mu', orden.length > 12);
   orden.forEach((p, i) => {
     const d = document.createElement('button');
     d.setAttribute('aria-label', p.titulo);

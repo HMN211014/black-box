@@ -569,6 +569,9 @@ async function aplicarCam(db, cambios) {
   await db.prepare("INSERT INTO meta (clave, valor) VALUES ('cam_marcas', ?1) ON CONFLICT(clave) DO UPDATE SET valor = ?1").bind(JSON.stringify(v)).run();
   return v;
 }
+async function leerAzarAnio(db) {
+  try { const r = await db.prepare("SELECT valor FROM meta WHERE clave = 'banner_azar_anio'").first(); return !!(r && r.valor === '1'); } catch (e) { return false; }
+}
 /* Títulos que el administrador no quiere que salgan cuando el banner se elige al azar: [{ tmdb, tipo, titulo }] */
 const BAN_EXC_MAX = 600;
 function limpiarBannerExcluidos(lista) {
@@ -1295,6 +1298,8 @@ async function manejar({ request, env, params, waitUntil }) {
     try { if (db) camEx = await leerCam(db); } catch (e) {}
     let banEx = [];
     try { if (db) { const r = await db.prepare("SELECT valor FROM meta WHERE clave = 'banner_excluidos'").first(); if (r && r.valor) banEx = limpiarBannerExcluidos(JSON.parse(r.valor)); } } catch (e) {}
+    let banAnio = false;
+    try { if (db) banAnio = await leerAzarAnio(db); } catch (e) {}
     let banAj = { h: {}, v: {} };
     try { if (db) { const r = await db.prepare("SELECT valor FROM meta WHERE clave = 'banner_ajustes'").first(); if (r && r.valor) banAj = limpiarBannerAjustes(JSON.parse(r.valor)); } } catch (e) {}
     let tvHome = limpiarTvHome({});
@@ -1304,7 +1309,7 @@ async function manejar({ request, env, params, waitUntil }) {
     let anun = limpiarAnuncios({});
     try { if (db) { const r = await db.prepare("SELECT valor FROM meta WHERE clave = 'anuncios'").first(); if (r && r.valor) anun = limpiarAnuncios(JSON.parse(r.valor)); } } catch (e) {}
     anun = { activo: anun.activo, items: anun.items.filter(x => x.activo), google: anun.google };
-    const js ='window.ANUNCIOS_EXTRA=' + JSON.stringify(anun).replace(/</g, '\\u003c') + ';window.PELICULAS_EXTRA=' + JSON.stringify(items).replace(/</g, '\\u003c') + ';window.COLECCIONES_EXTRA=' + JSON.stringify(cols).replace(/</g, '\\u003c') + ';window.COLECCIONES_ORDEN=' + JSON.stringify(ordenCols) + ';window.SECCIONES_EXTRA=' + JSON.stringify(secs).replace(/</g, '\\u003c') + ';window.ACCESO_EXTRA=' + JSON.stringify(acc).replace(/</g, '\\u003c') + ';window.EFECTOS_EXTRA=' + JSON.stringify(efe).replace(/</g, '\\u003c') + ';window.INTERACCIONES_EXTRA=' + JSON.stringify(inter).replace(/</g, '\\u003c') + ';window.INTRODB_EXTRA=' + JSON.stringify(introdb).replace(/</g, '\\u003c') + ';window.INTRODB_AVISO_EXTRA=' + JSON.stringify(introdbAviso) + ';window.SUGERENCIA_EXTRA=' + JSON.stringify(sug).replace(/</g, '\\u003c') + ';window.MENSAJE_EMERGENTE=' + JSON.stringify(mensajeEmergente).replace(/</g, '\\u003c') + ';window.BANNER_EXTRA=' + JSON.stringify(ban).replace(/</g, '\\u003c') + ';window.BANNER_AJUSTES=' + JSON.stringify(banAj) + ';window.TV_HOME_AJUSTES=' + JSON.stringify(tvHome) + ';window.BANNER_EXCLUIDOS=' + JSON.stringify(banEx).replace(/</g, '\\u003c') + ';window.CAM_EXTRA=' + JSON.stringify(camEx).replace(/</g, '\\u003c') + ';';
+    const js ='window.ANUNCIOS_EXTRA=' + JSON.stringify(anun).replace(/</g, '\\u003c') + ';window.PELICULAS_EXTRA=' + JSON.stringify(items).replace(/</g, '\\u003c') + ';window.COLECCIONES_EXTRA=' + JSON.stringify(cols).replace(/</g, '\\u003c') + ';window.COLECCIONES_ORDEN=' + JSON.stringify(ordenCols) + ';window.SECCIONES_EXTRA=' + JSON.stringify(secs).replace(/</g, '\\u003c') + ';window.ACCESO_EXTRA=' + JSON.stringify(acc).replace(/</g, '\\u003c') + ';window.EFECTOS_EXTRA=' + JSON.stringify(efe).replace(/</g, '\\u003c') + ';window.INTERACCIONES_EXTRA=' + JSON.stringify(inter).replace(/</g, '\\u003c') + ';window.INTRODB_EXTRA=' + JSON.stringify(introdb).replace(/</g, '\\u003c') + ';window.INTRODB_AVISO_EXTRA=' + JSON.stringify(introdbAviso) + ';window.SUGERENCIA_EXTRA=' + JSON.stringify(sug).replace(/</g, '\\u003c') + ';window.MENSAJE_EMERGENTE=' + JSON.stringify(mensajeEmergente).replace(/</g, '\\u003c') + ';window.BANNER_EXTRA=' + JSON.stringify(ban).replace(/</g, '\\u003c') + ';window.BANNER_AJUSTES=' + JSON.stringify(banAj) + ';window.TV_HOME_AJUSTES=' + JSON.stringify(tvHome) + ';window.BANNER_EXCLUIDOS=' + JSON.stringify(banEx).replace(/</g, '\\u003c') + ';window.BANNER_AZAR_ANIO=' + (banAnio ? 'true' : 'false') + ';window.CAM_EXTRA=' + JSON.stringify(camEx).replace(/</g, '\\u003c') + ';';
     return new Response(js, { headers: { 'Content-Type': 'application/javascript; charset=utf-8', 'Cache-Control': 'no-store' } });
   }
 
@@ -1836,7 +1841,14 @@ async function manejar({ request, env, params, waitUntil }) {
     if (cuerpo.op === 'banner_excluidos') {
       let v = [];
       try { const r = await db.prepare("SELECT valor FROM meta WHERE clave = 'banner_excluidos'").first(); if (r && r.valor) v = limpiarBannerExcluidos(JSON.parse(r.valor)); } catch (e) {}
-      return json({ items: v });
+      return json({ items: v, azarAnio: await leerAzarAnio(db) });
+    }
+    /* Banner al azar con TODOS los títulos del año en curso (en vez de solo 9): interruptor del panel */
+    if (cuerpo.op === 'guardar_banner_azar') {
+      const on = cuerpo.azarAnio === true;
+      await db.prepare('CREATE TABLE IF NOT EXISTS meta (clave TEXT PRIMARY KEY, valor TEXT) WITHOUT ROWID').run();
+      await db.prepare("INSERT INTO meta (clave, valor) VALUES ('banner_azar_anio', ?1) ON CONFLICT(clave) DO UPDATE SET valor = ?1").bind(on ? '1' : '0').run();
+      return json({ ok: true, azarAnio: on });
     }
     if (cuerpo.op === 'guardar_banner_excluidos') {
       const v = limpiarBannerExcluidos(cuerpo.items);
