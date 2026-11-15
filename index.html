@@ -1513,11 +1513,15 @@ html.android-tv #cont .rt,html.android-tv #pop .rt,html.android-tv #cols-w .cols
 html.android-tv #cont .track,html.android-tv #pop .track,html.android-tv #recientes-anio-w .track,html.android-tv #plat .track{padding-left:5.2vw;padding-right:5.2vw;gap:22px;scroll-padding-inline:5.2vw;scroll-snap-type:x mandatory}
 html.android-tv #gen{display:flex;flex-direction:column;gap:var(--tv-row-gap,22px)}
 html.android-tv #gen .track{padding-left:5.2vw;padding-right:5.2vw;gap:22px;scroll-padding-inline:5.2vw;scroll-snap-type:x mandatory}
-html.android-tv #cont[data-tv-orientation="horizontal"] .cc-wrap{flex-basis:clamp(260px,27vw,420px);aspect-ratio:16/9}
-html.android-tv #cont[data-tv-orientation="vertical"] .cc-wrap{flex-basis:clamp(190px,18vw,270px);aspect-ratio:2/3}
+html.android-tv #cont[data-tv-orientation="horizontal"] .cc-wrap{flex-basis:var(--tv-card-horizontal,clamp(260px,27vw,420px));aspect-ratio:16/9}
+html.android-tv #cont[data-tv-orientation="vertical"] .cc-wrap{flex-basis:var(--tv-card-vertical,clamp(190px,18vw,270px));aspect-ratio:2/3}
 html.android-tv #cont[data-tv-orientation="horizontal"] .card.cc{aspect-ratio:16/9}
-html.android-tv #pop[data-tv-orientation="horizontal"] .card,html.android-tv #recientes-anio-w[data-tv-orientation="horizontal"] .card,html.android-tv #gen[data-tv-orientation="horizontal"] .card{flex-basis:clamp(260px,27vw,420px);aspect-ratio:16/9;border-radius:16px;margin-bottom:56px}
-html.android-tv #pop[data-tv-orientation="vertical"] .card,html.android-tv #recientes-anio-w[data-tv-orientation="vertical"] .card,html.android-tv #gen[data-tv-orientation="vertical"] .card{flex-basis:clamp(190px,18vw,270px);aspect-ratio:2/3;border-radius:18px;margin-bottom:56px}
+html.android-tv #pop[data-tv-orientation="horizontal"] .card,html.android-tv #recientes-anio-w[data-tv-orientation="horizontal"] .card,html.android-tv #gen[data-tv-orientation="horizontal"] .card{flex-basis:var(--tv-card-horizontal,clamp(260px,27vw,420px));aspect-ratio:16/9;border-radius:16px;margin-bottom:56px}
+html.android-tv #pop[data-tv-orientation="vertical"] .card,html.android-tv #recientes-anio-w[data-tv-orientation="vertical"] .card,html.android-tv #gen[data-tv-orientation="vertical"] .card{flex-basis:var(--tv-card-vertical,clamp(190px,18vw,270px));aspect-ratio:2/3;border-radius:18px;margin-bottom:56px}
+html.android-tv .secw[data-u="inicio"] .card{flex-basis:var(--tv-card-vertical-theme,clamp(190px,18vw,270px))}
+html.android-tv .secw[data-u="inicio"] .card.hz{flex-basis:var(--tv-card-horizontal-theme,clamp(260px,27vw,420px))}
+html.android-tv #cont[data-tv-floating="true"],html.android-tv #pop[data-tv-floating="true"],html.android-tv #recientes-anio-w[data-tv-floating="true"],html.android-tv #gen[data-tv-floating="true"]{position:relative;z-index:14;transform:translateY(calc(0px - var(--tv-float-overlap,80px)));margin-bottom:calc(0px - var(--tv-float-overlap,80px))}
+html.android-tv #cont[data-tv-floating="true"] .card,html.android-tv #pop[data-tv-floating="true"] .card,html.android-tv #recientes-anio-w[data-tv-floating="true"] .card,html.android-tv #gen[data-tv-floating="true"] .card{box-shadow:0 12px 24px rgba(0,0,0,.55),0 26px 54px rgba(0,0,0,.42)}
 html.android-tv .card{flex-basis:clamp(190px,18vw,270px);scroll-snap-align:start}
 html.android-tv .card:focus-visible,html.android-tv .ct-card:focus-visible,html.android-tv .plat:focus-visible{outline:3px solid #fff;outline-offset:5px;transform:scale(1.045);z-index:8;box-shadow:0 22px 54px rgba(0,0,0,.78),0 0 0 2px rgba(255,255,255,.28)}
 html.android-tv button:focus-visible,html.android-tv a:focus-visible,input:focus-visible{outline:3px solid #fff;outline-offset:4px}
@@ -6413,8 +6417,8 @@ setTimeout(() => { vtOK = true; }, 600);              // las transiciones empiez
   if (!root.classList.contains('android-tv')) return;
 
   const tvOrderDefault = ['hero', 'continuar', 'popular', 'collections', 'recent', 'genreTiles', 'platforms', 'genres', 'thematic', 'all'];
-  const tvDefault = { gap: 30, banner: 650, topX: 50, topY: 24, orden: tvOrderDefault, filas: { continuar: 'horizontal', populares: 'vertical', recientes: 'vertical', generos: 'vertical' } };
-  const tvNormalizar = x => { const d = tvDefault, f = x && x.filas || {}, n = Number(x && x.gap), b = Number(x && x.banner), tx = Number(x && x.topX), ty = Number(x && x.topY), valid = k => tvOrderDefault.includes(k) || /^theme:[a-z0-9][a-z0-9-]{0,39}$/.test(k), orden = Array.isArray(x && x.orden) ? x.orden.filter((k, i, a) => valid(k) && a.indexOf(k) === i).slice(0, 70) : []; tvOrderDefault.forEach(k => { if (!orden.includes(k)) orden.push(k); }); return { gap: Number.isFinite(n) ? Math.max(8, Math.min(80, Math.round(n))) : d.gap, banner: Number.isFinite(b) ? Math.max(560, Math.min(900, Math.round(b / 10) * 10)) : d.banner, topX: Number.isFinite(tx) ? Math.max(30, Math.min(70, Math.round(tx))) : d.topX, topY: Number.isFinite(ty) ? Math.max(0, Math.min(120, Math.round(ty))) : d.topY, orden, filas: Object.fromEntries(Object.keys(d.filas).map(k => [k, f[k] === 'horizontal' ? 'horizontal' : d.filas[k]])) }; };
+  const tvDefault = { gap: 30, banner: 650, topX: 50, topY: 24, flotante: { enabled: true, overlap: 80 }, tamanos: { continuar: 100, populares: 100, recientes: 100, generos: 100, tematicas: 100 }, orden: tvOrderDefault, filas: { continuar: 'horizontal', populares: 'vertical', recientes: 'vertical', generos: 'vertical' } };
+  const tvNormalizar = x => { const d = tvDefault, f = x && x.filas || {}, fl = x && x.flotante || {}, sz = x && x.tamanos || {}, n = Number(x && x.gap), b = Number(x && x.banner), tx = Number(x && x.topX), ty = Number(x && x.topY), valid = k => tvOrderDefault.includes(k) || /^theme:[a-z0-9][a-z0-9-]{0,39}$/.test(k), orden = Array.isArray(x && x.orden) ? x.orden.filter((k, i, a) => valid(k) && a.indexOf(k) === i).slice(0, 70) : []; tvOrderDefault.forEach(k => { if (!orden.includes(k)) orden.push(k); }); return { gap: Number.isFinite(n) ? Math.max(8, Math.min(80, Math.round(n))) : d.gap, banner: Number.isFinite(b) ? Math.max(560, Math.min(900, Math.round(b / 10) * 10)) : d.banner, topX: Number.isFinite(tx) ? Math.max(30, Math.min(70, Math.round(tx))) : d.topX, topY: Number.isFinite(ty) ? Math.max(0, Math.min(120, Math.round(ty))) : d.topY, flotante: { enabled: fl.enabled !== false, overlap: Number.isFinite(Number(fl.overlap)) ? Math.max(0, Math.min(180, Math.round(Number(fl.overlap) / 5) * 5)) : d.flotante.overlap }, tamanos: Object.fromEntries(Object.keys(d.tamanos).map(k => [k, Number.isFinite(Number(sz[k])) ? Math.max(75, Math.min(150, Math.round(Number(sz[k]) / 5) * 5)) : 100])), orden, filas: Object.fromEntries(Object.keys(d.filas).map(k => [k, f[k] === 'horizontal' ? 'horizontal' : d.filas[k]])) }; };
   let tvCfg = tvNormalizar(window.TV_HOME_AJUSTES || tvDefault);
   const tvRows = { continuar: 'cont', populares: 'pop', recientes: 'recientes-anio-w', generos: 'gen' };
   const aplicarTv = () => {
@@ -6422,12 +6426,26 @@ setTimeout(() => { vtOK = true; }, 600);              // las transiciones empiez
     root.style.setProperty('--tv-hero-height', tvCfg.banner + 'px');
     root.style.setProperty('--tv-top-x', tvCfg.topX + '%');
     root.style.setProperty('--tv-top-y', tvCfg.topY + 'px');
+    root.style.setProperty('--tv-float-overlap', tvCfg.flotante.overlap + 'px');
+    const sizeBounds = { vertical: [190, 18, 270], horizontal: [260, 27, 420] };
+    const sizeValue = (key, orientation) => { const [min, vw, max] = sizeBounds[orientation], scale = tvCfg.tamanos[key] / 100; return `clamp(${Math.round(min * scale)}px,${(vw * scale).toFixed(2)}vw,${Math.round(max * scale)}px)`; };
+    const sizeRows = { continuar: 'cont', populares: 'pop', recientes: 'recientes-anio-w', generos: 'gen' };
+    Object.entries(sizeRows).forEach(([key, id]) => { const row = document.getElementById(id); if (row) { row.style.setProperty('--tv-card-vertical', sizeValue(key, 'vertical')); row.style.setProperty('--tv-card-horizontal', sizeValue(key, 'horizontal')); } });
+    root.style.setProperty('--tv-card-vertical-theme', sizeValue('tematicas', 'vertical'));
+    root.style.setProperty('--tv-card-horizontal-theme', sizeValue('tematicas', 'horizontal'));
     const itemIds = { hero: 'herowrap', continuar: 'cont', popular: 'pop', collections: 'cols-w', recent: 'recientes-anio-w', genreTiles: 'gen-w', platforms: 'plat', genres: 'gen', all: 'todas-w' };
     tvCfg.orden.forEach((key, index) => { const item = document.getElementById(itemIds[key]); if (item) item.style.order = String(index); });
     const thematicGroup = tvCfg.orden.indexOf('thematic');
     document.querySelectorAll('.secw[data-u="inicio"]').forEach(item => { const position = tvCfg.orden.indexOf('theme:' + item.dataset.sec); item.style.order = String(position >= 0 ? position : thematicGroup >= 0 ? thematicGroup : tvCfg.orden.length); });
     Object.entries(tvRows).forEach(([k, id]) => { const row = document.getElementById(id); if (row) row.dataset.tvOrientation = tvCfg.filas[k]; });
     document.querySelectorAll('#cont .card,#pop .card,#recientes-anio-w .card,#gen .card').forEach(window.bbTvAplicarTarjeta);
+    document.querySelectorAll('[data-tv-floating="true"]').forEach(row => { delete row.dataset.tvFloating; });
+    if (tvCfg.flotante.enabled && tvCfg.flotante.overlap > 0) {
+      const heroOrder = Number(document.getElementById('herowrap')?.style.order || 0);
+      const posterRows = ['cont', 'pop', 'recientes-anio-w', 'gen'].map(id => document.getElementById(id)).filter(row => row && !row.hidden && (row.id !== 'gen' || row.querySelector('.card')) && getComputedStyle(row).display !== 'none' && Number(row.style.order || 0) > heroOrder);
+      posterRows.sort((a, b) => Number(a.style.order || 0) - Number(b.style.order || 0));
+      if (posterRows[0]) posterRows[0].dataset.tvFloating = 'true';
+    }
   };
   window.bbTvAplicarTarjeta = el => {
     if (!el || !el.querySelector) return;
@@ -6446,7 +6464,9 @@ setTimeout(() => { vtOK = true; }, 600);              // las transiciones empiez
   if (home && 'MutationObserver' in window) new MutationObserver(() => {
     const thematicGroup = tvCfg.orden.indexOf('thematic');
     document.querySelectorAll('.secw[data-u="inicio"]').forEach(item => { const position = tvCfg.orden.indexOf('theme:' + item.dataset.sec), value = String(position >= 0 ? position : thematicGroup >= 0 ? thematicGroup : tvCfg.orden.length); if (item.style.order !== value) item.style.order = value; });
+    aplicarTv();
   }).observe(home, { childList: true });
+  if (home && 'MutationObserver' in window) new MutationObserver(aplicarTv).observe(home, { attributes: true, attributeFilter: ['hidden'] });
 
   const clock = document.getElementById('tv-clock');
   const renderClock = () => {
