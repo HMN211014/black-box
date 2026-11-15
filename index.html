@@ -1490,7 +1490,9 @@ html.bb-panel-preview #tv-preview-note{display:block;position:fixed;z-index:56;r
 :is(html.android-tv,html.web-wide-home) #hero{height:var(--tv-hero-height,72vh);min-height:560px;max-height:900px;margin:0;border-radius:0;overflow:hidden}
 :is(html.android-tv,html.web-wide-home) #hero::before{background-position:var(--tv-hero-image-x,50%) var(--tv-hero-image-y,28%);-webkit-mask-image:none;mask-image:none}
 :is(html.android-tv,html.web-wide-home) #hero video{object-position:var(--tv-hero-image-x,50%) var(--tv-hero-image-y,28%);-webkit-mask-image:none;mask-image:none}
-:is(html.android-tv,html.web-wide-home) #hero::after{background:linear-gradient(180deg,rgba(0,0,0,.5),transparent 23%),linear-gradient(0deg,color-mix(in srgb,color-mix(in srgb,var(--glow,#1f4fff) 22%,#08090c) var(--tv-hero-fade-opacity,72%),transparent) 0%,color-mix(in srgb,color-mix(in srgb,var(--glow,#1f4fff) 22%,#08090c) var(--tv-hero-fade-opacity,72%),transparent) var(--tv-hero-fade-start,0%),color-mix(in srgb,color-mix(in srgb,var(--glow,#1f4fff) 22%,#08090c) var(--tv-hero-fade-mid-opacity,16%),transparent) var(--tv-hero-fade-midpoint,16.8%),transparent var(--tv-hero-fade-end,28%)),linear-gradient(90deg,rgba(0,0,0,.72),rgba(0,0,0,.28) 38%,transparent 68%,rgba(0,0,0,.22))}
+:is(html.android-tv,html.web-wide-home) #hero::after{z-index:0;background:linear-gradient(180deg,rgba(0,0,0,.5),transparent 23%),linear-gradient(90deg,rgba(0,0,0,.72),rgba(0,0,0,.28) 38%,transparent 68%,rgba(0,0,0,.22))}
+:is(html.android-tv,html.web-wide-home) #hero .hero-bottom-atmosphere{position:absolute;left:0;right:0;bottom:0;height:var(--tv-hero-bottom-height,28%);z-index:1;pointer-events:none;backdrop-filter:blur(var(--tv-hero-bottom-blur,28px));-webkit-backdrop-filter:blur(var(--tv-hero-bottom-blur,28px));background:linear-gradient(180deg,transparent 0%,transparent var(--tv-hero-bottom-start,0%),color-mix(in srgb,var(--glow,#1f4fff) var(--tv-hero-bottom-tint-opacity,65%),transparent) var(--tv-hero-bottom-color-stop,24%),color-mix(in srgb,var(--glow,#1f4fff) var(--tv-hero-bottom-tint-opacity,65%),var(--tv-hero-dark,#08090c)) var(--tv-hero-bottom-midpoint,68%),var(--tv-hero-dark,#08090c) 100%)}
+:is(html.android-tv,html.web-wide-home).tv-hero-bottom-fade-off #hero .hero-bottom-atmosphere{display:none}
 :is(html.android-tv,html.web-wide-home) #hero .hcopy{left:5.2vw;right:36vw;bottom:clamp(74px,9vh,112px);max-width:760px}
 :is(html.android-tv,html.web-wide-home).tv-banner-initial-fullscreen #herowrap{height:100vh!important;min-height:100vh;margin-bottom:-18vh!important;position:relative;z-index:1}
 :is(html.android-tv,html.web-wide-home).tv-banner-initial-fullscreen #hero{height:100vh!important;min-height:100vh;max-height:none;transition:height .4s ease}
@@ -1612,6 +1614,7 @@ html.bb-panel-preview #tv-preview-note{display:block;position:fixed;z-index:56;r
   <video id="hv" muted playsinline loop hidden></video>
   <i class="hblur" aria-hidden="true"></i>
   <i class="hblurb" aria-hidden="true"></i>
+  <i class="hero-bottom-atmosphere" aria-hidden="true"></i>
   <div class="hcopy">
     <img class="hlogo" id="hlogo" alt="" hidden>
     <h2 id="ht"></h2>
@@ -2752,6 +2755,35 @@ function conTransicion(fn, o = {}) {
   t.finished.then(limpiar, limpiar);
 }
 const BANNER_N = 9;
+function bbTvFadeNormalizar(cfg, raw) {
+  const profiles = raw && raw.bannerPorPlataforma || {};
+  ['tv', 'web'].forEach(key => {
+    const v = profiles[key] && profiles[key].fundidoInferior || raw && raw.fundidoInferior || {};
+    const oldDefault = (Number(v.intensidad) === 72 && Number(v.inicio) === 13 && Number(v.altura) === 65) || (Number(v.intensidad) === 72 && Number(v.inicio) === 0 && Number(v.altura) === 28 && v.desenfoque == null);
+    const num = (x, fallback, min, max) => Number.isFinite(Number(x)) ? Math.max(min, Math.min(max, Math.round(Number(x)))) : fallback;
+    cfg.bannerPorPlataforma[key].fundidoInferior = {
+      enabled: v.enabled !== false,
+      intensidad: oldDefault ? 65 : num(v.intensidad, 65, 0, 100),
+      inicio: oldDefault ? 0 : num(v.inicio, 0, 0, 70),
+      altura: oldDefault ? 28 : num(v.altura, 28, 10, 80),
+      desenfoque: num(v.desenfoque, 28, 0, 48),
+      colorOscuro: /^#[0-9a-f]{6}$/i.test(v.colorOscuro || '') ? v.colorOscuro : '#08090c'
+    };
+  });
+  return cfg;
+}
+function bbTvFadeAplicar(root, cfg) {
+  const profile = root.classList.contains('web-wide-home') ? cfg.bannerPorPlataforma.web : cfg.bannerPorPlataforma.tv;
+  const fade = profile.fundidoInferior, colorStop = fade.inicio + (100 - fade.inicio) * .24, midpoint = fade.inicio + (100 - fade.inicio) * .68;
+  root.classList.toggle('tv-hero-bottom-fade-off', !fade.enabled);
+  root.style.setProperty('--tv-hero-bottom-tint-opacity', fade.intensidad + '%');
+  root.style.setProperty('--tv-hero-bottom-height', fade.altura + '%');
+  root.style.setProperty('--tv-hero-bottom-start', fade.inicio + '%');
+  root.style.setProperty('--tv-hero-bottom-color-stop', colorStop.toFixed(1) + '%');
+  root.style.setProperty('--tv-hero-bottom-midpoint', midpoint.toFixed(1) + '%');
+  root.style.setProperty('--tv-hero-bottom-blur', fade.desenfoque + 'px');
+  root.style.setProperty('--tv-hero-dark', fade.colorOscuro);
+}
 let orden = [], idx = 0, timer, bannerHasSlid = false;
 const azar = a => { a = [...a]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 function bannerDelPanel() {                         // títulos que el administrador eligió para el banner, en su orden (solo los de la sección que se ve)
@@ -6518,10 +6550,10 @@ setTimeout(() => { vtOK = true; }, 600);              // las transiciones empiez
     const img = el.querySelector('img');
     if (img) { const src = mode === 'horizontal' ? (img.dataset.tvBackdrop || img.dataset.tvPoster) : (img.dataset.tvPoster || img.dataset.tvBackdrop); if (src && img.src !== new URL(src, location.href).href) img.src = src; }
   };
-  aplicarTv();
+  tvCfg = bbTvFadeNormalizar(tvCfg, window.TV_HOME_AJUSTES || tvDefault); aplicarTv(); bbTvFadeAplicar(root, tvCfg);
   addEventListener('message', e => {
     if (e.origin !== location.origin || e.source !== parent || !e.data || e.data.t !== 'bb-tv-home') return;
-    tvCfg = tvNormalizar(e.data.cfg); aplicarTv();
+    tvCfg = bbTvFadeNormalizar(tvNormalizar(e.data.cfg), e.data.cfg); aplicarTv(); bbTvFadeAplicar(root, tvCfg);
   });
   const home = document.getElementById('vista-inicio');
   if (home && 'MutationObserver' in window) new MutationObserver(() => {
