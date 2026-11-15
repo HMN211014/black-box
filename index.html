@@ -1488,7 +1488,7 @@ html.catalogo-exclusivo.catalogo-listo #vista-catalogo{display:flex!important}
 /* Modo ambiente fuera del póster (admin > Android TV > Modo ambiente). Solo con la clase tv-ambiente. z-index -1: sobre el fondo con el póster (-2), bajo las filas. */
 #hambiente,#hrelleno,#hsombra{display:none}
 /* Profundidad: sombra proyectada bajo el póster, como si flotara (admin > Android TV > Profundidad). Va detrás de todo, así que no tapa las tarjetas. */
-:is(html.android-tv,html.web-wide-home,html.app-wide-home).tv-prof #hsombra{display:block;position:absolute;inset:0;z-index:-1;pointer-events:none;border-radius:var(--hero-radio,0);box-shadow:0 var(--prof-y,10px) var(--prof-b,50px) rgba(0,0,0,var(--prof-a,.5))}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home).tv-prof #hsombra{display:block;position:absolute;inset:0;z-index:-1;pointer-events:none;border-radius:var(--hero-radio,0);box-shadow:0 var(--prof-y,10px) var(--prof-b,50px) rgba(0,0,0,var(--prof-a,.5)),0 calc(var(--prof-y,10px) / 2) calc(var(--prof-b,50px) / 4) rgba(0,0,0,var(--prof-a,.5))}
 /* Relleno de las esquinas que deja libres el redondeado: el mismo resplandor del póster, detrás del banner. */
 :is(html.android-tv,html.web-wide-home,html.app-wide-home).tv-radio #hrelleno{display:block;position:absolute;inset:0;z-index:-1;pointer-events:none}
 .tv-radio #hrelleno::before{content:"";position:absolute;inset:-12%;background:var(--img,none) var(--tv-hero-image-x,50%) 50%/cover no-repeat;filter:blur(var(--amb-blur,70px)) brightness(var(--amb-bright,.7)) saturate(var(--amb-sat,1.6))}
@@ -6555,7 +6555,7 @@ setTimeout(() => { vtOK = true; }, 600);              // las transiciones empiez
   const aplicarAmbiente = a => {
     const rad = a && a.radio > 0 ? a.radio : 0; root.classList.toggle('tv-radio', rad > 0); if (rad > 0) root.style.setProperty('--hero-radio', rad + 'px');
     const pf = a && a.profundidad > 0 ? a.profundidad : 0; root.classList.toggle('tv-prof', pf > 0);
-    if (pf > 0) { root.style.setProperty('--prof-y', Math.round(pf * .35) + 'px'); root.style.setProperty('--prof-b', Math.round(24 + pf * .9) + 'px'); root.style.setProperty('--prof-a', String((pf / 100 * .9).toFixed(2))); }
+    if (pf > 0) { root.style.setProperty('--prof-y', Math.round(pf * .6) + 'px'); root.style.setProperty('--prof-b', Math.round(30 + pf * 1.7) + 'px'); root.style.setProperty('--prof-a', String(Math.min(1, pf / 100 * 1.15).toFixed(2))); }
     const on = !!(a && a.enabled); root.classList.toggle('tv-ambiente', on);
     if (!on && !(rad > 0)) return;
     root.style.setProperty('--amb-h', a.altura + '%'); root.style.setProperty('--amb-op', String(a.intensidad / 100)); root.style.setProperty('--amb-blur', a.desenfoque + 'px');
