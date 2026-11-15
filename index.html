@@ -2753,12 +2753,6 @@ function conTransicion(fn, o = {}) {
 }
 const BANNER_N = 9;
 let orden = [], idx = 0, timer, bannerHasSlid = false;
-addEventListener('scroll', () => {
-  if (!bannerHasSlid && scrollY > 24 && document.documentElement.matches('.android-tv,.web-wide-home')) {
-    bannerHasSlid = true;
-    document.documentElement.classList.remove('tv-banner-initial-fullscreen');
-  }
-}, { passive: true });
 const azar = a => { a = [...a]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 function bannerDelPanel() {                         // títulos que el administrador eligió para el banner, en su orden (solo los de la sección que se ve)
   const cfg = Array.isArray(window.BANNER_EXTRA) ? window.BANNER_EXTRA : [];
