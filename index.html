@@ -1506,7 +1506,8 @@ html.bb-panel-preview #tv-preview-note{display:block;position:fixed;z-index:56;r
 :is(html.android-tv,html.web-wide-home) #hero .hact{margin-top:20px}
 :is(html.android-tv,html.web-wide-home) #hero .hplay{height:54px;padding:0 30px;font-size:17px}
 :is(html.android-tv,html.web-wide-home) #hero .hinfo{width:54px;height:54px}
-:is(html.android-tv,html.web-wide-home) #hero .dots{bottom:32px;right:50%;transform:translateX(50%)}
+:is(html.android-tv,html.web-wide-home) #hero .dots{bottom:clamp(128px,16vh,190px);right:clamp(32px,4.5vw,72px);left:auto;transform:none}
+:is(html.android-tv,html.web-wide-home).tv-banner-initial-fullscreen #hero .dots{bottom:clamp(280px,29vh,340px)}
 :is(html.android-tv,html.web-wide-home) #hero #ht{transform:translate(var(--tv-hero-title-x,0px),var(--tv-hero-title-y,0px)) scale(var(--tv-hero-title-size,1));transform-origin:left center}
 :is(html.android-tv,html.web-wide-home) #hero #hm{transform:translate(var(--tv-hero-meta-x,0px),var(--tv-hero-meta-y,0px)) scale(var(--tv-hero-meta-size,1));transform-origin:left center}
 :is(html.android-tv,html.web-wide-home) #hero #hd{transform:translate(var(--tv-hero-description-x,0px),var(--tv-hero-description-y,0px)) scale(var(--tv-hero-description-size,1));transform-origin:left center}
