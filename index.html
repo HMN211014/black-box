@@ -2753,6 +2753,12 @@ function conTransicion(fn, o = {}) {
 }
 const BANNER_N = 9;
 let orden = [], idx = 0, timer, bannerHasSlid = false;
+addEventListener('scroll', () => {
+  if (!bannerHasSlid && scrollY > 24 && document.documentElement.matches('.android-tv,.web-wide-home')) {
+    bannerHasSlid = true;
+    document.documentElement.classList.remove('tv-banner-initial-fullscreen');
+  }
+}, { passive: true });
 const azar = a => { a = [...a]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 function bannerDelPanel() {                         // títulos que el administrador eligió para el banner, en su orden (solo los de la sección que se ve)
   const cfg = Array.isArray(window.BANNER_EXTRA) ? window.BANNER_EXTRA : [];
@@ -2788,7 +2794,7 @@ function armarBanner() {
   orden.forEach((p, i) => {
     const d = document.createElement('button');
     d.setAttribute('aria-label', p.titulo);
-    d.onclick = () => { mostrar(i, true); auto(); };
+    d.onclick = () => { mostrar(i); auto(); };
     H('dots').appendChild(d);
   });
   H('herowrap').hidden = !orden.length;
@@ -2830,8 +2836,7 @@ function resplandor(p) {
   i.onload = () => { try { const c = dominante(i); colores.set(url, c); if (orden[idx] === p) poner(c); } catch (e) {} };
   i.src = url;
 }
-function mostrar(i, manual = false) {
-  if (idx !== i && manual) { bannerHasSlid = true; document.documentElement.classList.remove('tv-banner-initial-fullscreen'); }
+function mostrar(i) {
   idx = i; const p = orden[i]; if (!p) return;
   resplandor(p);
   hero.classList.add('out');
@@ -2859,7 +2864,7 @@ function auto() {
 (function () {
   const UMBRAL = 56, RAPIDO = 24;            // px para cambiar de título; px mínimos si el gesto es rápido (menos de 280 ms)
   let g = null, noClic = false;
-  const cambiar = dir => { const n = orden.length; if (n < 2) return; mostrar((idx + dir + n) % n, true); auto(); };
+  const cambiar = dir => { const n = orden.length; if (n < 2) return; mostrar((idx + dir + n) % n); auto(); };
   const soltar = e => {
     if (!g || e.pointerId !== g.id) return;
     const r = g; g = null;
