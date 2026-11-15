@@ -1488,13 +1488,13 @@ html.catalogo-exclusivo.catalogo-listo #vista-catalogo{display:flex!important}
 /* Modo ambiente fuera del póster (admin > Android TV > Modo ambiente). Solo con la clase tv-ambiente. z-index -1: sobre el fondo con el póster (-2), bajo las filas. */
 #hambiente,#hrelleno,#hsombra{display:none}
 /* Profundidad: sombra proyectada bajo el póster, como si flotara (admin > Android TV > Profundidad). Va detrás de todo, así que no tapa las tarjetas. */
-:is(html.android-tv,html.web-wide-home,html.app-wide-home).tv-prof #hsombra{display:block;position:absolute;inset:0;z-index:-1;pointer-events:none;border-radius:var(--hero-radio,0);box-shadow:0 var(--prof-y,10px) var(--prof-b,50px) rgba(0,0,0,var(--prof-a,.5)),0 calc(var(--prof-y,10px) / 2) calc(var(--prof-b,50px) / 4) rgba(0,0,0,var(--prof-a,.5))}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home).tv-prof #hsombra{display:block;position:absolute;inset:0;z-index:-1;pointer-events:none;border-radius:0 0 var(--hero-radio,0) var(--hero-radio,0);box-shadow:0 var(--prof-y,10px) var(--prof-b,50px) rgba(0,0,0,var(--prof-a,.5)),0 calc(var(--prof-y,10px) / 2) calc(var(--prof-b,50px) / 4) rgba(0,0,0,var(--prof-a,.5))}
 /* Relleno de las esquinas que deja libres el redondeado: el mismo resplandor del póster, detrás del banner. */
 :is(html.android-tv,html.web-wide-home,html.app-wide-home).tv-radio #hrelleno{display:block;position:absolute;inset:0;z-index:-1;pointer-events:none}
 .tv-radio #hrelleno::before{content:"";position:absolute;inset:-12%;background:var(--img,none) var(--tv-hero-image-x,50%) 50%/cover no-repeat;filter:blur(var(--amb-blur,70px)) brightness(var(--amb-bright,.7)) saturate(var(--amb-sat,1.6))}
 .tv-radio #hrelleno::after{content:"";position:absolute;inset:0;background:color-mix(in srgb,var(--glow,#1f4fff) var(--amb-tint,35%),transparent)}
-/* Esquinas redondeadas del póster del banner (radio ajustable en admin > Android TV). */
-:is(html.android-tv,html.web-wide-home,html.app-wide-home).tv-radio #hero{border-radius:var(--hero-radio,0)}
+/* Esquinas redondeadas (solo las de abajo) del póster del banner (radio ajustable en admin > Android TV). */
+:is(html.android-tv,html.web-wide-home,html.app-wide-home).tv-radio #hero{border-radius:0 0 var(--hero-radio,0) var(--hero-radio,0)}
 html.tv-ambiente #hambiente{display:block;position:absolute;left:0;right:0;top:100%;height:var(--amb-h,35%);z-index:-1;pointer-events:none;opacity:var(--amb-op,.7);
   -webkit-mask-image:linear-gradient(180deg,#000 0%,rgba(0,0,0,.55) 42%,transparent 100%);mask-image:linear-gradient(180deg,#000 0%,rgba(0,0,0,.55) 42%,transparent 100%)}
 html.tv-ambiente #hambiente::before{content:"";position:absolute;inset:-35% -10%;background:var(--img,none) var(--tv-hero-image-x,50%) 100%/cover no-repeat;
