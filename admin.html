@@ -62,6 +62,7 @@ td.k{font-family:ui-monospace,Menlo,Consolas,monospace;white-space:nowrap}
 .cp-admin-preview{margin-top:14px;padding:12px;border-radius:16px;background:#0b0b0f;border:1px solid rgba(255,255,255,.12)}
 .tv-home-preview{position:sticky;top:8px;z-index:20;margin:14px 0;padding:12px;border:1px solid rgba(255,255,255,.12);border-radius:16px;background:#0b0b0f;box-shadow:0 14px 40px #000d}
 .tv-home-preview-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;color:#c7c7cc;font-size:12px}
+.tv-home-target{display:flex;gap:4px;padding:3px;border:1px solid rgba(255,255,255,.12);border-radius:999px;background:#17171c}.tv-home-target button{min-height:34px;padding:0 12px;border:0;border-radius:999px;background:transparent;color:#aaa;font:inherit;font-size:12px}.tv-home-target button[aria-pressed="true"]{background:#fff;color:#111;font-weight:700}
 .tv-home-frame{position:relative;width:min(100%,calc(52vh * 1.7778));aspect-ratio:16/9;margin:0 auto;overflow:hidden;border:1px solid rgba(255,255,255,.15);border-radius:12px;background:#08090c}
 .tv-home-frame iframe{position:absolute;top:0;left:0;width:1280px;height:720px;border:0;transform-origin:top left;background:#08090c}
 .tv-home-controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}
@@ -1000,7 +1001,7 @@ body:not(.h) .nav button.on{background:#fff;color:#000}
     <h2>Diseño horizontal · Android TV y web</h2>
     <p class="s">Android TV y la versión web en pantallas horizontales comparten este diseño y sus ajustes. En horizontal se usa la imagen de fondo ancha cuando está disponible; si no, se recorta el póster. El diseño vertical de móviles permanece independiente.</p>
     <div class="tv-home-preview" id="tv-home-preview">
-      <div class="tv-home-preview-head"><span>Vista previa en vivo · Android TV</span><a class="g" href="/android-tv-preview" target="_blank" rel="noopener">Abrir previsualizador</a></div>
+      <div class="tv-home-preview-head"><div><span id="tv-home-preview-label">Vista previa · Android TV</span><div class="tv-home-target" role="group" aria-label="Elegir destino de la vista previa"><button id="tv-home-target-web" type="button" aria-pressed="false">Web</button><button id="tv-home-target-tv" type="button" aria-pressed="true">Android TV</button></div></div><a class="g" id="tv-home-open-preview" href="/index.html?bbpreview=1&amp;bbtvpreview=1" target="_blank" rel="noopener">Abrir previsualizador</a></div>
       <div class="tv-home-frame" id="tv-home-frame"><iframe id="tv-home-iframe" title="Vista previa del inicio de Android TV" loading="lazy"></iframe></div>
     </div>
     <h3 style="margin:18px 0 6px">Orden de las filas</h3>
@@ -4031,6 +4032,16 @@ $('cg-download').onclick = () => con($('cg-download'), 'cg-m', async () => {
   const defaults = () => ({ gap: 30, banner: 650, topX: 50, topY: 24, barraExpandida: false, barraAncho: 70, heroElementos: Object.fromEntries(heroKeys.map(k => [k, { x: 0, y: 0, size: 100 }])), flotante: { enabled: true, overlap: 80 }, tamanos: Object.fromEntries(sizeKeys.map(k => [k, 100])), orden: orderItems.map(x => x[0]), filas: { continuar: 'vertical', populares: 'vertical', recientes: 'vertical', generos: 'vertical' } });
   let cfg = defaults(), dirty = false;
   const fr = $('tv-home-iframe'), frame = $('tv-home-frame');
+  let targetMode = 'tv';
+  const previewUrl = () => '/index.html?bbpreview=1&' + (targetMode === 'tv' ? 'bbtvpreview=1' : 'bbwebpreview=1');
+  const setTargetMode = mode => {
+    targetMode = mode === 'web' ? 'web' : 'tv';
+    const isWeb = targetMode === 'web';
+    $('tv-home-target-web').setAttribute('aria-pressed', String(isWeb)); $('tv-home-target-tv').setAttribute('aria-pressed', String(!isWeb));
+    $('tv-home-preview-label').textContent = 'Vista previa · ' + (isWeb ? 'Web horizontal' : 'Android TV');
+    $('tv-home-open-preview').href = previewUrl();
+    const url = previewUrl(); if (fr.getAttribute('src') !== url) fr.setAttribute('src', url);
+  };
   let tvChannel = null;
   try {
     tvChannel = new BroadcastChannel('blackbox-android-tv-preview');
@@ -4070,7 +4081,9 @@ $('cg-download').onclick = () => con($('cg-download'), 'cg-m', async () => {
   const paint = () => { $('tv-home-gap').value = cfg.gap; $('tv-home-gap-val').textContent = cfg.gap + ' px'; $('tv-home-banner').value = cfg.banner; $('tv-home-banner-val').textContent = cfg.banner + ' px'; $('tv-home-top-x').value = cfg.topX; $('tv-home-top-x-val').textContent = cfg.topX + ' % · ' + (cfg.topX === 50 ? 'Centro' : cfg.topX < 50 ? 'Izquierda' : 'Derecha'); $('tv-home-top-y').value = cfg.topY; $('tv-home-top-y-val').textContent = cfg.topY + ' px'; $('tv-home-top-expanded').checked = cfg.barraExpandida; $('tv-home-top-width').value = cfg.barraAncho; $('tv-home-top-width').disabled = !cfg.barraExpandida; $('tv-home-top-width-val').textContent = cfg.barraAncho + ' % de pantalla'; heroKeys.forEach(k => { const v = cfg.heroElementos[k]; ['x', 'y'].forEach(axis => { $('tv-home-hero-' + k + '-' + axis).value = v[axis]; $('tv-home-hero-' + k + '-' + axis + '-val').textContent = v[axis] + ' px'; }); $('tv-home-hero-' + k + '-size').value = v.size; $('tv-home-hero-' + k + '-size-val').textContent = v.size + ' %'; }); $('tv-home-float-enabled').checked = cfg.flotante.enabled; $('tv-home-float-overlap').value = cfg.flotante.overlap; $('tv-home-float-overlap').disabled = !cfg.flotante.enabled; $('tv-home-float-overlap-val').textContent = cfg.flotante.overlap + ' px'; sizeKeys.forEach(k => { $('tv-home-size-' + k).value = cfg.tamanos[k]; $('tv-home-size-' + k + '-val').textContent = cfg.tamanos[k] + ' %'; }); Object.entries(ids).forEach(([k, id]) => { $(id).value = cfg.filas[k]; }); paintOrder(); send(); };
   async function load() { const [j, sec] = await Promise.all([admin({ op: 'tv_home' }), admin({ op: 'secciones' })]); cfg = normalize(j.item); themeSections = (sec.items || []).filter(s => s && s.id && s.nombre && (s.ubicacion || 'inicio') === 'inicio' && s.franja !== false); integrarTematicas(); dirty = false; paint(); }
   fr.addEventListener('load', () => { fit(); send(); setTimeout(send, 700); setTimeout(send, 1800); });
-  if ('IntersectionObserver' in window) new IntersectionObserver(es => { if (es.some(e => e.isIntersecting) && !fr.getAttribute('src')) fr.src = '/index.html?bbpreview=1&bbtvpreview=1'; }, { rootMargin: '180px' }).observe(frame); else fr.src = '/index.html?bbpreview=1&bbtvpreview=1';
+  $('tv-home-target-web').addEventListener('click', () => setTargetMode('web'));
+  $('tv-home-target-tv').addEventListener('click', () => setTargetMode('tv'));
+  if ('IntersectionObserver' in window) new IntersectionObserver(es => { if (es.some(e => e.isIntersecting) && !fr.getAttribute('src')) setTargetMode(targetMode); }, { rootMargin: '180px' }).observe(frame); else setTargetMode(targetMode);
   if ('ResizeObserver' in window) new ResizeObserver(fit).observe(frame); else addEventListener('resize', fit);
   $('tv-home-gap').addEventListener('input', e => { cfg.gap = +e.target.value; dirty = true; paint(); });
   $('tv-home-banner').addEventListener('input', e => { cfg.banner = +e.target.value; dirty = true; paint(); });
@@ -4083,7 +4096,7 @@ $('cg-download').onclick = () => con($('cg-download'), 'cg-m', async () => {
   $('tv-home-float-overlap').addEventListener('input', e => { cfg.flotante.overlap = +e.target.value; dirty = true; paint(); });
   sizeKeys.forEach(k => $('tv-home-size-' + k).addEventListener('input', e => { cfg.tamanos[k] = +e.target.value; dirty = true; paint(); }));
   Object.entries(ids).forEach(([k, id]) => $(id).addEventListener('change', e => { cfg.filas[k] = e.target.value; dirty = true; paint(); }));
-  $('tv-home-save').onclick = () => con($('tv-home-save'), 'tv-home-message', async () => { const j = await admin({ op: 'guardar_tv_home', ajustes: cfg }); cfg = normalize(j.item || cfg); integrarTematicas(); dirty = false; paint(); msg('tv-home-message', 'Ajustes guardados para Android TV.', true); });
+  $('tv-home-save').onclick = () => con($('tv-home-save'), 'tv-home-message', async () => { const j = await admin({ op: 'guardar_tv_home', ajustes: cfg }); cfg = normalize(j.item || cfg); integrarTematicas(); dirty = false; paint(); msg('tv-home-message', 'Ajustes guardados para el diseño compartido de Web y Android TV.', true); });
   $('tv-home-load').onclick = () => con($('tv-home-load'), 'tv-home-message', async () => { await load(); msg('tv-home-message', 'Se cargaron los ajustes guardados.', true); });
   $('tv-home-reset').onclick = () => { cfg = defaults(); integrarTematicas(); dirty = true; paint(); msg('tv-home-message', 'Valores predeterminados cargados. Guarda para aplicarlos.', true); };
   document.querySelector('#nav button[data-g="android-tv"]').addEventListener('click', () => { fit(); if (!dirty) load().catch(e => msg('tv-home-message', e.message, false)); });
