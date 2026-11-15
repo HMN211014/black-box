@@ -1481,6 +1481,7 @@ html.android-tv.tv-preview-mode #tv-preview-note{display:block;position:fixed;z-
 html.android-tv .brand{height:48px;padding:0 19px 0 10px;gap:10px;border-radius:999px;background:rgba(25,26,29,.68);border:1px solid rgba(255,255,255,.12);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);font-size:17px}
 html.android-tv .brand img{width:30px;height:30px;border-radius:50%}
 html.android-tv #dock{top:var(--tv-top-y,24px);left:var(--tv-top-x,50%);right:auto;bottom:auto;transform:translateX(-50%);width:auto;height:48px;padding:3px 6px;gap:2px;background:rgba(24,25,28,.58);border:1px solid rgba(255,255,255,.12);box-shadow:0 8px 30px rgba(0,0,0,.25)}
+html.android-tv #dock[data-tv-expanded="true"]{width:min(var(--tv-top-width,70vw),calc(100vw - 10vw));justify-content:center}
 html.android-tv #dock .dk{min-width:86px;padding:0 15px;flex-direction:row;gap:8px;font-size:14px}
 html.android-tv #dock .dk svg{width:20px;height:20px}
 html.android-tv #dock .dk.on{background:rgba(255,255,255,.18)}
@@ -1498,6 +1499,11 @@ html.android-tv #hero .hact{margin-top:20px}
 html.android-tv #hero .hplay{height:54px;padding:0 30px;font-size:17px}
 html.android-tv #hero .hinfo{width:54px;height:54px}
 html.android-tv #hero .dots{bottom:32px;right:50%;transform:translateX(50%)}
+html.android-tv #hero #ht{transform:translate(var(--tv-hero-title-x,0px),var(--tv-hero-title-y,0px)) scale(var(--tv-hero-title-size,1));transform-origin:left center}
+html.android-tv #hero #hm{transform:translate(var(--tv-hero-meta-x,0px),var(--tv-hero-meta-y,0px)) scale(var(--tv-hero-meta-size,1));transform-origin:left center}
+html.android-tv #hero #hd{transform:translate(var(--tv-hero-description-x,0px),var(--tv-hero-description-y,0px)) scale(var(--tv-hero-description-size,1));transform-origin:left center}
+html.android-tv #hero .hact{transform:translate(var(--tv-hero-actions-x,0px),var(--tv-hero-actions-y,0px)) scale(var(--tv-hero-actions-size,1));transform-origin:left center}
+html.android-tv #hero #hlogo{transform:translate(var(--tv-hero-logo-x,0px),var(--tv-hero-logo-y,0px)) scale(var(--tv-hero-logo-size,1));transform-origin:left center}
 html.android-tv #tv-profiles{display:none!important}
 html.android-tv #vista-inicio{display:flex;flex-direction:column;row-gap:var(--tv-row-gap,22px)}
 html.android-tv #herowrap{order:0}
@@ -6417,8 +6423,9 @@ setTimeout(() => { vtOK = true; }, 600);              // las transiciones empiez
   if (!root.classList.contains('android-tv')) return;
 
   const tvOrderDefault = ['hero', 'continuar', 'popular', 'collections', 'recent', 'genreTiles', 'platforms', 'genres', 'thematic', 'all'];
-  const tvDefault = { gap: 30, banner: 650, topX: 50, topY: 24, flotante: { enabled: true, overlap: 80 }, tamanos: { continuar: 100, populares: 100, recientes: 100, generos: 100, tematicas: 100 }, orden: tvOrderDefault, filas: { continuar: 'horizontal', populares: 'vertical', recientes: 'vertical', generos: 'vertical' } };
-  const tvNormalizar = x => { const d = tvDefault, f = x && x.filas || {}, fl = x && x.flotante || {}, sz = x && x.tamanos || {}, n = Number(x && x.gap), b = Number(x && x.banner), tx = Number(x && x.topX), ty = Number(x && x.topY), valid = k => tvOrderDefault.includes(k) || /^theme:[a-z0-9][a-z0-9-]{0,39}$/.test(k), orden = Array.isArray(x && x.orden) ? x.orden.filter((k, i, a) => valid(k) && a.indexOf(k) === i).slice(0, 70) : []; tvOrderDefault.forEach(k => { if (!orden.includes(k)) orden.push(k); }); return { gap: Number.isFinite(n) ? Math.max(8, Math.min(80, Math.round(n))) : d.gap, banner: Number.isFinite(b) ? Math.max(560, Math.min(900, Math.round(b / 10) * 10)) : d.banner, topX: Number.isFinite(tx) ? Math.max(30, Math.min(70, Math.round(tx))) : d.topX, topY: Number.isFinite(ty) ? Math.max(0, Math.min(120, Math.round(ty))) : d.topY, flotante: { enabled: fl.enabled !== false, overlap: Number.isFinite(Number(fl.overlap)) ? Math.max(0, Math.min(180, Math.round(Number(fl.overlap) / 5) * 5)) : d.flotante.overlap }, tamanos: Object.fromEntries(Object.keys(d.tamanos).map(k => [k, Number.isFinite(Number(sz[k])) ? Math.max(75, Math.min(150, Math.round(Number(sz[k]) / 5) * 5)) : 100])), orden, filas: Object.fromEntries(Object.keys(d.filas).map(k => [k, f[k] === 'horizontal' ? 'horizontal' : d.filas[k]])) }; };
+  const tvHeroKeys = ['title', 'meta', 'description', 'actions', 'logo'];
+  const tvDefault = { gap: 30, banner: 650, topX: 50, topY: 24, barraExpandida: false, barraAncho: 70, heroElementos: Object.fromEntries(tvHeroKeys.map(k => [k, { x: 0, y: 0, size: 100 }])), flotante: { enabled: true, overlap: 80 }, tamanos: { continuar: 100, populares: 100, recientes: 100, generos: 100, tematicas: 100 }, orden: tvOrderDefault, filas: { continuar: 'horizontal', populares: 'vertical', recientes: 'vertical', generos: 'vertical' } };
+  const tvNormalizar = x => { const d = tvDefault, f = x && x.filas || {}, fl = x && x.flotante || {}, sz = x && x.tamanos || {}, he = x && x.heroElementos || {}, n = Number(x && x.gap), b = Number(x && x.banner), tx = Number(x && x.topX), ty = Number(x && x.topY), barWidth = Number(x && x.barraAncho), valid = k => tvOrderDefault.includes(k) || /^theme:[a-z0-9][a-z0-9-]{0,39}$/.test(k), orden = Array.isArray(x && x.orden) ? x.orden.filter((k, i, a) => valid(k) && a.indexOf(k) === i).slice(0, 70) : []; tvOrderDefault.forEach(k => { if (!orden.includes(k)) orden.push(k); }); const heroElementos = Object.fromEntries(tvHeroKeys.map(k => { const item = he[k] || {}, num = (v, fallback, min, max, step) => Number.isFinite(Number(v)) ? Math.max(min, Math.min(max, Math.round(Number(v) / step) * step)) : fallback; return [k, { x: num(item.x, 0, -250, 250, 5), y: num(item.y, 0, -250, 250, 5), size: num(item.size, 100, 60, 160, 5) }]; })); return { gap: Number.isFinite(n) ? Math.max(8, Math.min(80, Math.round(n))) : d.gap, banner: Number.isFinite(b) ? Math.max(560, Math.min(900, Math.round(b / 10) * 10)) : d.banner, topX: Number.isFinite(tx) ? Math.max(30, Math.min(70, Math.round(tx))) : d.topX, topY: Number.isFinite(ty) ? Math.max(0, Math.min(120, Math.round(ty))) : d.topY, barraExpandida: x?.barraExpandida === true, barraAncho: Number.isFinite(barWidth) ? Math.max(45, Math.min(95, Math.round(barWidth))) : d.barraAncho, heroElementos, flotante: { enabled: fl.enabled !== false, overlap: Number.isFinite(Number(fl.overlap)) ? Math.max(0, Math.min(180, Math.round(Number(fl.overlap) / 5) * 5)) : d.flotante.overlap }, tamanos: Object.fromEntries(Object.keys(d.tamanos).map(k => [k, Number.isFinite(Number(sz[k])) ? Math.max(75, Math.min(150, Math.round(Number(sz[k]) / 5) * 5)) : 100])), orden, filas: Object.fromEntries(Object.keys(d.filas).map(k => [k, f[k] === 'horizontal' ? 'horizontal' : d.filas[k]])) }; };
   let tvCfg = tvNormalizar(window.TV_HOME_AJUSTES || tvDefault);
   const tvRows = { continuar: 'cont', populares: 'pop', recientes: 'recientes-anio-w', generos: 'gen' };
   const aplicarTv = () => {
@@ -6426,6 +6433,14 @@ setTimeout(() => { vtOK = true; }, 600);              // las transiciones empiez
     root.style.setProperty('--tv-hero-height', tvCfg.banner + 'px');
     root.style.setProperty('--tv-top-x', tvCfg.topX + '%');
     root.style.setProperty('--tv-top-y', tvCfg.topY + 'px');
+    root.style.setProperty('--tv-top-width', tvCfg.barraAncho + 'vw');
+    const dock = document.getElementById('dock');
+    if (dock) dock.dataset.tvExpanded = tvCfg.barraExpandida ? 'true' : 'false';
+    Object.entries(tvCfg.heroElementos).forEach(([key, item]) => {
+      root.style.setProperty('--tv-hero-' + key + '-x', item.x + 'px');
+      root.style.setProperty('--tv-hero-' + key + '-y', item.y + 'px');
+      root.style.setProperty('--tv-hero-' + key + '-size', item.size / 100);
+    });
     root.style.setProperty('--tv-float-overlap', tvCfg.flotante.overlap + 'px');
     const sizeBounds = { vertical: [190, 18, 270], horizontal: [260, 27, 420] };
     const sizeValue = (key, orientation) => { const [min, vw, max] = sizeBounds[orientation], scale = tvCfg.tamanos[key] / 100; return `clamp(${Math.round(min * scale)}px,${(vw * scale).toFixed(2)}vw,${Math.round(max * scale)}px)`; };
