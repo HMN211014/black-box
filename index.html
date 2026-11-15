@@ -1618,6 +1618,13 @@ html.bb-panel-preview #tv-preview-note{display:block;position:fixed;z-index:56;r
 :is(html.android-tv,html.web-wide-home,html.app-wide-home) .tv-profile-nombre{max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-shadow:0 2px 8px #000}
 :is(html.android-tv,html.web-wide-home,html.app-wide-home) .tv-profile-add .pav{background:rgba(27,28,30,.74);color:#eee;font-weight:300}
 @media(max-height:760px) and (min-width:1000px){:is(html.android-tv,html.web-wide-home,html.app-wide-home) #hero{height:var(--tv-hero-height,68vh);min-height:560px;max-height:900px}:is(html.android-tv,html.web-wide-home,html.app-wide-home) #tv-profiles{top:13%;gap:12px 14px}:is(html.android-tv,html.web-wide-home,html.app-wide-home) .tv-profile .pav{width:68px!important;height:68px!important}}
+/* Barra superior: la opción elegida se nota más (letra en negrita y más grande) y las demás quedan un poco más tenues. */
+html body #dock .dk{font-weight:600;color:rgba(255,255,255,.68)}
+html body #dock .dk.on{font-weight:800;color:#fff;letter-spacing:-.005em}
+@media(min-width:821px){
+  html body #dock .dk.on{background:#fff;color:#000;font-weight:800;box-shadow:0 2px 14px rgba(255,255,255,.25)}
+}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home) body #dock .dk.on,:is(html.android-tv,html.web-wide-home,html.app-wide-home) #dock .dk.on{background:#fff;color:#000;font-weight:800;box-shadow:0 2px 14px rgba(255,255,255,.25)}
 </style>
 <link rel="manifest" href="/manifest.webmanifest">
 <meta name="theme-color" content="#000000">
