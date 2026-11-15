@@ -1024,6 +1024,14 @@ html.acceso-app #acceso,#acceso.on{display:flex}
 .ua-o>span{display:flex;align-items:center;gap:12px;width:100%;color:rgba(255,255,255,.55);font-size:13px}
 .ua-o>span:before,.ua-o>span:after{content:"";flex:1;height:1px;background:rgba(255,255,255,.16)}
 .ua-o .ua-g{display:flex;justify-content:center;width:100%;min-height:44px;color-scheme:light}
+.ua-p.sale{animation:uaSale .15s ease forwards}.ua-p.entra{animation:uaEntra .3s cubic-bezier(.2,.8,.2,1) both}
+@keyframes uaSale{to{opacity:0;transform:translateX(calc(var(--d,1) * 18px))}}
+@keyframes uaEntra{from{opacity:0;transform:translateX(calc(var(--d,1) * 28px))}to{opacity:1;transform:none}}
+.ua-p[hidden]{display:none}
+.ua.paso2 .ua-o{display:none}
+.ua-chip{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;margin:0 0 14px;padding:0 16px;height:48px;border-radius:16px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.08);color:#fff;font:inherit;font-size:15px;cursor:pointer;text-align:left}
+.ua-chip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}.ua-chip b{flex:none;font-size:13px;color:#d1d1d6;text-decoration:underline}
+@media(prefers-reduced-motion:reduce){.ua-p.sale,.ua-p.entra{animation:none}}
 .ua-tabs{display:flex;gap:4px;padding:4px;margin:4px 0 18px;border-radius:999px;background:rgba(255,255,255,.1)}
 .ua-tabs button{flex:1;height:38px;border:0;border-radius:999px;background:none;color:rgba(255,255,255,.7);font:inherit;font-size:15px;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .ua-tabs button.on{background:rgba(255,255,255,.22);color:#fff}
@@ -5304,9 +5312,9 @@ function uVistaAcceso(pant) {
   const w = el('div', 'ua');
   w.innerHTML = (pant ? '' : '<h2>Tu cuenta</h2><p class="ssub">Inicia sesión para guardar tu progreso y lo que has visto, y retomarlo en cualquier dispositivo.</p>') +
     '<div class="ua-tabs" role="tablist"><button type="button" data-m="entrar">Iniciar sesión</button><button type="button" data-m="registro">Crear cuenta</button></div>' +
-    '<form id="ua-f" novalidate><label>Correo<input name="correo" type="email" inputmode="email" autocomplete="email" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="next" required></label>' +
-    '<label>Contraseña<span class="pw"><input name="clave" type="password" autocomplete="current-password" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="go" minlength="8" required>' +
-    '<button type="button" class="ojo" aria-label="Mostrar contraseña" aria-pressed="false">' + OJO_ON + '</button></span></label>' +
+    '<form id="ua-f" novalidate><div class="ua-p" id="ua-p1"><label>Correo<input name="correo" type="email" inputmode="email" autocomplete="email" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="next" required></label></div>' +
+    '<div class="ua-p" id="ua-p2" hidden><button type="button" class="ua-chip" id="ua-chip" aria-label="Cambiar el correo"><span id="ua-chip-t"></span><b>Cambiar</b></button><label>Contraseña<span class="pw"><input name="clave" type="password" autocomplete="current-password" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="go" minlength="8" required>' +
+    '<button type="button" class="ojo" aria-label="Mostrar contraseña" aria-pressed="false">' + OJO_ON + '</button></span></label></div>' +
     '<p class="serr" id="ua-err" role="alert" hidden></p><button class="sbtn" id="ua-go" type="submit"></button></form>' +
     (gsiDisponible() ? '<div class="ua-o" id="ua-og" hidden><span>o</span><div class="ua-g" id="ua-g"></div></div>' : '') +
     (pant ? '' : '<button class="sbtn sec" id="ua-planes" type="button">Ver planes</button>');
@@ -5323,10 +5331,27 @@ function uVistaAcceso(pant) {
   /* En el teléfono se cambia al soltar el dedo. Antes se cancelaba el touchstart, y eso también cancela el clic: el ojo no hacía nada. */
   ojo.addEventListener('touchend', e => { e.preventDefault(); alternar(); }, { passive: false });
   ojo.onclick = alternar;                                                  // mouse y teclado
+  /* Dos pasos, como Netflix: primero el correo (y Google); al continuar, la contraseña con una transición corta. */
+  let paso = 1;
+  const p1 = w.querySelector('#ua-p1'), p2 = w.querySelector('#ua-p2'), chip = w.querySelector('#ua-chip');
+  const irPaso = n => {
+    if (n === paso) return; paso = n; err.hidden = true;
+    const sale = n === 2 ? p1 : p2, entra = n === 2 ? p2 : p1, dir = n === 2 ? 1 : -1;
+    w.classList.toggle('paso2', n === 2);
+    sale.classList.add('sale'); sale.style.setProperty('--d', String(-dir));
+    setTimeout(() => {
+      sale.hidden = true; sale.classList.remove('sale');
+      entra.style.setProperty('--d', String(dir)); entra.hidden = false; entra.classList.add('entra');
+      setTimeout(() => entra.classList.remove('entra'), 320);
+      if (n === 2) { w.querySelector('#ua-chip-t').textContent = f.correo.value.trim(); f.clave.focus(); } else f.correo.focus();
+      modo(uModo, true);
+    }, 150);
+  };
+  chip.onclick = () => irPaso(1);
   const modo = (m, conservar) => {
     uModo = m; if (!conservar) err.hidden = true;
     w.querySelectorAll('.ua-tabs button').forEach(b => b.classList.toggle('on', b.dataset.m === m));
-    go.textContent = m === 'registro' ? 'Crear cuenta' : 'Entrar';
+    go.textContent = paso === 1 ? 'Continuar' : m === 'registro' ? 'Crear cuenta' : 'Entrar';
     f.clave.autocomplete = m === 'registro' ? 'new-password' : 'current-password';
     f.clave.placeholder = m === 'registro' ? 'Mínimo 8 caracteres' : '';
   };
@@ -5366,6 +5391,7 @@ function uVistaAcceso(pant) {
     e.preventDefault(); err.hidden = true;
     const correo = f.correo.value.trim(), clave = f.clave.value;
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(correo)) return mal('Escribe un correo válido.');
+    if (paso === 1) return irPaso(2);
     if (uModo === 'registro' && clave.length < 8) return mal('La contraseña debe tener al menos 8 caracteres.');
     if (!clave) return mal('Escribe tu contraseña.');
     go.disabled = true; go.textContent = uModo === 'registro' ? 'Creando…' : 'Entrando…';
