@@ -6,7 +6,7 @@
 <script>try{const u=new URL(location.href);if(u.hash==='#/catalogo'&&/^[A-Za-z0-9_-]{32,80}$/.test(u.searchParams.get('bb-share')||''))document.documentElement.classList.add('catalogo-exclusivo','sin-intro')}catch(e){}</script>
 <title>Black BOX</title>
 <script>try{if(window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform()){document.documentElement.classList.add('acceso-app','en-app');setTimeout(function(){if(!window.__accesoListo)document.documentElement.classList.remove('acceso-app')},9000)}}catch(e){}</script>
-<script>try{const params=new URLSearchParams(location.search),vistaTv=params.get('bbtvpreview')==='1',vistaWeb=params.get('bbwebpreview')==='1',esTv=!vistaWeb&&(/BlackBoxTV\/1/i.test(navigator.userAgent)||vistaTv),webHorizontal=!esTv&&(vistaWeb||matchMedia('(min-width:1000px) and (orientation:landscape) and (pointer:fine)').matches),raiz=document.documentElement;if(esTv){raiz.classList.add('android-tv','sin-intro');raiz.dataset.androidTvDevice='true';if(vistaTv)raiz.classList.add('tv-preview-mode','bb-panel-preview')}else if(webHorizontal){raiz.classList.add('web-wide-home');if(vistaWeb)raiz.classList.add('bb-panel-preview')}}catch(e){}</script>
+<script>try{const params=new URLSearchParams(location.search),vistaTv=params.get('bbtvpreview')==='1',vistaWeb=params.get('bbwebpreview')==='1',vistaApp=params.get('bbappwidepreview')==='1',ua=navigator.userAgent||'',esTv=!vistaWeb&&!vistaApp&&(/BlackBoxTV\/1/i.test(ua)||vistaTv),nativa=!!(window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform()),appHorizontal=!esTv&&(vistaApp||(nativa&&/Android/i.test(ua)&&matchMedia('(orientation:landscape)').matches)),webHorizontal=!esTv&&!appHorizontal&&(vistaWeb||matchMedia('(min-width:1000px) and (orientation:landscape) and (pointer:fine)').matches),raiz=document.documentElement;if(esTv){raiz.classList.add('android-tv','sin-intro');raiz.dataset.androidTvDevice='true';if(vistaTv)raiz.classList.add('tv-preview-mode','bb-panel-preview')}else if(appHorizontal){raiz.classList.add('app-wide-home');if(vistaApp)raiz.classList.add('bb-panel-preview')}else if(webHorizontal){raiz.classList.add('web-wide-home');if(vistaWeb)raiz.classList.add('bb-panel-preview')}}catch(e){}</script>
 <style>
 :root{--bg:#000;--fg:#f5f5f7;--muted:#98989d;--glass:rgba(40,40,44,.72);--r:22px}
 *{box-sizing:border-box;margin:0}
@@ -1377,6 +1377,12 @@ html.en-pip #player .ctl,html.en-pip #player .vside,html.en-pip #player #peps,ht
 html.en-pip #player #pv{object-fit:contain!important;width:100%!important;height:100%!important;inset:0!important;margin:0!important;translate:none!important}
 html.en-pip #pcr{display:none}
 
+/* Google TV y otros controles remotos: foco visible en tarjetas y controles navegables. */
+@media (min-width:1000px) and (hover:none){
+  .card:focus-visible{outline:3px solid #fff;outline-offset:5px;transform:scale(1.045);z-index:4}
+  button:focus-visible,a:focus-visible,input:focus-visible,#player .seek:focus-visible{outline:3px solid #fff;outline-offset:4px}
+}
+
 /* ---- Opciones (ajustes del perfil) ---- */
 .pf-opc{margin-top:18px;padding-top:6px;border-top:1px solid rgba(255,255,255,.12)}
 .opc-g{display:flex;flex-direction:column;gap:8px}
@@ -1481,87 +1487,87 @@ html.tv-fondo-poster #fp-a,html.tv-fondo-poster #fp-b{inset:-8%;background:var(-
 html.tv-fondo-poster #fp-a.on,html.tv-fondo-poster #fp-b.on{opacity:var(--fp-opacity,1)}
 html.tv-fondo-poster #fp-sombra{inset:0;background:linear-gradient(180deg,rgba(8,9,12,0) 0%,rgba(8,9,12,calc(var(--fp-dark,.6) * .85)) 70%,rgba(8,9,12,var(--fp-dark,.6)) 100%)}
 @media (prefers-reduced-motion:reduce){html.tv-fondo-poster #fp-a,html.tv-fondo-poster #fp-b{transition:none}}
-html.android-tv,html.android-tv body{min-width:960px;background:#08090c;color:#f7f7f8}html.web-wide-home,html.web-wide-home body{background:#08090c;color:#f7f7f8}
+html.android-tv,html.android-tv body{min-width:960px;background:#08090c;color:#f7f7f8}html.web-wide-home,html.web-wide-home body,html.app-wide-home,html.app-wide-home body{background:#08090c;color:#f7f7f8}
 html.android-tv body{overflow-x:hidden}
-:is(html.android-tv,html.web-wide-home) #top{padding:24px 38px 0;align-items:center}
-:is(html.android-tv,html.web-wide-home) #top::before{height:120px}
-:is(html.android-tv,html.web-wide-home) #tv-clock{position:fixed;z-index:56;top:37px;left:auto;right:40px;transform:none;color:rgba(255,255,255,.9);font-size:14px;font-variant-numeric:tabular-nums;text-shadow:0 1px 8px #000;pointer-events:none}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home) #top{padding:24px 38px 0;align-items:center}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home) #top::before{height:120px}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home) #tv-clock{position:fixed;z-index:56;top:37px;left:auto;right:40px;transform:none;color:rgba(255,255,255,.9);font-size:14px;font-variant-numeric:tabular-nums;text-shadow:0 1px 8px #000;pointer-events:none}
 #tv-preview-note{display:none}
 html.bb-panel-preview #tv-preview-note{display:block;position:fixed;z-index:56;right:32px;bottom:26px;padding:9px 14px;border-radius:999px;background:rgba(18,19,22,.82);border:1px solid rgba(255,255,255,.16);color:#d9d9dd;font-size:11px;font-weight:700;letter-spacing:.08em;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
-:is(html.android-tv,html.web-wide-home) .brand{height:48px;padding:0 19px 0 10px;gap:10px;border-radius:999px;background:rgba(25,26,29,.68);border:1px solid rgba(255,255,255,.12);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);font-size:17px}
-:is(html.android-tv,html.web-wide-home) .brand img{width:30px;height:30px;border-radius:50%}
-:is(html.android-tv,html.web-wide-home) #dock{top:var(--tv-top-y,24px);left:var(--tv-top-x,50%);right:auto;bottom:auto;transform:translateX(-50%);width:auto;height:48px;padding:3px 6px;gap:2px;background:rgba(24,25,28,.58);border:1px solid rgba(255,255,255,.12);box-shadow:0 8px 30px rgba(0,0,0,.25)}
-:is(html.android-tv,html.web-wide-home) #dock[data-tv-expanded="true"]{width:min(var(--tv-top-width,70vw),calc(100vw - 10vw));justify-content:center}
-:is(html.android-tv,html.web-wide-home) #dock .dk{min-width:86px;padding:0 15px;flex-direction:row;gap:8px;font-size:14px}
-:is(html.android-tv,html.web-wide-home) #dock .dk svg{width:20px;height:20px}
-:is(html.android-tv,html.web-wide-home) #dock .dk.on{background:#fff;color:#111;text-shadow:none}
-:is(html.android-tv,html.web-wide-home) #herowrap{height:auto;overflow:visible}
-:is(html.android-tv,html.web-wide-home) #herowrap::before,:is(html.android-tv,html.web-wide-home) #herowrap .hext{display:none}
-:is(html.android-tv,html.web-wide-home) #hero{height:var(--tv-hero-height,72vh);min-height:560px;max-height:900px;margin:0;border-radius:0;overflow:hidden}
-:is(html.android-tv,html.web-wide-home) #hero::before{background-position:var(--tv-hero-image-x,50%) var(--tv-hero-image-y,28%);-webkit-mask-image:none;mask-image:none}
-:is(html.android-tv,html.web-wide-home) #hero video{object-position:var(--tv-hero-image-x,50%) var(--tv-hero-image-y,28%);-webkit-mask-image:none;mask-image:none}
-:is(html.android-tv,html.web-wide-home) #hero::after{background:linear-gradient(180deg,rgba(0,0,0,.5),transparent 23%),linear-gradient(0deg,color-mix(in srgb,color-mix(in srgb,var(--glow,#1f4fff) 22%,#08090c) var(--tv-hero-fade-opacity,72%),transparent) 0%,color-mix(in srgb,color-mix(in srgb,var(--glow,#1f4fff) 22%,#08090c) var(--tv-hero-fade-opacity,72%),transparent) var(--tv-hero-fade-start,0%),color-mix(in srgb,color-mix(in srgb,var(--glow,#1f4fff) 22%,#08090c) var(--tv-hero-fade-mid-opacity,16%),transparent) var(--tv-hero-fade-midpoint,16.8%),transparent var(--tv-hero-fade-end,28%)),linear-gradient(90deg,rgba(0,0,0,.72),rgba(0,0,0,.28) 38%,transparent 68%,rgba(0,0,0,.22))}
-:is(html.android-tv,html.web-wide-home) #hero .hcopy{left:5.2vw;right:36vw;bottom:clamp(74px,9vh,112px);max-width:760px}
-:is(html.android-tv,html.web-wide-home).tv-banner-initial-fullscreen #herowrap{height:100vh!important;min-height:100vh;margin-bottom:-18vh!important;position:relative;z-index:1}
-:is(html.android-tv,html.web-wide-home).tv-banner-initial-fullscreen #hero{height:100vh!important;min-height:100vh;max-height:none;transition:height .4s ease}
-:is(html.android-tv,html.web-wide-home).tv-banner-initial-fullscreen #hero .hcopy{bottom:clamp(210px,27vh,310px)}
-:is(html.android-tv,html.web-wide-home).tv-banner-image-contain #hero::before{background-position:center;background-size:cover;filter:blur(24px) brightness(.42) saturate(1.2);transform:scale(1.08);-webkit-mask-image:none;mask-image:none}
-:is(html.android-tv,html.web-wide-home).tv-banner-image-contain #hero .hblur{display:block;position:absolute;inset:0;z-index:-1;filter:none;-webkit-mask-image:none;mask-image:none}
-:is(html.android-tv,html.web-wide-home).tv-banner-image-contain #hero .hblur::before{inset:0;top:0;bottom:0;background:var(--img,none) var(--tv-hero-image-x,50%) var(--tv-hero-image-y,28%)/contain no-repeat;-webkit-mask-image:none;mask-image:none}
-:is(html.android-tv,html.web-wide-home).tv-banner-image-contain #hero .hblur::after{display:none}
-:is(html.android-tv,html.web-wide-home).tv-banner-image-contain #hero video{object-fit:contain;z-index:0}
-:is(html.android-tv,html.web-wide-home) #hero .hcopy h2{font-size:clamp(48px,5.3vw,78px);line-height:1.02;margin:8px 0 12px}
-:is(html.android-tv,html.web-wide-home) #hero .hmeta{font-size:16px}
-:is(html.android-tv,html.web-wide-home) #hero .hd{font-size:18px;max-width:58ch;-webkit-line-clamp:2}
-:is(html.android-tv,html.web-wide-home) #hero .hact{margin-top:20px}
-:is(html.android-tv,html.web-wide-home) #hero .hplay{height:54px;padding:0 30px;font-size:17px}
-:is(html.android-tv,html.web-wide-home) #hero .hinfo{width:54px;height:54px}
-:is(html.android-tv,html.web-wide-home) #hero .dots{bottom:clamp(128px,16vh,190px);right:clamp(32px,4.5vw,72px);left:auto;transform:none}
-:is(html.android-tv,html.web-wide-home).tv-banner-initial-fullscreen #hero .dots{bottom:clamp(280px,29vh,340px)}
-:is(html.android-tv,html.web-wide-home) #hero #ht{transform:translate(var(--tv-hero-title-x,0px),var(--tv-hero-title-y,0px)) scale(var(--tv-hero-title-size,1));transform-origin:left center}
-:is(html.android-tv,html.web-wide-home) #hero #hm{transform:translate(var(--tv-hero-meta-x,0px),var(--tv-hero-meta-y,0px)) scale(var(--tv-hero-meta-size,1));transform-origin:left center}
-:is(html.android-tv,html.web-wide-home) #hero #hd{transform:translate(var(--tv-hero-description-x,0px),var(--tv-hero-description-y,0px)) scale(var(--tv-hero-description-size,1));transform-origin:left center}
-:is(html.android-tv,html.web-wide-home) #hero .hact{transform:translate(var(--tv-hero-actions-x,0px),var(--tv-hero-actions-y,0px)) scale(var(--tv-hero-actions-size,1));transform-origin:left center}
-:is(html.android-tv,html.web-wide-home) #hero #hlogo{transform:translate(var(--tv-hero-logo-x,0px),var(--tv-hero-logo-y,0px)) scale(var(--tv-hero-logo-size,1));transform-origin:left center}
-:is(html.android-tv,html.web-wide-home) #tv-profiles{display:none!important}
-:is(html.android-tv,html.web-wide-home) #vista-inicio{display:flex;flex-direction:column;row-gap:var(--tv-row-gap,22px)}
-:is(html.android-tv,html.web-wide-home) #vista-inicio[hidden]{display:none!important}
-:is(html.android-tv,html.web-wide-home) #herowrap{order:0}
-:is(html.android-tv,html.web-wide-home) #cont{order:1}
-:is(html.android-tv,html.web-wide-home) #pop{order:2}
-:is(html.android-tv,html.web-wide-home) #cols-w{order:3}
-:is(html.android-tv,html.web-wide-home) #recientes-anio-w{order:4}
-:is(html.android-tv,html.web-wide-home) #gen-w{order:5}
-:is(html.android-tv,html.web-wide-home) #plat{order:6}
-:is(html.android-tv,html.web-wide-home) #gen{order:7}
-:is(html.android-tv,html.web-wide-home) #todas-w{order:8}
-:is(html.android-tv,html.web-wide-home) #cont .rt,:is(html.android-tv,html.web-wide-home) #pop .rt,:is(html.android-tv,html.web-wide-home) #cols-w .cols-t,:is(html.android-tv,html.web-wide-home) #recientes-anio-w .cols-t,:is(html.android-tv,html.web-wide-home) #gen-w .cols-t,:is(html.android-tv,html.web-wide-home) #plat .rt{padding-left:5.2vw;padding-right:5.2vw;margin-top:10px;font-size:22px}
-:is(html.android-tv,html.web-wide-home) #cont .track,:is(html.android-tv,html.web-wide-home) #pop .track,:is(html.android-tv,html.web-wide-home) #recientes-anio-w .track,:is(html.android-tv,html.web-wide-home) #plat .track{padding-left:5.2vw;padding-right:5.2vw;gap:22px;scroll-padding-inline:5.2vw;scroll-snap-type:x mandatory}
-:is(html.android-tv,html.web-wide-home) #gen{display:flex;flex-direction:column;gap:var(--tv-row-gap,22px)}
-:is(html.android-tv,html.web-wide-home) #gen .track{padding-left:5.2vw;padding-right:5.2vw;gap:22px;scroll-padding-inline:5.2vw;scroll-snap-type:x mandatory}
-:is(html.android-tv,html.web-wide-home) #cont[data-tv-orientation="horizontal"] .cc-wrap{flex-basis:var(--tv-card-horizontal,clamp(260px,27vw,420px));aspect-ratio:16/9}
-:is(html.android-tv,html.web-wide-home) #cont[data-tv-orientation="vertical"] .cc-wrap{flex-basis:var(--tv-card-vertical,clamp(190px,18vw,270px));aspect-ratio:2/3}
-:is(html.android-tv,html.web-wide-home) #cont[data-tv-orientation="horizontal"] .card.cc{aspect-ratio:16/9}
-:is(html.android-tv,html.web-wide-home) #pop[data-tv-orientation="horizontal"] .card,:is(html.android-tv,html.web-wide-home) #recientes-anio-w[data-tv-orientation="horizontal"] .card,:is(html.android-tv,html.web-wide-home) #gen[data-tv-orientation="horizontal"] .card{flex-basis:var(--tv-card-horizontal,clamp(260px,27vw,420px));aspect-ratio:16/9;border-radius:16px;margin-bottom:56px}
-:is(html.android-tv,html.web-wide-home) #pop[data-tv-orientation="vertical"] .card,:is(html.android-tv,html.web-wide-home) #recientes-anio-w[data-tv-orientation="vertical"] .card,:is(html.android-tv,html.web-wide-home) #gen[data-tv-orientation="vertical"] .card{flex-basis:var(--tv-card-vertical,clamp(190px,18vw,270px));aspect-ratio:2/3;border-radius:18px;margin-bottom:56px}
-:is(html.android-tv,html.web-wide-home) .secw[data-u="inicio"] .card{flex-basis:var(--tv-card-vertical-theme,clamp(190px,18vw,270px))}
-:is(html.android-tv,html.web-wide-home) .secw[data-u="inicio"] .card.hz{flex-basis:var(--tv-card-horizontal-theme,clamp(260px,27vw,420px))}
-:is(html.android-tv,html.web-wide-home) #cont[data-tv-floating="true"],:is(html.android-tv,html.web-wide-home) #pop[data-tv-floating="true"],:is(html.android-tv,html.web-wide-home) #recientes-anio-w[data-tv-floating="true"],:is(html.android-tv,html.web-wide-home) #gen[data-tv-floating="true"]{position:relative;z-index:14;transform:translateY(calc(0px - var(--tv-float-overlap,80px)));margin-bottom:calc(0px - var(--tv-float-overlap,80px))}
-:is(html.android-tv,html.web-wide-home) #cont[data-tv-floating="true"] .card,:is(html.android-tv,html.web-wide-home) #pop[data-tv-floating="true"] .card,:is(html.android-tv,html.web-wide-home) #recientes-anio-w[data-tv-floating="true"] .card,:is(html.android-tv,html.web-wide-home) #gen[data-tv-floating="true"] .card{box-shadow:0 12px 24px rgba(0,0,0,.55),0 26px 54px rgba(0,0,0,.42)}
-:is(html.android-tv,html.web-wide-home) .card{flex-basis:clamp(190px,18vw,270px);scroll-snap-align:start}
-:is(html.android-tv,html.web-wide-home) .card:focus-visible,:is(html.android-tv,html.web-wide-home) .ct-card:focus-visible,:is(html.android-tv,html.web-wide-home) .plat:focus-visible{outline:3px solid #fff;outline-offset:5px;transform:scale(1.045);z-index:8;box-shadow:0 22px 54px rgba(0,0,0,.78),0 0 0 2px rgba(255,255,255,.28)}
-:is(html.android-tv,html.web-wide-home) button:focus-visible,:is(html.android-tv,html.web-wide-home) a:focus-visible,input:focus-visible{outline:3px solid #fff;outline-offset:4px}
-:is(html.android-tv,html.web-wide-home) .nav{display:grid;place-items:center;opacity:.72;width:54px;height:54px}
-:is(html.android-tv,html.web-wide-home) .row:hover .nav,:is(html.android-tv,html.web-wide-home) .nav:focus-visible{opacity:1}
-:is(html.android-tv,html.web-wide-home) #tv-profiles{position:absolute;z-index:5;top:15%;right:6.2vw;width:min(330px,25vw);display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px 18px;text-align:center}
-:is(html.android-tv,html.web-wide-home) #tv-profiles[hidden]{display:none}
-:is(html.android-tv,html.web-wide-home) .tv-profile{display:grid;justify-items:center;gap:9px;min-width:0;padding:0;border:0;background:none;color:#fff;font:inherit;font-size:14px;cursor:pointer}
-:is(html.android-tv,html.web-wide-home) .tv-profile .pav{width:clamp(74px,7.1vw,104px)!important;height:clamp(74px,7.1vw,104px)!important;display:grid;place-items:center;border:3px solid rgba(255,255,255,.28);border-radius:50%;font-size:clamp(38px,4vw,58px);box-shadow:0 8px 24px rgba(0,0,0,.3)}
-:is(html.android-tv,html.web-wide-home) .tv-profile.activo .pav{border-color:#fff;box-shadow:0 0 0 4px rgba(255,255,255,.18),0 10px 28px rgba(0,0,0,.42)}
-:is(html.android-tv,html.web-wide-home) .tv-profile:focus-visible .pav{outline:4px solid #fff;outline-offset:5px;transform:scale(1.06)}
-:is(html.android-tv,html.web-wide-home) .tv-profile-nombre{max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-shadow:0 2px 8px #000}
-:is(html.android-tv,html.web-wide-home) .tv-profile-add .pav{background:rgba(27,28,30,.74);color:#eee;font-weight:300}
-@media(max-height:760px) and (min-width:1000px){:is(html.android-tv,html.web-wide-home) #hero{height:var(--tv-hero-height,68vh);min-height:560px;max-height:900px}:is(html.android-tv,html.web-wide-home) #tv-profiles{top:13%;gap:12px 14px}:is(html.android-tv,html.web-wide-home) .tv-profile .pav{width:68px!important;height:68px!important}}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home) .brand{height:48px;padding:0 19px 0 10px;gap:10px;border-radius:999px;background:rgba(25,26,29,.68);border:1px solid rgba(255,255,255,.12);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);font-size:17px}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home) .brand img{width:30px;height:30px;border-radius:50%}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home) #dock{top:var(--tv-top-y,24px);left:var(--tv-top-x,50%);right:auto;bottom:auto;transform:translateX(-50%);width:auto;height:48px;padding:3px 6px;gap:2px;background:rgba(24,25,28,.58);border:1px solid rgba(255,255,255,.12);box-shadow:0 8px 30px rgba(0,0,0,.25)}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home) #dock[data-tv-expanded="true"]{width:min(var(--tv-top-width,70vw),calc(100vw - 10vw));justify-content:center}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home) #dock .dk{min-width:86px;padding:0 15px;flex-direction:row;gap:8px;font-size:14px}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home) #dock .dk svg{width:20px;height:20px}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home) #dock .dk.on{background:#fff;color:#111;text-shadow:none}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home) #herowrap{height:auto;overflow:visible}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home) #herowrap::before,:is(html.android-tv,html.web-wide-home,html.app-wide-home) #herowrap .hext{display:none}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home) #hero{height:var(--tv-hero-height,72vh);min-height:560px;max-height:900px;margin:0;border-radius:0;overflow:hidden}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home) #hero::before{background-position:var(--tv-hero-image-x,50%) var(--tv-hero-image-y,28%);-webkit-mask-image:none;mask-image:none}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home) #hero video{object-position:var(--tv-hero-image-x,50%) var(--tv-hero-image-y,28%);-webkit-mask-image:none;mask-image:none}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home) #hero::after{background:linear-gradient(180deg,rgba(0,0,0,.5),transparent 23%),linear-gradient(0deg,color-mix(in srgb,color-mix(in srgb,var(--glow,#1f4fff) 22%,#08090c) var(--tv-hero-fade-opacity,72%),transparent) 0%,color-mix(in srgb,color-mix(in srgb,var(--glow,#1f4fff) 22%,#08090c) var(--tv-hero-fade-opacity,72%),transparent) var(--tv-hero-fade-start,0%),color-mix(in srgb,color-mix(in srgb,var(--glow,#1f4fff) 22%,#08090c) var(--tv-hero-fade-mid-opacity,16%),transparent) var(--tv-hero-fade-midpoint,16.8%),transparent var(--tv-hero-fade-end,28%)),linear-gradient(90deg,rgba(0,0,0,.72),rgba(0,0,0,.28) 38%,transparent 68%,rgba(0,0,0,.22))}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home) #hero .hcopy{left:5.2vw;right:36vw;bottom:clamp(74px,9vh,112px);max-width:760px}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home).tv-banner-initial-fullscreen #herowrap{height:100vh!important;min-height:100vh;margin-bottom:-18vh!important;position:relative;z-index:1}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home).tv-banner-initial-fullscreen #hero{height:100vh!important;min-height:100vh;max-height:none;transition:height .4s ease}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home).tv-banner-initial-fullscreen #hero .hcopy{bottom:clamp(210px,27vh,310px)}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home).tv-banner-image-contain #hero::before{background-position:center;background-size:cover;filter:blur(24px) brightness(.42) saturate(1.2);transform:scale(1.08);-webkit-mask-image:none;mask-image:none}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home).tv-banner-image-contain #hero .hblur{display:block;position:absolute;inset:0;z-index:-1;filter:none;-webkit-mask-image:none;mask-image:none}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home).tv-banner-image-contain #hero .hblur::before{inset:0;top:0;bottom:0;background:var(--img,none) var(--tv-hero-image-x,50%) var(--tv-hero-image-y,28%)/contain no-repeat;-webkit-mask-image:none;mask-image:none}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home).tv-banner-image-contain #hero .hblur::after{display:none}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home).tv-banner-image-contain #hero video{object-fit:contain;z-index:0}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home) #hero .hcopy h2{font-size:clamp(48px,5.3vw,78px);line-height:1.02;margin:8px 0 12px}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home) #hero .hmeta{font-size:16px}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home) #hero .hd{font-size:18px;max-width:58ch;-webkit-line-clamp:2}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home) #hero .hact{margin-top:20px}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home) #hero .hplay{height:54px;padding:0 30px;font-size:17px}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home) #hero .hinfo{width:54px;height:54px}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home) #hero .dots{bottom:clamp(128px,16vh,190px);right:clamp(32px,4.5vw,72px);left:auto;transform:none}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home).tv-banner-initial-fullscreen #hero .dots{bottom:clamp(280px,29vh,340px)}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home) #hero #ht{transform:translate(var(--tv-hero-title-x,0px),var(--tv-hero-title-y,0px)) scale(var(--tv-hero-title-size,1));transform-origin:left center}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home) #hero #hm{transform:translate(var(--tv-hero-meta-x,0px),var(--tv-hero-meta-y,0px)) scale(var(--tv-hero-meta-size,1));transform-origin:left center}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home) #hero #hd{transform:translate(var(--tv-hero-description-x,0px),var(--tv-hero-description-y,0px)) scale(var(--tv-hero-description-size,1));transform-origin:left center}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home) #hero .hact{transform:translate(var(--tv-hero-actions-x,0px),var(--tv-hero-actions-y,0px)) scale(var(--tv-hero-actions-size,1));transform-origin:left center}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home) #hero #hlogo{transform:translate(var(--tv-hero-logo-x,0px),var(--tv-hero-logo-y,0px)) scale(var(--tv-hero-logo-size,1));transform-origin:left center}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home) #tv-profiles{display:none!important}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home) #vista-inicio{display:flex;flex-direction:column;row-gap:var(--tv-row-gap,22px)}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home) #vista-inicio[hidden]{display:none!important}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home) #herowrap{order:0}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home) #cont{order:1}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home) #pop{order:2}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home) #cols-w{order:3}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home) #recientes-anio-w{order:4}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home) #gen-w{order:5}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home) #plat{order:6}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home) #gen{order:7}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home) #todas-w{order:8}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home) #cont .rt,:is(html.android-tv,html.web-wide-home,html.app-wide-home) #pop .rt,:is(html.android-tv,html.web-wide-home,html.app-wide-home) #cols-w .cols-t,:is(html.android-tv,html.web-wide-home,html.app-wide-home) #recientes-anio-w .cols-t,:is(html.android-tv,html.web-wide-home,html.app-wide-home) #gen-w .cols-t,:is(html.android-tv,html.web-wide-home,html.app-wide-home) #plat .rt{padding-left:5.2vw;padding-right:5.2vw;margin-top:10px;font-size:22px}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home) #cont .track,:is(html.android-tv,html.web-wide-home,html.app-wide-home) #pop .track,:is(html.android-tv,html.web-wide-home,html.app-wide-home) #recientes-anio-w .track,:is(html.android-tv,html.web-wide-home,html.app-wide-home) #plat .track{padding-left:5.2vw;padding-right:5.2vw;gap:22px;scroll-padding-inline:5.2vw;scroll-snap-type:x mandatory}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home) #gen{display:flex;flex-direction:column;gap:var(--tv-row-gap,22px)}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home) #gen .track{padding-left:5.2vw;padding-right:5.2vw;gap:22px;scroll-padding-inline:5.2vw;scroll-snap-type:x mandatory}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home) #cont[data-tv-orientation="horizontal"] .cc-wrap{flex-basis:var(--tv-card-horizontal,clamp(260px,27vw,420px));aspect-ratio:16/9}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home) #cont[data-tv-orientation="vertical"] .cc-wrap{flex-basis:var(--tv-card-vertical,clamp(190px,18vw,270px));aspect-ratio:2/3}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home) #cont[data-tv-orientation="horizontal"] .card.cc{aspect-ratio:16/9}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home) #pop[data-tv-orientation="horizontal"] .card,:is(html.android-tv,html.web-wide-home,html.app-wide-home) #recientes-anio-w[data-tv-orientation="horizontal"] .card,:is(html.android-tv,html.web-wide-home,html.app-wide-home) #gen .row[data-tv-orientation="horizontal"] .card{flex-basis:var(--tv-card-horizontal,clamp(260px,27vw,420px));aspect-ratio:16/9;border-radius:16px;margin-bottom:56px}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home) #pop[data-tv-orientation="vertical"] .card,:is(html.android-tv,html.web-wide-home,html.app-wide-home) #recientes-anio-w[data-tv-orientation="vertical"] .card,:is(html.android-tv,html.web-wide-home,html.app-wide-home) #gen .row[data-tv-orientation="vertical"] .card{flex-basis:var(--tv-card-vertical,clamp(190px,18vw,270px));aspect-ratio:2/3;border-radius:18px;margin-bottom:56px}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home) .secw[data-u="inicio"] .card{flex-basis:var(--tv-card-vertical-theme,clamp(190px,18vw,270px))}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home) .secw[data-u="inicio"] .card.hz{flex-basis:var(--tv-card-horizontal-theme,clamp(260px,27vw,420px))}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home) #cont[data-tv-floating="true"],:is(html.android-tv,html.web-wide-home,html.app-wide-home) #pop[data-tv-floating="true"],:is(html.android-tv,html.web-wide-home,html.app-wide-home) #recientes-anio-w[data-tv-floating="true"],:is(html.android-tv,html.web-wide-home,html.app-wide-home) #gen[data-tv-floating="true"]{position:relative;z-index:14;transform:translateY(calc(0px - var(--tv-float-overlap,80px)));margin-bottom:calc(0px - var(--tv-float-overlap,80px))}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home) #cont[data-tv-floating="true"] .card,:is(html.android-tv,html.web-wide-home,html.app-wide-home) #pop[data-tv-floating="true"] .card,:is(html.android-tv,html.web-wide-home,html.app-wide-home) #recientes-anio-w[data-tv-floating="true"] .card,:is(html.android-tv,html.web-wide-home,html.app-wide-home) #gen[data-tv-floating="true"] .card{box-shadow:0 12px 24px rgba(0,0,0,.55),0 26px 54px rgba(0,0,0,.42)}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home) .card{flex-basis:clamp(190px,18vw,270px);scroll-snap-align:start}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home) .card:focus-visible,:is(html.android-tv,html.web-wide-home,html.app-wide-home) .ct-card:focus-visible,:is(html.android-tv,html.web-wide-home,html.app-wide-home) .plat:focus-visible{outline:3px solid #fff;outline-offset:5px;transform:scale(1.045);z-index:8;box-shadow:0 22px 54px rgba(0,0,0,.78),0 0 0 2px rgba(255,255,255,.28)}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home) button:focus-visible,:is(html.android-tv,html.web-wide-home,html.app-wide-home) a:focus-visible,input:focus-visible{outline:3px solid #fff;outline-offset:4px}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home) .nav{display:grid;place-items:center;opacity:.72;width:54px;height:54px}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home) .row:hover .nav,:is(html.android-tv,html.web-wide-home,html.app-wide-home) .nav:focus-visible{opacity:1}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home) #tv-profiles{position:absolute;z-index:5;top:15%;right:6.2vw;width:min(330px,25vw);display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px 18px;text-align:center}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home) #tv-profiles[hidden]{display:none}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home) .tv-profile{display:grid;justify-items:center;gap:9px;min-width:0;padding:0;border:0;background:none;color:#fff;font:inherit;font-size:14px;cursor:pointer}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home) .tv-profile .pav{width:clamp(74px,7.1vw,104px)!important;height:clamp(74px,7.1vw,104px)!important;display:grid;place-items:center;border:3px solid rgba(255,255,255,.28);border-radius:50%;font-size:clamp(38px,4vw,58px);box-shadow:0 8px 24px rgba(0,0,0,.3)}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home) .tv-profile.activo .pav{border-color:#fff;box-shadow:0 0 0 4px rgba(255,255,255,.18),0 10px 28px rgba(0,0,0,.42)}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home) .tv-profile:focus-visible .pav{outline:4px solid #fff;outline-offset:5px;transform:scale(1.06)}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home) .tv-profile-nombre{max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-shadow:0 2px 8px #000}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home) .tv-profile-add .pav{background:rgba(27,28,30,.74);color:#eee;font-weight:300}
+@media(max-height:760px) and (min-width:1000px){:is(html.android-tv,html.web-wide-home,html.app-wide-home) #hero{height:var(--tv-hero-height,68vh);min-height:560px;max-height:900px}:is(html.android-tv,html.web-wide-home,html.app-wide-home) #tv-profiles{top:13%;gap:12px 14px}:is(html.android-tv,html.web-wide-home,html.app-wide-home) .tv-profile .pav{width:68px!important;height:68px!important}}
 </style>
 <link rel="manifest" href="/manifest.webmanifest">
 <meta name="theme-color" content="#000000">
@@ -2413,7 +2419,7 @@ function pintarGeneros() {                           // una fila (carrusel) por 
   const por = new Map();
   lista.forEach(p => (p.genero || '').split(',').map(g => g.trim()).filter(Boolean).slice(0, s ? 2 : 3).forEach(g => { if (!por.has(g)) por.set(g, []); por.get(g).push(p); }));
   [...por.entries()].filter(([, l]) => l.length >= (s ? 2 : 3)).sort((a, b) => b[1].length - a[1].length).slice(0, s ? 6 : 12).forEach(([g, l]) => {
-    const sec = E('section', 'row'), tr = E('div', 'track'), pv = E('button', 'nav prev', '‹'), nx = E('button', 'nav next', '›'), h = E('h3', 'rt gt');
+    const sec = E('section', 'row'); sec.dataset.tvGenreKey = slugGen(g); const tr = E('div', 'track'), pv = E('button', 'nav prev', '‹'), nx = E('button', 'nav next', '›'), h = E('h3', 'rt gt');
     pv.type = nx.type = 'button'; pv.setAttribute('aria-label', 'Anterior'); nx.setAttribute('aria-label', 'Siguiente');
     ordenarAlAzar(l).slice(0, 24).forEach(p => { const b = crearTarjeta(p); tr.appendChild(b); if (!tarjetasG.has(p)) tarjetasG.set(p, []); tarjetasG.get(p).push(b); });
     pv.onclick = () => tr.scrollBy({ left: -tr.clientWidth * .8, behavior: 'smooth' }); nx.onclick = () => tr.scrollBy({ left: tr.clientWidth * .8, behavior: 'smooth' });
@@ -3251,6 +3257,12 @@ addEventListener('popstate', () => { if (tvBloq) { history.pushState({player: 1}
 addEventListener('keydown', e => {
   if (pl.hidden || tvBloq) return;
   const k = e.key;
+  if (k === 'MediaPlayPause' || k === 'MediaPlay' || k === 'MediaPause') {
+    e.preventDefault();
+    if (k === 'MediaPlayPause' || (k === 'MediaPlay' && V.paused) || (k === 'MediaPause' && !V.paused)) alternar();
+    showC(); return;
+  }
+  if ((k === 'Enter' || k === ' ') && !e.target.closest('button,input')) { e.preventDefault(); if (pl.classList.contains('c')) alternar(); else showC(); return; }
   if (k === ' ' && e.target.closest('button')) return;
   if (k === 'Escape') cerrarPlayer();
   else if (k === ' ' || k === 'k') { e.preventDefault(); alternar(); showC(); }
@@ -6477,15 +6489,15 @@ setTimeout(() => { vtOK = true; }, 600);              // las transiciones empiez
 (() => {
   const root = document.documentElement;
   const androidTvDevice = root.dataset.androidTvDevice === 'true';
-  if (!root.classList.contains('android-tv') && !root.classList.contains('web-wide-home')) return;
+  if (!root.classList.contains('android-tv') && !root.classList.contains('web-wide-home') && !root.classList.contains('app-wide-home')) return;
 
   const tvOrderDefault = ['hero', 'continuar', 'popular', 'collections', 'recent', 'genreTiles', 'platforms', 'genres', 'thematic', 'all'];
   const tvHeroKeys = ['title', 'meta', 'description', 'actions', 'logo'];
   const tvHeroDefault = () => Object.fromEntries(tvHeroKeys.map(k => [k, { x: 0, y: 0, size: 100 }]));
   const tvFadeDefault = () => ({ enabled: true, intensidad: 72, inicio: 13, altura: 65 });
   const tvFondoDefault = () => ({ enabled: false, desenfoque: 60, brillo: 35, saturacion: 130, opacidad: 100, zoom: 120, oscuridad: 60 });
-  const tvDefault = { gap: 30, banner: 650, topX: 50, topY: 24, barraExpandida: false, barraAncho: 70, heroElementos: tvHeroDefault(), bannerPorPlataforma: { tv: { banner: 650, pantallaCompletaInicial: true, fundidoInferior: tvFadeDefault(), fondoPoster: tvFondoDefault(), imagenCompleta: true, heroElementos: tvHeroDefault() }, web: { banner: 650, pantallaCompletaInicial: true, fundidoInferior: tvFadeDefault(), fondoPoster: tvFondoDefault(), heroElementos: tvHeroDefault() } }, flotante: { enabled: true, overlap: 80 }, tamanos: { continuar: 100, populares: 100, recientes: 100, generos: 100, tematicas: 100 }, orden: tvOrderDefault, filas: { continuar: 'horizontal', populares: 'vertical', recientes: 'vertical', generos: 'vertical' } };
-  const tvNormalizar = x => { const d = tvDefault, f = x && x.filas || {}, fl = x && x.flotante || {}, sz = x && x.tamanos || {}, he = x && x.heroElementos || {}, n = Number(x && x.gap), b = Number(x && x.banner), tx = Number(x && x.topX), ty = Number(x && x.topY), barWidth = Number(x && x.barraAncho), valid = k => tvOrderDefault.includes(k) || /^theme:[a-z0-9][a-z0-9-]{0,39}$/.test(k), orden = Array.isArray(x && x.orden) ? x.orden.filter((k, i, a) => valid(k) && a.indexOf(k) === i).slice(0, 70) : []; tvOrderDefault.forEach(k => { if (!orden.includes(k)) orden.push(k); }); const cleanFondo = raw => { const v = raw && typeof raw === 'object' ? raw : {}, num = (x, fallback, min, max) => Number.isFinite(Number(x)) ? Math.max(min, Math.min(max, Math.round(Number(x)))) : fallback; return { enabled: v.enabled === true, desenfoque: num(v.desenfoque, 60, 0, 120), brillo: num(v.brillo, 35, 10, 100), saturacion: num(v.saturacion, 130, 50, 250), opacidad: num(v.opacidad, 100, 0, 100), zoom: num(v.zoom, 120, 100, 160), oscuridad: num(v.oscuridad, 60, 0, 100) }; }; const cleanFade = raw => { const v = raw || {}, num = (x, fallback, min, max) => Number.isFinite(Number(x)) ? Math.max(min, Math.min(max, Math.round(Number(x)))) : fallback; return { enabled: v.enabled !== false, intensidad: num(v.intensidad, 72, 0, 100), inicio: num(v.inicio, 13, 0, 70), altura: num(v.altura, 65, 20, 100) }; }, cleanHero = raw => Object.fromEntries(tvHeroKeys.map(k => { const item = raw?.[k] || {}, num = (v, fallback, min, max, step) => Number.isFinite(Number(v)) ? Math.max(min, Math.min(max, Math.round(Number(v) / step) * step)) : fallback; return [k, { x: num(item.x, 0, -250, 250, 5), y: num(item.y, 0, -250, 250, 5), size: num(item.size, 100, 60, 160, 5) }]; })), heroElementos = cleanHero(he), profiles = x?.bannerPorPlataforma || {}, bannerPorPlataforma = Object.fromEntries(['tv','web'].map(k => { const p = profiles[k] || {}, v = Number(p.banner); return [k, { banner: Number.isFinite(v) ? Math.max(560, Math.min(900, Math.round(v / 10) * 10)) : (Number.isFinite(b) ? Math.max(560, Math.min(900, Math.round(b / 10) * 10)) : d.banner), pantallaCompletaInicial: p.pantallaCompletaInicial !== false, fundidoInferior: cleanFade(p.fundidoInferior), fondoPoster: cleanFondo(p.fondoPoster), imagenCompleta: p.imagenCompleta !== false, heroElementos: cleanHero(p.heroElementos || he) }]; })); return { gap: Number.isFinite(n) ? Math.max(8, Math.min(80, Math.round(n))) : d.gap, banner: Number.isFinite(b) ? Math.max(560, Math.min(900, Math.round(b / 10) * 10)) : d.banner, topX: Number.isFinite(tx) ? Math.max(30, Math.min(70, Math.round(tx))) : d.topX, topY: Number.isFinite(ty) ? Math.max(0, Math.min(120, Math.round(ty))) : d.topY, barraExpandida: x?.barraExpandida === true, barraAncho: Number.isFinite(barWidth) ? Math.max(45, Math.min(95, Math.round(barWidth))) : d.barraAncho, heroElementos, bannerPorPlataforma, flotante: { enabled: fl.enabled !== false, overlap: Number.isFinite(Number(fl.overlap)) ? Math.max(0, Math.min(180, Math.round(Number(fl.overlap) / 5) * 5)) : d.flotante.overlap }, tamanos: Object.fromEntries(Object.keys(d.tamanos).map(k => [k, Number.isFinite(Number(sz[k])) ? Math.max(75, Math.min(150, Math.round(Number(sz[k]) / 5) * 5)) : 100])), orden, filas: Object.fromEntries(Object.keys(d.filas).map(k => [k, f[k] === 'horizontal' ? 'horizontal' : d.filas[k]])) }; };
+  const tvDefault = { gap: 30, banner: 650, topX: 50, topY: 24, barraExpandida: false, barraAncho: 70, heroElementos: tvHeroDefault(), bannerPorPlataforma: { tv: { banner: 650, pantallaCompletaInicial: true, fundidoInferior: tvFadeDefault(), fondoPoster: tvFondoDefault(), imagenCompleta: true, heroElementos: tvHeroDefault() }, web: { banner: 650, pantallaCompletaInicial: true, fundidoInferior: tvFadeDefault(), fondoPoster: tvFondoDefault(), heroElementos: tvHeroDefault() }, app: { banner: 650, pantallaCompletaInicial: true, fundidoInferior: tvFadeDefault(), fondoPoster: tvFondoDefault(), heroElementos: tvHeroDefault() } }, flotante: { enabled: true, overlap: 80 }, tamanos: { continuar: 100, populares: 100, recientes: 100, generos: 100, tematicas: 100 }, orden: tvOrderDefault, filas: { continuar: 'horizontal', populares: 'vertical', recientes: 'vertical', generos: 'vertical', generosPorGenero: {} } };
+  const tvNormalizar = x => { const d = tvDefault, f = x && x.filas || {}, fl = x && x.flotante || {}, sz = x && x.tamanos || {}, he = x && x.heroElementos || {}, n = Number(x && x.gap), b = Number(x && x.banner), tx = Number(x && x.topX), ty = Number(x && x.topY), barWidth = Number(x && x.barraAncho), valid = k => tvOrderDefault.includes(k) || /^theme:[a-z0-9][a-z0-9-]{0,39}$/.test(k), orden = Array.isArray(x && x.orden) ? x.orden.filter((k, i, a) => valid(k) && a.indexOf(k) === i).slice(0, 70) : []; tvOrderDefault.forEach(k => { if (!orden.includes(k)) orden.push(k); }); const cleanFondo = raw => { const v = raw && typeof raw === 'object' ? raw : {}, num = (x, fallback, min, max) => Number.isFinite(Number(x)) ? Math.max(min, Math.min(max, Math.round(Number(x)))) : fallback; return { enabled: v.enabled === true, desenfoque: num(v.desenfoque, 60, 0, 120), brillo: num(v.brillo, 35, 10, 100), saturacion: num(v.saturacion, 130, 50, 250), opacidad: num(v.opacidad, 100, 0, 100), zoom: num(v.zoom, 120, 100, 160), oscuridad: num(v.oscuridad, 60, 0, 100) }; }; const cleanFade = raw => { const v = raw || {}, num = (x, fallback, min, max) => Number.isFinite(Number(x)) ? Math.max(min, Math.min(max, Math.round(Number(x)))) : fallback; return { enabled: v.enabled !== false, intensidad: num(v.intensidad, 72, 0, 100), inicio: num(v.inicio, 13, 0, 70), altura: num(v.altura, 65, 20, 100) }; }, cleanHero = raw => Object.fromEntries(tvHeroKeys.map(k => { const item = raw?.[k] || {}, num = (v, fallback, min, max, step) => Number.isFinite(Number(v)) ? Math.max(min, Math.min(max, Math.round(Number(v) / step) * step)) : fallback; return [k, { x: num(item.x, 0, -250, 250, 5), y: num(item.y, 0, -250, 250, 5), size: num(item.size, 100, 60, 160, 5) }]; })), heroElementos = cleanHero(he), profiles = x?.bannerPorPlataforma || {}, bannerPorPlataforma = Object.fromEntries(['tv','web','app'].map(k => { const p = profiles[k] || (k === 'app' ? profiles.web : null) || {}, v = Number(p.banner); return [k, { banner: Number.isFinite(v) ? Math.max(560, Math.min(900, Math.round(v / 10) * 10)) : (Number.isFinite(b) ? Math.max(560, Math.min(900, Math.round(b / 10) * 10)) : d.banner), pantallaCompletaInicial: p.pantallaCompletaInicial !== false, fundidoInferior: cleanFade(p.fundidoInferior), fondoPoster: cleanFondo(p.fondoPoster), imagenCompleta: p.imagenCompleta !== false, heroElementos: cleanHero(p.heroElementos || he) }]; })); return { gap: Number.isFinite(n) ? Math.max(8, Math.min(80, Math.round(n))) : d.gap, banner: Number.isFinite(b) ? Math.max(560, Math.min(900, Math.round(b / 10) * 10)) : d.banner, topX: Number.isFinite(tx) ? Math.max(30, Math.min(70, Math.round(tx))) : d.topX, topY: Number.isFinite(ty) ? Math.max(0, Math.min(120, Math.round(ty))) : d.topY, barraExpandida: x?.barraExpandida === true, barraAncho: Number.isFinite(barWidth) ? Math.max(45, Math.min(95, Math.round(barWidth))) : d.barraAncho, heroElementos, bannerPorPlataforma, flotante: { enabled: fl.enabled !== false, overlap: Number.isFinite(Number(fl.overlap)) ? Math.max(0, Math.min(180, Math.round(Number(fl.overlap) / 5) * 5)) : d.flotante.overlap }, tamanos: Object.fromEntries(Object.keys(d.tamanos).map(k => [k, Number.isFinite(Number(sz[k])) ? Math.max(75, Math.min(150, Math.round(Number(sz[k]) / 5) * 5)) : 100])), orden, filas: { ...Object.fromEntries(Object.keys(d.filas).filter(k => k !== 'generosPorGenero').map(k => [k, f[k] === 'horizontal' ? 'horizontal' : d.filas[k]])), generosPorGenero: Object.fromEntries(Object.entries(f.generosPorGenero || {}).filter(([k]) => /^[a-z0-9][a-z0-9-]{0,39}$/.test(k)).map(([k,v]) => [k, v === 'horizontal' ? 'horizontal' : 'vertical'])) } }; };
   /* Fondo con el póster del banner en toda la página (fijo, desenfocado y oscuro): dos capas que se funden al cambiar de póster + una sombra. */
   const fpCapas = []; let fpAlt = 0, fpUrl = '';
   const fpCrear = () => { if (fpCapas.length) return; ['fp-a', 'fp-b', 'fp-sombra'].forEach(id => { const d = document.createElement('div'); d.id = id; d.setAttribute('aria-hidden', 'true'); document.body.appendChild(d); fpCapas.push(d); }); };
@@ -6512,10 +6524,10 @@ setTimeout(() => { vtOK = true; }, 600);              // las transiciones empiez
   const tvRows = { continuar: 'cont', populares: 'pop', recientes: 'recientes-anio-w', generos: 'gen' };
   const aplicarTv = () => {
     root.style.setProperty('--tv-row-gap', tvCfg.gap + 'px');
-    const bannerConfig = root.classList.contains('web-wide-home') ? tvCfg.bannerPorPlataforma.web : tvCfg.bannerPorPlataforma.tv;
+    const bannerConfig = root.classList.contains('app-wide-home') ? tvCfg.bannerPorPlataforma.app : root.classList.contains('web-wide-home') ? tvCfg.bannerPorPlataforma.web : tvCfg.bannerPorPlataforma.tv;
     root.classList.toggle('tv-banner-initial-fullscreen', !bannerHasSlid && bannerConfig.pantallaCompletaInicial);
-    root.classList.toggle('tv-banner-image-full', bannerConfig.imagenCompleta !== false);
-    root.style.setProperty('--tv-hero-height', bannerConfig.banner + 'px');
+    root.classList.toggle('tv-banner-image-contain', bannerConfig.imagenCompleta === false);
+    root.style.setProperty('--tv-hero-height', bannerConfig.banner + 'px'); root.style.setProperty('--tv-hero-image-x', bannerConfig.encuadreX + '%'); root.style.setProperty('--tv-hero-image-y', bannerConfig.encuadreY + '%');
     const fade = bannerConfig.fundidoInferior, fadeOpacity = fade.enabled ? fade.intensidad / 100 : 0, fadeEnd = Math.min(100, fade.inicio + fade.altura), fadeMid = fade.inicio + (fadeEnd - fade.inicio) * .6;
     root.style.setProperty('--tv-hero-fade-opacity', Math.round(fadeOpacity * 100) + '%'); root.style.setProperty('--tv-hero-fade-mid-opacity', Math.round(fadeOpacity * 22) + '%'); root.style.setProperty('--tv-hero-fade-start', fade.inicio + '%'); root.style.setProperty('--tv-hero-fade-midpoint', fadeMid.toFixed(1) + '%'); root.style.setProperty('--tv-hero-fade-end', fadeEnd + '%');
     aplicarFondoPoster(bannerConfig.fondoPoster);
@@ -6541,6 +6553,8 @@ setTimeout(() => { vtOK = true; }, 600);              // las transiciones empiez
     const thematicGroup = tvCfg.orden.indexOf('thematic');
     document.querySelectorAll('.secw[data-u="inicio"]').forEach(item => { const position = tvCfg.orden.indexOf('theme:' + item.dataset.sec); item.style.order = String(position >= 0 ? position : thematicGroup >= 0 ? thematicGroup : tvCfg.orden.length); });
     Object.entries(tvRows).forEach(([k, id]) => { const row = document.getElementById(id); if (row) row.dataset.tvOrientation = tvCfg.filas[k]; });
+    document.querySelectorAll('#gen .row[data-tv-genre-key]').forEach(row => { row.dataset.tvOrientation = tvCfg.filas.generosPorGenero[row.dataset.tvGenreKey] || tvCfg.filas.generos; });
+    try { parent.postMessage({ t: 'bb-tv-genres', genres: [...document.querySelectorAll('#gen .row[data-tv-genre-key]')].map(row => ({ key: row.dataset.tvGenreKey, label: row.querySelector('.gt span')?.textContent || row.dataset.tvGenreKey })) }, location.origin); } catch (e) {}
     document.querySelectorAll('#cont .card,#pop .card,#recientes-anio-w .card,#gen .card').forEach(window.bbTvAplicarTarjeta);
     document.querySelectorAll('[data-tv-floating="true"]').forEach(row => { delete row.dataset.tvFloating; });
     if (tvCfg.flotante.enabled && tvCfg.flotante.overlap > 0) {
@@ -6552,7 +6566,7 @@ setTimeout(() => { vtOK = true; }, 600);              // las transiciones empiez
   };
   window.bbTvAplicarTarjeta = el => {
     if (!el || !el.querySelector) return;
-    const row = el.closest('#cont,#pop,#recientes-anio-w,#gen'), mode = row?.dataset.tvOrientation;
+    const row = el.closest('#cont,#pop,#recientes-anio-w,#gen'), genreRow = el.closest('#gen .row'), mode = genreRow?.dataset.tvOrientation || row?.dataset.tvOrientation;
     if (!mode) return;
     el.classList.toggle('hz', mode === 'horizontal');
     const img = el.querySelector('img');
