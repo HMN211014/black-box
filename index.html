@@ -1489,6 +1489,13 @@ html.catalogo-exclusivo.catalogo-listo #vista-catalogo{display:flex!important}
 #hambiente,#hrelleno,#hsombra{display:none}
 /* Filas ocultadas desde admin > Android TV > orden de filas. */
 [data-tv-oculta="true"]{display:none!important}
+/* Ficha de la película: el mismo chaflán (solo abajo), sombra de profundidad y relleno de esquinas que el banner del inicio. */
+#dfill{display:none}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home).tv-radio #dbgwrap{height:100svh;border-radius:0 0 var(--hero-radio,0) var(--hero-radio,0)}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home).tv-radio #dbg{-webkit-mask-image:none;mask-image:none}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home).tv-prof #dbgwrap{box-shadow:0 var(--prof-y,10px) var(--prof-b,50px) rgba(0,0,0,var(--prof-a,.5)),0 calc(var(--prof-y,10px) / 2) calc(var(--prof-b,50px) / 4) rgba(0,0,0,var(--prof-a,.5))}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home).tv-radio #dfill{display:block;position:absolute;left:0;right:0;top:0;height:100svh;z-index:-2;overflow:hidden;pointer-events:none}
+.tv-radio #dfill::before{content:"";position:absolute;inset:-12%;background:var(--img,none) center 20%/cover no-repeat;filter:blur(var(--amb-blur,70px)) brightness(var(--amb-bright,.7)) saturate(var(--amb-sat,1.6))}
 /* Profundidad de todos los pósters (mismo efecto flotante que la primera fila bajo el banner; admin > Android TV > Profundidad de los pósters). */
 :is(html.android-tv,html.web-wide-home,html.app-wide-home).tv-cardprof.tv-tj-cont #cont .card{box-shadow:0 var(--tj-y1,12px) var(--tj-b1,24px) rgba(0,0,0,var(--tj-a1,.55)),0 var(--tj-y2,26px) var(--tj-b2,54px) rgba(0,0,0,var(--tj-a2,.42))}
 :is(html.android-tv,html.web-wide-home,html.app-wide-home).tv-cardprof.tv-tj-pop #pop .card{box-shadow:0 var(--tj-y1,12px) var(--tj-b1,24px) rgba(0,0,0,var(--tj-a1,.55)),0 var(--tj-y2,26px) var(--tj-b2,54px) rgba(0,0,0,var(--tj-a2,.42))}
@@ -1807,6 +1814,7 @@ html.bb-panel-preview #tv-preview-note{display:block;position:fixed;z-index:56;r
 </section>
 
 <section id="vista-det" hidden aria-label="Ficha">
+  <i id="dfill" aria-hidden="true"></i>
   <div class="dbgwrap" id="dbgwrap"><div class="dbg" id="dbg"></div></div>
   <div class="dwrap">
     <div class="dmain">
@@ -4739,7 +4747,7 @@ async function descargarPelicula(p, boton) {
 function pintarDetalle(p) {
   const serie = p.tipo === 'serie';
   H('dbgwrap').style.setProperty('--g', grad(p.titulo));
-  const bg = heroImg(p); H('dbg').style.setProperty('--img', bg ? `url("${bg}")` : 'none');
+  const bg = heroImg(p); H('dbg').style.setProperty('--img', bg ? `url("${bg}")` : 'none'); H('dfill').style.setProperty('--img', bg ? `url("${bg}")` : 'none');
   ponerTitulo(p, H('dlogo'), H('dtit'));
   H('dgen').textContent = (p.genero || '').split(',').map(x => x.trim()).filter(Boolean).slice(0, 3).join(' · ');
   H('dplayt').textContent = etiquetaPlay(p);
@@ -4849,7 +4857,7 @@ H('hback').onclick = () => {
   if (detHist) history.back();
   else { history.replaceState(null, '', location.pathname + location.search); ruta(false); }
 };
-addEventListener('resize', () => { if (detActual && !vistas.det.hidden) { const bg = heroImg(detActual); H('dbg').style.setProperty('--img', bg ? `url("${bg}")` : 'none'); } });
+addEventListener('resize', () => { if (detActual && !vistas.det.hidden) { const bg = heroImg(detActual); H('dbg').style.setProperty('--img', bg ? `url("${bg}")` : 'none'); H('dfill').style.setProperty('--img', bg ? `url("${bg}")` : 'none'); } });
 
 /* ---------- Conexión con el servidor de cuentas ---------- */
 const tokenGuardado = () => { try { return localStorage.getItem('bb_tok') || ''; } catch (e) { return ''; } };
