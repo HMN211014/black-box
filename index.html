@@ -6,7 +6,7 @@
 <script>try{const u=new URL(location.href);if(u.hash==='#/catalogo'&&/^[A-Za-z0-9_-]{32,80}$/.test(u.searchParams.get('bb-share')||''))document.documentElement.classList.add('catalogo-exclusivo','sin-intro')}catch(e){}</script>
 <title>Black BOX</title>
 <script>try{if(window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform()){document.documentElement.classList.add('acceso-app','en-app');setTimeout(function(){if(!window.__accesoListo)document.documentElement.classList.remove('acceso-app')},9000)}}catch(e){}</script>
-<script>try{const vistaTv=new URLSearchParams(location.search).get('bbtvpreview')==='1';if(/BlackBoxTV\/1/i.test(navigator.userAgent)||vistaTv){document.documentElement.classList.add('android-tv','sin-intro');if(vistaTv)document.documentElement.classList.add('tv-preview-mode')}}catch(e){}</script>
+<script>try{const vistaTv=new URLSearchParams(location.search).get('bbtvpreview')==='1',esTv=/BlackBoxTV\/1/i.test(navigator.userAgent)||vistaTv,webHorizontal=!esTv&&matchMedia('(min-width:1000px) and (orientation:landscape) and (pointer:fine)').matches,raiz=document.documentElement;if(esTv){raiz.classList.add('android-tv','sin-intro');raiz.dataset.androidTvDevice='true';if(vistaTv)raiz.classList.add('tv-preview-mode')}else if(webHorizontal)raiz.classList.add('android-tv','web-wide-home')}catch(e){}</script>
 <style>
 :root{--bg:#000;--fg:#f5f5f7;--muted:#98989d;--glass:rgba(40,40,44,.72);--r:22px}
 *{box-sizing:border-box;margin:0}
@@ -6428,6 +6428,7 @@ setTimeout(() => { vtOK = true; }, 600);              // las transiciones empiez
 <script>
 (() => {
   const root = document.documentElement;
+  const androidTvDevice = root.dataset.androidTvDevice === 'true';
   if (!root.classList.contains('android-tv')) return;
 
   const tvOrderDefault = ['hero', 'continuar', 'popular', 'collections', 'recent', 'genreTiles', 'platforms', 'genres', 'thematic', 'all'];
@@ -6490,6 +6491,8 @@ setTimeout(() => { vtOK = true; }, 600);              // las transiciones empiez
     aplicarTv();
   }).observe(home, { childList: true });
   if (home && 'MutationObserver' in window) new MutationObserver(aplicarTv).observe(home, { attributes: true, attributeFilter: ['hidden'] });
+
+  if (!androidTvDevice) return;
 
   const clock = document.getElementById('tv-clock');
   const renderClock = () => {
