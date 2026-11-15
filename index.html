@@ -1486,7 +1486,11 @@ html.catalogo-exclusivo.catalogo-listo #vista-catalogo{display:flex!important}
 
 /* Diseño compartido del panel frontal: Android TV y web horizontal. */
 /* Modo ambiente fuera del póster (admin > Android TV > Modo ambiente). Solo con la clase tv-ambiente. z-index -1: sobre el fondo con el póster (-2), bajo las filas. */
-#hambiente{display:none}
+#hambiente,#hrelleno{display:none}
+/* Relleno de las esquinas que deja libres el redondeado: el mismo resplandor del póster, detrás del banner. */
+:is(html.android-tv,html.web-wide-home,html.app-wide-home).tv-radio #hrelleno{display:block;position:absolute;inset:0;z-index:-1;pointer-events:none}
+.tv-radio #hrelleno::before{content:"";position:absolute;inset:-12%;background:var(--img,none) var(--tv-hero-image-x,50%) 50%/cover no-repeat;filter:blur(var(--amb-blur,70px)) brightness(var(--amb-bright,.7)) saturate(var(--amb-sat,1.6))}
+.tv-radio #hrelleno::after{content:"";position:absolute;inset:0;background:color-mix(in srgb,var(--glow,#1f4fff) var(--amb-tint,35%),transparent)}
 /* Esquinas redondeadas del póster del banner (radio ajustable en admin > Android TV). */
 :is(html.android-tv,html.web-wide-home,html.app-wide-home).tv-radio #hero{border-radius:var(--hero-radio,0)}
 html.tv-ambiente #hambiente{display:block;position:absolute;left:0;right:0;top:100%;height:var(--amb-h,35%);z-index:-1;pointer-events:none;opacity:var(--amb-op,.7);
@@ -1663,7 +1667,7 @@ html.bb-panel-preview #tv-preview-note{display:block;position:fixed;z-index:56;r
   <div class="dots" id="dots"></div>
   <aside id="tv-profiles" aria-label="Perfiles" hidden></aside>
 </section>
-<i id="hambiente" aria-hidden="true"></i>
+<i id="hambiente" aria-hidden="true"></i><i id="hrelleno" aria-hidden="true"></i>
 <i class="hext" aria-hidden="true"></i>
 </div>
 <aside id="anun" hidden aria-label="Publicidad"></aside>
@@ -6549,7 +6553,7 @@ setTimeout(() => { vtOK = true; }, 600);              // las transiciones empiez
   const aplicarAmbiente = a => {
     const rad = a && a.radio > 0 ? a.radio : 0; root.classList.toggle('tv-radio', rad > 0); if (rad > 0) root.style.setProperty('--hero-radio', rad + 'px');
     const on = !!(a && a.enabled); root.classList.toggle('tv-ambiente', on);
-    if (!on) return;
+    if (!on && !(rad > 0)) return;
     root.style.setProperty('--amb-h', a.altura + '%'); root.style.setProperty('--amb-op', String(a.intensidad / 100)); root.style.setProperty('--amb-blur', a.desenfoque + 'px');
     root.style.setProperty('--amb-bright', String(a.brillo / 100)); root.style.setProperty('--amb-sat', String(a.saturacion / 100)); root.style.setProperty('--amb-tint', a.tinte + '%');
     root.style.setProperty('--amb-flip', a.reflejo ? '-1' : '1');
