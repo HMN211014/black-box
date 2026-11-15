@@ -663,6 +663,11 @@ body.buscando .sb{transform:translate(-50%,0);opacity:1;pointer-events:auto}
 .sb .mic[hidden]{display:none}
 .sb .mic.oyendo{background:#ff453a}
 .sb.lleno .mic{display:none}
+/* Sin recuadro rectangular al tocar o enfocar las barras de búsqueda: nada de resaltado de toque, anillo de foco ni fondo de autocompletado sobre el campo */
+.sb,.sb *,.buscar,.buscar *,.catalogo-top,.catalogo-top *{-webkit-tap-highlight-color:transparent}
+.sb input,.buscar input,.catalogo-search{outline:none;box-shadow:none;border-radius:999px;background-color:transparent;-webkit-touch-callout:none}
+.sb input:focus,.sb input:focus-visible,.sb input:active,.buscar input:focus,.buscar input:focus-visible,.catalogo-search:focus,.catalogo-search:focus-visible,.catalogo-search:active{outline:none!important;box-shadow:none!important;background-color:transparent!important}
+.sb input:-webkit-autofill,.buscar input:-webkit-autofill,.catalogo-search:-webkit-autofill{-webkit-text-fill-color:#fff;-webkit-box-shadow:0 0 0 1000px transparent inset;box-shadow:0 0 0 1000px transparent inset;transition:background-color 99999s ease-out}
 body.colmode .cback{z-index:70}
 #vista-busq{display:none;padding:clamp(88px,12vh,120px) 5vw calc(var(--dockh) + 120px);min-height:100svh}
 #vista-busq h3{font-size:22px;letter-spacing:-.02em;padding:0 0 2px}
