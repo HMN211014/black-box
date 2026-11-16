@@ -1503,7 +1503,7 @@ html.catalogo-exclusivo.catalogo-listo #vista-catalogo{display:flex!important}
 :is(html.android-tv,html.web-wide-home,html.app-wide-home).tv-radio #dbg{-webkit-mask-image:none;mask-image:none}
 :is(html.android-tv,html.web-wide-home,html.app-wide-home).tv-prof #dbgwrap{box-shadow:0 var(--prof-y,10px) var(--prof-b,50px) rgba(0,0,0,var(--prof-a,.5)),0 calc(var(--prof-y,10px) / 2) calc(var(--prof-b,50px) / 4) rgba(0,0,0,var(--prof-a,.5))}
 :is(html.android-tv,html.web-wide-home,html.app-wide-home).tv-radio #dfill{display:block;position:absolute;left:0;right:0;top:0;height:100svh;z-index:-2;overflow:hidden;pointer-events:none}
-.tv-radio #dfill::before{content:"";position:absolute;inset:-12%;background:var(--img,none) center 20%/cover no-repeat;filter:blur(var(--amb-blur,70px)) brightness(var(--amb-bright,.7)) saturate(var(--amb-sat,1.6))}
+.tv-radio #dfill::before{content:"";position:absolute;inset:-12% 0;background:var(--img,none) center 20%/cover no-repeat;filter:blur(var(--amb-blur,70px)) brightness(var(--amb-bright,.7)) saturate(var(--amb-sat,1.6))}
 /* Profundidad de todos los pósters (mismo efecto flotante que la primera fila bajo el banner; admin > Android TV > Profundidad de los pósters). */
 :is(html.android-tv,html.web-wide-home,html.app-wide-home).tv-cardprof.tv-tj-cont #cont .card{box-shadow:0 var(--tj-y1,12px) var(--tj-b1,24px) rgba(0,0,0,var(--tj-a1,.55)),0 var(--tj-y2,26px) var(--tj-b2,54px) rgba(0,0,0,var(--tj-a2,.42))}
 :is(html.android-tv,html.web-wide-home,html.app-wide-home).tv-cardprof.tv-tj-pop #pop .card{box-shadow:0 var(--tj-y1,12px) var(--tj-b1,24px) rgba(0,0,0,var(--tj-a1,.55)),0 var(--tj-y2,26px) var(--tj-b2,54px) rgba(0,0,0,var(--tj-a2,.42))}
@@ -1515,13 +1515,13 @@ html.catalogo-exclusivo.catalogo-listo #vista-catalogo{display:flex!important}
 :is(html.android-tv,html.web-wide-home,html.app-wide-home).tv-prof #hsombra{display:block;position:absolute;inset:0;z-index:-1;pointer-events:none;border-radius:0 0 var(--hero-radio,0) var(--hero-radio,0);box-shadow:0 var(--prof-y,10px) var(--prof-b,50px) rgba(0,0,0,var(--prof-a,.5)),0 calc(var(--prof-y,10px) / 2) calc(var(--prof-b,50px) / 4) rgba(0,0,0,var(--prof-a,.5))}
 /* Relleno de las esquinas que deja libres el redondeado: el mismo resplandor del póster, detrás del banner. */
 :is(html.android-tv,html.web-wide-home,html.app-wide-home).tv-radio #hrelleno{display:block;position:absolute;inset:0;z-index:-1;pointer-events:none}
-.tv-radio #hrelleno::before{content:"";position:absolute;inset:-12%;background:var(--img,none) var(--tv-hero-image-x,50%) 50%/cover no-repeat;filter:blur(var(--amb-blur,70px)) brightness(var(--amb-bright,.7)) saturate(var(--amb-sat,1.6))}
+.tv-radio #hrelleno::before{content:"";position:absolute;inset:-12% 0;background:var(--img,none) var(--tv-hero-image-x,50%) 50%/cover no-repeat;filter:blur(var(--amb-blur,70px)) brightness(var(--amb-bright,.7)) saturate(var(--amb-sat,1.6))}
 .tv-radio #hrelleno::after{content:"";position:absolute;inset:0;background:color-mix(in srgb,var(--glow,#1f4fff) var(--amb-tint,35%),transparent)}
 /* Esquinas redondeadas (solo las de abajo) del póster del banner (radio ajustable en admin > Android TV). */
 :is(html.android-tv,html.web-wide-home,html.app-wide-home).tv-radio #hero{border-radius:0 0 var(--hero-radio,0) var(--hero-radio,0)}
 html.tv-ambiente #hambiente{display:block;position:absolute;left:0;right:0;top:100%;height:var(--amb-h,35%);z-index:-1;pointer-events:none;opacity:var(--amb-op,.7);
   -webkit-mask-image:linear-gradient(180deg,#000 0%,rgba(0,0,0,.55) 42%,transparent 100%);mask-image:linear-gradient(180deg,#000 0%,rgba(0,0,0,.55) 42%,transparent 100%)}
-html.tv-ambiente #hambiente::before{content:"";position:absolute;inset:-35% -10%;background:var(--img,none) var(--tv-hero-image-x,50%) 100%/cover no-repeat;
+html.tv-ambiente #hambiente::before{content:"";position:absolute;inset:-35% 0;background:var(--img,none) var(--tv-hero-image-x,50%) 100%/cover no-repeat;
   filter:blur(var(--amb-blur,70px)) brightness(var(--amb-bright,.7)) saturate(var(--amb-sat,1.6));transform:scaleY(var(--amb-flip,-1))}
 html.tv-ambiente #hambiente::after{content:"";position:absolute;inset:0;background:color-mix(in srgb,var(--glow,#1f4fff) var(--amb-tint,35%),transparent)}
 /* Franja de integración en el borde inferior del banner (admin > Android TV > Detalle en el borde inferior). Solo con la clase tv-costura. */
@@ -1618,6 +1618,10 @@ html.bb-panel-preview #tv-preview-note{display:block;position:fixed;z-index:56;r
 :is(html.android-tv,html.web-wide-home,html.app-wide-home) .tv-profile-nombre{max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-shadow:0 2px 8px #000}
 :is(html.android-tv,html.web-wide-home,html.app-wide-home) .tv-profile-add .pav{background:rgba(27,28,30,.74);color:#eee;font-weight:300}
 @media(max-height:760px) and (min-width:1000px){:is(html.android-tv,html.web-wide-home,html.app-wide-home) #hero{height:var(--tv-hero-height,68vh);min-height:560px;max-height:900px}:is(html.android-tv,html.web-wide-home,html.app-wide-home) #tv-profiles{top:13%;gap:12px 14px}:is(html.android-tv,html.web-wide-home,html.app-wide-home) .tv-profile .pav{width:68px!important;height:68px!important}}
+/* Nunca se permite deslizar la página a los lados en las versiones horizontales (los resplandores y sombras se recortan en el borde de la pantalla). */
+:is(html.android-tv,html.web-wide-home,html.app-wide-home){overflow-x:clip;max-width:100%}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home) body{overflow-x:clip;max-width:100vw}
+:is(html.android-tv,html.web-wide-home,html.app-wide-home) #herowrap{overflow-x:clip}
 /* Barra superior: la opción elegida se nota más (letra en negrita y más grande) y las demás quedan un poco más tenues. */
 html body #dock .dk{font-weight:600;color:rgba(255,255,255,.68)}
 html body #dock .dk.on{font-weight:800;color:#fff;letter-spacing:-.005em}
