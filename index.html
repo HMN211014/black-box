@@ -1676,7 +1676,6 @@ html body #dock .dk.on{font-weight:800;color:#fff;letter-spacing:-.005em}
   <button type="button" class="dk" data-v="series" aria-label="Series"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="2.5"/><path d="M8 3l4 3.5L16 3"/></svg><span>Series</span></button>
   <button type="button" class="dk" data-v="pedidos" id="dk-ped" aria-label="Pedidos"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><path d="M12 8v8M8 12h8"/></svg><span>Pedidos</span></button>
   <button type="button" class="dk" data-v="recientes" id="dk-rec" aria-label="Recientes"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg><span>Recientes</span></button>
-  <button type="button" class="dk" data-v="descarga" id="dk-descarga" aria-label="Descargas"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 5-5m-5 5-5-5M4 17v3h16v-3"/></svg><span>Descarga</span></button>
   <i class="dsep" aria-hidden="true"></i>
   <button type="button" class="dk" id="dk-buscar" aria-label="Buscar" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><span>Buscar</span></button>
   <button type="button" class="dk" id="ajustes" aria-label="Iniciar sesión"><i class="uic"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg></i><span id="aj-t">Iniciar sesión</span></button>
@@ -5514,13 +5513,6 @@ function seccionOpciones() {
 
 /* ---- Menú de perfiles (como el de Apple TV) y pantalla "Ajustes del perfil" ---- */
 function cerrarMenuPerfil() { const o = document.querySelector('.pmenu-ov'); if (o) { o.classList.remove('on'); setTimeout(() => o.remove(), 260); } }
-function uVistaDescargas() {
-  const w = el('div', 'ua pf-aj');
-  w.append(el('h2', '', 'Descargas'));
-  const mensaje = el('p', 'ssub'); mensaje.textContent = 'Aquí podrás ver y administrar tus descargas próximamente.';
-  w.append(mensaje);
-  return w;
-}
 function abrirMenuPerfil() {
   cerrarMenuPerfil();
   const ov = el('div', 'pmenu-ov'), m = el('div', 'pmenu vg-rim');
@@ -5535,7 +5527,7 @@ function abrirMenuPerfil() {
   const ic = el('span', 'pm-ic'); ic.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><circle cx="12" cy="9.5" r="3.2"/><path d="M5.8 18.6c1.4-2.4 3.7-3.6 6.2-3.6s4.8 1.2 6.2 3.6"/></svg>';
   aj.append(ic, el('span', 'pm-n', 'Ajustes del perfil')); aj.onclick = () => { cerrarMenuPerfil(); abrirAjustes(); };
   const descargas = el('button', 'pm-fila'); descargas.type = 'button'; const icDescargas = el('span', 'pm-ic'); icDescargas.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11"/><path d="m7.5 11 4.5 4.5 4.5-4.5"/><path d="M5 19.5h14"/></svg>';
-  descargas.append(icDescargas, el('span', 'pm-n', 'Descargas')); descargas.onclick = () => { cerrarMenuPerfil(); hoja([uVistaDescargas()]); };
+  descargas.append(icDescargas, el('span', 'pm-n', 'Descargas')); descargas.onclick = () => { cerrarMenuPerfil(); irA('descarga'); };
   m.append(descargas);
   m.append(aj); ov.append(m); document.body.append(ov);
   const r = H('ajustes').getBoundingClientRect(), abajo = r.top > innerHeight / 2;           // debajo del botón (arriba a la derecha) o encima si el botón está abajo
