@@ -2480,12 +2480,15 @@ function pintarGeneros() {                           // una fila (carrusel) por 
   const s = modo === 'series', lista = L();
   if (lista.length < 5) return;
   const E = (t, c, x) => { const n = document.createElement(t); if (c) n.className = c; if (x !== undefined) n.textContent = x; return n; };   // (mk aún no existe cuando se pinta por primera vez)
-  const por = new Map();
+  const por = new Map(), yaVistas = new Set(), INICIO_VISIBLE = 10;
   lista.forEach(p => (p.genero || '').split(',').map(g => g.trim()).filter(Boolean).slice(0, s ? 2 : 3).forEach(g => { if (!por.has(g)) por.set(g, []); por.get(g).push(p); }));
   [...por.entries()].filter(([, l]) => l.length >= (s ? 2 : 3)).sort((a, b) => b[1].length - a[1].length).slice(0, s ? 6 : 12).forEach(([g, l]) => {
     const sec = E('section', 'row'); sec.dataset.tvGenreKey = slugGen(g); const tr = E('div', 'track'), pv = E('button', 'nav prev', '‹'), nx = E('button', 'nav next', '›'), h = E('h3', 'rt gt');
     pv.type = nx.type = 'button'; pv.setAttribute('aria-label', 'Anterior'); nx.setAttribute('aria-label', 'Siguiente');
-    ordenarAlAzar(l).slice(0, 24).forEach(p => { const b = crearTarjeta(p); tr.appendChild(b); if (!tarjetasG.has(p)) tarjetasG.set(p, []); tarjetasG.get(p).push(b); });
+    /* Sin repetir el comienzo: las películas que ya salieron entre las primeras de las filas anteriores (las que comparten géneros) pasan al final de esta fila. */
+    const mezcla = ordenarAlAzar(l), orden = [...mezcla.filter(p => !yaVistas.has(p)), ...mezcla.filter(p => yaVistas.has(p))].slice(0, 24);
+    orden.slice(0, INICIO_VISIBLE).forEach(p => yaVistas.add(p));
+    orden.forEach(p => { const b = crearTarjeta(p); tr.appendChild(b); if (!tarjetasG.has(p)) tarjetasG.set(p, []); tarjetasG.get(p).push(b); });
     pv.onclick = () => tr.scrollBy({ left: -tr.clientWidth * .8, behavior: 'smooth' }); nx.onclick = () => tr.scrollBy({ left: tr.clientWidth * .8, behavior: 'smooth' });
     h.append(E('span', '', g));
     if (!s) { const a = E('a', '', 'Ver todo ›'); a.href = '#/c/g-' + slugGen(g); a.setAttribute('aria-label', 'Ver todas las de ' + g); h.append(a); }      // abre la página del género
