@@ -1025,6 +1025,7 @@ html.acceso-app #acceso,#acceso.on{display:flex}
 .ua-o>span{display:flex;align-items:center;gap:12px;width:100%;color:rgba(255,255,255,.55);font-size:13px}
 .ua-o>span:before,.ua-o>span:after{content:"";flex:1;height:1px;background:rgba(255,255,255,.16)}
 .ua-o .ua-g{display:flex;justify-content:center;width:100%;min-height:44px;color-scheme:light}
+.ua-google-native{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;min-height:48px;padding:0 18px;border:1px solid #dadce0;border-radius:999px;background:#fff;color:#3c4043;font:500 15px Roboto,Arial,sans-serif;cursor:pointer}.ua-google-native svg{width:21px;height:21px;flex:none}.ua-google-native:disabled{opacity:.65}
 .ua-p.sale{animation:uaSale .15s ease forwards}.ua-p.entra{animation:uaEntra .3s cubic-bezier(.2,.8,.2,1) both}
 @keyframes uaSale{to{opacity:0;transform:translateX(calc(var(--d,1) * 18px))}}
 @keyframes uaEntra{from{opacity:0;transform:translateX(calc(var(--d,1) * 28px))}to{opacity:1;transform:none}}
@@ -5327,10 +5328,11 @@ function decidirAcceso() {                                  // con sesión (o si
 }
 H('ac-exp').onclick = () => { explorando = true; ocultarAcceso(); };
 H('ac-exp').addEventListener('mousedown', e => e.preventDefault());          // igual: tocar Explorar no cierra el teclado antes de tiempo
-/* Google (Google Identity Services). El script solo se descarga si hay ID de cliente y se abre la pantalla de acceso.
-   En la app de Android no se ofrece: Google no permite iniciar sesión dentro de un WebView. */
+/* En Android, el token de Google se obtiene con el selector nativo de Credential Manager; en web se usa GIS. */
 let gsiPromesa = null, gsiIniciado = '', gsiAlRecibir = null;
-const gsiDisponible = () => !!U.google && !(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+const esAndroidNativo = () => !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform() && (!window.Capacitor.getPlatform || window.Capacitor.getPlatform() === 'android'));
+const esNativo = () => !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+const gsiDisponible = () => !!U.google && (esAndroidNativo() || !esNativo());
 function gsiCargar() {
   if (!gsiPromesa) gsiPromesa = new Promise((ok, mal) => {
     const s = document.createElement('script'); s.src = 'https://accounts.google.com/gsi/client'; s.async = true;
@@ -5396,21 +5398,41 @@ function uVistaAcceso(pant) {
     U.correo = j.correo; U.acceso = j.acceso || null; U.lista = j.lista || []; U.servicio = true; uBtn(); uPlan(); HAPT.tocar('marcado'); uBajar().catch(() => {});
     if (pant) { explorando = false; ocultarAcceso(); } else abrirAjustes();
   };
-  /* Continuar con Google: el botón lo dibuja Google; aquí solo se manda al servidor lo que Google firma y se abre la sesión. */
+  /* Continuar con Google: el cliente nativo o GIS entregan un ID token que valida el servidor. */
   const og = w.querySelector('#ua-og');
   if (og) {
     let ocupado = false;
+    const conectar = async credencial => {
+      err.hidden = true; info('Conectando con tu cuenta de Google…');
+      const j = await api('usuario/google', { credencial });
+      if (j.correo) return listo(j);
+      mal(j.error || 'No se pudo entrar con Google.');
+    };
     const alRecibir = async r => {
       if (ocupado || !r || !r.credential) return;
-      ocupado = true; err.hidden = true; info('Conectando con tu cuenta de Google…');
-      try {
-        const j = await api('usuario/google', { credencial: r.credential });
-        if (j.correo) return listo(j);
-        mal(j.error || 'No se pudo entrar con Google.');
-      } catch (x) { mal(uError(x)); }
+      ocupado = true;
+      try { await conectar(r.credential); }
+      catch (x) { mal(uError(x)); }
       finally { ocupado = false; }
     };
-    gsiCargar().then(() => {
+    if (esAndroidNativo()) {
+      const boton = el('button', 'ua-google-native'); boton.type = 'button';
+      boton.innerHTML = '<svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#4285F4" d="M43.6 24.5c0-1.4-.1-2.8-.4-4.1H24v7.8h11a9.4 9.4 0 0 1-4.1 6.2v5.1h6.7c3.9-3.6 6-8.8 6-15Z"/><path fill="#34A853" d="M24 44c5.5 0 10.1-1.8 13.5-4.8l-6.7-5.1c-1.8 1.2-4.1 2-6.8 2-5.2 0-9.6-3.5-11.2-8.2H5.9v5.2A20 20 0 0 0 24 44Z"/><path fill="#FBBC05" d="M12.8 27.9a12 12 0 0 1 0-7.8v-5.2H5.9a20 20 0 0 0 0 18.2l6.9-5.2Z"/><path fill="#EA4335" d="M24 12c3 0 5.7 1 7.8 3.1l5.8-5.8A19.4 19.4 0 0 0 24 4 20 20 0 0 0 5.9 14.9l6.9 5.2C14.4 15.5 18.8 12 24 12Z"/></svg><span>Continuar con Google</span>';
+      boton.onclick = async () => {
+        if (ocupado) return; ocupado = true; boton.disabled = true;
+        try {
+          const auth = window.Capacitor?.Plugins?.GoogleAuth;
+          if (!auth?.signIn) throw new Error('Actualiza la app para usar el acceso con Google.');
+          const r = await auth.signIn({ clientId: U.google });
+          if (!r || !r.credential) throw new Error('Google no devolvió una credencial válida.');
+          await conectar(r.credential);
+        } catch (x) {
+          if (x?.code === 'SIGN_IN_CANCELED') err.hidden = true;
+          else mal(x?.message || 'No se pudo iniciar sesión con Google.');
+        } finally { ocupado = false; boton.disabled = false; }
+      };
+      w.querySelector('#ua-g').append(boton); og.hidden = false;
+    } else gsiCargar().then(() => {
       if (gsiIniciado !== U.google) { google.accounts.id.initialize({ client_id: U.google, callback: r => gsiAlRecibir && gsiAlRecibir(r), ux_mode: 'popup', auto_select: false, cancel_on_tap_outside: true }); gsiIniciado = U.google; }
       gsiAlRecibir = alRecibir;                                              // el último formulario abierto es el que recibe la respuesta
       og.hidden = false;
