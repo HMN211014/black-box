@@ -1624,6 +1624,11 @@ html.bb-panel-preview #tv-preview-note{display:block;position:fixed;z-index:56;r
 :is(html.android-tv,html.web-wide-home,html.app-wide-home){overflow-x:clip;max-width:100%}
 :is(html.android-tv,html.web-wide-home,html.app-wide-home) body{overflow-x:clip;max-width:100vw}
 :is(html.android-tv,html.web-wide-home,html.app-wide-home) #herowrap{overflow-x:clip}
+/* Modo ligero (televisores modestos): menos desenfoque y sin filtros de fondo, para que el desplazamiento sea fluido. */
+html.tv-ligero #hambiente::before,html.tv-ligero #hrelleno::before,html.tv-ligero #dfill::before{filter:blur(min(var(--amb-blur,70px),36px)) brightness(var(--amb-bright,.7)) saturate(var(--amb-sat,1.6))}
+html.tv-ligero #hcostura{-webkit-backdrop-filter:none;backdrop-filter:none;background:rgba(0,0,0,.2)}
+html.tv-ligero .track{scroll-behavior:auto}
+html.tv-ligero .card{transition:none}
 /* Barra superior: la opción elegida se nota más (letra en negrita y más grande) y las demás quedan un poco más tenues. */
 html body #dock .dk{font-weight:600;color:rgba(255,255,255,.68)}
 html body #dock .dk.on{font-weight:800;color:#fff;letter-spacing:-.005em}
@@ -3327,6 +3332,37 @@ pl.addEventListener('click', e => {
 });
 document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && fsAuto) { fsAuto = false; cerrarPlayer(); } });
 addEventListener('popstate', () => { if (tvBloq) { history.pushState({player: 1}, ''); return; } cerrarPlayer(true); });   // con la pantalla bloqueada, "atrás" no cierra
+/* ---- Control remoto y teclado ----
+   bbEspacial: navegación por flechas compartida (inicio de TV y reproductor). Devuelve el elemento al que mover el foco.
+   · ← →: primero los de la misma fila (el más cercano); ↑ ↓: la fila más próxima y, dentro de ella, el que queda más alineado en la columna. */
+window.bbEspacial = (items, active, dx, dy, origen) => {
+  const o = origen || (active && active.getBoundingClientRect()); if (!o) return null;
+  const ox = o.left + o.width / 2, oy = o.top + o.height / 2, cand = [];
+  for (const item of items) {
+    if (item === active) continue;
+    const r = item.getBoundingClientRect(), x = r.left + r.width / 2, y = r.top + r.height / 2;
+    const primary = dx ? (x - ox) * dx : (y - oy) * dy;
+    if (primary < 8) continue;
+    cand.push({ item, primary, cross: dx ? Math.abs(y - oy) : Math.abs(x - ox) });
+  }
+  if (!cand.length) return null;
+  const menor = (l, f) => l.reduce((m, c) => (!m || f(c) < f(m)) ? c : m, null);
+  if (dx) {
+    const fila = cand.filter(c => c.cross <= Math.max(o.height, 40) * .6);
+    if (fila.length) return menor(fila, c => c.primary).item;
+  } else {
+    const alineados = cand.filter(c => c.cross <= Math.max(o.width * .75, 120));      // en la misma columna: el más cercano (así se saltan los títulos y enlaces sueltos entre filas)
+    if (alineados.length) return menor(alineados, c => c.primary).item;
+    const minP = Math.min(...cand.map(c => c.primary)), banda = cand.filter(c => c.primary - minP < Math.max(40, o.height * .5));
+    return menor(banda, c => c.cross * 1000 + c.primary).item;
+  }
+  return menor(cand, c => c.primary + c.cross * 1.7 + (c.cross > c.primary * 1.5 ? c.primary * .8 : 0)).item;
+};
+const ctlVisibles = () => [...pl.querySelectorAll('.ctl button, .ctl input.seek, #peps button, #pnxt button')].filter(el => !el.disabled && !el.hidden && !el.closest('[hidden]') && el.getClientRects().length);
+const enControl = el => !!(el && el !== document.body && pl.contains(el) && el.matches('button,input'));
+let repSalto = 0;
+const pasoSalto = e => { if (e.repeat) repSalto++; else repSalto = 0; return repSalto > 14 ? 60 : repSalto > 5 ? 30 : 10; };   // al mantener ← → el salto crece: 10 s, 30 s, 60 s
+function atrasPlayer() { if (pl.classList.contains('eps')) H('pe-x').click(); else cerrarPlayer(); }
 addEventListener('keydown', e => {
   if (pl.hidden || tvBloq) return;
   const k = e.key;
@@ -3335,15 +3371,47 @@ addEventListener('keydown', e => {
     if (k === 'MediaPlayPause' || (k === 'MediaPlay' && V.paused) || (k === 'MediaPause' && !V.paused)) alternar();
     showC(); return;
   }
+  if (k === 'MediaFastForward' || k === 'MediaRewind') { e.preventDefault(); saltar(k === 'MediaFastForward' ? 30 : -30); showC(); return; }
+  if (k === 'MediaTrackNext' || k === 'MediaTrackPrevious') { const bt = H(k === 'MediaTrackNext' ? 'pnx' : 'ppv'); if (bt && !bt.hidden && !bt.disabled) { e.preventDefault(); bt.click(); } return; }
+  if (k === 'Escape') { atrasPlayer(); return; }
+  const flecha = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[k];
+  if (flecha) {
+    const [dx, dy] = flecha, panel = pl.classList.contains('eps'), ctrl = enControl(e.target);
+    showC();
+    if (ctrl || panel) {                                                    // con un botón enfocado las flechas se mueven entre los controles
+      e.preventDefault();
+      if (ctrl && e.target.id === 'ps' && dx) { saltar(dx * pasoSalto(e)); return; }   // en la barra de progreso, ← → saltan
+      const items = ctlVisibles().filter(el => panel ? el.closest('#peps') : !el.closest('#peps'));
+      const sig = window.bbEspacial(items, ctrl ? e.target : null, dx, dy, ctrl ? null : (items[0] && items[0].getBoundingClientRect()));
+      if (sig) sig.focus({ preventScroll: true });
+      else if (!ctrl && items[0]) items[0].focus({ preventScroll: true });
+      else if (dy > 0 && !panel) { e.target.blur(); hideC(); }
+      return;
+    }
+    e.preventDefault();                                                     // sin control enfocado: ← → adelantan/retroceden, ↑ lleva el foco a los controles, ↓ los oculta
+    if (dx) { saltar(dx * pasoSalto(e)); return; }
+    if (dy < 0) { H('pp').focus({ preventScroll: true }); return; }
+    hideC(); return;
+  }
   if ((k === 'Enter' || k === ' ') && !e.target.closest('button,input')) { e.preventDefault(); if (pl.classList.contains('c')) alternar(); else showC(); return; }
   if (k === ' ' && e.target.closest('button')) return;
-  if (k === 'Escape') cerrarPlayer();
-  else if (k === ' ' || k === 'k') { e.preventDefault(); alternar(); showC(); }
-  else if (k === 'ArrowRight') { saltar(10); showC(); }
-  else if (k === 'ArrowLeft') { saltar(-10); showC(); }
+  if (k === ' ' || k === 'k') { e.preventDefault(); alternar(); showC(); }
   else if (k === 'f') H('pfs').click();
   else if (k === 'm') H('pm').click();
   else if (k === 'a') H('pa').click();
+});
+/* Botón «Atrás» del control remoto (GoBack, BrowserBack, tecla 4, Retroceso): cierra lo último que se abrió, o vuelve a la pantalla anterior. */
+let ultimoAtras = 0;
+addEventListener('keydown', e => {
+  const k = e.key, campo = e.target && e.target.matches && e.target.matches('input,textarea,select,[contenteditable="true"]');
+  if (!(k === 'GoBack' || k === 'BrowserBack' || k === 'XF86Back' || e.keyCode === 4 || (k === 'Backspace' && !campo))) return;
+  if (Date.now() - ultimoAtras < 250) return; ultimoAtras = Date.now();
+  if (!pl.hidden) { e.preventDefault(); if (!tvBloq) atrasPlayer(); return; }
+  if ([...document.querySelectorAll('[role="dialog"][aria-modal="true"]')].some(d => !d.hidden && d.getClientRects().length)) { e.preventDefault(); document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); return; }
+  if (!H('sheet').hidden) { e.preventDefault(); if (document.dispatchEvent(new CustomEvent('bb-atras', { cancelable: true }))) cerrarHoja(); return; }
+  if (document.querySelector('.pmenu-ov')) { e.preventDefault(); cerrarMenuPerfil(); return; }
+  if (!document.dispatchEvent(new CustomEvent('bb-atras', { cancelable: true }))) { e.preventDefault(); return; }
+  if (/^#\/.+/.test(location.hash)) { e.preventDefault(); history.back(); }
 });
 H('pp').innerHTML = ICON.play; H('pm').innerHTML = ICON.vol;
 
@@ -6798,36 +6866,59 @@ setTimeout(() => { vtOK = true; }, 600);              // las transiciones empiez
   };
   window.bbTvRenderProfiles();
 
-  const editable = el => el && (el.matches('input,textarea,select,[contenteditable="true"]') || el.isContentEditable);
-  const visibles = () => [...document.querySelectorAll('a[href],button:not(:disabled),input:not(:disabled),select:not(:disabled),textarea:not(:disabled),[tabindex]:not([tabindex="-1"])')]
-    .filter(el => !el.closest('[hidden],[inert],[aria-hidden="true"]') && el.getClientRects().length && getComputedStyle(el).visibility !== 'hidden');
+  const editable = el => !!(el && el.matches && (el.matches('input,textarea,select,[contenteditable="true"]') || el.isContentEditable));
+  /* Modo ligero para televisores modestos (pocos núcleos o poca memoria): menos desenfoque, sin filtros de fondo y sin desplazamiento suave. Se puede forzar con ?bbligero=1 */
+  const ligero = (androidTvDevice && ((navigator.hardwareConcurrency || 8) <= 4 || (navigator.deviceMemory || 4) <= 2)) || new URLSearchParams(location.search).get('bbligero') === '1';
+  root.classList.toggle('tv-ligero', ligero);
+  const suave = ligero ? 'auto' : 'smooth';
+  const esVisible = el => el && el.getClientRects().length && getComputedStyle(el).visibility !== 'hidden' && !el.closest('[hidden],[inert],[aria-hidden="true"]');
+  /* Si hay un diálogo, hoja o menú abierto, el foco se queda dentro de él (no se «cuela» a lo que hay detrás). */
+  const modalActivo = () => [...document.querySelectorAll('[role="dialog"][aria-modal="true"], .pmenu-ov, #sheet')].filter(m => !m.hidden && m.getClientRects().length).pop() || null;
+  const visibles = () => {
+    const m = modalActivo(), base = [...document.querySelectorAll('a[href],button:not(:disabled),input:not(:disabled),select:not(:disabled),textarea:not(:disabled),[tabindex]:not([tabindex="-1"])')].filter(esVisible);
+    return (m ? base.filter(el => m.contains(el)) : base.filter(el => !el.matches('.nav')));
+  };
+  const enfocar = el => { el.focus({ preventScroll: true }); el.scrollIntoView({ behavior: suave, block: 'nearest', inline: 'nearest' }); };
+
+  /* Memoria del foco: al volver de una ficha, colección o del reproductor, el foco regresa a la tarjeta donde estabas. */
+  let ultimoFoco = null;
+  const clave = el => (el.getAttribute('aria-label') || el.textContent || '').trim().slice(0, 80);
+  document.addEventListener('focusin', e => { const t = e.target; if (t && t.closest && t.closest('#vista-inicio') && !modalActivo()) ultimoFoco = { el: t, clave: clave(t) }; });
+  const enInicio = () => { const h = location.hash; return !h || h === '#' || h === '#/'; };
+  const restaurarFoco = () => {
+    if (!ultimoFoco || (typeof pl !== 'undefined' && !pl.hidden)) return;
+    let el = ultimoFoco.el;
+    if (!document.contains(el) || !esVisible(el)) el = visibles().find(x => clave(x) === ultimoFoco.clave && x.closest('#vista-inicio'));
+    if (el) { el.focus({ preventScroll: true }); el.scrollIntoView({ behavior: 'auto', block: 'center', inline: 'nearest' }); }
+  };
+  addEventListener('hashchange', () => setTimeout(() => {
+    if (enInicio()) { restaurarFoco(); return; }
+    const a = document.activeElement;
+    if (!a || a === document.body || !esVisible(a)) { const dp = document.getElementById('dplay'); const el = dp && esVisible(dp) ? dp : visibles().find(x => !x.closest('#dock')); if (el) el.focus({ preventScroll: true }); }   // en una ficha o colección el foco empieza en su botón principal
+  }, 380));
+  const alCerrarPlayer = typeof pl !== 'undefined' && new MutationObserver(() => { if (pl.hidden && enInicio()) setTimeout(restaurarFoco, 120); });
+  if (alCerrarPlayer) alCerrarPlayer.observe(pl, { attributes: true, attributeFilter: ['hidden'] });
 
   document.addEventListener('keydown', e => {
     if (editable(e.target) || (typeof pl !== 'undefined' && !pl.hidden)) return;
-    const vector = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[e.key];
-    if (!vector) return;
-    const [dx, dy] = vector, items = visibles();
+    const k = e.key, items = visibles();
     if (!items.length) return;
-    const active = document.activeElement;
-    const origin = active && active !== document.body && active.getClientRects().length
-      ? active.getBoundingClientRect()
-      : (document.getElementById('hl') || items[0]).getBoundingClientRect();
-    const ox = origin.left + origin.width / 2, oy = origin.top + origin.height / 2;
-    let best = null, bestScore = Infinity;
-    for (const item of items) {
-      if (item === active) continue;
-      const r = item.getBoundingClientRect(), x = r.left + r.width / 2, y = r.top + r.height / 2;
-      const primary = dx ? (x - ox) * dx : (y - oy) * dy;
-      if (primary < 8) continue;
-      const cross = dx ? Math.abs(y - oy) : Math.abs(x - ox);
-      const score = primary + cross * 1.7 + (cross > primary * 1.5 ? primary * .8 : 0);
-      if (score < bestScore) { best = item; bestScore = score; }
+    const m = modalActivo(), activo = document.activeElement;
+    const dentro = activo && activo !== document.body && esVisible(activo) && (!m || m.contains(activo));
+    const origen = () => (dentro ? activo : (m ? items[0] : (document.getElementById('hl') || items[0]))).getBoundingClientRect();
+    if (m && !dentro && /^(Arrow|Page|Channel|Home)/.test(k)) { e.preventDefault(); enfocar(items[0]); return; }
+    if (k === 'Home' && !m) { e.preventDefault(); scrollTo({ top: 0, behavior: suave }); const hl = document.getElementById('hl'); if (hl && esVisible(hl)) hl.focus({ preventScroll: true }); return; }
+    if (/^(PageDown|PageUp|ChannelDown|ChannelUp)$/.test(k) && !m) {            // canal ±, página ±: salta unas filas
+      const dir = /Down$/.test(k) ? 1 : -1, o = origen(), ox = o.left + o.width / 2, oy = o.top + o.height / 2, meta = oy + dir * innerHeight * .7;
+      let mejor = null, ms = Infinity;
+      for (const it of items) { const r = it.getBoundingClientRect(), y = r.top + r.height / 2, x = r.left + r.width / 2; if ((y - oy) * dir < 24) continue; const sc = Math.abs(y - meta) + Math.abs(x - ox) * .3; if (sc < ms) { mejor = it; ms = sc; } }
+      if (mejor) { e.preventDefault(); enfocar(mejor); }
+      return;
     }
-    if (best) {
-      e.preventDefault();
-      best.focus({ preventScroll: true });
-      best.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
-    }
+    const vector = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[k];
+    if (!vector) return;
+    const best = window.bbEspacial(items, dentro ? activo : null, vector[0], vector[1], origen());
+    if (best) { e.preventDefault(); enfocar(best); }
   });
 
   setTimeout(() => {
