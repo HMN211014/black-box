@@ -305,6 +305,7 @@ body:not(.h) .nav button.on{background:#fff;color:#000}
     <button id="g-go" type="button">Generar</button>
     <p class="m" id="g-m" hidden></p>
     <textarea id="g-out" readonly hidden></textarea>
+    <div id="g-ind" style="display:grid;gap:6px;margin-top:10px"></div>
     <div class="row" id="g-acc" style="margin-top:10px" hidden><button class="g" id="g-cp" type="button">Copiar todos</button></div>
   </div>
 
@@ -1148,6 +1149,20 @@ async function admin(cuerpo) {
   if (!r.ok) throw new Error(j.error || 'No se pudo completar.');
   return j;
 }
+/* Ficha de entrega de un código (texto listo para pegar en WhatsApp): plan, fecha de emisión, página y código. */
+const FICHA_URL = 'https://black-box.dlcgma2.workers.dev/';
+const MESES_FICHA = ['ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO', 'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'];
+function fichaCodigo(codigo, plan, emitido) {
+  const d = new Date(Number(emitido) || Date.now());
+  return ['*BLACK BOX*', '', '🍿*FICHA ENTREGA* 🍿', '', '*PLAN ' + nombrePlan(plan).toUpperCase() + '*', 'FECHA: ' + d.getDate() + ' ' + MESES_FICHA[d.getMonth()] + ' ' + d.getFullYear() + '📆', '', '*PÁGINA*', FICHA_URL, '', '*CÓDIGO DE ACCESO:* ', codigo].join('\n');
+}
+/* Botones de un código suelto: copiar solo el código, o copiar la ficha de entrega completa. */
+function botonesCodigo(codigo, plan, emitido) {
+  const fila = document.createElement('div'); fila.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap;margin-top:6px';
+  const mk = (txt, texto) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'g'; b.textContent = txt; b.style.cssText = 'height:30px;padding:0 10px;font-size:12px'; b.onclick = () => copiar(texto, b, txt); return b; };
+  fila.append(mk('Copiar código', codigo), mk('Copiar ficha', fichaCodigo(codigo, plan, emitido)));
+  return fila;
+}
 /* Detalles de una cuenta: ventana con lo que ha reproducido (títulos, veces y última vez). */
 async function detallesUsuario(correo) {
   const ov = document.createElement('div'); ov.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.66);display:flex;align-items:center;justify-content:center;padding:16px';
@@ -1871,6 +1886,8 @@ $('l-guardar-lote').addEventListener('click', () => con($('l-guardar-lote'), 'l-
 $('g-go').onclick = () => con($('g-go'), 'g-m', async () => {
   const j = await admin({ op: 'generar', plan: $('g-plan').value, dias: $('g-dias').value, peliculas: $('g-pel').value, cantidad: $('g-cant').value, nombre: $('g-nombre').value });
   $('g-out').value = j.codigos.join('\n'); $('g-out').hidden = false; $('g-acc').hidden = false;
+  const ind = $('g-ind'); ind.replaceChildren(); const hoy = Date.now();
+  j.codigos.forEach(cod => { const f = document.createElement('div'); f.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:6px 10px;border:1px solid rgba(255,255,255,.1);border-radius:10px;background:rgba(255,255,255,.04)'; const t = document.createElement('b'); t.textContent = cod; t.style.fontFamily = 'ui-monospace,monospace'; const bt = botonesCodigo(cod, j.plan, hoy); bt.style.marginTop = '0'; f.append(t, bt); ind.appendChild(f); });
   msg('g-m', j.codigos.length + ' código(s) ' + (j.plan === 'pedidos' ? 'válidos por ' + j.peliculas + ' película(s) cada uno' : j.sinVence ? 'sin vencimiento' : 'de ' + j.dias + ' días') + ', plan ' + nombrePlan(j.plan) + '. Cada uno se puede usar una sola vez.', true);
   await lotesCodigosCargar();
 });
@@ -1889,7 +1906,7 @@ $('l-go').onclick = () => con($('l-go'), 'l-m', async () => {
   const tb = $('l-t').querySelector('tbody'); tb.replaceChildren();
   j.codigos.forEach(c => {
     const tr = document.createElement('tr');
-    const k = document.createElement('td'); k.className = 'k'; k.textContent = c.codigo;
+    const k = document.createElement('td'); k.className = 'k'; k.textContent = c.codigo; k.appendChild(botonesCodigo(c.codigo, c.plan, c.creado));
     const lote = document.createElement('td'); lote.textContent = c.nombre || new Date(Number(c.creado)).toLocaleDateString('es-MX');
     const p = document.createElement('td'); p.textContent = nombrePlan(c.plan);
     const d = document.createElement('td'); d.textContent = c.plan === 'pedidos' && c.peliculas ? c.peliculas + (c.peliculas === 1 ? ' película' : ' películas') : PLANES_SIN_VENCE.includes(c.plan) ? 'Sin vencimiento' : c.dias;
