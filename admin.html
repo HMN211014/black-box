@@ -1148,6 +1148,33 @@ async function admin(cuerpo) {
   if (!r.ok) throw new Error(j.error || 'No se pudo completar.');
   return j;
 }
+/* Detalles de una cuenta: ventana con lo que ha reproducido (títulos, veces y última vez). */
+async function detallesUsuario(correo) {
+  const ov = document.createElement('div'); ov.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.66);display:flex;align-items:center;justify-content:center;padding:16px';
+  const caja = document.createElement('div'); caja.className = 'c'; caja.setAttribute('role', 'dialog'); caja.setAttribute('aria-modal', 'true'); caja.style.cssText = 'width:min(640px,100%);max-height:86vh;overflow:auto;background:#1b1b1f';
+  const h = document.createElement('h3'); h.textContent = 'Detalles · ' + correo; h.style.wordBreak = 'break-all';
+  const info = document.createElement('p'); info.className = 's'; info.textContent = 'Cargando…';
+  const lista = document.createElement('div'); lista.style.cssText = 'display:grid;gap:6px;margin-top:10px';
+  const cerrar = document.createElement('button'); cerrar.type = 'button'; cerrar.className = 'g'; cerrar.textContent = 'Cerrar'; cerrar.style.marginTop = '12px';
+  const fin = () => { ov.remove(); document.removeEventListener('keydown', tecla); };
+  const tecla = e => { if (e.key === 'Escape') fin(); };
+  cerrar.onclick = fin; ov.onclick = e => { if (e.target === ov) fin(); }; document.addEventListener('keydown', tecla);
+  caja.append(h, info, lista, cerrar); ov.appendChild(caja); document.body.appendChild(ov); cerrar.focus();
+  try {
+    const j = await admin({ op: 'historial_usuario', correo });
+    if (!j.items.length) { info.textContent = 'Todavía no hay reproducciones registradas para esta cuenta. El registro empieza desde esta actualización.'; return; }
+    info.textContent = j.items.length + (j.items.length === 1 ? ' título' : ' títulos') + ' · ' + j.total + (j.total === 1 ? ' reproducción' : ' reproducciones') + '. Más reciente primero.';
+    j.items.forEach(x => {
+      const f = document.createElement('div'); f.style.cssText = 'display:flex;justify-content:space-between;gap:12px;padding:8px 10px;border:1px solid rgba(255,255,255,.1);border-radius:10px;background:rgba(255,255,255,.04)';
+      const l = document.createElement('div'); l.style.minWidth = '0';
+      const t = document.createElement('b'); t.textContent = x.titulo; t.style.cssText = 'display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
+      const sub = document.createElement('small'); sub.style.color = '#a1a1a6'; sub.textContent = (x.tipo === 'serie' ? 'Serie' : 'Película') + ' · ' + x.veces + (x.veces === 1 ? ' vez' : ' veces') + ' · primera ' + new Date(x.primera).toLocaleDateString('es-MX');
+      l.append(t, sub);
+      const u = document.createElement('small'); u.style.cssText = 'color:#8fd19e;white-space:nowrap'; u.textContent = new Date(x.ultima).toLocaleString('es-MX', { dateStyle: 'medium', timeStyle: 'short' });
+      f.append(l, u); lista.appendChild(f);
+    });
+  } catch (e) { info.textContent = e.message || 'No se pudo cargar el historial.'; }
+}
 function msg(id, t, ok) { const m = $(id); m.textContent = t; m.className = 'm ' + (ok ? 'o' : 'e'); m.hidden = !t; }
 async function con(btn, id, fn) {
   btn.disabled = true; msg(id, '', true);
@@ -1876,6 +1903,7 @@ $('l-go').onclick = () => con($('l-go'), 'l-m', async () => {
       } else {
         if (c.usado.bloqueado) { const b = document.createElement('span'); b.className = 'tag u'; b.textContent = 'Bloqueado'; acc.appendChild(b); }
         const mini = (txt, fn) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'g'; b.textContent = txt; b.style.cssText = 'height:32px;padding:0 12px;font-size:13px'; b.onclick = () => con(b, 'l-um', async () => { if (await fn()) $('l-go').click(); }); acc.appendChild(b); };
+        { const det = document.createElement('button'); det.type = 'button'; det.className = 'g'; det.textContent = 'Detalles'; det.style.cssText = 'height:32px;padding:0 12px;font-size:13px'; det.onclick = () => detallesUsuario(c.usado.por); acc.appendChild(det); }
         mini(c.usado.bloqueado ? 'Desbloquear' : 'Bloquear', async () => {
           if (!c.usado.bloqueado && !confirm('¿Bloquear a ' + c.usado.por + '?\n\nSe le cierra la sesión y no podrá entrar hasta que lo desbloquees.')) return false;
           await admin({ op: 'bloquear_usuario', correo: c.usado.por, bloquear: !c.usado.bloqueado });
@@ -3872,7 +3900,8 @@ function actCuentasPintar(e, ahora) {
     if (x.bloqueado) chips.appendChild(etiqueta('Bloqueada', '#a8453f'));
     const det = document.createElement('small'); det.style.cssText = 'display:block;color:#b4c8e8;font-size:11px;margin-top:5px;word-break:break-all';
     det.textContent = x.codigos.map(k => k.codigo + ' (' + nombrePlan(k.plan) + (k.peliculas != null ? ', ' + k.peliculas + ' pel.' : k.dias != null ? ', ' + k.dias + ' d' : '') + (k.fecha ? ', canjeado ' + fecha(k.fecha) : '') + ')').join('  ·  ') + (x.totalCodigos > x.codigos.length ? '  ·  +' + (x.totalCodigos - x.codigos.length) + ' más' : '');
-    row.append(top, chips, det); box.appendChild(row);
+    const bd = document.createElement('button'); bd.type = 'button'; bd.className = 'g'; bd.textContent = 'Detalles'; bd.style.cssText = 'height:30px;padding:0 12px;font-size:12px;margin-top:7px'; bd.onclick = () => detallesUsuario(x.correo);
+    row.append(top, chips, det, bd); box.appendChild(row);
   });
   msg('act-cuentas-m', e.cuentas && e.cuentas.length
     ? (e.cuentas.length < e.conCodigo ? 'Se muestran las ' + n(e.cuentas.length) + ' más recientes de ' + n(e.conCodigo) + '. ' : '') + (e.parcial ? 'Hay muchos códigos canjeados: puede faltar alguna cuenta antigua.' : '')

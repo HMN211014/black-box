@@ -3262,7 +3262,7 @@ V.addEventListener('playing', () => {
   reproduccionContada = true;
   const evento = (crypto.randomUUID ? crypto.randomUUID().replace(/-/g, '') : Date.now().toString(36) + Math.random().toString(36).slice(2)).slice(0, 64);
   let dispositivo = ''; try { dispositivo = localStorage.getItem('bb-presencia-device') || ''; } catch (e) {}
-  fetch('/api/usuario/reproducciones', { method: 'POST', headers: { 'Content-Type': 'application/json' }, keepalive: true,
+  fetch('/api/usuario/reproducciones', { method: 'POST', headers: { 'Content-Type': 'application/json', ...(tokenGuardado() ? { Authorization: 'Bearer ' + tokenGuardado() } : {}) }, keepalive: true,
     body: JSON.stringify({ evento, tmdb, tipo: item.tipo === 'serie' || tvPeli.serie ? 'serie' : 'pelicula', titulo: item.titulo, plataforma: esApp() ? 'app' : 'web', dispositivo }) }).then(r => { if (r.ok) cargarTopReproducciones(); }).catch(() => {});
 });
 aplicarFit();

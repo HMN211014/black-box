@@ -370,6 +370,12 @@ function tokenDe(request) {
   const b = (request.headers.get('Authorization') || '').match(/^Bearer\s+([\w-]+)$/);
   return b ? b[1] : null;
 }
+/* Historial de lo que ve cada cuenta (solo lo consulta el admin, botón «Detalles»). Una fila por cuenta y título; la tabla se crea sola. */
+let historialListo = null;
+function asegurarHistorial(db) {
+  if (!historialListo) historialListo = db.prepare('CREATE TABLE IF NOT EXISTS historial_usuario (correo TEXT NOT NULL, tipo TEXT NOT NULL, tmdb INTEGER NOT NULL, titulo TEXT NOT NULL, veces INTEGER NOT NULL DEFAULT 1, primera INTEGER NOT NULL, ultima INTEGER NOT NULL, PRIMARY KEY (correo, tipo, tmdb)) WITHOUT ROWID').run().catch(e => { historialListo = null; throw e; });
+  return historialListo;
+}
 /* Cuentas bloqueadas desde el panel (lista de códigos). La tabla se crea sola la primera vez; ejecutar algo en D1 no hace falta. */
 let bloqueosListo = null;
 function asegurarBloqueos(db) {
@@ -973,6 +979,11 @@ async function manejar({ request, env, params, waitUntil }) {
     ]);
     const contado = !!(res[0] && res[0].meta && res[0].meta.changes);
     if (contado) {
+      try {                                                                 // si hay sesión, se anota también en el historial de esa cuenta
+        const correoVe = await correoDeSesion(request, db);
+        if (correoVe) { await asegurarHistorial(db); await db.prepare(`INSERT INTO historial_usuario (correo, tipo, tmdb, titulo, veces, primera, ultima) VALUES (?1, ?2, ?3, ?4, 1, ?5, ?5)
+          ON CONFLICT(correo, tipo, tmdb) DO UPDATE SET titulo = ?4, veces = veces + 1, ultima = ?5`).bind(correoVe, tipo, tmdb, titulo, ahora).run(); }
+      } catch (e) { console.warn('[historial]', e && e.message); }
       await db.prepare(`INSERT INTO reproducciones_plataformas (tmdb, tipo, plataforma, total) VALUES (?1, ?2, ?3, 1)
         ON CONFLICT(tipo, tmdb, plataforma) DO UPDATE SET total = total + 1`).bind(tmdb, tipo, plataforma).run();
       if (dispositivoHash) await db.prepare('INSERT OR IGNORE INTO reproducciones_dispositivos (tmdb, tipo, plataforma, dispositivo_hash) VALUES (?1, ?2, ?3, ?4)')
@@ -1653,6 +1664,16 @@ async function manejar({ request, env, params, waitUntil }) {
     }
 
     /* Bloquear / desbloquear / eliminar la cuenta de quien canjeó un código (botones en la lista de códigos) */
+    /* Detalles de una cuenta: qué títulos ha reproducido, con cuántas veces y cuándo fue la última. */
+    if (cuerpo.op === 'historial_usuario') {
+      const correo = limpiarCorreo(cuerpo.correo);
+      if (!correo) return json({ error: 'Falta el correo.' }, 400);
+      await asegurarHistorial(db);
+      const r = await db.prepare('SELECT tipo, tmdb, titulo, veces, primera, ultima FROM historial_usuario WHERE correo = ?1 ORDER BY ultima DESC LIMIT 300').bind(correo).all();
+      const items = (r.results || []).map(x => ({ tipo: x.tipo, tmdb: x.tmdb, titulo: x.titulo, veces: Number(x.veces) || 1, primera: Number(x.primera) || 0, ultima: Number(x.ultima) || 0 }));
+      return json({ correo, items, total: items.reduce((a, x) => a + x.veces, 0) });
+    }
+
     if (cuerpo.op === 'bloquear_usuario' || cuerpo.op === 'eliminar_usuario') {
       const correo = limpiarCorreo(cuerpo.correo);
       if (!correo || !(await db.prepare('SELECT 1 AS x FROM usuarios WHERE correo = ?1').bind(correo).first())) return json({ error: 'Ese correo ya no tiene cuenta.' }, 404);
@@ -1672,8 +1693,9 @@ async function manejar({ request, env, params, waitUntil }) {
       }
 
       /* Eliminar: se borra la cuenta y todo lo suyo (sesiones, lista, pedidos, progreso, teléfonos). Los códigos canjeados se conservan como historial. */
-      await asegurarGoogle(db);
+      await asegurarGoogle(db); await asegurarHistorial(db);
       await db.batch([
+        db.prepare('DELETE FROM historial_usuario WHERE correo = ?1').bind(correo),
         db.prepare('DELETE FROM cuentas_google WHERE correo = ?1').bind(correo),
         db.prepare('DELETE FROM sesiones WHERE correo = ?1').bind(correo),
         db.prepare('DELETE FROM lista WHERE correo = ?1').bind(correo),
