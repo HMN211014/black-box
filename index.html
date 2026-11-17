@@ -1632,6 +1632,43 @@ html.tv-ligero .card{transition:none}
 /* Barra superior: la opción elegida se nota más (letra en negrita y más grande) y las demás quedan un poco más tenues. */
 html body #dock .dk{font-weight:600;color:rgba(255,255,255,.68)}
 html body #dock .dk.on{font-weight:800;color:#fff;letter-spacing:-.005em}
+/* Navegación lateral y búsqueda pensadas para el mando de Android TV. */
+html.android-tv #top .brand{display:none}
+html.android-tv #dock{position:fixed;z-index:90;top:50%;left:28px;right:auto;bottom:auto;transform:translateY(-50%);display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;gap:8px;width:64px;height:auto;max-height:88vh;overflow-y:auto;overflow-x:hidden;padding:14px 8px;border-radius:24px;background:linear-gradient(180deg,rgba(23,25,30,.94),rgba(13,15,19,.9));border:1px solid rgba(255,255,255,.1);box-shadow:0 18px 42px rgba(0,0,0,.38);transition:width .22s ease,padding .22s ease,box-shadow .22s ease;scrollbar-width:none}
+html.android-tv #dock::-webkit-scrollbar{display:none}
+html.android-tv #dock::after{content:"";position:fixed;z-index:-1;left:-12px;right:-12px;bottom:-30px;height:34px;pointer-events:none;background:radial-gradient(ellipse at 50% 0,rgba(0,0,0,.52),transparent 72%);filter:blur(8px)}
+html.android-tv #dock:focus-within,html.android-tv #dock:hover{width:230px;padding:18px 12px;box-shadow:0 26px 68px rgba(0,0,0,.68),0 8px 24px rgba(0,0,0,.34)}
+html.android-tv #dock .dk{position:relative;z-index:1;display:flex;flex:none;justify-content:flex-start;gap:16px;width:100%;min-width:0;height:48px;padding:0 12px;border-radius:14px;overflow:hidden;color:rgba(255,255,255,.8);font-size:16px;font-weight:650;text-align:left;white-space:nowrap}
+html.android-tv #dock .dk svg,html.android-tv #dock .dk .uic{display:grid;place-items:center;flex:none;width:24px;height:24px}
+html.android-tv #dock .dk span{display:block;max-width:0;overflow:hidden;opacity:0;transition:max-width .2s ease,opacity .16s ease}
+html.android-tv #dock:focus-within .dk span,html.android-tv #dock:hover .dk span{max-width:170px;opacity:1}
+html.android-tv #dock .dk.on{background:rgba(255,255,255,.12);color:#fff;box-shadow:inset 3px 0 #fff}
+html.android-tv #dock .dk:focus-visible{outline:2px solid #fff;outline-offset:1px;background:rgba(255,255,255,.17)}
+html.android-tv #dock .dsep{display:block;flex:none;width:auto;height:1px;margin:4px 5px;background:rgba(255,255,255,.14)}
+html.android-tv #dock #ajustes{order:10}
+html.android-tv body.buscando #dock{transform:translateY(-50%);opacity:1;pointer-events:auto}
+html.android-tv #bbox{position:fixed;z-index:85;top:6.5vh;right:6vw;left:calc(6vw + 270px);bottom:auto;width:auto;height:72px;transform:none;padding:0 22px;border-radius:18px;background:rgba(20,22,27,.78);box-shadow:0 10px 35px rgba(0,0,0,.38);opacity:0;pointer-events:none;transition:opacity .2s ease}
+html.android-tv body.buscando #bbox{transform:none;opacity:1;pointer-events:auto}
+html.android-tv #bbox>svg{width:30px;height:30px;color:#fff}
+html.android-tv #bbox input{font-size:clamp(22px,2.2vw,30px);font-weight:500}
+html.android-tv #bbox input::placeholder{color:rgba(255,255,255,.8);font-weight:500}
+html.android-tv #vista-busq{position:fixed;z-index:80;inset:0;min-height:0;overflow:auto;padding:0 5vw 5vh calc(6vw + 270px);background:rgba(5,7,10,.94)}
+html.android-tv body.buscando #vista-busq{display:block;padding-top:17vh}
+html.android-tv #tv-search-keyboard{position:fixed;left:6vw;top:17vh;z-index:86;display:grid;grid-template-columns:repeat(7,minmax(34px,1fr));gap:7px;width:238px;padding:14px;border:1px solid rgba(255,255,255,.12);border-radius:18px;background:linear-gradient(160deg,rgba(37,41,49,.96),rgba(21,24,30,.96));box-shadow:0 15px 36px rgba(0,0,0,.38)}
+html.android-tv #tv-search-keyboard[hidden]{display:none!important}
+html.android-tv .tv-key{height:39px;min-width:0;padding:0 4px;border:0;border-radius:8px;background:transparent;color:#fff;font:inherit;font-size:19px;font-weight:600;cursor:pointer}
+html.android-tv .tv-key:hover,html.android-tv .tv-key:focus-visible{outline:2px solid #fff;outline-offset:1px;background:rgba(255,255,255,.18)}
+html.android-tv .tv-key.wide{grid-column:span 2;font-size:14px}
+html.android-tv #vista-busq #bact-w,html.android-tv #vista-busq #bt,html.android-tv #vista-busq #bres,html.android-tv #vista-busq .sinres{max-width:100%}
+html.android-tv #vista-busq #bt{font-size:22px;margin:4px 0 12px}
+html.android-tv #vista-busq .grid{grid-template-columns:repeat(auto-fill,minmax(clamp(150px,14vw,220px),1fr));gap:20px;padding:8px 0 32px}
+html.android-tv #vista-busq .actor-card{width:130px}
+html.android-tv #vista-busq .card:focus-visible{outline:3px solid #fff;outline-offset:4px}
+html.android-tv #tv-search-popular{max-width:100%;padding-top:4px}
+html.android-tv #tv-search-popular[hidden]{display:none!important}
+html.android-tv #tv-search-popular h3{margin:0 0 10px;font-size:20px}
+html.android-tv #tv-search-popular-track{display:grid;grid-auto-flow:column;grid-auto-columns:clamp(150px,15vw,220px);gap:18px;overflow-x:auto;padding:10px 4px 18px;scrollbar-width:none}
+html.android-tv #tv-search-popular-track::-webkit-scrollbar{display:none}
 @media(min-width:821px){
   html body #dock .dk.on{background:#fff;color:#000;font-weight:800;box-shadow:0 2px 14px rgba(255,255,255,.25)}
 }
@@ -1837,6 +1874,8 @@ html body #dock .dk.on{font-weight:800;color:#fff;letter-spacing:-.005em}
 </section>
 
 <section id="vista-busq" aria-label="Resultados de búsqueda">
+  <div id="tv-search-keyboard" aria-label="Teclado en pantalla" hidden></div>
+  <div id="tv-search-popular" hidden><h3>Búsquedas más populares</h3><div id="tv-search-popular-track"></div></div>
   <div id="bact-w" hidden><h3>Actores</h3><div id="bact-list"></div></div>
   <h3 id="bt"></h3>
   <div class="grid" id="bres"></div>
@@ -3881,6 +3920,7 @@ function conQ(on) {
 function filtrar() {
   const raw = bq.value, qn = norm(raw);
   actorElegido = null; solicitarActores(raw);
+  if (H('tv-search-popular')) H('tv-search-popular').hidden = !!qn || !document.documentElement.classList.contains('android-tv');
   bbox.classList.toggle('lleno', !!raw);
   H('bx').setAttribute('aria-label', raw ? 'Borrar búsqueda' : 'Cerrar búsqueda');
   conQ(busq && !!qn);
@@ -3948,7 +3988,11 @@ actorList.addEventListener('click', async e => {
 function abrirBusqueda() {
   if (vistaCompartida) return;
   busq = true; document.body.classList.add('buscando'); H('dk-buscar').setAttribute('aria-expanded', 'true');
-  filtrar(); setTimeout(() => bq.focus(), 60);
+  filtrar(); setTimeout(() => {
+    const primeraTecla = H('tv-search-keyboard')?.querySelector('button');
+    if (document.documentElement.classList.contains('android-tv') && primeraTecla) primeraTecla.focus();
+    else bq.focus();
+  }, 60);
 }
 function cerrarBusqueda() {
   if (!busq && !bq.value) return;
@@ -3956,14 +4000,41 @@ function cerrarBusqueda() {
   busq = false; bq.value = ''; if (reco) { try { reco.stop(); } catch (e) {} }
   document.body.classList.remove('buscando'); conQ(false); bbox.classList.remove('lleno'); bq.blur();
   H('dk-buscar').setAttribute('aria-expanded', 'false'); actualizarCont();
+  if (document.documentElement.classList.contains('android-tv')) H('dk-buscar').focus({ preventScroll: true });
 }
 H('dk-buscar').onclick = () => busq ? cerrarBusqueda() : abrirBusqueda();
 bq.addEventListener('input', filtrar);
+const tvKeyboard = H('tv-search-keyboard');
+if (document.documentElement.classList.contains('android-tv') && tvKeyboard) {
+  bq.readOnly = true; bq.tabIndex = -1;
+  bq.placeholder = 'Búsqueda por título, género, actor o plataforma';
+  bq.setAttribute('aria-label', bq.placeholder);
+  const populares = H('tv-search-popular-track'), destacadas = todas().filter(p => p.popular).slice(0, 10);
+  (destacadas.length ? destacadas : todas().slice(0, 10)).forEach(p => populares.appendChild(crearTarjeta(p)));
+  const teclasTv = [...'abcdefghijklmnñopqrstuvwxyz', ...'0123456789'];
+  teclasTv.forEach(letra => {
+    const tecla = document.createElement('button'); tecla.className = 'tv-key'; tecla.textContent = letra; tecla.type = 'button'; tecla.dataset.tvKey = letra;
+    tecla.setAttribute('aria-label', letra); tvKeyboard.appendChild(tecla);
+  });
+  [['⌫', 'borrar', 'Borrar última letra'], ['Espacio', 'espacio', 'Insertar espacio'], ['Limpiar', 'limpiar', 'Limpiar búsqueda']].forEach(([texto, accion, etiqueta]) => {
+    const tecla = document.createElement('button'); tecla.className = 'tv-key wide'; tecla.textContent = texto; tecla.type = 'button'; tecla.dataset.tvKey = accion; tecla.setAttribute('aria-label', etiqueta); tvKeyboard.appendChild(tecla);
+  });
+  tvKeyboard.addEventListener('click', e => {
+    const tecla = e.target.closest('button[data-tv-key]'); if (!tecla) return;
+    const accion = tecla.dataset.tvKey;
+    if (accion === 'borrar') bq.value = bq.value.slice(0, -1);
+    else if (accion === 'espacio') bq.value += ' ';
+    else if (accion === 'limpiar') bq.value = '';
+    else bq.value += accion;
+    filtrar();
+  });
+  tvKeyboard.hidden = false;
+}
 bq.addEventListener('keydown', e => {
   if (e.key === 'Escape') cerrarBusqueda();
   else if (e.key === 'Enter') bq.blur();                          // cierra el teclado en el móvil
 });
-H('bx').onclick = () => { if (bq.value) { bq.value = ''; filtrar(); bq.focus(); } else cerrarBusqueda(); };
+H('bx').onclick = () => { if (bq.value) { bq.value = ''; filtrar(); const primeraTecla = document.documentElement.classList.contains('android-tv') ? tvKeyboard?.querySelector('button') : null; (primeraTecla || bq).focus(); } else cerrarBusqueda(); };
 if (window.visualViewport) {                                      // en iPhone la píldora sube sobre el teclado
   const vv = visualViewport; let kbUlt = '0px', kbRaf = 0, dedo = false, kbTimer = 0;
   const kb = () => {
@@ -6900,6 +6971,9 @@ setTimeout(() => { vtOK = true; }, 600);              // las transiciones empiez
   if (alCerrarPlayer) alCerrarPlayer.observe(pl, { attributes: true, attributeFilter: ['hidden'] });
 
   document.addEventListener('keydown', e => {
+    if (busq && (e.key === 'Escape' || e.key === 'Backspace')) {
+      e.preventDefault(); cerrarBusqueda(); return;
+    }
     if (editable(e.target) || (typeof pl !== 'undefined' && !pl.hidden)) return;
     const k = e.key, items = visibles();
     if (!items.length) return;
